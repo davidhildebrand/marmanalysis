@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 import json
 import numpy as np
+import os
 import re
 from ScanImageTiffReader import ScanImageTiffReader
 from warnings import warn
@@ -109,15 +110,15 @@ def get_scanimage_metadata(filepath):
     md_dict = {}
     with ScanImageTiffReader(filepath) as reader:
         # Attempt to determine number of imaging planes
-        fp = filepath
-        fpci = filepath.lower()
-        if 'max30' in fpci:
+        fn = os.path.basename(filepath)
+        fnci = fn.lower()
+        if 'max30' in fnci:
             n_planes = 30
             mode = 'max30'
-        elif 'max15' in fpci:
+        elif 'max15' in fnci:
             n_planes = 15
             mode = 'max15'
-        elif 'sp' in fpci:
+        elif 'sp' in fnci:
             n_planes = 1
             mode = 'sp'
         else:
@@ -131,10 +132,10 @@ def get_scanimage_metadata(filepath):
         # Attempt to determine depth of deepest imaging plane
         ptrn_d0 = r'^.*depth([0-9]+)um.*$'
         ptrn_d1 = r'^.*[^0-9]([0-9]+)umdeep.*$'
-        if re.match(ptrn_d0, fp) is not None:
-            m = re.match(ptrn_d0, fp)
-        elif re.match(ptrn_d1, fp) is not None:
-            m = re.match(ptrn_d1, fp)
+        if re.match(ptrn_d0, fn) is not None:
+            m = re.match(ptrn_d0, fn)
+        elif re.match(ptrn_d1, fn) is not None:
+            m = re.match(ptrn_d1, fn)
         else:
             m = None
         if m is not None:
@@ -154,10 +155,10 @@ def get_scanimage_metadata(filepath):
         # Attempt to determine laser power
         ptrn_p0 = r'^.*pow([0-9]+p?[0-9]+?)mW.*$'
         ptrn_p1 = r'^.*[^0-9]([0-9]+p?[0-9]+?)mW.*$'
-        if re.match(ptrn_p0, fp) is not None:
-            m = re.match(ptrn_p0, fp)
-        elif re.match(ptrn_p1, fp) is not None:
-            m = re.match(ptrn_p1, fp)
+        if re.match(ptrn_p0, fn) is not None:
+            m = re.match(ptrn_p0, fn)
+        elif re.match(ptrn_p1, fn) is not None:
+            m = re.match(ptrn_p1, fn)
         else:
             m = None
         if m is not None:
