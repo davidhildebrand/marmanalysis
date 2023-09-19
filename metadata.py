@@ -108,16 +108,16 @@ def parse_scanimage_desc(desc):
 def get_scanimage_metadata(filepath):
     md_dict = {}
     with ScanImageTiffReader(filepath) as reader:
-        fp = filepath.lower()
-
         # Attempt to determine number of imaging planes
-        if 'max30' in fp:
+        fp = filepath
+        fpci = filepath.lower()
+        if 'max30' in fpci:
             n_planes = 30
             mode = 'max30'
-        elif 'max15' in fp:
+        elif 'max15' in fpci:
             n_planes = 15
             mode = 'max15'
-        elif 'sp' in fp:
+        elif 'sp' in fpci:
             n_planes = 1
             mode = 'sp'
         else:
@@ -145,14 +145,15 @@ def get_scanimage_metadata(filepath):
         else:
             warn('Could not determine depth of deepest imaging plane from filename. ')
             depth = None
-        depth = float(depth)
-        if depth.is_integer():
-            depth = int(depth)
+        if depth is not None:
+            depth = float(depth)
+            if depth.is_integer():
+                depth = int(depth)
         md_dict['depth'] = depth
 
         # Attempt to determine laser power
         ptrn_p0 = r'^.*pow([0-9]+p?[0-9]+?)mW.*$'
-        ptrn_p1 = r'^.*([0-9]+p?[0-9]+?)mW.*$'
+        ptrn_p1 = r'^.*[^0-9]([0-9]+p?[0-9]+?)mW.*$'
         if re.match(ptrn_p0, fp) is not None:
             m = re.match(ptrn_p0, fp)
         elif re.match(ptrn_p1, fp) is not None:
@@ -167,9 +168,9 @@ def get_scanimage_metadata(filepath):
         else:
             warn('Could not determine power from filename. ')
             power = None
-        if 'p' in power:
+        if power is not None and 'p' in power:
             power = power.replace('p', '.')
-        power = float(power)
+            power = float(power)
         md_dict['power'] = power
 
         md_dict['n_frames'] = reader.shape()[0]
