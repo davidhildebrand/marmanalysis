@@ -190,3 +190,57 @@ def get_scanimage_metadata(filepath):
 
         return md_dict
 
+def extract_useful_metadata(scanimage_metadata):
+    # NOTE assumes ROIs strips of a larger plane ROI and are all the same size
+    # NOTE assumes acqusitions before 20230505d have strip overlap and after do not
+    simd = scanimage_metadata
+    date_strip_overlap_fix = datetime(2023, 5, 5, tzinfo=ZoneInfo('America/New_York'))
+    
+    umd = {}
+    
+    umd['n_planes'] = simd['n_planes']
+    umd['mode'] = simd['mode']
+    umd['depth'] = simd['depth']
+    umd['power'] = simd['power']
+    umd['n_planes'] = simd['n_planes']
+    umd['n_frames'] = simd['n_frames']
+    umd['n_strips'] = len(simd['json']['RoiGroups']['imagingRoiGroup']['rois'])
+    umd['objective_resolution'] = simd['SI']['objectiveResolution']  # um/deg
+    umd['framerate'] = simd['SI']['hRoiManager']['scanFrameRate']
+    umd['framerate_str'] = '{:06.3f}'.format(umd['framerate']).replace('.', 'p') + 'Hz'
+    umd['datetime_start'] = simd['frame0desc']['epoch'] - timedelta(seconds=umd['framerate'])
+    umd['date_str'] = umd['datetime_start'].strftime('%Y%m%dd')
+    umd['time_start_str'] = umd['datetime_start'].strftime('%H%M%StUTC')
+    
+    scanfields = simd['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']
+    umd['strip_size_px'] = np.array(scanfields['pixelResolutionXY'])
+    umd['strip_w_px'] = umd['strip_size_px'][0]
+    umd['strip_h_px'] = umd['strip_size_px'][1]
+    umd['strip_size_deg'] = np.array(scanfields['sizeXY'])
+    umd['strip_w_deg'] = umd['strip_size_deg'][0]
+    umd['strip_h_deg'] = umd['strip_size_deg'][1]
+    if umd['datetime_start'] < date_strip_overlap_fix:
+        umd['strip_overlap'] = False
+        umd['strip_overlap_px'] = None
+    else:
+        umd['strip_overlap'] = True
+        umd['strip_overlap_px'] = None
+    
+    umd['res_x_umppx'] = umd['objective_resolution'] / (umd['strip_w_px'] / umd['strip_w_deg'])
+    res_x_umppx_str = '{:03.2f}'.format(umd['res_x_umppx']).replace('.', 'p')
+    umd['res_y_umppx'] = umd['objective_resolution'] / (umd['strip_h_px'] / umd['strip_h_deg'])
+    res_y_umppx_str = '{:03.2f}'.format(umd['res_y_umppx']).replace('.', 'p')
+    umd['res_umpx'] = np.array([umd['res_x_umppx'], umd['res_y_umppx']])
+    umd['res_str'] = 'res{}x{}umpx'.format(res_x_umppx_str, res_y_umppx_str)
+    
+    umd['plane_size_px'] = umd['strip_size_px'] * np.array([umd['n_strips'], 1])
+    umd['plane_w_px'] = umd['plane_size_px'][0]
+    umd['plane_h_px'] = umd['plane_size_px'][1]
+    umd['plane_size_um'] = umd['res_umpx'] * umd['plane_size_px']
+    umd['plane_w_um'] = umd['plane_size_um'][0]
+    umd['plane_h_um'] = umd['plane_size_um'][1]
+    umd['plane_size_um_str'] = 'fov{:04d}x{:04d}um'.format(round(umd['plane_w_um']), 
+                                                        round(umd['plane_h_um']))
+
+    return umd
+
