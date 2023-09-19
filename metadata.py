@@ -5,22 +5,31 @@ import json
 import numpy as np
 import re
 from ScanImageTiffReader import ScanImageTiffReader
+from warnings import warn
 from zoneinfo import ZoneInfo
 
 def metadata_line_to_dict(string, sep, acqtz='America/New_York'):
     if string.count('=') != 1:
-        print('error: do not know how to handle strings with more than one equals sign')
+        warn('Do not know how to handle strings with more than one equals sign.')
+        print(string)
     eqpos = string.find('=')
+
+    # Replace 'sep' instances in value with unit separator
     if sep in string[eqpos+1:-1]:
-        # replace sep instances in value with unit separator
         stringA, stringB = string.split('=')
         stringBnosep = stringB.replace(sep, chr(31))
         string = '='.join([stringA, stringBnosep])
+
     if sep not in string:
         k1s, vs = string.split('=')
         k1 = k1s.strip()
-        # replace unit separator instances with sep
+
+        # Replace unit separator instances with sep
         v = vs.strip().replace(chr(31), sep)
+        
+        # Import values from MATLAB ScanImage into python format
+        ptrn_num = r'^[+-]?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *[+-]?\ *[0-9]+)?$'
+        ptrn_dt = r'^\[\ *[0-9]+\ +[0-9]+\ +[0-9]+\ +[0-9]+\ +[0-9]+\ +[0-9]+\.[0-9]+\ *\]$'
         if v.lower() == 'true':
             v = True
         elif v.lower() == 'false':
@@ -38,11 +47,11 @@ def metadata_line_to_dict(string, sep, acqtz='America/New_York'):
         #    v = float(v)
         #    if v.is_integer():
         #        v = int(v)
-        elif re.match("^[+-]?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *[+-]?\ *[0-9]+)?$", v) is not None:
+        elif re.match(ptrn_num, v) is not None:
             v = float(v)
             if v.is_integer():
                 v = int(v)
-        elif re.match("^\[\ *[0-9]+\ +[0-9]+\ +[0-9]+\ +[0-9]+\ +[0-9]+\ +[0-9]+\.[0-9]+\ *\]$", v) is not None:
+        elif re.match(ptrn_dt, v) is not None:
             # e.g., [2023  8  4 14  2 8.937]
             #m = re.match("^\[\ *([0-9]+)\ +([0-9]+)\ +([0-9]+)\ +([0-9]+)\ +([0-9]+)\ +([0-9]+)(\.[0-9]+)\ *\]$", v)
             #g = m.groups()
@@ -99,8 +108,71 @@ def parse_scanimage_desc(desc):
 def get_scanimage_metadata(filepath):
     md_dict = {}
     with ScanImageTiffReader(filepath) as reader:
-        md_dict['n_frames'] = reader.shape()[0]
+        fp = filepath.lower()
 
+        # Attempt to determine number of imaging planes
+        if 'max30' in fp:
+            n_planes = 30
+            mode = 'max30'
+        elif 'max15' in fp:
+            n_planes = 15
+            mode = 'max15'
+        elif 'sp' in fp:
+            n_planes = 1
+            mode = 'sp'
+        else:
+            warn('Could not determine number of imaging planes from filename. ' + \
+                 'Assuming single plane (n_planes = 1).')
+            n_planes = 1
+            mode = 'sp'
+        md_dict['n_planes'] = n_planes
+        md_dict['mode'] = mode
+        
+        # Attempt to determine depth of deepest imaging plane
+        ptrn_d0 = r'^.*depth([0-9]+)um.*$'
+        ptrn_d1 = r'^.*[^0-9]([0-9]+)umdeep.*$'
+        if re.match(ptrn_d0, fp) is not None:
+            m = re.match(ptrn_d0, fp)
+        elif re.match(ptrn_d1, fp) is not None:
+            m = re.match(ptrn_d1, fp)
+        else:
+            m = None
+        if m is not None:
+            g = m.groups()
+            if len(g) > 1:
+                warn('Found more than one depth in filename. Using the first.')
+            depth = g[0]
+        else:
+            warn('Could not determine depth of deepest imaging plane from filename. ')
+            depth = None
+        depth = float(depth)
+        if depth.is_integer():
+            depth = int(depth)
+        md_dict['depth'] = depth
+
+        # Attempt to determine laser power
+        ptrn_p0 = r'^.*pow([0-9]+p?[0-9]+?)mW.*$'
+        ptrn_p1 = r'^.*([0-9]+p?[0-9]+?)mW.*$'
+        if re.match(ptrn_p0, fp) is not None:
+            m = re.match(ptrn_p0, fp)
+        elif re.match(ptrn_p1, fp) is not None:
+            m = re.match(ptrn_p1, fp)
+        else:
+            m = None
+        if m is not None:
+            g = m.groups()
+            if len(g) > 1:
+                warn('Found more than one power in filename. Using the first.')
+            power = g[0]
+        else:
+            warn('Could not determine power from filename. ')
+            power = None
+        if 'p' in power:
+            power = power.replace('p', '.')
+        power = float(power)
+        md_dict['power'] = power
+
+        md_dict['n_frames'] = reader.shape()[0]
         desc = parse_scanimage_desc(reader.description(0))
         md_dict['frame0desc'] = desc
 
