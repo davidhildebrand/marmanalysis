@@ -109,7 +109,7 @@ def parse_scanimage_desc(desc):
 def get_scanimage_metadata(filepath):
     md_dict = {}
     with ScanImageTiffReader(filepath) as reader:
-        # Attempt to determine number of imaging planes
+        # Attempt to determine number of imaging planes from filename
         fn = os.path.basename(filepath)
         fnci = fn.lower()
         if 'max30' in fnci:
@@ -129,7 +129,7 @@ def get_scanimage_metadata(filepath):
         md_dict['n_planes'] = n_planes
         md_dict['mode'] = mode
         
-        # Attempt to determine depth of deepest imaging plane
+        # Attempt to determine depth of deepest imaging plane from filename
         ptrn_d0 = r'^.*depth([0-9]+)um.*$'
         ptrn_d1 = r'^.*[^0-9]([0-9]+)umdeep.*$'
         if re.match(ptrn_d0, fn) is not None:
@@ -152,7 +152,7 @@ def get_scanimage_metadata(filepath):
                 depth = int(depth)
         md_dict['depth'] = depth
 
-        # Attempt to determine laser power
+        # Attempt to determine laser power from filename
         ptrn_p0 = r'^.*pow([0-9]+p?[0-9]+?)mW.*$'
         ptrn_p1 = r'^.*[^0-9]([0-9]+p?[0-9]+?)mW.*$'
         if re.match(ptrn_p0, fn) is not None:
@@ -180,15 +180,22 @@ def get_scanimage_metadata(filepath):
 
         md_raw = reader.metadata()
         md_json_start = md_raw.find('\n{')
-        md_json_end = md_raw.find('}\n', -1)
-        md_nonjson = md_raw[0:md_json_start]
+        #md_json_end = md_raw.find('}\n', -2) + 1
+
+        if md_json_start != -1:
+            md_json_str = md_raw[md_json_start+1:]
+            md_json = json.loads(md_json_str)
+            md_dict['json_str'] = md_json_str
+            md_dict['json'] = md_json
+            md_nonjson = md_raw[0:md_json_start]
+        else:
+            md_dict['json_str'] = None
+            md_dict['json'] = None
+            md_nonjson = md_raw
+
         for line in md_nonjson.splitlines():
             md_dict = merge_metadata_dicts(md_dict, 
                                            metadata_line_to_dict(line, '.'))
-        md_json_str = md_raw[md_json_start+1:md_json_end]
-        md_json = json.loads(md_json_str)
-        md_dict['json_str'] = md_json_str
-        md_dict['json'] = md_json
 
         return md_dict
 
@@ -242,7 +249,7 @@ def extract_useful_metadata(scanimage_metadata):
     umd['plane_w_um'] = umd['plane_size_um'][0]
     umd['plane_h_um'] = umd['plane_size_um'][1]
     umd['plane_size_um_str'] = 'fov{:04d}x{:04d}um'.format(round(umd['plane_w_um']), 
-                                                        round(umd['plane_h_um']))
+                                                           round(umd['plane_h_um']))
 
     return umd
 
