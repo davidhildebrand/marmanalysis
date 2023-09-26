@@ -6,7 +6,9 @@ import magic
 import numpy as np
 import os
 
-import metadata # *** TODO *** make relative?
+# *** TODO *** make relative?
+#from . import metadata
+import metadata
 
 def is_tiff(filepath: str) -> bool:
     allowed_types = ['image/tiff', 'image/tif']
@@ -34,17 +36,18 @@ if not is_tiff(source): # source_ext != '.tif' and source_ext != '.tiff':
     m = 'Source file must be a TIFF stack (with extension .tif or .tiff).'
     raise RuntimeError(m)
 
-md = metadata.get_scanimage_metadata(source)
+amd = metadata.get_scanimage_metadata(source)
+md = extract_useful_metadata(amd)
 
-n_frames = md['n_frames']
-n_strips = len(md['json']['RoiGroups']['imagingRoiGroup']['rois'])
-obj_res = md['SI']['objectiveResolution']  # deg
-framerate = md['SI']['hRoiManager']['scanFrameRate']
+n_frames = amd['n_frames']
+n_strips = len(amd['json']['RoiGroups']['imagingRoiGroup']['rois'])
+obj_res = amd['SI']['objectiveResolution']  # um/deg
+framerate = amd['SI']['hRoiManager']['scanFrameRate']
 framerate_str = '{:06.3f}'.format(framerate).replace('.', 'p')
-strip_size_px = np.array(md['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['pixelResolutionXY'])
+strip_size_px = np.array(amd['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['pixelResolutionXY'])
 strip_w_px = strip_size_px[0]
 strip_h_px = strip_size_px[1]
-strip_size_deg = np.array(md['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['sizeXY'])
+strip_size_deg = np.array(amd['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['sizeXY'])
 strip_w_deg = strip_size_deg[0]
 strip_h_deg = strip_size_deg[1]
 #px_ratio = strip_size_px / strip_size_deg  # px/deg
@@ -58,7 +61,7 @@ roi_h_px = strip_h_px
 roi_w_um = roi_w_px * res_w_umppx
 roi_h_um = roi_h_px * res_h_umppx
 
-start = md['frame0desc']['epoch'] - timedelta(seconds=framerate)
+start = amd['frame0desc']['epoch'] - timedelta(seconds=framerate)
 start_str = start.strftime('%H%M%StUTC')
 
 fntxt_fov = 'fov{:04d}x{:04d}um'.format(round(roi_w_um), round(roi_h_um))
