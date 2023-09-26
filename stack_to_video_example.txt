@@ -1,0 +1,2 @@
+cd to desktop
+python ./stack_to_video.py -v F:/Santiago/Analysis/Cadbury/20220902d/SP_200umdeep_2by2mm_2p75umppix_6p45Hz_10p6pct_00001/Reshaped_SP_200umdeep_2by2mm_2p75umppix_6p45Hz_10p6pct_00001.tif -ws 1 -f 6.45
