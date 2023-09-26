@@ -218,7 +218,6 @@ def extract_useful_metadata(scanimage_metadata):
     umd['power'] = simd['power']
     umd['n_planes'] = simd['n_planes']
     umd['n_frames'] = simd['n_frames']
-    umd['n_strips'] = len(simd['json']['RoiGroups']['imagingRoiGroup']['rois'])
     umd['objective_resolution'] = simd['SI']['objectiveResolution']  # um/deg
     umd['framerate'] = simd['SI']['hRoiManager']['scanFrameRate']
     umd['framerate_str'] = '{:06.3f}'.format(umd['framerate']).replace('.', 'p') + 'Hz'
@@ -226,20 +225,67 @@ def extract_useful_metadata(scanimage_metadata):
     umd['date_str'] = umd['datetime_start'].strftime('%Y%m%dd')
     umd['time_start_str'] = umd['datetime_start'].strftime('%H%M%StUTC')
     
-    scanfields = simd['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']
-    umd['strip_size_px'] = np.array(scanfields['pixelResolutionXY'])
-    umd['strip_w_px'] = umd['strip_size_px'][0]
-    umd['strip_h_px'] = umd['strip_size_px'][1]
-    umd['strip_size_deg'] = np.array(scanfields['sizeXY'])
-    umd['strip_w_deg'] = umd['strip_size_deg'][0]
-    umd['strip_h_deg'] = umd['strip_size_deg'][1]
+    # Extract MROI details
+    umd['mrois'] = {}
     if umd['datetime_start'] < date_strip_overlap_fix:
-        umd['strip_overlap'] = False
-        umd['strip_overlap_px'] = None
+        umd['mrois']['overlap'] = False
+        umd['mrois']['overlap_px'] = None
     else:
-        umd['strip_overlap'] = True
-        umd['strip_overlap_px'] = None
+        umd['mrois']['overlap'] = True
+        umd['mrois']['overlap_px'] = None
+
+    if simd['json'] is not None:
+        mrois_si_raw = simd['json']['RoiGroups']['imagingRoiGroup']['rois']
+    else:
+        mrois_si_raw = json.loads(simd["Artist"])['RoiGroups']['imagingRoiGroup']['rois']
+    if type(mrois_si_raw) != dict:
+        mrois_si = []
+        for roi in mrois_si_raw:
+            if type(roi['scanfields']) != list:
+                scanfield = roi['scanfields']
+            else:
+                scanfield = roi['scanfields'][np.where(np.array(roi['zs']) == 0)[0][0]]
+            roid = {}
+            roid['center_deg'] = np.array(scanfield['centerXY'])
+            roid['size_deg'] = np.array(scanfield['sizeXY'])
+            roid['size_px'] = np.array(scanfield['pixelResolutionXY'])
+            mrois_si.append(roid)
+    else:
+        scanfield = mrois_si_raw['scanfields']
+        roid = {}
+        roid['center_deg'] = np.array(scanfield['centerXY'])
+        roid['size_deg'] = np.array(scanfield['sizeXY'])
+        roid['size_px'] = np.array(scanfield['pixelResolutionXY'])
+        mrois_si = [roid]
+    umd['mrois']['orig'] = mrois_si
+
+    # Sort MROIs by physical left-to-right position.
+    # Keep un-sorted version to recover data location in the long-tif-strip.
+    mrois_centers_si = np.array([msi['center'] for msi in mrois_si])
+    x_sorted = np.argsort(mrois_centers_si[:,0])
+    mrois_si_sorted_x = [mrois_si[i] for i in x_sorted]
+    mrois_centers_si_sorted_x = [mrois_centers_si[i] for i in x_sorted]
+    umd['mrois']['lrsort'] = mrois_centers_si_sorted_x
+
+    mroi_degs = np.array([msi['size_deg'] for msi in mrois_si])
+    mroi_pxls = np.array([msi['size_px'] for msi in mrois_si])
+    if np.all(np.isclose(mroi_degs, mroi_degs[0])) and \
+       np.all(np.isclose(mroi_pxls, mroi_pxls[0])):
+        print('All MROIs are the same size.')
+        umd['strip'] = {}
+        umd['n_strips'] = len(umd['mrois']['orig'])
+        umd['strip']['size_px'] = np.array(scanfields['pixelResolutionXY'])
+        umd['strip']['w_px'] = umd['strip']['size_px'][0]
+        umd['strip']['h_px'] = umd['strip']['size_px'][1]
+        umd['strip']['size_deg'] = np.array(scanfields['sizeXY'])
+        umd['strip']['w_deg'] = umd['strip']['size_deg'][0]
+        umd['strip']['h_deg'] = umd['strip']['size_deg'][1]
+    else:
+        umd['strip'] = None
+        umd['n_strips'] = None
     
+    # TODO UNFINISHED FROM HERE ONWARD
+
     umd['res_x_umppx'] = umd['objective_resolution'] / (umd['strip_w_px'] / umd['strip_w_deg'])
     res_x_umppx_str = '{:03.2f}'.format(umd['res_x_umppx']).replace('.', 'p')
     umd['res_y_umppx'] = umd['objective_resolution'] / (umd['strip_h_px'] / umd['strip_h_deg'])
