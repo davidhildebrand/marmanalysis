@@ -1,8 +1,4 @@
-datetime
-json
 numpy
 python>=3.9.10
 python-magic
-re
 scanimage-tiff-reader
-zoneinfo
