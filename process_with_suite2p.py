@@ -2,6 +2,7 @@
 
 import json
 import numpy as np
+import metadata
 import os
 import re
 from ScanImageTiffReader import ScanImageTiffReader
@@ -17,88 +18,8 @@ file_path_raw = session_path + os.path.sep + file_name_raw
 file_name_preproc = os.path.splitext(os.path.basename(file_name_raw))[0] + '_preprocessed.h5'
 file_path_preproc = session_path + os.path.sep + file_name_preproc
 
-def dict_generator(string, sep):
-    if string.count('=') != 1:
-        print('error: do not know how to handle strings with more than one equals sign')
-    eqpos = string.find('=')
-    if sep in string[eqpos+1:-1]:
-        # if necessary, first replace sep in value with unit separator
-        stringA, stringB = string.split('=')
-        stringBnosep = stringB.replace(sep, chr(31))
-        string = '='.join([stringA, stringBnosep])
-    if sep not in string:
-        k1s, vs = string.split('=')
-        k1 = k1s.strip()
-        # replace any instances of unit separator with sep
-        v = vs.strip().replace(chr(31), sep)
-        if v.lower() == 'true':
-            v = True
-        elif v.lower() == 'false':
-            v = False
-        elif v.lower() == 'nan':
-            v = float('nan')
-        elif v.lower() == 'none':
-            v = None
-        elif v.lower() == 'inf':
-            v = float('inf')
-        elif v.lower() == '-inf':
-            v = float('-inf')
-        #elif re.match("^[+-]?\d+.?\d*$", v) is not None: # handles +/-/. but not scientific notation
-        #elif v.isnumeric(): # does not handle +/-/.
-        #    v = float(v)
-        #    if v.is_integer():
-        #        v = int(v)
-        elif re.match("^[+-]?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *[+-]?\ *[0-9]+)?$", v) is not None: 
-            v = float(v)
-            if v.is_integer():
-                v = int(v)
-        elif '[' in v and ']' in v:
-            if v == '[]':
-                v = []
-            else:
-                bs = v.find('[')
-                be = v.find(']', bs)
-                v = np.fromstring(v[bs+1:be], dtype=float, sep=' ')
-        return {k1: v}
-    k1, k2 = string.split(sep, 1)
-    return {k1: dict_generator(k2, sep)}
-
-def merge_dicts(a, b):
-    """
-    from https://stackoverflow.com/a/56177639
-    Merge two values, with `b` taking precedence over `a`.
-    Semantics:
-    - If either `a` or `b` is not a dictionary, `a` will be returned only if
-    `b` is `None`. Otherwise `b` will be returned.
-    - If both values are dictionaries, they are merged as follows:
-    * Each key that is found only in `a` or only in `b` will be included in
-    the output collection with its value intact.
-    * For any key in common between `a` and `b`, the corresponding values
-    will be merged with the same semantics.
-    """
-    if not isinstance(a, dict) or not isinstance(b, dict):
-        return a if b is None else b
-    else:
-        # If we're here, both a and b must be dictionaries or subtypes thereof.
-        # Compute set of all keys in both dictionaries.
-        keys = set(a.keys()) | set(b.keys())
-        # Build output dictionary, merging recursively values with common keys,
-        # where `None` is used to mean the absence of a value.
-        return {key: merge_dicts(a.get(key), b.get(key)) for key in keys}
-
-md_dict = {}
-with ScanImageTiffReader(file_path_raw) as reader:
-    print(reader.description(0))
-    n_frames = reader.shape()[0]
-    print('{} frames '.format(n_frames))
-    md = reader.metadata()
-    md_js = md.find('\n{')
-    md_je = md.find('}\n', -1)
-    md_nonjson = md[0:md_js]
-    for line in md_nonjson.splitlines():
-        md_dict = merge_dicts(md_dict, dict_generator(line, '.'))
-    md_json_str = md[md_js+1:md_je]
-    md_json = json.loads(md_json_str)
+amd = metadata.get_scanimage_metadata(file_name_raw)
+md = metadata.extract_useful_metadata(amd)
 
 dur = n_frames * framerate  # sec
 dur_min = dur / 60 / 60
