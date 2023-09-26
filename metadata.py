@@ -9,6 +9,7 @@ from ScanImageTiffReader import ScanImageTiffReader
 from warnings import warn
 from zoneinfo import ZoneInfo
 
+
 def metadata_line_to_dict(string, sep, acqtz='America/New_York'):
     if string.count('=') != 1:
         warn('Do not know how to handle strings with more than one equals sign.')
@@ -76,6 +77,7 @@ def metadata_line_to_dict(string, sep, acqtz='America/New_York'):
     k1, k2 = string.split(sep, 1)
     return {k1: metadata_line_to_dict(k2, sep)}
 
+
 def merge_metadata_dicts(d1, d2):
     """
     modified from https://stackoverflow.com/a/56177639
@@ -97,6 +99,7 @@ def merge_metadata_dicts(d1, d2):
     # where `None` is used to mean the absence of a value.
     return {key: merge_metadata_dicts(d1.get(key), d2.get(key)) for key in keys}
 
+
 def parse_scanimage_desc(desc):
     desc_dict = {}
     for line in desc.splitlines():
@@ -105,6 +108,7 @@ def parse_scanimage_desc(desc):
         desc_dict = merge_metadata_dicts(desc_dict, 
                                          metadata_line_to_dict(line, '.'))
     return desc_dict
+
 
 def get_scanimage_metadata(filepath):
     md_dict = {}
@@ -199,6 +203,7 @@ def get_scanimage_metadata(filepath):
 
         return md_dict
 
+
 def extract_useful_metadata(scanimage_metadata):
     # NOTE assumes ROIs strips of a larger plane ROI and are all the same size
     # NOTE assumes acqusitions before 20230505d have strip overlap and after do not
@@ -252,4 +257,3 @@ def extract_useful_metadata(scanimage_metadata):
                                                            round(umd['plane_h_um']))
 
     return umd
-
