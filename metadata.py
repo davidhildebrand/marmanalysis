@@ -14,13 +14,13 @@ def metadata_line_to_dict(string, sep, tz='America/New_York'):
     if string.count('=') != 1:
         warn('Do not know how to handle strings with more than one equals sign.')
         print(string)
-    eqpos = string.find('=')
+    equal_position = string.find('=')
 
     # Replace 'sep' instances in value with unit separator.
-    if sep in string[eqpos + 1:-1]:
-        stringA, stringB = string.split('=')
-        stringBnosep = stringB.replace(sep, chr(31))
-        string = '='.join([stringA, stringBnosep])
+    if sep in string[equal_position+1:-1]:
+        str_a, str_b = string.split('=')
+        str_b_nosep = str_b.replace(sep, chr(31))
+        string = '='.join([str_a, str_b_nosep])
 
     if sep not in string:
         k1s, vs = string.split('=')
@@ -72,7 +72,7 @@ def merge_metadata_dicts(d1, d2):
     Merge two values, with `b` taking precedence over `a`.
     Semantics:
     - If either `a` or `b` is not a dictionary, `a` will be returned only if
-    `b` is `None`. Otherwise `b` will be returned.
+    `b` is `None`, otherwise `b` will be returned.
     - If both values are dictionaries, they are merged as follows:
     * Each key that is found only in `a` or only in `b` will be included in
     the output collection with its value intact.
@@ -114,7 +114,7 @@ def get_scanimage_metadata(filepath):
             n_planes = 1
             mode = 'sp'
         else:
-            warn('Could not determine number of imaging planes from filename. ' + \
+            warn('Could not determine number of imaging planes from filename. ' +
                  'Assuming single plane (n_planes = 1).')
             n_planes = 1
             mode = 'sp'
@@ -203,6 +203,7 @@ def roi_from_scanfield(scanfield, objective_resolution):
         r['resolution_umpx'] = None
 
     return r
+
 
 def extract_useful_metadata(scanimage_metadata):
     # NOTE assumes ROIs strips of a larger plane ROI and are all the same size
