@@ -1,4 +1,3 @@
 numpy
-python>=3.9.10
 python-magic
 scanimage-tiff-reader
