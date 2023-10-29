@@ -111,7 +111,7 @@ def get_mode_str(mode):
     return mode_str
 
 
-def get_metadata(filepath, tz='America/New_York'):
+def get_metadata(filepath):
     md_dict = dict()
 
     md_dict['acqstrip_w'], md_dict['acqstrip_h'] = imagesize.get(filepath)
@@ -119,7 +119,7 @@ def get_metadata(filepath, tz='America/New_York'):
     with ScanImageTiffReader(filepath) as reader:
         fn = os.path.basename(filepath)
 
-        # Attempt to determine depth of deepest imaging plane from filename
+        # Attempt to determine acquisition time from filename.
         pattern_t0 = r'^([0-9]{6}tUTC).*$'
         if re.match(pattern_t0, fn) is not None:
             m = re.match(pattern_t0, fn)
@@ -135,7 +135,7 @@ def get_metadata(filepath, tz='America/New_York'):
             start_time = None
         md_dict['start_time_str'] = start_time
 
-        # Attempt to determine imaging mode and number of planes from filename
+        # Attempt to determine imaging mode and plane number filename.
         fnci = fn.lower()
         if 'max30' in fnci:
             n_planes = 30
@@ -154,7 +154,7 @@ def get_metadata(filepath, tz='America/New_York'):
         md_dict['n_planes'] = n_planes
         md_dict['mode'] = mode
 
-        # Attempt to determine depth of deepest imaging plane from filename
+        # Attempt to determine imaging depth (of deepest plane) from filename.
         pattern_d0 = r'^.*depth([0-9]+)um.*$'
         pattern_d1 = r'^.*[^0-9]([0-9]+)umdeep.*$'
         if re.match(pattern_d0, fn) is not None:
@@ -177,7 +177,7 @@ def get_metadata(filepath, tz='America/New_York'):
                 depth = int(depth)
         md_dict['depth'] = depth
 
-        # Attempt to determine laser power from filename
+        # Attempt to determine laser power from filename.
         pattern_p0 = r'^.*pow([0-9]+p?[0-9]+?)mW.*$'
         pattern_p1 = r'^.*[^0-9]([0-9]+p?[0-9]+?)mW.*$'
         if re.match(pattern_p0, fn) is not None:
@@ -261,7 +261,7 @@ def extract_useful_metadata(scanimage_metadata):
     umd['framerate'] = simd['SI']['hRoiManager']['scanFrameRate']
     umd['framerate_str'] = 'fr{:06.3f}Hz'.format(umd['framerate']).replace('.', 'p')
 
-    # Extract start time.
+    # Estimate start time.
     sdt = simd['frame0desc']['epoch'] - timedelta(seconds=umd['framerate'])
     if simd['start_time_str'] is not None:
         # Replace calculated start time with that from the filename.
@@ -330,7 +330,6 @@ def extract_useful_metadata(scanimage_metadata):
         else:
             r['resolution_umpx'] = None
             r['resolution_degpx'] = None
-
 
     # Sort MROIs by physical left-to-right position.
     # Keep un-sorted 'orig' version to recover data location in the acquisition strip.
