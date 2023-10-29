@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import h5py
+import json
 import magic
+import numpy as np
 import os
+from ScanImageTiffReader import ScanImageTiffReader
+from warnings import warn
 
-# *** TODO *** make relative?
-#from . import metadata
 import metadata
 
 
@@ -16,6 +19,15 @@ def is_tiff(filepath: str) -> bool:
     return True
 
 
+def json_serializer(obj):
+    from datetime import date, datetime, time
+    if isinstance(obj, (datetime, date, time)):
+        return obj.isoformat()
+    else:
+        warn('Type {} not serializable.'.format(type(obj)))
+        return str(obj)
+
+
 # Parse command line options
 parser = argparse.ArgumentParser()
 parser.add_argument('source',
@@ -24,19 +36,174 @@ opts = parser.parse_args()
 
 if os.path.isfile(opts.source):
     source = opts.source
-    source_path = os.path.split(source)[0] + os.path.sep
+    source_path = os.path.split(source)[0]
     source_base = os.path.basename(source)
     source_name = os.path.splitext(source_base)[0]
     source_ext = os.path.splitext(source_base)[1]
 else:
-    m = 'Source file does not exist ({}).'.format(opts.sourcefile)
-    raise argparse.ArgumentTypeError(m)
+    raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
 
-if not is_tiff(source): # source_ext != '.tif' and source_ext != '.tiff':
-    m = 'Source file must be a TIFF stack (with extension .tif or .tiff).'
-    raise RuntimeError(m)
+if not is_tiff(source):  # source_ext != '.tif' and source_ext != '.tiff':
+    raise RuntimeError('Source file must be a TIFF stack (with extension .tif or .tiff).')
 
-simd = metadata.get_scanimage_metadata(source)
+
+p = dict()
+p['save'] = dict()
+p['save']['hdf5'] = True
+p['save']['tif'] = True
+p['save']['metadata'] = True
+p['save']['mean'] = True
+p['save']['video'] = True
+
+simd = metadata.get_metadata(source)
 md = metadata.extract_useful_metadata(simd)
 
-print(md)
+if md['mrois']['overlap'] is not False or md['mrois']['overlap_px'] is not None:
+    raise Exception('Handling overlapping MROIs is not yet implemented.')
+if md['n_planes'] != 1:
+    RuntimeError('Handing multi-plane data is not yet implemented.')
+
+data = ScanImageTiffReader(source).data()
+data = np.expand_dims(data, 1)
+data = np.swapaxes(data, 1, 3)
+# chans_order = params['chans_order_1plane']
+# rows, columns = 1, 1  # For png and mp4
+# tiff_file = tiff_file[..., chans_order]
+
+# Divide long acquisition strip into MROI chunks.
+planes_mrois = np.empty((md['n_planes'], md['n_mrois']), dtype=np.ndarray)
+for i_plane in range(md['n_planes']):
+    y_start = 0
+    for i_mroi in range(md['n_mrois']):
+        y_start, y_end = md['mrois']['lrsort'][i_mroi]['acqstrip_ys_px']
+        planes_mrois[i_plane, i_mroi] = data[:, :, y_start:y_end, i_plane]
+
+# Clear original image data from memory.
+del data
+
+# Generate volume from MROIs.
+n_f = md['n_frames']
+n_x, n_y = md['fov']['w_px'], md['fov']['h_px']  # [len(md['fov']['positions_deg'][a]) for a in range(2)]
+n_z = md['n_planes']
+mroi_sizes_px = np.array([r['size_px'] for r in md['mrois']['lrsort']], dtype=int)
+mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']], dtype=int)
+
+volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
+for i_plane in range(n_z):
+    overlap_seams_this_plane = 0
+    plane_w = n_x - (overlap_seams_this_plane * (md['n_mrois'] - 1))
+    plane_h = n_y
+    canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
+    for i_mroi in range(md['n_mrois']):
+        if i_mroi == 0:
+            xs_canv = 0
+            xe_canv = xs_canv + mroi_sizes_px[i_mroi, 0] - int(np.floor(overlap_seams_this_plane / 2))
+            xs_mroi = xs_canv
+            xe_mroi = xe_canv
+        elif i_mroi != md['n_mrois'] - 1:
+            xs_canv = xe_canv
+            xe_canv = xs_canv + mroi_sizes_px[i_mroi, 0] - overlap_seams_this_plane
+            x_mroi_width = mroi_sizes_px[i_mroi][0] - overlap_seams_this_plane
+            xs_mroi = int(np.ceil(overlap_seams_this_plane / 2))
+            xe_mroi = xs_mroi + x_mroi_width
+        else:
+            xs_canv = xe_canv
+            xe_canv = plane_w
+            xs_mroi = np.ceil(overlap_seams_this_plane / 2).astype(int)
+            xe_mroi = mroi_sizes_px[i_mroi][0]
+        # print(xs_canv, xe_canv, xs_mroi, xe_mroi)
+
+        ys_canv = mroi_corners_tl_px[i_mroi, 1]
+        ye_canv = ys_canv + mroi_sizes_px[i_mroi, 1]
+
+        canvas[:, xs_canv:xe_canv, ys_canv:ye_canv] = planes_mrois[i_plane, i_mroi][:, xs_mroi:xe_mroi]
+
+    # shift_x_varied_seams = int(round((overlap_seams_this_plane - min(overlaps_planes)) * (n_mrois - 1) / 2))
+    shift_x = 0  # accumulated_shifts[i_plane, 0] + shift_x_varied_seams
+    shift_y = 0  # accumulated_shifts[i_plane, 1]
+
+    end_x = shift_x + canvas.shape[1]
+    end_y = shift_y + canvas.shape[2]
+
+    volume[:, shift_x:end_x, shift_y:end_y, i_plane] = canvas
+
+if np.any(np.isnan(volume)):
+    raise Exception('NaNs found in preprocessed volume.')
+
+volume = volume.astype(np.int16)
+volume = np.swapaxes(volume, 1, 2)
+
+md_str = json.dumps(md, default=json_serializer)
+
+if p['save']['hdf5']:
+    save_path_h5 = source_path + os.path.sep + source_name + '_preprocessed.h5'
+    h5f = h5py.File(save_path_h5, 'w')
+    h5f.create_dataset('data', data=volume)
+    h5f.attrs.create('metadata', str(md_str))
+    h5f.close()
+    del h5f
+
+if p['save']['tif']:
+    import tifffile
+    save_path_tif = source_path + os.path.sep + source_name + '_preprocessed.tif'
+    tifffile.imwrite(save_path_tif, volume, description=md_str)
+
+if p['save']['metadata']:
+    save_path_md = source_path + os.path.sep + source_name + '_metadata.json'
+    with open(save_path_md, 'w') as mdf:
+        json.dump(md, mdf, indent=4, sort_keys=True, default=json_serializer)
+
+if p['save']['mean']:
+    from cv2 import imwrite
+    from skimage.exposure import rescale_intensity
+    from skimage.io import imsave
+    from skimage.util import img_as_ubyte
+    save_path_mean = source_path + os.path.sep + source_name + '_preprocessed_mean.png'
+    volume_mean = np.mean(volume, axis=0)
+    pl, ph = np.percentile(volume_mean, [1, 99.9])
+    volume_mean_rescale = img_as_ubyte(rescale_intensity(volume_mean, in_range=(pl, ph)))
+    imwrite(save_path_mean, volume_mean_rescale)
+
+if p['save']['video']:
+    from cv2 import VideoWriter_fourcc, VideoWriter
+    from skimage.exposure import rescale_intensity
+    from skimage.io import imsave
+    from skimage.transform import rescale
+    from skimage.util import img_as_ubyte
+
+    def write_video(filepath, stack, framerate=20.0):
+        # Not sure what the actual limits are.
+        video_max_w = 2 ** 13  # 4096
+        video_max_h = 2 ** 13  # 2160
+        (z, h, w) = stack.shape[0:3]
+        ratio_w = w / video_max_w
+        ratio_h = h / video_max_h
+        ratio_max = max(ratio_w, ratio_h)
+        if ratio_max > 1:
+            m = 'Frame size exceeds the maximum allowed by the codec. ' + \
+                'The video output will be downsampled.'
+            warn(m)
+            dw = round(w / ratio_max)
+            dh = round(h / ratio_max)
+            print('resizing to w={} h={}'.format(dw, dh))
+            dstack = np.empty([z, dh, dw], dtype=np.float64)
+            dstack.fill(np.nan)
+            for dz in range(z):
+                dstack[dz] = rescale(stack[dz], (1 / ratio_max), anti_aliasing=True)
+            stack = dstack
+        (z, h, w) = stack.shape[0:3]
+        if stack.dtype != 'uint8':
+            stack = rescale_intensity(stack, out_range=(0, 1))
+            stack = img_as_ubyte(stack)
+        codec = VideoWriter_fourcc(*'mp4v')
+        video_writer = VideoWriter(filepath, codec, framerate, (w, h), isColor=False)
+        for f in range(z):
+            video_writer.write(stack[f])
+        video_writer.release()
+
+    save_path_video = source_path + os.path.sep + source_name + '_preprocessed_clip.mp4'
+    n_f = np.min([np.ceil(30 * md['framerate']).astype(int), volume.shape[0]])
+    v = volume[0:n_f]
+    pl, ph = np.percentile(v, [1, 99.9])
+    v = rescale_intensity(v, in_range=(pl, ph))
+    write_video(save_path_video, v, framerate=md['framerate'])

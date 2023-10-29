@@ -1,3 +1,8 @@
+cv2
+h5py
+imagesize
 numpy
 python-magic
 scanimage-tiff-reader
+skimage
+tifffile
