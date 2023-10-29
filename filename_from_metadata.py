@@ -6,15 +6,15 @@ import magic
 import numpy as np
 import os
 
-# *** TODO *** make relative?
-#from . import metadata
 import metadata
+#import fileio
 
 def is_tiff(filepath: str) -> bool:
     allowed_types = ['image/tiff', 'image/tif']
     if magic.from_file(filepath, mime=True) not in allowed_types:
         return False
     return True
+
 
 # Parse command line options
 parser = argparse.ArgumentParser()
@@ -32,42 +32,25 @@ else:
     m = 'Source file does not exist ({}).'.format(opts.sourcefile)
     raise argparse.ArgumentTypeError(m)
 
-if not is_tiff(source): # source_ext != '.tif' and source_ext != '.tiff':
+if not is_tiff(source):  # source_ext != '.tif' and source_ext != '.tiff':
     m = 'Source file must be a TIFF stack (with extension .tif or .tiff).'
     raise RuntimeError(m)
 
-amd = metadata.get_scanimage_metadata(source)
-md = extract_useful_metadata(amd)
 
-n_frames = amd['n_frames']
-n_strips = len(amd['json']['RoiGroups']['imagingRoiGroup']['rois'])
-obj_res = amd['SI']['objectiveResolution']  # um/deg
-framerate = amd['SI']['hRoiManager']['scanFrameRate']
-framerate_str = '{:06.3f}'.format(framerate).replace('.', 'p')
-strip_size_px = np.array(amd['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['pixelResolutionXY'])
-strip_w_px = strip_size_px[0]
-strip_h_px = strip_size_px[1]
-strip_size_deg = np.array(amd['json']['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['sizeXY'])
-strip_w_deg = strip_size_deg[0]
-strip_h_deg = strip_size_deg[1]
-#px_ratio = strip_size_px / strip_size_deg  # px/deg
-res_w_umppx = obj_res / (strip_w_px / strip_w_deg)
-res_h_umppx = obj_res / (strip_h_px / strip_h_deg)
-res_w_str = '{:03.2f}'.format(res_w_umppx).replace('.', 'p')
-res_h_str = '{:03.2f}'.format(res_h_umppx).replace('.', 'p')
-roi_size_px = strip_size_px * np.array([n_strips, 1])
-roi_w_px = strip_w_px * n_strips
-roi_h_px = strip_h_px
-roi_w_um = roi_w_px * res_w_umppx
-roi_h_um = roi_h_px * res_h_umppx
+amd = metadata.get_metadata(source)
+md = metadata.extract_useful_metadata(amd)
 
-start = amd['frame0desc']['epoch'] - timedelta(seconds=framerate)
-start_str = start.strftime('%H%M%StUTC')
+if md['n_strips'] is not None:
+    fn_str = '{}_{}_{}_{}_{}_{}_{}_00001.tif'.format(md['start_time_str'],
+                                                     md['mode_str'],
+                                                     md['depth_str'],
+                                                     md['plane']['size_um_str'],
+                                                     md['strip']['resolution_str'],
+                                                     md['framerate_str'],
+                                                     md['power_str'])
 
-fntxt_fov = 'fov{:04d}x{:04d}um'.format(round(roi_w_um), round(roi_h_um))
-fntxt_part = '{}_SP_depthum_{}_res{}x{}umpx_fr{}Hz_powmW'.format(start_str, fntxt_fov, res_w_str, res_h_str, framerate_str)
-
-print('{} :'.format(os.path.split(os.path.dirname(source))[-1]))
-print('{} >>>'.format(os.path.basename(source)))
-print('{}_00001.tif'.format(fntxt_part))
-
+    if os.path.basename(source) != fn_str:
+        print('{} :'.format(os.path.split(os.path.dirname(source))[-1]))
+        print('{} >>> {}'.format(os.path.basename(source)), fn_str)
+else:
+    print('Not all MROIs are the same size and resolution in {}'.format(source_base))
