@@ -399,7 +399,8 @@ def extract_useful_metadata(scanimage_metadata):
                                                                            closest_xy_deg))
     if len(fov_positions_deg[0]) == np.sum(mroi_sizes_px[:, 0]) + 1:
         warn('Adding an extra pixel in reconstruction width may be necessary to compensate for rounding.')
-        # fov_positions_deg[i_xy] = fov_positions_deg[i_xy][:-1]
+        print('DEBUG: len sum check')
+        fov_positions_deg[i_xy] = fov_positions_deg[i_xy][:-1]
     for i_mroi in range(umd['n_mrois']):
         if len(fov_positions_deg[1]) == mroi_sizes_px[i_mroi, 1] + 1:
             warn('Adding an extra pixel in reconstruction height may be necessary to compensate for rounding.')
