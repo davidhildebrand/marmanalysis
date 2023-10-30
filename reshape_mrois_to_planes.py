@@ -90,6 +90,8 @@ mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']]
 
 volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
 overlap_px = 0
+if type(overlap_px) is not int:
+    overlap_px = int(overlap_px)
 for i_plane in range(n_z):
     plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
     plane_h = n_y
@@ -137,7 +139,7 @@ md_str = json.dumps(md, default=json_serializer)
 sp = source_path + os.path.sep
 
 if p['save']['hdf5']:
-    save_path_h5 = sp + source_name + '_preprocd_seamolap{:02d}px.h5'.format(int(overlap_px))
+    save_path_h5 = sp + source_name + '_preprocd_seamolap{:02d}px.h5'.format(overlap_px)
     if os.path.isfile(save_path_h5):
         warn('Preprocessed HDF5 ouput already exists, overwriting ({}).'.format(save_path_h5))
     h5f = h5py.File(save_path_h5, 'w')
@@ -147,7 +149,7 @@ if p['save']['hdf5']:
     del h5f
 
 if p['save']['tif']:
-    save_path_tif = sp + source_name + '_preprocd_seamolap{:02d}px.tif'.format(int(overlap_px))
+    save_path_tif = sp + source_name + '_preprocd_seamolap{:02d}px.tif'.format(overlap_px)
     if os.path.isfile(save_path_tif):
         warn('Preprocessed TIF ouput already exists, overwriting ({}).'.format(save_path_tif))
 
@@ -164,7 +166,7 @@ if p['save']['metadata']:
         warn('Metadata file already exists, not overwriting ({}).'.format(save_path_md))
 
 if p['save']['mean']:
-    save_path_mean = sp + source_name + '_preprocd_mean.png'
+    save_path_mean = sp + source_name + '_preprocd_seamolap{:02d}px_mean.png'.format(overlap_px)
     if os.path.isfile(save_path_mean):
         warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
 
@@ -179,7 +181,7 @@ if p['save']['mean']:
     imwrite(save_path_mean, volume_mean_rescale)
 
 if p['save']['video']:
-    save_path_video = sp + source_name + '_preprocd_seamolap{:02d}px_clip.mp4'.format(int(overlap_px))
+    save_path_video = sp + source_name + '_preprocd_seamolap{:02d}px_clip.mp4'.format(overlap_px)
     if os.path.isfile(save_path_video):
         warn('Video clip already exists, overwriting ({}).'.format(save_path_video))
 
