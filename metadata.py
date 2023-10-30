@@ -397,13 +397,13 @@ def extract_useful_metadata(scanimage_metadata):
                 warn('Fit of MROI into reconstructed image is imperfect: ' +
                      'MROI %d, corner %.4f, closest available %.4f'.format(mroi_corners_tl_deg[i_mroi, i_xy],
                                                                            closest_xy_deg))
+    # If necessary, remove extra pixel added to reconstruction width due to rounding errors.
     if len(fov_positions_deg[0]) == np.sum(mroi_sizes_px[:, 0]) + 1:
-        warn('Adding an extra pixel in reconstruction width may be necessary to compensate for rounding.')
-        print('DEBUG: len sum check')
-        fov_positions_deg[i_xy] = fov_positions_deg[i_xy][:-1]
-    for i_mroi in range(umd['n_mrois']):
-        if len(fov_positions_deg[1]) == mroi_sizes_px[i_mroi, 1] + 1:
-            warn('Adding an extra pixel in reconstruction height may be necessary to compensate for rounding.')
+        warn('Removed extra pixel from reconstructed image width.')
+        fov_positions_deg[0] = fov_positions_deg[0][:-1]
+    #if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
+    #    warn('Removed extra pixel from reconstructed image height.')
+    #    fov_positions_deg[1] = fov_positions_deg[1][:-1]
 
     umd['fov']['positions_deg'] = fov_positions_deg
     umd['fov']['w_px'] = len(fov_positions_deg[0])
