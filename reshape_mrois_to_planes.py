@@ -139,7 +139,7 @@ md_str = json.dumps(md, default=json_serializer)
 sp = source_path + os.path.sep
 
 if p['save']['hdf5']:
-    save_path_h5 = sp + source_name + '_preprocd_seamolap{:02d}px.h5'.format(overlap_px)
+    save_path_h5 = sp + source_name + '_preprocd_olap{:02d}px.h5'.format(overlap_px)
     if os.path.isfile(save_path_h5):
         warn('Preprocessed HDF5 ouput already exists, overwriting ({}).'.format(save_path_h5))
     h5f = h5py.File(save_path_h5, 'w')
@@ -149,7 +149,7 @@ if p['save']['hdf5']:
     del h5f
 
 if p['save']['tif']:
-    save_path_tif = sp + source_name + '_preprocd_seamolap{:02d}px.tif'.format(overlap_px)
+    save_path_tif = sp + source_name + '_preprocd_olap{:02d}px.tif'.format(overlap_px)
     if os.path.isfile(save_path_tif):
         warn('Preprocessed TIF ouput already exists, overwriting ({}).'.format(save_path_tif))
 
@@ -166,7 +166,7 @@ if p['save']['metadata']:
         warn('Metadata file already exists, not overwriting ({}).'.format(save_path_md))
 
 if p['save']['mean']:
-    save_path_mean = sp + source_name + '_preprocd_seamolap{:02d}px_mean.png'.format(overlap_px)
+    save_path_mean = sp + source_name + '_preprocd_olap{:02d}px_mean.png'.format(overlap_px)
     if os.path.isfile(save_path_mean):
         warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
 
@@ -181,7 +181,7 @@ if p['save']['mean']:
     imwrite(save_path_mean, volume_mean_rescale)
 
 if p['save']['video']:
-    save_path_video = sp + source_name + '_preprocd_seamolap{:02d}px_clip.mp4'.format(overlap_px)
+    save_path_video = sp + source_name + '_preprocd_olap{:02d}px_clip.mp4'.format(overlap_px)
     if os.path.isfile(save_path_video):
         warn('Video clip already exists, overwriting ({}).'.format(save_path_video))
 
