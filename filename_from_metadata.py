@@ -51,6 +51,6 @@ if md['n_strips'] is not None:
 
     if os.path.basename(source) != fn_str:
         print('{} :'.format(os.path.split(os.path.dirname(source))[-1]))
-        print('{} >>> {}'.format(os.path.basename(source)), fn_str)
+        print('{} >>> {}'.format(os.path.basename(source), fn_str))
 else:
     print('Not all MROIs are the same size and resolution in {}'.format(source_base))
