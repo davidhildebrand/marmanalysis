@@ -116,7 +116,7 @@ def get_metadata(filepath):
 
     md_dict['acqstrip_w'], md_dict['acqstrip_h'] = imagesize.get(filepath)
 
-    with ScanImageTiffReader(filepath) as reader:
+    with (ScanImageTiffReader(filepath) as reader):
         fn = os.path.basename(filepath)
 
         # Attempt to determine acquisition time from filename.
@@ -194,9 +194,13 @@ def get_metadata(filepath):
         else:
             warn('Could not determine power from filename. ')
             power = None
-        if power is not None and 'p' in power:
-            power = power.replace('p', '.')
+        if power is not None:
+            if type(power) == str:
+                if 'p' in power:
+                    power = power.replace('p', '.')
             power = float(power)
+            if power.is_integer():
+                power = int(power)
         md_dict['power'] = power
 
         md_dict['n_frames'] = reader.shape()[0]
