@@ -7,7 +7,7 @@ import numpy as np
 import os
 
 import metadata
-#import fileio
+# import fileio
 
 def is_tiff(filepath: str) -> bool:
     allowed_types = ['image/tiff', 'image/tif']
