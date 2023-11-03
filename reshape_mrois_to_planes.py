@@ -163,11 +163,13 @@ if p['save']['tif']:
 
 if p['save']['metadata']:
     save_path_md = sp + source_name + '_metadata.json'
-    if not os.path.isfile(save_path_md):
-        with open(save_path_md, 'w') as mdf:
-            json.dump(md, mdf, indent=4, sort_keys=True, default=json_serializer)
-    else:
-        warn('Metadata file already exists, not overwriting ({}).'.format(save_path_md))
+    if os.path.isfile(save_path_md):
+        warn('Metadata file already exists, overwriting ({}).'.format(save_path_md))
+    # if not os.path.isfile(save_path_md):
+    #     with open(save_path_md, 'w') as mdf:
+    #         json.dump(md, mdf, indent=4, sort_keys=True, default=json_serializer)
+    # else:
+    #     warn('Metadata file already exists, not overwriting ({}).'.format(save_path_md))
 
 if p['save']['mean']:
     save_path_mean = sp + source_name + '_preprocd_olap{:02d}px_mean.png'.format(overlap_px)
