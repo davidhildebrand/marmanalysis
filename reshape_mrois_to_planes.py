@@ -88,7 +88,8 @@ n_z = md['n_planes']
 mroi_sizes_px = np.array([r['size_px'] for r in md['mrois']['lrsort']], dtype=int)
 mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']], dtype=int)
 
-volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
+# volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
+volume = np.empty((n_f, n_x, n_y, n_z), dtype = np.int16)
 overlap_px = 0
 if type(overlap_px) is not int:
     overlap_px = int(overlap_px)
@@ -133,8 +134,10 @@ for i_plane in range(n_z):
 if np.any(np.isnan(volume)):
     raise Exception('NaNs found in preprocessed volume.')
 
-volume = volume.astype(np.int16)
+if volume.dtype != np.int16:
+    volume = volume.astype(np.int16)
 volume = np.swapaxes(volume, 1, 2)
+volume = np.squeeze(volume)
 
 md_str = json.dumps(md, default=json_serializer)
 sp = source_path + os.path.sep
