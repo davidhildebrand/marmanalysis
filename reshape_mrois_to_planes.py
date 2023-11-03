@@ -44,7 +44,7 @@ else:
     raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
 
 if not is_tiff(source):  # source_ext != '.tif' and source_ext != '.tiff':
-    raise RuntimeError('Source file must be a TIFF stack (with extension .tif or .tiff).')
+    raise RuntimeError('Source file must be a TIFF stack.')
 
 
 p = dict()
