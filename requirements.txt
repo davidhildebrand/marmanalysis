@@ -5,4 +5,5 @@ numpy
 python-magic
 scanimage-tiff-reader
 skimage
+suite2p
 tifffile
