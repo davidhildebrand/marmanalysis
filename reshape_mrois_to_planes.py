@@ -96,6 +96,7 @@ for i_plane in range(n_z):
     plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
     plane_h = n_y
     canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
+    xe_canv = plane_w
     for i_mroi in range(md['n_mrois']):
         if i_mroi == 0:
             xs_canv = 0
