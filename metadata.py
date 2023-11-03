@@ -383,12 +383,21 @@ def extract_useful_metadata(scanimage_metadata):
         umd['fov']['resolution_degpx'] = mroi_resolutions_degpx[0]
     else:
         warn('Not all MROIs have the same resolution.')
+        umd['fov']['resolution_umpx'] = None
+        umd['fov']['resolution_degpx'] = None
     fov_positions_deg = [np.arange(umd['fov']['corner_tl_deg'][0],  # x_deg min
                                    umd['fov']['corner_br_deg'][0],  # x_deg max
                                    umd['fov']['resolution_degpx'][0]),
                          np.arange(umd['fov']['corner_tl_deg'][1],  # y_deg min
                                    umd['fov']['corner_br_deg'][1],  # y_deg max
                                    umd['fov']['resolution_degpx'][1])]
+
+    # Estimate neuron size in px, assuming average diameter of 15um.
+    if umd['fov']['resolution_umpx'] is not None:
+        neuron_diameter_um = 15
+        umd['fov']['neurondiameter_px'] = int(np.mean(neuron_diameter_um / umd['fov']['resolution_umpx']))
+    else:
+        umd['fov']['neurondiameter_px'] = None
 
     # Calculate the pixel coordinates for MROIs in reconstructed volume.
     mroi_corners_tl_px = np.empty((umd['n_mrois'], 2), dtype=int)
