@@ -188,16 +188,16 @@ ops['report_time'] = True  # Output processing time metrics for each plane in ti
 ops['save_nwb'] = False
 ops['save_mat'] = False
 if ops['spatial_scale'] != 0:
-    db['save_folder'] = 'suite2p_spscale{}px'.format(spatial_scales[ops['spatial_scale']])
+    db['save_folder'] = 'suite2p_scale{}px'.format(spatial_scales[ops['spatial_scale']])
 else:
-    db['save_folder'] = 'suite2p_spscale0'
-ops['reg_file'] = os.path.join(db['save_path0'], db['save_folder'], 'plane0', 'data.bin')
+    db['save_folder'] = 'suite2p_scale0'
+# ops['reg_file'] = os.path.join(db['save_path0'], db['save_folder'], 'plane0', 'data.bin')
 
 # Run suite2p.
 s2pops = suite2p.default_ops()
 runops = {**s2pops, **ops}
-output_ops = suite2p.run_s2p(ops=runops, db=db)
-print(set(output_ops.keys()).difference(ops.keys()))
+ops_out = suite2p.run_s2p(ops=runops, db=db)
+print(set(ops_out.keys()).difference(ops.keys()))
 
 # At least for hdf5 inputs, suite2p creates its default folder for converting image data to a binary file.
 # Remove it if it exists and is empty.
@@ -233,6 +233,6 @@ ops_in = {**ops, **db}
 np.save(save_opsin_path, ops_in)
 np.save(save_opsnodb_path, ops)
 np.save(save_opsdbonly_path, db)
-np.save(save_opsout_path, output_ops)
+np.save(save_opsout_path, ops_out)
 
 # TODO Write a function to merge registered TIF files into a single file and also save as registered h5.
