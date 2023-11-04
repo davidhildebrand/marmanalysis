@@ -138,15 +138,15 @@ else:
     ops['spatial_scale'] = 0
 ops['nbinned'] = 10000  # Max binned frames for cell detection, default 5000.
 ops['max_iterations'] = 50
-ops['threshold_scaling'] = 0.2  # Multiplier for ROI detection threshold. Lower values yield more ROIs.
-ops['max_overlap'] = 0.8  # Allowed overlap proportion between ROIs.
+ops['threshold_scaling'] = 0.45  # Multiplier for ROI detection threshold. Lower values yield more ROIs. Default '1.0'.
+ops['max_overlap'] = 0.1  # Allowed overlap proportion between ROIs. Default '0.75'.
 ops['high_pass'] = 100  # Mean subtraction across time is performed with window of size ‘high_pass’ (frames?).
 ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil subtraction.
 
 # - Anatomical cell detection settings (only used if anatomical_only > 0)
 # Use Cellpose to detect ROIs.
 # Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
-ops['anatomical_only'] = 0
+ops['anatomical_only'] = 0  # Note that option 3 tends to yield more ROIs.
 if ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
     # Set estimated cell diameter (px) for cellpose.
     ops['diameter'] = md['fov']['neurondiameter_px']
@@ -163,10 +163,10 @@ else:
 
 # - Neuropil extraction settings
 ops['neuropil_extract'] = True
-ops['allow_overlap'] = False  # Allow some pix.
-ops['inner_neuropil_radius'] = 1  # Number of pixels to keep between ROI and neuropil donut.
+ops['allow_overlap'] = False  # Extract fluorescence signal from overlapping regions of ROIs.
+ops['inner_neuropil_radius'] = 1  # Number of pixels to keep between ROI and neuropil donut. Default '2'.
 ops['min_neuropil_pixels'] = 350  # Minimum number (px) used to compute neuropil.
-ops['lam_percentile'] = 80.0  # Percentile of neuropil area to ignore when excluding cell ROIs. Default '50.0'.
+ops['lam_percentile'] = 75.0  # Percentile of neuropil area to ignore when excluding cell ROIs. Default '50.0'.
 
 # - Spike deconvolution settings
 ops['spikedetect'] = True
@@ -176,7 +176,7 @@ ops['baseline'] = 'maximin'
 ops['win_baseline'] = 60  # Maximin filter window size (sec).
 ops['sig_baseline'] = 10  # Gaussian filter width (sec) for filtering before baseline estimation.
 ops['prctile_baseline'] = 8  # Percentile of trace to use as 'constant_percentile' baseline.
-ops['neucoeff'] = 0.3  # Neuropil signal subtraction coefficient. Default '0.7'.
+ops['neucoeff'] = 0.7  # Neuropil signal subtraction coefficient. Default '0.7'.
 
 # - Cell classifier settings
 ops['soma_crop'] = True  # Crop dendrites for cell classification stats like compactness.
