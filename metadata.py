@@ -69,8 +69,8 @@ def metadata_line_to_dict(string, sep, tz='America/New_York'):
 
 def merge_metadata_dicts(d1, d2):
     """
-    modified from https://stackoverflow.com/a/56177639
     Merge two values, with `b` taking precedence over `a`.
+    modified from https://stackoverflow.com/a/56177639
     Semantics:
     - If either `a` or `b` is not a dictionary, `a` will be returned only if
     `b` is `None`, otherwise `b` will be returned.
