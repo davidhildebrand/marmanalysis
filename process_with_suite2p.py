@@ -1,153 +1,238 @@
 #!/usr/bin/env python3
 
-import json
+import argparse
 import numpy as np
-import metadata
 import os
-import re
-from ScanImageTiffReader import ScanImageTiffReader
 import suite2p
-#import tifffile
+from warnings import warn
 
-import metadata # *** TODO *** make relative?
+import metadata
 
-session_path = r'/Data/Cadbury/20221016d/161100tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow059p0mW'
-file_name_raw = '161100tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow059p0mW_00001.tif'
 
-file_path_raw = session_path + os.path.sep + file_name_raw
-file_name_preproc = os.path.splitext(os.path.basename(file_name_raw))[0] + '_preprocessed.h5'
-file_path_preproc = session_path + os.path.sep + file_name_preproc
+# Parse command line options
+parser = argparse.ArgumentParser()
+parser.add_argument('source',
+                    help='Path to a ScanImage TIFF data file. [required]')
+opts = parser.parse_args()
 
-amd = metadata.get_scanimage_metadata(file_name_raw)
+if os.path.isfile(opts.source):
+    source = opts.source
+    source_path = os.path.split(source)[0]
+    source_base = os.path.basename(source)
+    source_name = os.path.splitext(source_base)[0]
+    source_ext = os.path.splitext(source_base)[1]
+else:
+    raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
+
+
+# Check if preprocessed file exists.
+source_preproc = os.path.splitext(os.path.basename(source_name))[0] + '_preprocd_olap00px.h5'
+if not os.path.isfile(source_path + os.path.sep + source_preproc):
+    warn('Preprocessed file does not exist ({}).'.format(source_preproc))
+
+# Load metadata.
+amd = metadata.get_metadata(source)
 md = metadata.extract_useful_metadata(amd)
 
-dur = n_frames * framerate  # sec
-dur_min = dur / 60 / 60
-
-n_strips = len(md_json['RoiGroups']['imagingRoiGroup']['rois'])
-obj_res = md_dict['SI']['objectiveResolution']  # deg
-framerate = md_dict['SI']['hRoiManager']['scanFrameRate']
-framerate_str = '{:06.3f}'.format(framerate).replace('.', 'p')
-strip_size_px = np.array(md_json['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['pixelResolutionXY'])
-strip_w_px = strip_size_px[0]
-strip_h_px = strip_size_px[1]
-strip_size_deg = np.array(md_json['RoiGroups']['imagingRoiGroup']['rois'][0]['scanfields']['sizeXY'])
-strip_w_deg = strip_size_deg[0]
-strip_h_deg = strip_size_deg[1]
-#px_ratio = strip_size_px / strip_size_deg  # px/deg
-res_w_umppx = obj_res / (strip_w_px / strip_w_deg)
-res_h_umppx = obj_res / (strip_h_px / strip_h_deg)
-res_w_str = '{:03.2f}'.format(res_w_umppx).replace('.', 'p')
-res_h_str = '{:03.2f}'.format(res_h_umppx).replace('.', 'p')
-roi_size_px = strip_size_px * np.array([n_strips, 1])
-roi_w_px = strip_w_px * n_strips
-roi_h_px = strip_h_px
-roi_w_um = roi_w_px * res_w_umppx
-roi_h_um = roi_h_px * res_h_umppx
-
-fntxt_fov = 'fov{0:04d}umx{0:04d}um'.format(round(roi_w_um), round(roi_h_um))
-fntxt_part = '_{}_res{}x{}umpx_fr{}Hz'.format(fntxt_fov, res_w_str, res_h_str, framerate_str)
-
-mtime = os.path.getmtime(file_path_raw)
-
-#md_dict = {}
-#for line in md.splitlines():
-#    if line.find('SI.') == 0:
-#        print(line)
-#        md_dict.update(dict_generator(line, '.'))
-
-#with tifffile.TiffFile(file_path) as tif:
-#    tfmd = {}
-#    for tag in tif.pages[0].tags.values():
-#        tag_name, tag_value = tag.name, tag.value
-#        tfmd[tag_name] = tag_value
-
-
-# if loading from a common set of ops saved elsewhere...
+# Initialize options without suite2p defaults.
+ops = dict()
+db = dict()
+# To load from a saved ops...
 # ops = np.load('ops.npy', allow_pickle=True).item()
-ops = suite2p.default_ops()
-db = {}
 
-# input/output settings
-db['data_path'] = [session_path]
-ppext = os.path.splitext(os.path.basename(file_name_preproc))[1]
+# Set input options specific to this data.
+db['data_path'] = [source_path]
+db['save_path0'] = source_path
+# db['save_folder'] is set at the end to label with important settings.
+db['fast_disk'] = []  # Path for storing temporary binary, defaults to 'save_path0'.
+db['subfolders'] = []
+db['look_one_level_down'] = False
+db['move_bin'] = True  # Move binary file from 'fast_disk' to 'save_folder'.
+ppext = os.path.splitext(os.path.basename(source_preproc))[1]
 if ppext == '.h5' or ppext == '.hdf5':
-    db['h5py'] = file_name_preproc
+    db['h5py'] = [os.path.join(source_path, source_preproc)]
     db['h5py_key'] = 'data'
-if ppext == '.tif' or ppext == '.tiff':
-    db['tiff_list'] = [file_name_preproc]
-db['save_path0'] = session_path
-db['save_folder'] = 'suite2p_testcmdline'
-#ops['mesoscan'] = False  # look for json containing ScanImage mROI information?
+elif ppext == '.tif' or ppext == '.tiff':
+    db['tiff_list'] = [source_preproc]
+elif ppext == '.nwb':
+    db['nwb_file'] = source_preproc
+    # db['nwb_driver'] = ''
+    # db['nwb_series'] = ''
+db['ignore_flyback'] = []  # Planes to be ignored as flyback.
+db['force_sktiff'] = False  # Force use of scikit-image for reading TIFFs.
+db['bruker'] = False
+db['bruker_bidirectional'] = False
 
-# imaging and indicator settings
-ops['nplanes'] = 1 
-ops['nchannels'] = 1
-ops['functional_chan'] = 1
-ops['tau'] = 0.6 
-ops['fs'] = 6.36368
+# Set processing options specific to system.
+db['multiplane_parallel'] = False  # Run parallel pipeline on server.
 
-# bidirectional phase offset settings
+# Set options related to a variety of categories.
+# - Imaging and indicator settings
+db['nplanes'] = 1
+db['nchannels'] = 1
+db['functional_chan'] = 1
+db['tau'] = 0.6
+db['fs'] = md['framerate']
+db['mesoscan'] = False  # Load json file containing mesoscope metadata.
+# db['frames_include'] = -1  # Process only a subset of # frames.
+
+# - Bidirectional phase offset settings
 ops['do_bidiphase'] = True
-#ops['bidi_corrected'] = False  # do bidirectional correction during registration?
+# db['bidiphase'] = 0
+# db['bidi_corrected'] = False  # Do bidirectional scan correction during registration?
 
-# rigid registration settings
+# - Rigid registration settings
 ops['do_registration'] = True
-ops['two_step_registration'] = False
-ops['nimg_init'] = 300  # frames subsampled reference image
-ops['batch_size'] = 1000 #500
-#ops['maxregshift'] = 
-#ops['smooth_sigma_time'] = 
-#ops['smooth_sigma'] = 
-ops['reg_tif'] = True  # save registered tiffs
+# db['align_by_chan'] = 1
+ops['keep_movie_raw'] = False  # Save binary file of non-registered frames.
+ops['delete_bin'] = True  # Delete binary file of registered frames.
+ops['reg_tif'] = True  # Save registered image stacks.
+ops['reg_tif_chan2'] = False
+# ops['force_refImg'] = False  # Use refImg from path stored in saved ops.
+ops['two_step_registration'] = False  # Run registration twice (for low SNR data), requires 'keep_movie_raw' to be True.
+ops['nimg_init'] = 500  # Template image frame size.
+if md['n_frames'] > 2000:
+    batch_size = 2000
+elif md['n_frames'] > 1000:
+    batch_size = 1000
+else:
+    batch_size = md['n_frames']
+ops['batch_size'] = batch_size
+# ops['subpixel'] = 10  # Precision of subpixel registration (in 1/subpixel steps).
+# ops['maxregshift'] = 0.1  # Max allowed rigid shift as a fraction of frame size.
+# ops['smooth_sigma'] = 1.15  # Gaussian SD (px) for smoothing phase correlation between the template and frame.
+# ops['smooth_sigma_time'] = 0  # Gaussian SD (frames) for smoothing phase correlation between the template and frame.
+# ops['th_badframes'] = 1.0  # Set threshold for throwing out bad frames, with lower values excluding more frames.
+# ops['norm_frames'] = True  # Normalize frames before shift detection.
+# ops['pad_fft'] = False  # Pad image before running FFT.
 
-# non-rigid registration settings
+# - Single-photon (1P) registration settings
+ops['1Preg'] = False
+# ops['spatial_hp_reg'] = 42  # Spatial high-pass filtering window before registration.
+# ops['pre_smooth'] = 0  # Gaussian SD for smoothing before spatial high-pass filtering.
+# ops['spatial_taper'] = 40  # Amount (px) to taper image edges before registration. Set > 3*ops[‘smooth_sigma’].
+
+# - Non-rigid registration settings
 ops['nonrigid'] = True
-ops['block_size'] = [128, 128]
-ops['snr_thresh'] = 1.2  # if non-rigid block is below threshold, smooth it until above, set to 1.0 for no smoothing
-ops['maxregshiftNR'] = 5.0  # max non-rigid pixel shift relative to rigid
+ops['block_size'] = [128, 128]  # Edge size (px) of blocks.
+ops['snr_thresh'] = 1.2  # SNR threshold for phase correlation peak to noise. Smooths until above. Set 1 no smoothing.
+ops['maxregshiftNR'] = 5.0  # Max non-rigid pixel shift relative to rigid result.
 
-# functional cell detection settings
+# - Functional cell detection settings
 ops['roidetect'] = True
-ops['spikedetect'] = True
-ops['sparse_mode'] = True
-ops['spatial_scale'] = 2  # 0: multi-scale; 1: 6 pixels, 2: 12 pixels, 3: 24 pixels, 4: 48 pixels
-ops['connected'] = True
-ops['nbinned'] = 5000  # max binned frames for cell detection
-ops['max_iterations'] = 25
-ops['threshold_scaling'] = 0.2  # adjust automatically determined threshold by this multiplier
-ops['max_overlap'] = 0.9  # ROIs with greater overlap get removed during triage, before refinement
-ops['high_pass'] = 100
-ops['spatial_hp_detect'] = 25.0  # window for spatial high-pass filtering for neuropil subtraction before detection
-ops['denoise'] = False
+ops['sparse_mode'] = True  # Use 'sparse_mode' algorithm.
+ops['denoise'] = False  # Denoise before cell detection in 'sparse_mode'.
+ops['smooth_masks'] = True  # Smooth ROI masks in final pass of cell detection.
+ops['connected'] = True  # Require ROI pixels to be fully connected.
+# Check resolution to determine spatial scale.
+#     Options for spatial_scale are: 0 = multi-scale, 1 = 6px, 2 = 12px, 3 = 24px, 4 = 48px
+if md['fov']['neurondiameter_px'] is not None:
+    spatial_scales = {1: 6, 2: 12, 3: 24, 4: 48}
+    ssv = min(spatial_scales.values(), key=lambda x:abs(x - md['fov']['neurondiameter_px']))
+    ssk = list(spatial_scales.keys())[list(spatial_scales.values()).index(ssv)]
+    ops['spatial_scale'] = ssk
+    print('Estimated neuron diameter is {} pixels, '.format(md['fov']['neurondiameter_px']) +
+          'using spatial scale {} ({}px).'.format(ssk, ssv))
+else:
+    spatial_scales = None
+    ops['spatial_scale'] = 0
+ops['nbinned'] = 10000  # Max binned frames for cell detection, default 5000.
+ops['max_iterations'] = 50
+ops['threshold_scaling'] = 0.2  # Multiplier for ROI detection threshold. Lower values yield more ROIs.
+ops['max_overlap'] = 0.8  # Allowed overlap proportion between ROIs.
+ops['high_pass'] = 100  # Mean subtraction across time is performed with window of size ‘high_pass’ (frames?).
+ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil subtraction.
 
-# anatomical cell detection settings (only used if anatomical_only > 0)
-ops['anatomical_only'] = 0  # get ROIs from cellpose via 1: max_proj / mean_img ; 2: mean_img ; 3: mean_img enhanced ; 4: max_proj
-ops['diameter'] = 0  # diameter for cellpose, automatically estimates if 0
-#ops['cellprob_threshold'] = 
-#ops['flow_threshold'] = 
-#ops['spatial_hp_cp'] = 
-#ops['pretrained_model'] = 'cyto'
+# - Anatomical cell detection settings (only used if anatomical_only > 0)
+# Use Cellpose to detect ROIs.
+# Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
+ops['anatomical_only'] = 0
+if ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
+    # Set estimated cell diameter (px) for cellpose.
+    ops['diameter'] = md['fov']['neurondiameter_px']
+    print('Estimated neuron diameter is {} pixels, '.format(md['fov']['neurondiameter_px']) +
+          'using cellpose diameter {}px.'.format(ssk, ssv))
+else:
+    # Set diameter to 0 for automatic estimation.
+    ops['diameter'] = 0
+# ops['cellprob_threshold'] = 0.0
+# ops['flow_threshold'] = 1.5
+# ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
+# ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
+# ops['chan2_thres']  # Threshold for detecting an ROI in channel 2.
 
-# classification settings
-ops['soma_crop'] = True  # crop dendrites for cell classification stats like compactness
-
-# ROI extraction settings
+# - Neuropil extraction settings
 ops['neuropil_extract'] = True
-ops['inner_neuropil_radius'] = 2  # number of pixels to keep between ROI and neuropil donut
-ops['min_neuropil_pixels'] = 350
-ops['lam_percentile'] = 50.0
-ops['allow_overlap'] = False  # px overlapping another ROI are thrown out (False) or included in both (True)
+ops['allow_overlap'] = False  # Allow some pix.
+ops['inner_neuropil_radius'] = 1  # Number of pixels to keep between ROI and neuropil donut.
+ops['min_neuropil_pixels'] = 350  # Minimum number (px) used to compute neuropil.
+ops['lam_percentile'] = 80.0  # Percentile of neuropil area to ignore when excluding cell ROIs. Default '50.0'.
 
-# deconvolution settings
-#ops['baseline'] = 'maximin'  # or 'prctile'
-#ops['win_baseline'] = 60
-#ops['sig_baseline'] = 10
-#ops['prctile_baseline'] = 8
-#ops['neucoeff'] = 0.7
+# - Spike deconvolution settings
+ops['spikedetect'] = True
+# Method for computing baseline of teach fluorescence trace.
+#     Options are: 'maximin', 'prctile', 'constant', 'constant_percentile'.
+ops['baseline'] = 'maximin'
+ops['win_baseline'] = 60  # Maximin filter window size (sec).
+ops['sig_baseline'] = 10  # Gaussian filter width (sec) for filtering before baseline estimation.
+ops['prctile_baseline'] = 8  # Percentile of trace to use as 'constant_percentile' baseline.
+ops['neucoeff'] = 0.3  # Neuropil signal subtraction coefficient. Default '0.7'.
 
+# - Cell classifier settings
+ops['soma_crop'] = True  # Crop dendrites for cell classification stats like compactness.
+# ops['use_builtin_classifier'] = False
+# ops['classifier_path'] = ''
 
-# Run the pipeline
-output_ops = suite2p.run_s2p(ops=ops, db=db)
+# - Output settings
+ops['report_time'] = True  # Output processing time metrics for each plane in timing dictionary.
+ops['save_nwb'] = False
+ops['save_mat'] = False
+if ops['spatial_scale'] != 0:
+    db['save_folder'] = 'suite2p_spscale{}px'.format(spatial_scales[ops['spatial_scale']])
+else:
+    db['save_folder'] = 'suite2p_spscale0'
+ops['reg_file'] = os.path.join(db['save_path0'], db['save_folder'], 'plane0', 'data.bin')
+
+# Run suite2p.
+s2pops = suite2p.default_ops()
+runops = {**s2pops, **ops}
+output_ops = suite2p.run_s2p(ops=runops, db=db)
 print(set(output_ops.keys()).difference(ops.keys()))
 
+# At least for hdf5 inputs, suite2p creates its default folder for converting image data to a binary file.
+# Remove it if it exists and is empty.
+default_suite2p_folder = 'suite2p'
+default_suite2p_path = os.path.join(source_path, default_suite2p_folder)
+if db['save_folder'] != default_suite2p_folder:
+    if os.path.isdir(default_suite2p_path):
+        contents = os.listdir(default_suite2p_path)
+        for c in contents:
+            cp = os.path.join(default_suite2p_path, c)
+            if os.path.isdir(cp):
+                subcontents = os.listdir(cp)
+                if not subcontents:
+                    os.rmdir(cp)
+                else:
+                    warn('Not removing suite2p sub-directory ({}), not empty.'.format(cp))
+            else:
+                warn('Not removing suite2p default directory ({}), not empty.'.format(default_suite2p_path))
+                break
+        contents = os.listdir(default_suite2p_path)
+        if not contents:
+            os.rmdir(default_suite2p_path)
+        else:
+            warn('Not removing suite2p default directory ({}), not empty.'.format(default_suite2p_path))
+
+# Save options separately from suite2p.
+save_folder_path = os.path.join(db['save_path0'], db['save_folder'])
+save_opsin_path = os.path.join(save_folder_path, 'ops_in.npy')
+save_opsnodb_path = os.path.join(save_folder_path, 'ops_in_nodb.npy')
+save_opsdbonly_path = os.path.join(save_folder_path, 'ops_in_dbonly.npy')
+save_opsout_path = os.path.join(save_folder_path, 'ops_out.npy')
+ops_in = {**ops, **db}
+np.save(save_opsin_path, ops_in)
+np.save(save_opsnodb_path, ops)
+np.save(save_opsdbonly_path, db)
+np.save(save_opsout_path, output_ops)
+
+# TODO Write a function to merge registered TIF files into a single file and also save as registered h5.
