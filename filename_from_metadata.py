@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import argparse
 from datetime import datetime, timedelta
@@ -8,6 +9,7 @@ import os
 
 import metadata
 # import fileio
+
 
 def is_tiff(filepath: str) -> bool:
     allowed_types = ['image/tiff', 'image/tif']
