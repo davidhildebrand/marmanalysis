@@ -42,7 +42,7 @@ db = dict()
 # ops = np.load('ops.npy', allow_pickle=True).item()
 
 # Set input options specific to this data.
-db['data_path'] = [source_path]
+# db['data_path'] = [source_path]
 db['save_path0'] = source_path
 # db['save_folder'] is set at the end to label with important settings.
 db['fast_disk'] = []  # Path for storing temporary binary, defaults to 'save_path0'.
