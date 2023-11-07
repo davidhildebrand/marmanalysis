@@ -130,6 +130,9 @@ def get_metadata(filepath):
             if len(g) > 1:
                 warn('Found more than one start time in filename. Using the first.')
             start_time = g[0]
+            pattern_t00 = r'^([0-9]{4}00tUTC).*$'
+            if re.match(pattern_t0, fn) is not None:
+                warn('Start time string in filename is suspect, will calculate.')
         else:
             warn('Could not determine start time from filename.')
             start_time = None
