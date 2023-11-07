@@ -123,7 +123,8 @@ ops['maxregshiftNR'] = 5.0  # Max non-rigid pixel shift relative to rigid result
 ops['roidetect'] = True
 ops['sparse_mode'] = True  # Use 'sparse_mode' algorithm.
 ops['denoise'] = False  # Denoise before cell detection in 'sparse_mode'.
-ops['smooth_masks'] = True  # Smooth ROI masks in final pass of cell detection.
+# Documentation says 'smooth_masks' defaults to True, but it is not set in default_ops().
+# ops['smooth_masks'] = True  # Smooth ROI masks in final pass of cell detection.
 ops['connected'] = True  # Require ROI pixels to be fully connected.
 # Check resolution to determine spatial scale.
 #     Options for spatial_scale are: 0 = multi-scale, 1 = 6px, 2 = 12px, 3 = 24px, 4 = 48px
@@ -137,10 +138,16 @@ if md['fov']['neurondiameter_px'] is not None:
 else:
     spatial_scales = None
     ops['spatial_scale'] = 0
-ops['nbinned'] = 10000  # Max binned frames for cell detection, default 5000.
-ops['max_iterations'] = 50
-ops['threshold_scaling'] = 0.45  # Multiplier for ROI detection threshold. Lower values yield more ROIs. Default '1.0'.
-ops['max_overlap'] = 0.1  # Allowed overlap proportion between ROIs. Default '0.75'.
+# ops['nbinned'] = 10000  # Max binned frames for cell detection, default 5000.
+# ops['max_iterations'] = 50
+# ops['threshold_scaling'] = 0.45  # Multiplier for ROI detection threshold. Lower values yield more ROIs. Default '1.0'.
+# ops['max_overlap'] = 0.1  # Allowed overlap proportion between ROIs. Default '0.75'.
+# ops['high_pass'] = 100  # Mean subtraction across time is performed with window of size ‘high_pass’ (frames?).
+# ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil subtraction.
+ops['nbinned'] = 5000  # Max binned frames for cell detection, default 5000.
+ops['max_iterations'] = 25  # 50
+ops['threshold_scaling'] = 0.2  # Multiplier for ROI detection threshold. Lower values yield more ROIs. Default '1.0'.
+ops['max_overlap'] = 0.9  # Allowed overlap proportion between ROIs. Default '0.75'.
 ops['high_pass'] = 100  # Mean subtraction across time is performed with window of size ‘high_pass’ (frames?).
 ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil subtraction.
 
@@ -165,9 +172,9 @@ else:
 # - Neuropil extraction settings
 ops['neuropil_extract'] = True
 ops['allow_overlap'] = False  # Extract fluorescence signal from overlapping regions of ROIs.
-ops['inner_neuropil_radius'] = 1  # Number of pixels to keep between ROI and neuropil donut. Default '2'.
+ops['inner_neuropil_radius'] = 2  # Number of pixels to keep between ROI and neuropil donut. Default '2'.
 ops['min_neuropil_pixels'] = 350  # Minimum number (px) used to compute neuropil.
-ops['lam_percentile'] = 75.0  # Percentile of neuropil area to ignore when excluding cell ROIs. Default '50.0'.
+ops['lam_percentile'] = 50.0  # Percentile of neuropil area to ignore when excluding cell ROIs. Default '50.0'.
 
 # - Spike deconvolution settings
 ops['spikedetect'] = True
