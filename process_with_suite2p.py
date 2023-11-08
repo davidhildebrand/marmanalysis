@@ -195,16 +195,26 @@ ops['soma_crop'] = True  # Crop dendrites for cell classification stats like com
 ops['report_time'] = True  # Output processing time metrics for each plane in timing dictionary.
 ops['save_nwb'] = False
 ops['save_mat'] = False
-if ops['spatial_scale'] != 0:
-    db['save_folder'] = 'suite2p_scale{}px'.format(spatial_scales[ops['spatial_scale']])
-else:
-    db['save_folder'] = 'suite2p_scale0'
+if ops['roidetect'] and ops['spatial_scale'] != 0:
+    db['save_folder'] = 'suite2p_func{}px'.format(spatial_scales[ops['spatial_scale']])
+elif ops['anatomical_only'] > 0:
+    if ops['diameter'] > 0:
+        diam_str = '{}px'.format(ops['diameter'])
+    else:
+        diam_str = '0'
+    db['save_folder'] = 'suite2p_cellpose{}d{}'.format(ops['anatomical_only'], diam_str)
 # ops['reg_file'] = os.path.join(db['save_path0'], db['save_folder'], 'plane0', 'data.bin')
 
 # Run suite2p.
+print('Running suite2p with save_folder: {}'.format(db['save_folder']))
 s2pops = suite2p.default_ops()
 runops = {**s2pops, **ops}
-ops_out = suite2p.run_s2p(ops=runops, db=db)
+try:
+    ops_out = suite2p.run_s2p(ops=runops, db=db)
+except ValueError as value_error:
+    warn('suite2p failed to run properly: {}'.format(value_error))
+except Exception as error:
+    warn('suite2p failed to run properly: {}'.format(error))
 print(set(ops_out.keys()).difference(ops.keys()))
 
 # At least for hdf5 inputs, suite2p creates its default folder for converting image data to a binary file.
