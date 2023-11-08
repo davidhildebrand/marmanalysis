@@ -119,9 +119,25 @@ ops['block_size'] = [128, 128]  # Edge size (px) of blocks.
 ops['snr_thresh'] = 1.2  # SNR threshold for phase correlation peak to noise. Smooths until above. Set 1 no smoothing.
 ops['maxregshiftNR'] = 5.0  # Max non-rigid pixel shift relative to rigid result.
 
-# - Functional cell detection settings
+# - Cell detection settings
+# Anatomical cell detection settings to use cellpose to detect ROIs (if anatomical_only > 0)
+#     Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
+ops['anatomical_only'] = 3  # Note that option 3 tends to yield more ROIs.
+if ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
+    # Set estimated cell diameter (px) for cellpose.
+    ops['diameter'] = md['fov']['neurondiameter_px']
+    print('Estimated neuron diameter is {}px, '.format(md['fov']['neurondiameter_px']) +
+          'using cellpose diameter {}px.'.format(ssk, ssv))
+else:
+    # Set diameter to 0 for automatic estimation.
+    ops['diameter'] = 0
+# ops['cellprob_threshold'] = 0.0
+# ops['flow_threshold'] = 1.5
+# ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
+# ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
+# ops['chan2_thres']  # Threshold for detecting an ROI in channel 2.
+# Functional cell detection settings
 ops['roidetect'] = True
-anatomical_only = True
 ops['sparse_mode'] = True  # Use 'sparse_mode' algorithm.
 ops['denoise'] = False  # Denoise before cell detection in 'sparse_mode'.
 # Documentation says 'smooth_masks' defaults to True, but it is not set in default_ops().
@@ -129,7 +145,7 @@ ops['denoise'] = False  # Denoise before cell detection in 'sparse_mode'.
 ops['connected'] = True  # Require ROI pixels to be fully connected.
 # Check resolution to determine spatial scale.
 #     Options for spatial_scale are: 0 = multi-scale, 1 = 6px, 2 = 12px, 3 = 24px, 4 = 48px
-if not anatomical_only and md['fov']['neurondiameter_px'] is not None:
+if ops['anatomical_only'] <= 0 and md['fov']['neurondiameter_px'] is not None:
     spatial_scales = {1: 6, 2: 12, 3: 24, 4: 48}
     ssv = min(spatial_scales.values(), key=lambda x:abs(x - md['fov']['neurondiameter_px']))
     ssk = list(spatial_scales.keys())[list(spatial_scales.values()).index(ssv)]
@@ -151,24 +167,6 @@ ops['threshold_scaling'] = 0.2  # Multiplier for ROI detection threshold. Lower 
 ops['max_overlap'] = 0.9  # Allowed overlap proportion between ROIs. Default '0.75'.
 ops['high_pass'] = 100  # Mean subtraction across time is performed with window of size ‘high_pass’ (frames?).
 ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil subtraction.
-
-# - Anatomical cell detection settings (only used if anatomical_only > 0)
-# Use Cellpose to detect ROIs.
-# Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
-ops['anatomical_only'] = 3  # Note that option 3 tends to yield more ROIs.
-if anatomical_only and ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
-    # Set estimated cell diameter (px) for cellpose.
-    ops['diameter'] = md['fov']['neurondiameter_px']
-    print('Estimated neuron diameter is {}px, '.format(md['fov']['neurondiameter_px']) +
-          'using cellpose diameter {}px.'.format(ssk, ssv))
-else:
-    # Set diameter to 0 for automatic estimation.
-    ops['diameter'] = 0
-# ops['cellprob_threshold'] = 0.0
-# ops['flow_threshold'] = 1.5
-# ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
-# ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
-# ops['chan2_thres']  # Threshold for detecting an ROI in channel 2.
 
 # - Neuropil extraction settings
 ops['neuropil_extract'] = True
@@ -196,7 +194,7 @@ ops['soma_crop'] = True  # Crop dendrites for cell classification stats like com
 ops['report_time'] = True  # Output processing time metrics for each plane in timing dictionary.
 ops['save_nwb'] = False
 ops['save_mat'] = False
-if ops['roidetect'] and ops['spatial_scale'] != 0:
+if ops['roidetect'] and ops['anatomical_only'] <= 0 and ops['spatial_scale'] != 0:
     db['save_folder'] = 'suite2p_func{}px'.format(spatial_scales[ops['spatial_scale']])
 elif ops['anatomical_only'] > 0:
     if ops['diameter'] > 0:
