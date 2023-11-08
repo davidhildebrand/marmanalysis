@@ -154,11 +154,11 @@ ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil su
 # - Anatomical cell detection settings (only used if anatomical_only > 0)
 # Use Cellpose to detect ROIs.
 # Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
-ops['anatomical_only'] = 0  # Note that option 3 tends to yield more ROIs.
+ops['anatomical_only'] = 3  # Note that option 3 tends to yield more ROIs.
 if ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
     # Set estimated cell diameter (px) for cellpose.
     ops['diameter'] = md['fov']['neurondiameter_px']
-    print('Estimated neuron diameter is {} pixels, '.format(md['fov']['neurondiameter_px']) +
+    print('Estimated neuron diameter is {}px, '.format(md['fov']['neurondiameter_px']) +
           'using cellpose diameter {}px.'.format(ssk, ssv))
 else:
     # Set diameter to 0 for automatic estimation.
