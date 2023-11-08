@@ -133,6 +133,7 @@ def get_metadata(filepath):
             pattern_t00 = r'^([0-9]{4}00tUTC).*$'
             if re.match(pattern_t00, fn) is not None:
                 warn('Start time string in filename is suspect, will calculate.')
+                start_time = None
         else:
             warn('Could not determine start time from filename.')
             start_time = None
