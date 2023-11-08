@@ -1,9 +1,14 @@
 cv2
 h5py
 imagesize
+matplotlib
 numpy
+pandas
 python-magic
 scanimage-tiff-reader
-skimage
+scipy
+scikit-image  # skimage
+scikit-learn  # sklearn
+seaborn
 suite2p
 tifffile
