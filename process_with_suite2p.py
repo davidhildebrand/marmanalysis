@@ -121,6 +121,7 @@ ops['maxregshiftNR'] = 5.0  # Max non-rigid pixel shift relative to rigid result
 
 # - Functional cell detection settings
 ops['roidetect'] = True
+anatomical_only = True
 ops['sparse_mode'] = True  # Use 'sparse_mode' algorithm.
 ops['denoise'] = False  # Denoise before cell detection in 'sparse_mode'.
 # Documentation says 'smooth_masks' defaults to True, but it is not set in default_ops().
@@ -128,7 +129,7 @@ ops['denoise'] = False  # Denoise before cell detection in 'sparse_mode'.
 ops['connected'] = True  # Require ROI pixels to be fully connected.
 # Check resolution to determine spatial scale.
 #     Options for spatial_scale are: 0 = multi-scale, 1 = 6px, 2 = 12px, 3 = 24px, 4 = 48px
-if md['fov']['neurondiameter_px'] is not None:
+if not anatomical_only and md['fov']['neurondiameter_px'] is not None:
     spatial_scales = {1: 6, 2: 12, 3: 24, 4: 48}
     ssv = min(spatial_scales.values(), key=lambda x:abs(x - md['fov']['neurondiameter_px']))
     ssk = list(spatial_scales.keys())[list(spatial_scales.values()).index(ssv)]
@@ -155,7 +156,7 @@ ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil su
 # Use Cellpose to detect ROIs.
 # Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
 ops['anatomical_only'] = 3  # Note that option 3 tends to yield more ROIs.
-if ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
+if anatomical_only and ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
     # Set estimated cell diameter (px) for cellpose.
     ops['diameter'] = md['fov']['neurondiameter_px']
     print('Estimated neuron diameter is {}px, '.format(md['fov']['neurondiameter_px']) +
