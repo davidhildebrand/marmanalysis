@@ -126,8 +126,7 @@ ops['anatomical_only'] = 3  # Note that option 3 tends to yield more ROIs.
 if ops['anatomical_only'] > 0 and md['fov']['neurondiameter_px'] is not None:
     # Set estimated cell diameter (px) for cellpose.
     ops['diameter'] = md['fov']['neurondiameter_px']
-    print('Estimated neuron diameter is {}px, '.format(md['fov']['neurondiameter_px']) +
-          'using cellpose diameter {}px.'.format(ssk, ssv))
+    print('Estimated diameter for cellpose anatomical ROI detection is {}px.'.format(md['fov']['neurondiameter_px']))
 else:
     # Set diameter to 0 for automatic estimation.
     ops['diameter'] = 0
@@ -150,7 +149,7 @@ if ops['anatomical_only'] <= 0 and md['fov']['neurondiameter_px'] is not None:
     ssv = min(spatial_scales.values(), key=lambda x:abs(x - md['fov']['neurondiameter_px']))
     ssk = list(spatial_scales.keys())[list(spatial_scales.values()).index(ssv)]
     ops['spatial_scale'] = ssk
-    print('Estimated neuron diameter is {} pixels, '.format(md['fov']['neurondiameter_px']) +
+    print('Estimated diameter for functional ROI detection is {} pixels, '.format(md['fov']['neurondiameter_px']) +
           'using spatial scale {} ({}px).'.format(ssk, ssv))
 else:
     spatial_scales = None
