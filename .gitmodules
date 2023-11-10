@@ -1,0 +1,3 @@
+[submodule "zetapy"]
+	path = zetapy
+	url = https://github.com/JorritMontijn/zetapy
