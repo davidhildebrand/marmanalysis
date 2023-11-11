@@ -1,8 +1,8 @@
-cv2
 h5py
 imagesize
 matplotlib
 numpy
+opencv-python
 pandas
 python-magic
 scanimage-tiff-reader
