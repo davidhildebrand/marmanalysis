@@ -15,6 +15,7 @@ import re
 # from scipy.optimize import minimize as scipy_minimize
 # from scipy.signal import find_peaks as find_peaks
 from skimage import exposure, util
+import socket
 from warnings import warn
 
 
@@ -33,10 +34,11 @@ from warnings import warn
 # pf = r'F:\Sync\Freiwald\MarmoScope\Analysis\Data\Cadbury\20221016d\SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW\suite2p\plane0'
 
 # --  GOOD OLD Cadbury PD  20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx
-# animal_str = 'Cadbury'
-# date_str = '20221016d_olds2p'
-# session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
-# md = {'framerate': 6.364}
+animal_str = 'Cadbury'
+date_str = '20221016d_olds2p'
+date_str = '20221016d'
+session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
+md = {'framerate': 6.364}
 
 # -- MAYBE Cadbury MD?BOD? 
 #  - not sure what to make of this, area tuning looks very jumbled now
@@ -45,9 +47,9 @@ from warnings import warn
 # session_str = '165634tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow079p9mW_stimImagesFOBmin'
 
 # -- DECENT Cadbury OBJ
-animal_str = 'Cadbury'
-date_str = '20231007d'
-session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
+# animal_str = 'Cadbury'
+# date_str = '20231007d'
+# session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
 # -- OKAY Cadbury OBJ 
 # animal_str = 'Cadbury'
 # date_str = '20231007d'
@@ -105,7 +107,13 @@ suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
 
 # Load imaging session information
-base_path = r'F:\Data'
+system_name = socket.gethostname()
+if 'Galactica' in system_name:
+    base_path = r'/Users/davidh/Data/Freiwald/suite2p_results'
+elif 'Obsidian' in system_name:
+    base_path = r'F:\Data'
+else:
+    base_path = r'F:\Data'
 save_path = ''
 
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
@@ -117,12 +125,12 @@ logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if not os.path.isfile(d)]
 
-if not 'md' in locals():
+if 'md' not in locals():
     if not mdfile_list and not datafile_list:
         raise RuntimeError('Could not find metadata file or image data file.')
     if len(mdfile_list) > 0:
         if len(mdfile_list) > 1:
-            warn('Found multiple metadata files, using the first one.')
+            warn('Found multiple metadata files, using the first one: {}'.format(mdfile_list[0]))
         md_path = mdfile_list[0]
         if os.path.isfile(md_path):
             jf = open(md_path, 'r')
@@ -142,7 +150,7 @@ if not 'md' in locals():
 
 if len(logfile_list) > 0:
     if len(logfile_list) > 1:
-        warn('Found multiple log files, using the first one.')
+        warn('Found multiple log files, using the first one: {}'.format(logfile_list[0]))
     lf_path = logfile_list[0]
     if os.path.isfile(lf_path):
         lf = open(lf_path, 'r')
@@ -153,7 +161,7 @@ if len(logfile_list) > 0:
 
 if len(suite2p_list) > 0:
     if len(suite2p_list) > 1:
-        warn('Found multiple suite2p folders, using the first one.')
+        warn('Found multiple suite2p folders, using the first one: {}'.format(suite2p_list[0]))
     s2p_path = suite2p_list[0]
     s2p_plane_path = os.path.join(s2p_path, suite2p_plane_str)
     if not os.path.isdir(s2p_plane_path):
@@ -169,7 +177,7 @@ else:
 fsi_tuning_thresh = 1 / 4
 osi_tuning_thresh = 1 / 4
 
-cell_probability_thresh = 0.1
+cell_probability_thresh = 0.00
 
 plt.rcParams['figure.dpi'] = 600
 dpi = plt.rcParams['figure.dpi']
