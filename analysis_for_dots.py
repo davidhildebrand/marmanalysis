@@ -4,10 +4,11 @@
 import colorsys
 from datetime import datetime
 from glob import glob
-import json
+# import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 import re
 from scipy.optimize import minimize as scipy_minimize
 from scipy.stats import binned_statistic as scipy_binned_statistic
@@ -59,7 +60,7 @@ title_str = animal_str + '_' + date_str + '_' + session_str
 ### TRY Dali 170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel
 
 
-mdfile_str = '*_metadata.json'
+mdfile_str = '*_metadata.pickle'
 datafile_str = '*_00001.tif'
 logfile_str = '*.log'
 logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
@@ -73,7 +74,7 @@ if 'Galactica' in system_name:
 elif 'Obsidian' in system_name:
     base_path = r'F:\Data'
 else:
-    base_path = r'F:\Data'
+    base_path = r'/Data'
 save_path = ''
 
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
@@ -85,28 +86,30 @@ logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if not os.path.isfile(d)]
 
-if 'md' not in locals():
-    if not mdfile_list and not datafile_list:
-        raise RuntimeError('Could not find metadata file or image data file.')
-    if len(mdfile_list) > 0:
-        if len(mdfile_list) > 1:
-            warn('Found multiple metadata files, using the first one: {}'.format(mdfile_list[0]))
-        md_path = mdfile_list[0]
-        if os.path.isfile(md_path):
-            jf = open(md_path, 'r')
-            md = json.load(jf)
-            jf.close()
-        else:
-            raise RuntimeError('Could not load metadata from file.')
-    elif len(datafile_list) > 0:
-        warn('Could not find metadata file, using image data file.')
-        df_path = datafile_list[0]
-        if os.path.isfile(df_path):
-            import metadata
-            simd = metadata.get_metadata(df_path)
-            md = metadata.extract_useful_metadata(simd)
+# if 'md' not in locals():
+if not mdfile_list and not datafile_list:
+    raise RuntimeError('Could not find metadata file or image data file.')
+if len(mdfile_list) > 0:
+    if len(mdfile_list) > 1:
+        warn('Found multiple metadata files, using the first one: {}'.format(mdfile_list[0]))
+    md_path = mdfile_list[0]
+    if os.path.isfile(md_path):
+        with open(md_path, 'rb') as mdf:
+            md = pickle.load(mdf)
+        # jf = open(md_path, 'r')
+        # md = json.load(jf)
+        # jf.close()
     else:
-        raise RuntimeError('Could not load metadata from either file.')
+        raise RuntimeError('Could not load metadata from file.')
+elif len(datafile_list) > 0:
+    warn('Could not find metadata file, using image data file.')
+    df_path = datafile_list[0]
+    if os.path.isfile(df_path):
+        import metadata
+        simd = metadata.get_metadata(df_path)
+        md = metadata.extract_useful_metadata(simd)
+else:
+    raise RuntimeError('Could not load metadata from either file.')
 
 if len(logfile_list) > 0:
     if len(logfile_list) > 1:
@@ -121,7 +124,7 @@ if len(logfile_list) > 0:
 
 if len(suite2p_list) > 0:
     if len(suite2p_list) > 1:
-        warn('Found multiple suite2p folders, using the first one: {}'.format(suite2p_list[0]))
+        warn('Found multiple suite2p folders, using the first one: {}'.format(os.path.basename(suite2p_list[0])))
     s2p_path = suite2p_list[0]
     s2p_plane_path = os.path.join(s2p_path, suite2p_plane_str)
     if not os.path.isdir(s2p_plane_path):
