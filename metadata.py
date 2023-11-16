@@ -384,6 +384,8 @@ def extract_useful_metadata(scanimage_metadata):
     if np.all(np.isclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0])) and \
        np.all(np.isclose(mroi_resolutions_degpx, mroi_resolutions_degpx[0])):
         umd['fov']['resolution_umpx'] = mroi_resolutions_umpx[0]
+        umd['fov']['xres_umpx'] = umd['fov']['resolution_umpx'][0]
+        umd['fov']['yres_umpx'] = umd['fov']['resolution_umpx'][1]
         umd['fov']['resolution_degpx'] = mroi_resolutions_degpx[0]
     else:
         warn('Not all MROIs have the same resolution.')
