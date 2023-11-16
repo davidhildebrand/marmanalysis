@@ -163,14 +163,19 @@ if p['save']['tif']:
     tifffile.imwrite(save_path_tif, volume, description=md_str)
 
 if p['save']['metadata']:
-    save_path_md = sp + source_name + '_metadata.json'
-    if os.path.isfile(save_path_md):
-        warn('Metadata file already exists, overwriting ({}).'.format(save_path_md))
-    # if not os.path.isfile(save_path_md):
-    #     with open(save_path_md, 'w') as mdf:
-    #         json.dump(md, mdf, indent=4, sort_keys=True, default=json_serializer)
-    # else:
-    #     warn('Metadata file already exists, not overwriting ({}).'.format(save_path_md))
+    import pickle
+
+    save_path_mdp = sp + source_name + '_metadata.pickle'
+    if os.path.isfile(save_path_mdp):
+        warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdp))
+    with open(save_path_mdp, 'wb') as mdpf:
+        pickle.dump(md, mdpf)
+
+    save_path_mdj = sp + source_name + '_metadata.json'
+    if os.path.isfile(save_path_mdj):
+        warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdj))
+    with open(save_path_mdj, 'w') as mdjf:
+        json.dump(md, mdjf, indent=4, sort_keys=True, default=json_serializer)
 
 if p['save']['mean']:
     save_path_mean = sp + source_name + '_preprocd_olap{:02d}px_mean.png'.format(overlap_px)
