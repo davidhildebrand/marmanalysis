@@ -69,12 +69,12 @@ if p['save']['metadata']:
 
     save_path_mdp = sp + source_name + '_metadata.pickle'
     if os.path.isfile(save_path_mdp):
-        warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdp))
+        warn('Metadata pickle file already exists, overwriting ({}).'.format(save_path_mdp))
     with open(save_path_mdp, 'wb') as mdpf:
         pickle.dump(md, mdpf)
 
     save_path_mdj = sp + source_name + '_metadata.json'
     if os.path.isfile(save_path_mdj):
-        warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdj))
+        warn('Metadata json file already exists, overwriting ({}).'.format(save_path_mdj))
     with open(save_path_mdj, 'w') as mdjf:
         json.dump(md, mdjf, indent=4, sort_keys=True, default=json_serializer)
