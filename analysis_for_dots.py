@@ -5,14 +5,15 @@ import colorsys
 from datetime import datetime
 from glob import glob
 import json
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import re
 from scipy.optimize import minimize as scipy_minimize
+from scipy.stats import binned_statistic as scipy_binned_statistic
 # from scipy.signal import find_peaks as find_peaks
 from skimage import exposure, util
+import socket
 from warnings import warn
 
 
@@ -50,7 +51,6 @@ date_str = '20230809d'
 session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
 
 
-
 title_str = animal_str + '_' + date_str + '_' + session_str
 
 # try Dali 20230511d
@@ -67,7 +67,13 @@ suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
 
 # Load imaging session information
-base_path = r'F:\Data'
+system_name = socket.gethostname()
+if 'Galactica' in system_name:
+    base_path = r'/Users/davidh/Data/Freiwald/suite2p_results'
+elif 'Obsidian' in system_name:
+    base_path = r'F:\Data'
+else:
+    base_path = r'F:\Data'
 save_path = ''
 
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
@@ -79,12 +85,12 @@ logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if not os.path.isfile(d)]
 
-if not 'md' in locals():
+if 'md' not in locals():
     if not mdfile_list and not datafile_list:
         raise RuntimeError('Could not find metadata file or image data file.')
     if len(mdfile_list) > 0:
         if len(mdfile_list) > 1:
-            warn('Found multiple metadata files, using the first one.')
+            warn('Found multiple metadata files, using the first one: {}'.format(mdfile_list[0]))
         md_path = mdfile_list[0]
         if os.path.isfile(md_path):
             jf = open(md_path, 'r')
@@ -104,7 +110,7 @@ if not 'md' in locals():
 
 if len(logfile_list) > 0:
     if len(logfile_list) > 1:
-        warn('Found multiple log files, using the first one.')
+        warn('Found multiple log files, using the first one: {}'.format(logfile_list[0]))
     lf_path = logfile_list[0]
     if os.path.isfile(lf_path):
         lf = open(lf_path, 'r')
@@ -115,7 +121,7 @@ if len(logfile_list) > 0:
 
 if len(suite2p_list) > 0:
     if len(suite2p_list) > 1:
-        warn('Found multiple suite2p folders, using the first one.')
+        warn('Found multiple suite2p folders, using the first one: {}'.format(suite2p_list[0]))
     s2p_path = suite2p_list[0]
     s2p_plane_path = os.path.join(s2p_path, suite2p_plane_str)
     if not os.path.isdir(s2p_plane_path):
@@ -146,16 +152,8 @@ s2p_stat = np.load(os.path.join(s2p_plane_path, 'stat.npy'), allow_pickle=True)
 s2p_ops = np.load(os.path.join(s2p_plane_path, 'ops.npy'), allow_pickle=True).item()
 fov_image = s2p_ops['meanImg']
 
-# s2p_iscell = np.load(os.path.join(pf, 'iscell.npy'))
-# s2p_F = np.load(os.path.join(pf, 'F.npy'))
-# s2p_stat = np.load(os.path.join(pf, 'stat.npy'), allow_pickle=True)
-# s2p_ops = np.load(os.path.join(pf, 'ops.npy'), allow_pickle=True).item()
-# #s2p_ops['filelist']
-# ref_image = s2p_ops['meanImg']
-# #s2p_ops['refImg']
-
 # cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
-cellinds = np.where(s2p_iscell[:,1] >= cell_probability_thresh)[0]
+cellinds = np.where(s2p_iscell[:, 1] >= cell_probability_thresh)[0]
 ROIs = s2p_stat[cellinds]
 Frois = s2p_F[cellinds]
 fov_h = s2p_ops['Ly']
@@ -180,14 +178,15 @@ else:
 
 deg_symbol = u'\N{DEGREE SIGN}'
 
+
 def Rf(params, T):
-    # based on Pattadkal etal Priebe 2022 bioRxiv
-    #   https://doi.org/10.1101/2022.06.23.497220
-    Tpref = params[0] # rad, preferred direction
-    beta = params[1] # 'tuning width factor'
-    c = params[2] # baseline
-    a1 = params[3] # peak 1 maxiumum amplitude
-    a2 = params[4] # peak 2 maxiumum amplitude
+    # Based on Pattadkal et al Priebe 2022 bioRxiv
+    #     https://doi.org/10.1101/2022.06.23.497220
+    Tpref = params[0]  # rad, preferred direction
+    beta = params[1]  # 'tuning width factor'
+    c = params[2]  # baseline
+    a1 = params[3]  # peak 1 maxiumum amplitude
+    a2 = params[4]  # peak 2 maxiumum amplitude
     R = (a1 * np.exp(beta * np.cos(T - Tpref))) + \
         (a2 * np.exp(beta * np.cos(np.pi + T - Tpref))) + \
         c
@@ -195,25 +194,25 @@ def Rf(params, T):
 
 
 def gf(params, T):
-    # based on Fahey etal Tolias 2019 bioRxiv
+    # Based on Fahey et al Tolias 2019 bioRxiv.
     #   https://doi.org/10.1101/745323
-    Tpref = params[0] # rad, preferred direction
-    w = params[1] # peak concentration or 'tuning width factor'
+    Tpref = params[0]  # rad, preferred direction
+    w = params[1]  # peak concentration or 'tuning width factor'
     g = np.exp(-w * (1 - np.cos(T - Tpref)))
     return g
 
 
 def vf(params, T):
-    a0 = params[2] # baseline
-    a1 = params[3] # peak 1 maxiumum amplitude
-    a2 = params[4] # peak 2 maxiumum amplitude
+    a0 = params[2]  # baseline
+    a1 = params[3]  # peak 1 maxiumum amplitude
+    a2 = params[4]  # peak 2 maxiumum amplitude
     v = a0 + (a1 * gf(params, T)) + (a2 * gf(params, T - np.pi))
     return v
 
 
 def dsi_model(params, T):
-    r = Rf(params, T) # use Pattadkal etal Priebe 2022
-    # r = vf(params, T) # use Fahey etal Tolias 2019
+    r = Rf(params, T)  # Pattadkal et al Priebe 2022
+    # r = vf(params, T)  # Fahey et al Tolias 2019
     return r
 
 
@@ -252,9 +251,9 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
     # preferred direction of each cell."
     fit_curve = dsi_model(fit, np.radians(np.arange(0, 360)))
     max_peak_arg = fit_curve.argmax()
-    #peak_locs = find_peaks(fit_curve, height=0)[0]
-    #peaks = fit_curve[peak_locs]
-    #max_peak_loc = peak_locs[peaks.argmax()]
+    # peak_locs = find_peaks(fit_curve, height=0)[0]
+    # peaks = fit_curve[peak_locs]
+    # max_peak_loc = peak_locs[peaks.argmax()]
     Tpref = np.radians(max_peak_arg)
 
     if plotting:
@@ -265,12 +264,12 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
         ax = plt.gca()
         ax.set_xlabel('Direction (' + deg_symbol + ')', fontsize=8)
         ax.set_ylabel('dF/F', fontsize=8)
-        #ax.set_xlim((0,360))
+        # ax.set_xlim((0,360))
         ax.tick_params(axis='both', which='major', labelsize=8)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.set_xticks([d for d in range(0, 360, np.diff(np.degrees(thetas)).max().astype('int'))])
-        #ax.set_xticklabels(['', 0, '', 2, ''])
+        # ax.set_xticklabels(['', 0, '', 2, ''])
         # plt.scatter(thetas, measRs, s=4, facecolors='none', edgecolors='k')
         # plt.plot(dsi_model(fit, np.arange(0, 2*np.pi))) #np.radians(np.arange(0, 360))))
         # plt.axvline(Tpref, color='m')
@@ -288,7 +287,7 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
     if debugging:
         print('calculate_dsi dsi={:.2f} Tpref={} '.format(dsi, Tpref) +
               'Tpref_f={:.2f} w={:.2f} a0={:.2f} '.format(Tpref_f, w_f, a0_f) +
-              'a1={:.2f} a2={:.2f}'.format(a1_f, a2_f))
+              'a1={:.2f} a2={:.2f} max_peak_arg={:.2f}'.format(a1_f, a2_f, max_peak_arg))
 
     return dsi, Tpref
 
@@ -328,7 +327,9 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
 #                                    child=bars, prop=prop, frameon=False, **kwargs)
 
 
-def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
+# plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=dsi_tuning_thresh, title=title_str,
+#          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
+def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
              circular=False, ref_image=None, title:str = '',
              n_neighbors=None, save_path:str = ''):
     # The values tuning and tuning_mag must be within [0,1].
@@ -337,21 +338,21 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
     # TODO **** implement scale bar?
 
     dpi = plt.rcParams['figure.dpi']
-    h, w = fov_size # rows/height/y, columns/width/x
+    h, w = fov_size  # rows/height/y, columns/width/x
     figsize = w / float(dpi), h / float(dpi)
 
-    n_ROIs = len(ROIs)
+    n_regions = len(regions)
     # TODO *** note that the >= might not be general (e.g. with FSI)
     tuned = tuning_mag >= tuning_thresh
-    ROIs_tuned = ROIs[tuned]
+    regions_tuned = regions[tuned]
     tuning_tuned = tuning[tuned]
     tuning_mag_tuned = tuning_mag[tuned]
 
     if tuning.max() > 1:
         warn(UserWarning('provided tuning index has values > 1 (out of range)'))
 
-    assert len(ROIs_tuned) == len(tuning_tuned) == len(tuning_mag_tuned)
-    n_ROIs_tuned = len(ROIs_tuned)
+    assert len(regions_tuned) == len(tuning_tuned) == len(tuning_mag_tuned)
+    n_regions_tuned = len(regions_tuned)
 
     # if scale_bar is True:
     #     fig, ax = plt.subplots()
@@ -384,21 +385,29 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
     else:
         canvas = np.zeros([h, w, 3], dtype=np.float64) # create a color canvas with frame size
 
-    for r in range(n_ROIs_tuned):
-        ROI = ROIs_tuned[r]
-        ry = ROI['ypix']
-        rx = ROI['xpix']
+    region_centers = np.empty([n_regions_tuned, 2])
+    region_colors = np.empty([n_regions_tuned, 3])
+    for r in range(n_regions_tuned):
+        region = regions_tuned[r]
+        rxs = region['xpix']
+        rys = region['ypix']
+        rxys = np.array(list(zip(rxs, rys)))
+        region_centers[r] = np.average(rxys, axis=0)
         if circular is True:
             # for rgb in range(3):
-            # canvas[ry,rx,:] = colorsys.hsv_to_rgb(tuning_tuned[r], tuning_mag[r] / tuning_mag.max(), 1.0) #  abs(1 - 2 * abs(tuning_tuned[r] - rgb * 1/3)) #* tuning_mag[r]
-            canvas[ry,rx,:] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
+            # canvas[ry,rx,:] = colorsys.hsv_to_rgb(tuning_tuned[r], tuning_mag[r] / tuning_mag.max(), 1.0)
+            #    abs(1 - 2 * abs(tuning_tuned[r] - rgb * 1/3)) #* tuning_mag[r]
+            canvas[rys, rxs, :] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
+            region_colors[r] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
         else:
-            for rgb in range(3):
-                canvas[ry,rx,rgb] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - rgb * 1/3)) #* tuning_mag[r]
+            for chan in range(3):
+                canvas[rys, rxs, chan] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - chan * 1/3))  # * tuning_mag[r]
+                region_colors[r, chan] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - chan * 1/3))
     ax.tick_params(left=False, right=False, labelleft=False,
-                    labelbottom=False, bottom=False)
+                   labelbottom=False, bottom=False)
     # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
+    # ax.scatter(region_centers[:, 0], region_centers[:, 1], s=1, c=region_colors, marker='.', edgecolors='none')
     # ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     if title != '':
         ax.set_title(title, fontsize=2, color='w')
@@ -407,9 +416,9 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
         now = datetime.now()
         dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
         save_name = dt + '_ROIplot_thresh' + \
-               '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
-               '_tuned{}of{}'.format(n_ROIs_tuned, n_ROIs) + \
-               '.png'
+            '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
+            '_tuned{}of{}'.format(n_regions_tuned, n_regions) + \
+            '.png'
         f0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
 
     # Plot colorbar or colorwheel
@@ -519,9 +528,9 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
         from sklearn import neighbors
         from sklearn.inspection import DecisionBoundaryDisplay
 
-        # we only take the first two features. We could avoid this ugly
-        # slicing by using a two-dim dataset
-        X = np.empty((n_ROIs_tuned, 2))
+        # We only take the first two features. We could avoid this ugly
+        # slicing by using a two-dim dataset.
+        X = np.empty((n_regions_tuned, 2))
         y = tuning_tuned * 8
         y = y.astype(int) + 1
 
@@ -529,10 +538,9 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
         # X = X[tuned_logic]
         # y = y[tuned_logic]
         for i in range(len(X)):
-            X[i] = np.mean(ROIs_tuned[i]['xpix'][0]), h - np.mean(ROIs_tuned[i]['ypix'][0])
+            X[i] = np.mean(regions_tuned[i]['xpix'][0]), h - np.mean(regions_tuned[i]['ypix'][0])
 
         # Create color maps
-
         for weights in ['uniform', 'distance']:
             # we create an instance of Neighbours Classifier and fit the data.
             clf = neighbors.KNeighborsClassifier(n_neighbors, weights=weights)
@@ -715,7 +723,7 @@ Rs = np.full([n_ROIs, (n_conds * n_trials)], np.nan)
 dsiT = np.full([n_ROIs, 2], np.nan)
 for r in range(n_ROIs):
     Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
-    dsiT[r] = calculate_dsi(Ts, Rs[r]) #, plotting=True, debugging=True)
+    dsiT[r] = calculate_dsi(Ts, Rs[r])  # , plotting=True, debugging=True)
 
 # FdFF_test = FdFF_by_cond_meanR
 # Fzsc_test = Fzsc_by_cond_meanR
@@ -755,11 +763,11 @@ for r in range(n_ROIs):
 
 
 # %% Plot one experimentally measured distribution used for DSI fitting
-
+#
 # plt.figure()
 # r = np.random.randint(0, n_ROIs)
 # plt.scatter(Ts,
-#             Rs[r], # mean of stimon frames
+#             Rs[r],  # mean of stimon frames
 #             s=4,
 #             facecolors='none',
 #             edgecolors='k')
@@ -767,105 +775,196 @@ for r in range(n_ROIs):
 
 
 # %% Define ROIs as tuned or untuned
-# dsi_tuning_thresh = 0.1
 print('DSI tuning threshold: {}' .format(dsi_tuning_thresh))
-tunidx_dsi = dsiT[:,0]
-DSI = dsiT[:,0]
-Tprefs = dsiT[:,1]
-Tprefs_norm = Tprefs / 360 # normalized to [0,1] range
+tunidx_dsi = dsiT[:, 0]
+DSI = dsiT[:, 0]
+Tprefs = dsiT[:, 1]
+Tprefs_norm = Tprefs / 360  # normalized to [0,1] range
 tunidx_dsi_argsrt = np.argsort(tunidx_dsi)[::-1]
-# n_ROIs_tuned = np.argwhere(tunidx_dsi[tunidx_dsi_argsrt] <= dsi_tuning_thresh)[0][0]
 n_ROIs_tuned = np.argwhere(tunidx_dsi[tunidx_dsi_argsrt] >= dsi_tuning_thresh).shape[0]
 pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
 print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
 print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
 
-#% Compute tuning indices
-# if normalize == 'dF/F':
-#     Ftest = FdFF_by_cond_meanR
-# elif normalize == 'Z-score':
-#     Ftest = Fzsc_by_cond_meanR
-# 
-# if tuning == 't-test':
-#     t_test = scipy.stats.ttest_1samp(Ftest, 0, axis=2)
-#     p_vals = t_test[1]
-#     p_vals_min_cond = np.min(p_vals, axis=1)
-#     tuning_index = 1 - p_vals_min_cond
-# elif tuning == 'percentile':
-#     first_quantile_all_conds = np.percentile(Ftest, percentile, axis=2)
-#     first_quantile_max_cond = np.max(first_quantile_all_conds, axis=1)
-#     tuning_index = first_quantile_max_cond
-# elif tuning == 'average':
-#     average = np.abs(np.mean(Ftest, axis=-1))
-#     average_max_cond = np.max(abs(average), axis=1)
-#     tuning_index = average_max_cond
-
-
-# 
-# FdFF_by_cond_tuned_dsi = FdFF_by_cond[tunidx_dsi > dsi_tuning_thresh]
-# FdFF_by_cond_tuned_tee = FdFF_by_cond[tunidx_tee_dFF > tuning_index_thresh]
-# Fzsc_by_cond_tuned_tee = Fzsc_by_cond[tunidx_tee_zsc > tuning_index_thresh]
-# FdFF_by_cond_tuned_qt1 = FdFF_by_cond[tunidx_qt1_dFF > tuning_index_thresh]
-# Fzsc_by_cond_tuned_qt1 = Fzsc_by_cond[tunidx_qt1_zsc > tuning_index_thresh]
-# FdFF_by_cond_tuned_avg = FdFF_by_cond[tunidx_avg_dFF > tuning_index_thresh]
-# Fzsc_by_cond_tuned_avg = Fzsc_by_cond[tunidx_avg_zsc > tuning_index_thresh]
-# tuning_index_tuned = tunidx_tee_dFF[tunidx_tee_dFF > tuning_index_thresh]
-# 
-# if plot_least_tuned_first:
-#     #Frois_by_cond_tuned = Frois_by_cond_tuned[(+tuning_index_tuned_neurons).argsort()]
-#     FdFF_tuned_by_cond_sorted = FdFF_tuned_by_cond[(+tuning_index_tuned).argsort()]
-#     Fzsc_tuned_by_cond_sorted = Fzsc_tuned_by_cond[(+tuning_index_tuned).argsort()]
-# else:
-#     # Frois_by_cond_tuned = Frois_by_cond_tuned[(-tuning_index_tuned_neurons).argsort()]
-#     FdFF_tuned_by_cond_sorted = FdFF_tuned_by_cond[(-tuning_index_tuned).argsort()]
-#     Fzsc_tuned_by_cond_sorted = Fzsc_tuned_by_cond[(-tuning_index_tuned).argsort()]
-# #tuning_index_tuned_neurons = tuning_index_tuned_neurons[(-tuning_index_tuned_neurons).argsort()]
-# 
-# print('Tuning index threshold: {}' .format(tuning_index_thresh))
-# n_ROIs_tuned = Fzsc_tuned_by_cond.shape[0]
-# n_total = Frois.shape[0]
-# pct_tuned = round(100 * n_ROIs_tuned / n_total, 2)
-# print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_total))
-# print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
-
 
 # %% Plot histogram for the number of ROIs with corresponding tuning values
 
-f0 = plt.figure()
+f_hist0 = plt.figure()
 plt.hist(tunidx_dsi, bins=100)
 plt.xlabel('Direction-Selectivity Index')
 plt.ylabel('ROIs')
-plt.xlim([0,1])
+plt.xlim([0, 1])
 plt.axvline(dsi_tuning_thresh, color='m')
 # plt.axvline(-dsi_tuning_thresh, color='m')
-f0.show()
+f_hist0.show()
 if saving:
     now = datetime.now()
     dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
     save_name = dt + '_histogram_DSI_thresh' + \
         '{:.2f}'.format(dsi_tuning_thresh).replace('.', 'p') + '.svg'
-    f0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
+    f_hist0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
     save_name = dt + '_histogram_DSI_thresh' + \
         '{:.2f}'.format(dsi_tuning_thresh).replace('.', 'p') + '.png'
-    f0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
+    f_hist0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
+
+#
+# f_hist1 = plt.figure()
+# plt.hist(Tprefs[DSI >= dsi_tuning_thresh], bins=100)
+# plt.xlabel('Preferred Direction (rad)')
+# plt.ylabel('ROIs')
+# plt.xlim([0, 1])
+# # plt.axvline(Tprefs, color='m')
+# # plt.axvline(-dsi_tuning_thresh, color='m')
+# f_hist1.show()
 
 
 # %% Plot tuning map
 
-# plot_tuning_map(s2p_stat, s2p_iscell, s2p_ops, Tprefs, DSI, strength_thresh=0.15, circular=True)
-
 plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=dsi_tuning_thresh, title=title_str,
          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
 
+# TODO *** note that the >= might not be general (e.g. with FSI)
+tuned_index = DSI >= dsi_tuning_thresh
+ROIs_tuned = ROIs[tuned_index]
+tuning_tuned = Tprefs[tuned_index]
+tuning_mag_tuned = DSI[tuned_index]
+
+if Tprefs_norm.max() > 1:
+    warn(UserWarning('Provided tuning index has out-of-range values > 1.'))
+
+assert len(ROIs_tuned) == len(tuning_tuned) == len(tuning_mag_tuned)
+n_regions_tuned = len(ROIs_tuned)
+
+
+roi_centers_px = np.empty([n_ROIs_tuned, 2])
+roi_colors = np.empty([n_ROIs_tuned, 3])
+for r in range(n_ROIs_tuned):
+    region = ROIs_tuned[r]
+    rxs = region['xpix']
+    rys = region['ypix']
+    rxys = np.array(list(zip(rxs, rys)))
+    roi_centers_px[r] = np.average(rxys, axis=0)
+    roi_colors[r] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
+    # if r > 0:
+    #     roi_dists[r - 1] = np.sqrt((roi_centers[r, 0] - last_roi_center[0])**2 + (roi_centers[r, 1] - last_roi_center[1])**2)
+    #     roi_theta_diffs_degs[r - 1] = np.abs(np.degrees(tuning_tuned[r]) - np.degrees(last_roi_theta))
+    # last_roi_center = roi_centers[r]
+    # last_roi_theta = np.radians(tuning_tuned[r])
+
+# direction difference (deg) vs distance (um)
+# import scipy
+# mport itertools
+# roi_dists = scipy.spatial.distance.cdist(roi_centers, roi_centers, 'euclidean')
+# roi_tuning_diffs = np.array([abs(a - b) % 180 for (a, b) in itertools.product(tuning_tuned_deg, tuning_tuned_deg)])
+# roi_tuning_diffs = np.array([abs(a - b) % 180 for (a, b) in itertools.permutations(tuning_tuned, 2)])
+
+rd = np.empty([n_ROIs_tuned, n_ROIs_tuned])
+rtd = np.empty([n_ROIs_tuned, n_ROIs_tuned])
+res = np.mean(md['fov']['resolution_umpx'])  # TODO: do this better for x and y sep if needed
+for r1 in range(n_ROIs_tuned):
+    r1_c = roi_centers_px[r1]
+    r1_t = tuning_tuned[r1]
+    for r2 in range(n_ROIs_tuned):
+        r2_c = roi_centers_px[r2]
+        r2_t = tuning_tuned[r2]
+        # TODO: convert this calculation from px to um
+        rd[r1, r2] = res * np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
+        # TODO: make sure this makes sense
+        rtd[r1, r2] = np.abs(r1_t - r2_t) % 180
+
+roi_distances = rd
+roi_tuning_differences = rtd
+
+np.allclose(rd, rd.T)
+np.allclose(rtd, rtd.T)
+
+assert rd.shape == rtd.shape
+rinds, cinds = np.triu_indices_from(rd, k=1)
+distprefs = np.array([[rd[r, c], rtd[r, c]] for r, c in zip(rinds, cinds)])
 
 
 
+def dir_dist_dep_exp_equation(params, x):
+    # Based on Pattadkal et al Priebe 2022 bioRxiv
+    #     https://doi.org/10.1101/2022.06.23.497220
+    # y: fitted direction difference
+    # x: distance between cells
+    C = params[0]  # saturation value
+    A = params[1]  # start value
+    k = params[2]  # decay space constant
+    y = C - A * np.exp(-k * x)
+    return y
+
+def dirdist_objective(params, xs, measured_dirdiff):
+    predicted_dirdiff = dir_dist_dep_exp_equation(params, xs)
+    mse = np.square(np.subtract(predicted_dirdiff, measured_dirdiff)).mean()
+    return mse
+
+# params = [C, A, k]
+guess = [60, 60, 0.2]
+
+# TODO should convert all this to take radians like other functions, then convert to deg
+
+result = scipy_minimize(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), method='L-BFGS-B')
+fit = result['x']
+C_f = fit[0]
+A_f = fit[1]
+k_f = fit[2]
+
+ddxs = np.linspace(0, 1000, 10000)
+ddys = C_f - A_f * np.exp(-k_f * ddxs)
+
+# Jagruti paper
+# Error bars represent the angular standard deviation.
+# Blue line is an exponential fit to the data and
+# red line is an exponential fit to the shuffled data.
+#
+# The exponential fit to the data measuring dependence of preferred direction difference
+# between cells with the distance between cells used the following equation:
+# 𝑦 = 𝐶 − 𝐴𝑒 −𝑘𝑥
+# Where y is the fitted direction difference for x distance between cells, C is the saturation
+# value, A is the start value and k is the decay space constant. The parameters were
+# estimated using least squares curve fitting to individual data points.
+# The shuffled data for measuring this dependence was generated by keeping the same
+# cell positions but shuffling their preferred directions
+
+f1 = plt.figure()
+ax = f1.subplots(1, 1)
+
+ax.set_ylabel('Direction difference (' + deg_symbol + ')', fontsize=10)
+
+
+ax.set_xlabel('Distance difference (µm)', fontsize=10)
 
 
 
+ax.spines[['right', 'top']].set_visible(False)
 
+ax.tick_params(axis='both', which='major', labelsize=10)
+# ax.set_xlim((0, 1000))
+ax.set_ylim((0, 180))
 
+# Plot all pairs of direction difference and distance difference
+ax.scatter(distprefs[:, 0], distprefs[:, 1], marker='.', s=1, edgecolor='none')
 
+# Calculate median values for 25 um distance bins
+w_bin_um = 25
+n_bins = int(np.ceil(distprefs[:, 0].max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+bin_medians, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
+bin_stds, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
+
+# Plot median values for 25um distance bins
+# ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
+            fmt='o', elinewidth=1, ecolor='k')
+# TODO investigate whether it is an issue that direction difference is only accurate to 1º
+
+ax.plot(ddxs, ddys)
+
+plt.show()
 
 
 
@@ -878,13 +977,13 @@ for r in range(0, n_ROIs_tuned, 1):
           'DSI={:.2f} and '.format(DSI[ridx]) +
           'Tpref={:.2f}'.format(Tprefs[ridx]))
     ipd = 1 / plt.rcParams['figure.dpi']
-    fig = plt.figure(figsize=((8+2)*2*150*ipd,(4+1)*300*ipd))
+    fig = plt.figure(figsize=((8+2)*2*150*ipd, (4+1)*300*ipd))
     # fig.subplots(nrows=2, ncols=8)
     fig.clf()
     fig.suptitle('roi {} ({})'.format(r, ridx), fontsize=12)
     axes = fig.subplots(nrows=2, ncols=8)
     for c in range(n_conds):
-        ax = axes[0,c]
+        ax = axes[0, c]
         ax.set_title(str(conds[c]) + deg_symbol, fontsize=10)
         if c == 0:
             # plt.xlabel('Frame (@'+str(md['framerate'])+'Hz)', fontsize=8)
