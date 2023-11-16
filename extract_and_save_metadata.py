@@ -2,12 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import h5py
 import json
 import magic
-import numpy as np
 import os
-from ScanImageTiffReader import ScanImageTiffReader
 from warnings import warn
 
 import metadata
