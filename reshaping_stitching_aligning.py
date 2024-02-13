@@ -58,7 +58,9 @@ if not params['reconstruct_all_files']:
     params['reconstruct_until_this_ifile'] = 10
 
 # Directories
-params['raw_data_dirs'] = [r'/home/freiwald/Data/analysis_2pRAM/Dali/20230511d/'] # Must be a list with 1 or more dirs
+# params['raw_data_dirs'] = [r'F:\Data\Larry\20231007d\205532tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow049p8mW'] # Must be a list with 1 or more dirs
+params['raw_data_dirs'] = [r'F:\Data\Larry\t']
+
 params['fname_must_contain'] = '' #something you want to specify and that the desired filenames should contain
 params['fname_must_NOT_contain'] = 'rrrrrrrr' #if not needed, leave something you know it is not in the filename
 
@@ -87,11 +89,11 @@ params['lateral_align_planes'] = False # Calculates and compensates the X-Y of M
 params['add_1000_for_nonegative_volume'] = False
 
 # Parameters MROIs seams
-params['seams_overlap'] = 4 # Should be either 'calculate', an integer, or a list of integers with length=n_planes
+params['seams_overlap'] = 0  # Should be either 'calculate', an integer, or a list of integers with length=n_planes
 if params['seams_overlap'] == 'calculate':
     params['n_ignored_pixels_sides'] = 5 # Useful if there is a delay or incorrect phase for when the EOM turns the laser on/off at the start/end of a resonant-scanner line
-    params['min_seam_overlap'] = 5
-    params['max_seam_overlap'] = 20 # Used if params['seams_overlap']_setting = 'calculate'
+    params['min_seam_overlap'] = 3
+    params['max_seam_overlap'] = 12 # Used if params['seams_overlap']_setting = 'calculate'
     params['alignment_plot_checks'] = False
     
 # Logging
@@ -151,7 +153,7 @@ if params['json_logging']:
 #%% Look for files used to: 1) make a template and do seam-overlap handling and X-Y shift alignment; 2) pre-process
 path_all_files = []
 for i_dir in params['raw_data_dirs']:
-    tmp_paths = sorted(glob.glob(i_dir + '/**/*.tif', recursive = True))
+    tmp_paths = sorted(glob.glob(i_dir + '/**/*_SP_*_00001.tif', recursive=True))
     for this_tmp_path in tmp_paths:
         if params['fname_must_contain'] in this_tmp_path and params['fname_must_NOT_contain'] not in this_tmp_path:
             path_all_files.append(this_tmp_path)
@@ -262,7 +264,8 @@ for current_pipeline_step in pipeline_steps:
             tiff_file = np.expand_dims(tiff_file,1)
         tiff_file = np.swapaxes(tiff_file, 1, 3)
         tiff_file = tiff_file[...,chans_order]
-        
+
+        ### TOOD ASK SANTI this is just to speed the next step up
         if current_pipeline_step == 'make_template':
             tiff_file = np.mean(tiff_file, axis = 0, keepdims = True)
         
@@ -453,7 +456,7 @@ for current_pipeline_step in pipeline_steps:
                 
                 y_start_canvas = top_left_corners_pix[i_mroi][1]
                 y_end_canvas = y_start_canvas + sizes_mrois_pix[i_mroi][1]
-                
+                print(planes_mrois.shape)
                 plane_canvas[:, x_start_canvas:x_end_canvas, y_start_canvas:y_end_canvas] = planes_mrois[i_plane, i_mroi][:,x_start_mroi:x_end_mroi]
             
             shift_x_varied_seams = int(round((overlap_seams_this_plane - min(overlaps_planes)) * (n_mrois-1) / 2))
@@ -537,11 +540,11 @@ for current_pipeline_step in pipeline_steps:
                 if params['json_logging']: json_logger.debug(json.dumps({'debug_message':'Saving output file'}))
                 save_dir = os.path.dirname(path_input_file) + '/Preprocessed/' 
                 if params['save_as_volume_or_planes'] == 'volume':
-                    save_dir = os.path.dirname(path_input_file) 
-                    path_output_file = path_input_file[:-4] + '_preprocessed.h5'
-                    h5file = h5py.File(path_output_file, 'w') 
+                    save_dir = os.path.dirname(path_input_file)
+                    path_output_file = path_input_file[:-4] + '_preprocessed2.h5'
+                    h5file = h5py.File(path_output_file, 'w')
                     h5file.create_dataset('mov', data=volume)
-                    h5file.attrs.create('metadata', str(metadata)) # You can use json to load it as a dictionary
+                    h5file.attrs.create('metadata', str(metadata))  # You can use json to load it as a dictionary
                     h5file.close()
                     del h5file
                 elif params['save_as_volume_or_planes'] == 'planes':
