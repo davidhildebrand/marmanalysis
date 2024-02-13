@@ -7,31 +7,34 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-#from scipy.optimize import minimize as scipy_minimize
-#from scipy.signal import find_peaks as find_peaks
+# from scipy.optimize import minimize as scipy_minimize
+# from scipy.signal import find_peaks as find_peaks
 from skimage import exposure, util
 from warnings import warn
 
-#matplotlib.use('MacOSX')
-#matplotlib.use('TkAgg')
+# matplotlib.use('MacOSX')
+# matplotlib.use('TkAgg')
 
 
-#%% Read suite2p outputs
+# %% Read suite2p outputs
 
-filepath = '/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Data/'
+# filepath = '/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Data/Cadbury/20221016d'
+# filename = '20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx.log'
+# pf = '/Users/davidh/Sync/Freiwald/MarmoScope/Analysis/Data/Cadbury/20221016d/SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW/suite2p/plane0/'
+filepath = r'F:\Sync\Freiwald\MarmoScope\Analysis\Data\Cadbury\20221016d\SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW'
 filename = '20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx.log'
-pf = '/Users/davidh/Sync/Freiwald/MarmoScope/Analysis/Data/Cadbury/20221016d/SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW/suite2p/plane0/'
+pf = r'F:\Sync\Freiwald\MarmoScope\Analysis\Data\Cadbury\20221016d\SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW\suite2p\plane0'
 save_path = ''
 # save_path = '/Users/davidh/Data/Freiwald/Analysis/Cadbury/20221016d_2pRAM/SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW/'
 
 acq_framerate = 6.36
 
 # based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci https://doi.org/10.1038/nn.2363
-# [...] neurons (94%) were face selective (that is, face-selectivity index 
+# [...] neurons (94%) were face selective (that is, face-selectivity index
 # larger than 1/3 or smaller than -1/3, dotted lines).
-fsi_tuning_thresh = 1/4
+fsi_tuning_thresh = 1 / 4
 
-cell_probability_thresh = 0 #.005
+cell_probability_thresh = 0  # .005
 
 plt.rcParams['figure.dpi'] = 600
 dpi = plt.rcParams['figure.dpi']
@@ -41,16 +44,16 @@ stimframes = int(np.ceil(2 * acq_framerate))
 isiframes = round(1 * acq_framerate)
 totalframes = isiframes + stimframes + isiframes
 
-s2p_iscell = np.load(pf + 'iscell.npy')
-s2p_F = np.load(pf + 'F.npy')
-s2p_stat = np.load(pf + 'stat.npy', allow_pickle=True)
-s2p_ops = np.load(pf + 'ops.npy', allow_pickle = True).item()
-#s2p_ops['filelist']
+s2p_iscell = np.load(os.path.join(pf, 'iscell.npy'))
+s2p_F = np.load(os.path.join(pf, 'F.npy'))
+s2p_stat = np.load(os.path.join(pf, 'stat.npy'), allow_pickle=True)
+s2p_ops = np.load(os.path.join(pf, 'ops.npy'), allow_pickle=True).item()
+# s2p_ops['filelist']
 ref_image = s2p_ops['meanImg']
-#s2p_ops['refImg']
+# s2p_ops['refImg']
 
-#cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
-cellinds = np.where(s2p_iscell[:,1] >= cell_probability_thresh)[0]
+# cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
+cellinds = np.where(s2p_iscell[:, 1] >= cell_probability_thresh)[0]
 tmpROIs = s2p_stat[cellinds]
 Frois = s2p_F[cellinds]
 ROIidx_excl = np.where(np.std(Frois, axis=1) == 0)
@@ -59,11 +62,11 @@ ROIs = tmpROIs[ROIidx_incl]
 Frois = Frois[ROIidx_incl]
 fov_h = s2p_ops['Ly']
 fov_w = s2p_ops['Lx']
-fov_size = (fov_h, fov_w) # rows/height/y, columns/width/x
+fov_size = (fov_h, fov_w)  # rows/height/y, columns/width/x
 
 ###
 # Alternative approach to computing FdFF, likely from David Fitzpatrick's lab:
-# Baseline fluorescence (F0) was calculated by applying a rank-order filter to 
+# Baseline fluorescence (F0) was calculated by applying a rank-order filter to
 # the raw fluorescence trace (10th percentile) with a rolling time window of 60s.
 n_ROIs = Frois.shape[0]
 FdFF = (Frois - np.mean(Frois, axis=1)[:,np.newaxis]) / np.mean(Frois, axis=1)[:,np.newaxis]
@@ -77,31 +80,31 @@ else:
 
 #%% Define functions
 
-def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512), 
-             circular=False, ref_image=None, scale_bar=False, um_per_px=None, 
+def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
+             circular=False, ref_image=None, scale_bar=False, um_per_px=None,
              n_neighbors=None, save_path:str=''):
     # The values tuning and tuning_mag must be within [0,1].
-    # 'circular' determines whether tuning has the same color for 0 and 1 
+    # 'circular' determines whether tuning has the same color for 0 and 1
     # (True for MT, False for auditory)
     # TODO **** implement scale bar?
-    
+
     dpi = plt.rcParams['figure.dpi'] / 2
     h, w = fov_size # rows/height/y, columns/width/x
     figsize = w / float(dpi), h / float(dpi)
-    
+
     ###### TODO *** THIS DOES NOT GENERALIZE
     r_ROIs = len(ROIs)
     tuned = np.abs(tuning_mag) > tuning_thresh
     ROIs_tuned = ROIs[tuned]
     tuning_tuned = tuning[tuned]
     tuning_mag_tuned = tuning_mag[tuned]
-    
+
     if tuning.max() > 1:
         warn(UserWarning('provided tuning index has values > 1 (out of range)'))
-    
+
     assert len(ROIs_tuned) == len(tuning_tuned) == len(tuning_mag_tuned)
     n_ROIs_tuned = len(ROIs_tuned)
-    
+
     f0 = plt.figure(figsize=figsize)
     ax = f0.add_axes([0, 0, 1, 1])
     plt.set_cmap('hsv')
@@ -245,7 +248,7 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
             plt.axis('square')
             #plt.title('(k = {}, weights = {})'.format(n_neighbors, weights))
         plt.show()
-        
+
 
 #%% Extract stimulus information from log file
 
@@ -375,17 +378,17 @@ FdFF_by_cat_meanRstimall = np.mean(FdFF_by_cat_meanRstim, axis=-1)
 Fzsc_by_cat_meanRstimall = np.mean(Fzsc_by_cat_meanRstim, axis=-1)
 FdFF_by_cat_meanRstimallnorm = FdFF_by_cat_meanRstimall + np.abs(np.min(FdFF_by_cat_meanRstimall))
 Fzsc_by_cat_meanRstimallnorm = Fzsc_by_cat_meanRstimall + np.abs(np.min(Fzsc_by_cat_meanRstimall))
-key_faces = [c for c in categories if categories[c] =='m'][0]
-key_objs = [c for c in categories if categories[c] =='u'][0]
-key_bodies = [c for c in categories if categories[c] =='b'][0]
+key_faces = [c for c in categories if categories[c] == 'm'][0]
+key_objs = [c for c in categories if categories[c] == 'u'][0]
+key_bodies = [c for c in categories if categories[c] == 'b'][0]
 FdFF_allfaces_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_faces]
 Fzsc_allfaces_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_faces]
 FdFF_allobjs_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_objs]
 Fzsc_allobjs_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_objs]
 FdFF_allbodies_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_bodies]
 Fzsc_allbodies_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_bodies]
-# FSIs(_by_roi) = [roi, fsi]
 
+# FSIs(_by_roi) = [roi, fsi]
 FSIs_dFF = (FdFF_allfaces_meanRstimall - FdFF_allobjs_meanRstimall) / (FdFF_allfaces_meanRstimall + FdFF_allobjs_meanRstimall)
 FSIs_zsc = (Fzsc_allfaces_meanRstimall - Fzsc_allobjs_meanRstimall) / (Fzsc_allfaces_meanRstimall + Fzsc_allobjs_meanRstimall)
 
@@ -423,8 +426,8 @@ def plot_ROIs_RGB(ROIs, RGB_ROIs, fov_size=(512,512), ref_image=None, scale_bar=
         canvas[ry,rx,:] = RGB_ROIs[r]
         
     ax.tick_params(left=False, right=False, labelleft=False,
-                    labelbottom=False, bottom=False)
-    #plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
+                   labelbottom=False, bottom=False)
+    # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     f0.show()
@@ -439,7 +442,6 @@ def plot_ROIs_RGB(ROIs, RGB_ROIs, fov_size=(512,512), ref_image=None, scale_bar=
         
 #%% Plot tuned cells with continuous tuning-wheel
 
-#parameters
 RGB_multiplier = 2.5
 plotting_threshold_continuous = 0.3
 
@@ -479,25 +481,22 @@ if subtract_responses_to_other_stim:
         response_to_non_preferred_stim = sorted(set(this_row))[subtract_least_or_secondLeast_preferred_stim_responses] # This sorts the responses and selects the lowest(0) or second-lowest(1) response
         Fzsc_for_plot_discrete[row_i] = this_row - response_to_non_preferred_stim
 
-thresholding_logical_vector_discrete = np.max(Fzsc_for_plot_discrete, axis = 1) > plotting_threshold_discrete #Threshold 
+thresholding_logical_vector_discrete = np.max(Fzsc_for_plot_discrete, axis=1) > plotting_threshold_discrete #Threshold
 ROIs_for_plot_discrete = ROIs[thresholding_logical_vector_discrete]
 Fzsc_for_plot_discrete = Fzsc_for_plot_discrete[thresholding_logical_vector_discrete]
 
-Fzsc_for_plot_preferredKey = np.argmax(Fzsc_for_plot_discrete,axis =1)
-Fzsc_for_plot_discrete[:] = 0 # We will re-fill the preferredkeys with 1s in the folowwing for loop
+Fzsc_for_plot_preferredKey = np.argmax(Fzsc_for_plot_discrete, axis=1)
+Fzsc_for_plot_discrete[:] = 0  # We will re-fill the preferred keys with 1s in the folowwing for loop
 for roi_i in range(len(Fzsc_for_plot_discrete)):
     Fzsc_for_plot_discrete[roi_i,Fzsc_for_plot_preferredKey[roi_i]] = 1
 
-Fzsc_for_plot_discrete[:,[0,1,2]] = Fzsc_for_plot_discrete[:,[key_bodies,key_faces,key_objs]] #Swap face indexes to be on the first column, making face-cells be red
+Fzsc_for_plot_discrete[:, [0, 1, 2]] = Fzsc_for_plot_discrete[:,[key_bodies,key_faces,key_objs]] #Swap face indexes to be on the first column, making face-cells be red
 # Fzsc_for_plot_discrete[:,[1,2]] = Fzsc_for_plot_discrete[:,[2,1]] #Swap face indexes to be on the first column, making face-cells be red
 
 plot_ROIs_RGB(ROIs_for_plot_discrete, Fzsc_for_plot_discrete, 
           fov_size=fov_size, ref_image=ref_image, save_path=save_path)
 
-
 #%%
-
-
 
 ### TODO *** Could also calculate d’
 # e.g. from https://www.biorxiv.org/content/10.1101/2022.03.06.483186v1.full.pdf
@@ -567,7 +566,7 @@ plot_ROIs_RGB(ROIs_for_plot_discrete, Fzsc_for_plot_discrete,
 print('|FSI| threshold: {}' .format(fsi_tuning_thresh))
 tunidx_fsi = FSIs_zsc
 tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
-#n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) <= fsi_tuning_thresh)[0][0]
+ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).squeeze()
 n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).shape[0]
 pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
 print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
@@ -757,7 +756,7 @@ for r in range(n_ROIs_tuned):
         ax.set_ylim((np.min(Fzsc_by_cat[ridx,:,:,:]) - 0.2,
                      np.max(Fzsc_by_cat[ridx,:,:,:]) + 0.2))
         for t in range(conds_per_cat * n_trials):
-            ax.plot(range(totalframes), Fzsc_by_cat[ridx,c,t,:], color=str((0.4)+0.4*t/Fzsc_by_cat.shape[2]))
+            ax.plot(range(totalframes), Fzsc_by_cat[ridx,c,t,:], color=str(0.4+0.4*t/Fzsc_by_cat.shape[2]))
         ax.plot(range(totalframes), np.mean(Fzsc_by_cat[ridx,c,:,:], axis=0), color='tab:green')
     for c in range(n_cats):
         ax = axes[1,c]
@@ -962,70 +961,3 @@ for r in range(Frois_by_cat_tuned.shape[0]):
 #         plt.plot(range(totalframes), np.mean(Frois_by_cat_tuned[r,c,:,:], axis=0))
 #         plt.suptitle('roi {} '.format(r), fontsize=10)
 #         print(np.std(np.mean(Frois_by_cat_tuned[r,c,:,:], axis=0)))
-
-#%%
-
-# #print(sum(Frois_by_cond_meanRstim[0,5]))
-# # a = scipy.stats.ttest_1samp(Frois_by_cond_meanRstim[0,5], 0)
-# # a[1]
-# # print(sum(Ftest_cond[0,5]))
-# # a = scipy.stats.ttest_1samp(Ftest_cond[0,5], 0)
-# # a[1]
-# print('Tuning index threshold: {}' .format(tuning_index_thresh))
-# # n_ROIs_tuned = Frois_by_cond_tuned.shape[0]
-# n_ROIs_tuned = FdFF_by_cond_tuned.shape[0]
-# n_neurons = n_ROIs
-# pct_tuned_neurons = round((100 * n_ROIs_tuned) / n_neurons, 2)
-# print('Tuned neurons: {}. Total neurons: {}.'.format(n_ROIs_tuned,n_neurons))
-# print('Percentage of tuned neurons: {}%'.format(pct_tuned_neurons))
-
-# # for r in range(Frois_by_cat_tuned.shape[0]):
-# for r in range(FdFF_by_cat_tuned.shape[0]):
-#     print(r)
-#     plt.pause(0.05)
-#     plt.subplots(1, 3, constrained_layout=True)
-#     #if plot_rando_neurons == True:
-#     #    r = np.random.randint(FdFF_by_cat_tuned.shape[0])
-#     for c in range(n_cats):
-#         # if np.mean(Frois_by_cond_tuned[r, c, :, isiframes:isiframes+stimframes]) < np.mean(Frois_by_cond_tuned[r, c, :, 0:isiframes]):
-#         #     continue
-#         plt.subplot(1, 3, c+1)
-#         plt.title('Stim: ' + str(categories[c]), fontsize=7)
-#         plt.axvspan(isiframes, (isiframes + stimframes), color='0.9')
-#         plt.ylim((-1,5))
-#         plt.xlabel('Frame # (@'+str(acq_framerate)+'Hz)', fontsize=6)
-#         plt.ylabel(normalize, fontsize=6)
-#         plt.tick_params(axis='both', which='major', labelsize=5)
-#         for t in range(conds_per_cat * n_trials):
-#             plt.plot(range(totalframes), FdFF_by_cat_tuned[r,c,t,:], color=str((0.4)+0.4*t/FdFF_by_cat_tuned.shape[2]))
-#         plt.plot(range(totalframes), np.mean(FdFF_by_cat_tuned[r,c,:,:], axis=0))
-#         plt.suptitle('roi {} '.format(r), fontsize=10)
-#         #plt.waitforbuttonpress()
-#         print(np.std(np.mean(FdFF_by_cat_tuned[r,c,:,:], axis=0)))
-        
-        
-# #%%
-
-# Frois_peak_frame = np.argmax(Frois, axis=1)
-# y_height = 0
-# plt.figure()
-# for n in range(20):
-#     r = np.random.randint(n_ROIs)
-#     if Frois_peak_frame[r] > 18 and Frois_peak_frame[r] < Frois.shape[1]-36:
-#         plt.plot( np.linspace(1,18+36,18+36)-19, (Frois[r,Frois_peak_frame[r]-18:Frois_peak_frame[r]+36]) + y_height)
-#         y_height += 0.5
-# plt.xlabel('Frame # (@'+str(acq_framerate)+'Hz)')
-# plt.yticks(range(int(np.ceil(y_height))))
-# plt.ylabel(normalize + ' (arbitrary baseline)')
-# plt.axvline(x=0)
-# plt.title('Peak ' + normalize + ' for 20 neurons')
-
-# y_height = 0
-# plt.figure(dpi = 900)
-# for n in range(20):
-#     plt.plot(np.linspace(1,Frois.shape[1],Frois.shape[1]), (Frois[np.random.randint(n_ROIs),:]) + y_height, linewidth=0.2)
-#     y_height += 3
-
-# plt.xlabel('Frame # (@'+str(acq_framerate)+'Hz)')
-# plt.ylabel(normalize + ' (arbitrary baseline)')
-# plt.title(normalize + ' for 20 neurons')

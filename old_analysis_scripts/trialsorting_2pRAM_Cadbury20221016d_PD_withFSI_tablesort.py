@@ -7,13 +7,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-#from scipy.optimize import minimize as scipy_minimize
-#from scipy.signal import find_peaks as find_peaks
+# from scipy.optimize import minimize as scipy_minimize
+# from scipy.signal import find_peaks as find_peaks
 from skimage import exposure, util
 from warnings import warn
 
-#matplotlib.use('MacOSX')
-#matplotlib.use('TkAgg')
+# matplotlib.use('MacOSX')
+# matplotlib.use('TkAgg')
 
 
 #%% Read suite2p outputs
@@ -28,9 +28,12 @@ from warnings import warn
 # dur_isi = 1.5
 
 #20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx
-filepath = '/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Data/Cadbury/20221016d'
+# filepath = '/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Data/Cadbury/20221016d'
+# filename = '20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx.log'
+# pf = '/Users/davidh/Sync/Freiwald/MarmoScope/Analysis/Data/Cadbury/20221016d/SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW/suite2p/plane0/'
+filepath = r'F:\Sync\Freiwald\MarmoScope\Analysis\Data\Cadbury\20221016d\SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW'
 filename = '20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx.log'
-pf = '/Users/davidh/Sync/Freiwald/MarmoScope/Analysis/Data/Cadbury/20221016d/SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW/suite2p/plane0/'
+pf = r'F:\Sync\Freiwald\MarmoScope\Analysis\Data\Cadbury\20221016d\SP_SiteA_200umdeep_0p73by0p73mm_1umppix_6p36Hz_59mW\suite2p\plane0'
 save_path = ''
 acq_framerate = 6.36
 dur_stim = 2.0
@@ -44,29 +47,29 @@ dur_isi = 1.0
 # larger than 1/3 or smaller than -1/3, dotted lines).
 fsi_tuning_thresh = 1/4
 
-cell_probability_thresh = 0 #.005
+cell_probability_thresh = 0  # .005
 
 plt.rcParams['figure.dpi'] = 600
 dpi = plt.rcParams['figure.dpi']
 
 # *** TODO automatically identify stimulus duration
-#stimframes = int(np.ceil(2 * acq_framerate))
-isiframes = round(1 * acq_framerate)
+# stimframes = int(np.ceil(2 * acq_framerate))
+# isiframes = round(1 * acq_framerate)
 n_samp_stim = int(np.ceil(dur_stim * acq_framerate))
-#isiframes = round(1 * acq_framerate)
+# isiframes = round(1 * acq_framerate)
 n_samp_isi = int(np.round(dur_isi * acq_framerate))
-#n_samples = isiframes + stimframes + isiframes
+# n_samples = isiframes + stimframes + isiframes
 n_samp = n_samp_isi + n_samp_stim + n_samp_isi
 
-s2p_iscell = np.load(pf + os.path.sep + 'iscell.npy')
-s2p_F = np.load(pf + os.path.sep + 'F.npy')
-s2p_stat = np.load(pf + os.path.sep + 'stat.npy', allow_pickle=True)
-s2p_ops = np.load(pf + os.path.sep + 'ops.npy', allow_pickle = True).item()
-#s2p_ops['filelist']
+s2p_iscell = np.load(os.path.join(pf, 'iscell.npy'))
+s2p_F = np.load(os.path.join(pf, 'F.npy'))
+s2p_stat = np.load(os.path.join(pf, 'stat.npy'), allow_pickle=True)
+s2p_ops = np.load(os.path.join(pf, 'ops.npy'), allow_pickle=True).item()
+# s2p_ops['filelist']
 ref_image = s2p_ops['meanImg']
-#s2p_ops['refImg']
+# s2p_ops['refImg']
 
-#cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
+# cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
 cellinds = np.where(s2p_iscell[:,1] >= cell_probability_thresh)[0]
 tmpROIs = s2p_stat[cellinds]
 Frois = s2p_F[cellinds]
@@ -85,10 +88,12 @@ fov_size = (fov_h, fov_w) # rows/height/y, columns/width/x
 n_ROIs = Frois.shape[0]
 FdFF_raw = (Frois - np.mean(Frois, axis=1)[:,np.newaxis]) / np.mean(Frois, axis=1)[:,np.newaxis]
 Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:,np.newaxis]) / np.std(Frois, axis=1)[:,np.newaxis]
+del Frois
+
 FdFF_raw_20pct = np.percentile(FdFF_raw, 0.2)
 Fzsc_raw_20pct = np.percentile(Fzsc_raw, 0.2)
-#FdFF_raw_norm = FdFF_raw + np.abs(np.nanmin(FdFF_raw))
-#Fzsc_raw_norm = Fzsc_raw + np.abs(np.nanmin(Fzsc_raw))
+# FdFF_raw_norm = FdFF_raw + np.abs(np.nanmin(FdFF_raw))
+# Fzsc_raw_norm = Fzsc_raw + np.abs(np.nanmin(Fzsc_raw))
 FdFF_norm = FdFF_raw.copy()
 FdFF_norm[FdFF_norm < FdFF_raw_20pct] = FdFF_raw_20pct
 FdFF_norm = FdFF_norm + np.abs(np.nanmin(FdFF_norm))
@@ -116,8 +121,8 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
     h, w = fov_size # rows/height/y, columns/width/x
     figsize = w / float(dpi), h / float(dpi)
     
-    ###### TODO *** THIS DOES NOT GENERALIZE
-    #r_ROIs = len(ROIs)
+    # ##### TODO *** THIS DOES NOT GENERALIZE
+    # r_ROIs = len(ROIs)
     tuned = np.abs(tuning_mag) > tuning_thresh
     ROIs_tuned = ROIs[tuned]
     tuning_tuned = tuning[tuned]
@@ -140,7 +145,7 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
         ref_f64 = util.img_as_float64(ref_image)
         ref_rescale = exposure.rescale_intensity(ref_f64, in_range=(ilow, ihigh))
         ref = ref_rescale
-        canvas = np.stack((ref,)*3, axis=-1) # copy single channel to form RGB image
+        canvas = np.stack(3 * (ref,), axis=-1)  # copy single channel to form RGB image
     else:
         canvas = np.zeros([h, w, 3], dtype=np.float64) # create a color canvas with frame size
 
@@ -152,10 +157,10 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
             canvas[ry,rx,:] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
         else:
             for rgb in range(3):
-                canvas[ry,rx,rgb] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - rgb * 1/3)) #* tuning_mag[r]
+                canvas[ry,rx,rgb] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - rgb * 1/3))  #* tuning_mag[r]
     ax.tick_params(left=False, right=False, labelleft=False,
-                    labelbottom=False, bottom=False)
-    #plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
+                   labelbottom=False, bottom=False)
+    # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))  #, quant_steps))#, alpha=1.0)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     f0.show()
@@ -272,92 +277,7 @@ def plot_map(ROIs, tuning, tuning_mag, tuning_thresh=0, fov_size=(512,512),
             plt.axis('square')
             #plt.title('(k = {}, weights = {})'.format(n_neighbors, weights))
         plt.show()
-        
 
-# #%% Extract stimulus information from log file
-
-# # *** TODO load from a pickle file or pandas frame instead of a text log
-# file = open(filepath + os.path.sep + filename, 'r')
-# lines = file.read().splitlines()
-# file.close()
-
-# #37.1533         EXP     trial 0/240, stim start, image, cond=7, name=image7:b16.png, 
-# #path=/FreiwaldSync/MarmoScope/Stimulus/Images/Song_etal_Wang_2020_NatCommun/480288_equalized_RGBA_FOBonly/b16.png, 
-# #units=deg, pos=[0. 0.], size=[12.   7.2], ori=0.0, color=[1. 1. 1.], colorSpace=rgb, contrast=1.0, 
-# #opacity=1.0, texRes=512, acqfr=23, AI_data.shape=(1336, 5)
-# trialdata = {}
-# images = {}
-# categories = {}
-# #tmp_cond = 0
-# #tmp_trial = 0
-# for line in lines:
-#     if 'stim start' not in line or 'image' not in line:
-#         continue
-#     #if 'blank' in line:
-#     #    continue
-#     # print(line)
-#     col = line.split('trial')
-#     if not col:
-#         continue
-#     subcol = [sc.strip() for sc in col[1].split(',')]
-#     tmp_trial = int(subcol[0].split('/')[0].strip())
-#     if 'cond' in subcol[3]:
-#         tmp_cond = int(subcol[3].split('=')[1].strip())
-#         #if tmp_cond == 129: # *** nasty temp hack
-#         #    tmp_cond = 128
-#         #if tmp_cond == 130:
-#         #    tmp_cond = 129
-#         #tmp_cond += 1
-#     else:
-#         print('could not get cond from log entry')
-#     if 'image' in subcol[4]:
-#         tmp_image = subcol[4].split(':')[1].strip()
-#         tmp_category = tmp_image[0]
-#         #if tmp_category == 'p' or tmp_category == 's':
-#         #    continue
-#         if tmp_category not in categories:
-#             categories[tmp_category] = len(categories)
-#         if tmp_image not in images:
-#             images[tmp_image] = tmp_cond
-#         tmp_catid = categories[tmp_category]
-        
-#     else:
-#         print('could not get image name from log entry')
-#     if 'acqfr' in subcol[15]:
-#         tmp_acqfr = int(subcol[15].split('=')[1].strip())
-#     else:
-#         print('could not get acqfr from log entry')
-#     trialdata[tmp_trial] = {'cond' : tmp_cond, #effectively image_id
-#                             'image' : tmp_image,
-#                             'category' : tmp_category, 
-#                             'catid' : tmp_catid,
-#                             'acqfr' : tmp_acqfr}
-#     #tmp_trial += 1
-# categories = {v: k for k, v in categories.items()}
-# images_filename = {v: k for k, v in images.items()}
-# images = {v: k.split('.')[0] for k, v in images.items()}
-
-# # trialdataarr[trial_idx] = [cond/imageid, category_id, acqfr]
-# trialdataarr = np.full([len(trialdata), 3], np.nan)
-# for td in trialdata:
-#     #print(td)
-#     trialdataarr[td] = [trialdata[td]['cond'], trialdata[td]['catid'], trialdata[td]['acqfr']]
-# trialdataarr = trialdataarr.astype(int)
-# all_stim_start_frames = trialdataarr[:,2]
-
-# # condinds = [cond, trial_idx]
-# conds = np.unique(trialdataarr[:,0])
-# n_conds = len(conds)
-# n_trials = int(len(trialdata) / n_conds)
-# cats = np.unique(trialdataarr[:,1])
-# n_cats = len(cats)
-# conds_per_cat = int(n_conds / n_cats)
-
-# condinds = np.full([len(conds), n_trials], np.nan)
-# for c in range(n_conds):
-#     condinds[c] = np.argwhere(trialdataarr[:, 0] == c).transpose()[0]
-# condinds = condinds.astype(int)
-# acqfr_by_conds = trialdataarr[condinds[:], 2]
 
 #%% Extract stimulus information from log file
 
@@ -400,11 +320,11 @@ for line in lines:
         tmp_acqfr = int(subcol[15].split('=')[1].strip())
     else:
         print('could not get acqfr from log entry')
-    trialdata[tmp_trial] = {'cond' : tmp_cond, #effectively image_id
-                            'image' : tmp_image,
-                            'category' : tmp_category, 
-                            'catid' : tmp_catid,
-                            'acqfr' : tmp_acqfr}
+    trialdata[tmp_trial] = {'cond': tmp_cond,  # effectively image_id
+                            'image': tmp_image,
+                            'category': tmp_category,
+                            'catid': tmp_catid,
+                            'acqfr': tmp_acqfr}
 categories = {v: k for k, v in categories.items()}
 images_filename = {v: k for k, v in images.items()}
 images = {v: k.split('.')[0] for k, v in images.items()}
@@ -435,29 +355,29 @@ fridx = acqfr_by_conds
 
 #%% Organize and average fluorescence traces
 
-#FdFF = np.zeros(n_conds * n_trials, dtype=[('cond', 'S8'), 
-data = np.zeros(n_conds, dtype=[('cond', 'S8'), 
-                                ('cat', 'S8'), 
-                                ('FdFF', 'f8', (n_ROIs, 
-                                                n_trials, 
+# FdFF = np.zeros(n_conds * n_trials, dtype=[('cond', 'S8'),
+data = np.zeros(n_conds, dtype=[('cond', 'S8'),
+                                ('cat', 'S8'),
+                                ('FdFF', 'f8', (n_ROIs,
+                                                n_trials,
                                                 n_samp)),
-                                ('FdFFn', 'f8', (n_ROIs, 
-                                                 n_trials, 
+                                ('FdFFn', 'f8', (n_ROIs,
+                                                 n_trials,
                                                  n_samp)),
-                                ('Fzsc', 'f8', (n_ROIs, 
-                                                n_trials, 
+                                ('Fzsc', 'f8', (n_ROIs,
+                                                n_trials,
                                                 n_samp)),
-                                ('Fzscn', 'f8', (n_ROIs, 
-                                                 n_trials, 
+                                ('Fzscn', 'f8', (n_ROIs,
+                                                 n_trials,
                                                  n_samp)),
-                                ('FdFF_meant', 'f8', (n_ROIs,  
+                                ('FdFF_meant', 'f8', (n_ROIs,
                                                       n_samp)),
-                                ('FdFFn_meant', 'f8', (n_ROIs, 
-                                                       n_samp)),
-                                ('Fzsc_meant', 'f8', (n_ROIs, 
+                                ('FdFFn_meant', 'f8', (n_ROIs,
+                                                        n_samp)),
+                                ('Fzsc_meant', 'f8', (n_ROIs,
                                                       n_samp)),
-                                ('Fzscn_meant', 'f8', (n_ROIs, 
-                                                       n_samp))])
+                                ('Fzscn_meant', 'f8', (n_ROIs,
+                                                        n_samp))])
 data[:]['FdFF'] = np.nan
 data[:]['FdFFn'] = np.nan
 data[:]['Fzsc'] = np.nan
@@ -467,18 +387,19 @@ data[:]['FdFFn_meant'] = np.nan
 data[:]['Fzsc_meant'] = np.nan
 data[:]['Fzscn_meant'] = np.nan
 
-#Fzsc = np.zeros(n_conds * n_trials, dtype=[('cond', 'S8'), 
-#Fzsc = np.zeros(n_conds, dtype=[('cond', 'S8'), 
-#                                ('cat', 'S8'), 
-#                                #('trial', int), 
-#                                ('R', 'f8', (n_ROIs, 
-#                                             n_trials, 
+#
+# Fzsc = np.zeros(n_conds * n_trials, dtype=[('cond', 'S8'),
+# Fzsc = np.zeros(n_conds, dtype=[('cond', 'S8'),
+#                                ('cat', 'S8'),
+#                                #('trial', int),
+#                                ('R', 'f8', (n_ROIs,
+#                                             n_trials,
 #                                             n_samp)),
-#                                ('Rn', 'f8', (n_ROIs, 
-#                                              n_trials, 
+#                                ('Rn', 'f8', (n_ROIs,
+#                                              n_trials,
 #                                              n_samp))])
 
-index = 0
+i_cond = 0
 for c in range(n_conds):
     match conditions[c][0]:
         case 'a':
@@ -502,28 +423,32 @@ for c in range(n_conds):
             tmp_cat = b'scram_s'
         case _:
             tmp_cat = None
-    data[index]['cond'] = bytes(conditions[c], 'ascii')
-    data[index]['cat'] = tmp_cat
+    data[i_cond]['cond'] = bytes(conditions[c], 'ascii')
+    data[i_cond]['cat'] = tmp_cat
     for t in range(n_trials):
-        data[index]['FdFF'][:,t,:] = FdFF_raw[:,(fridx[c,t]-n_samp_isi):(fridx[c,t]+n_samp_stim+n_samp_isi)]
-        data[index]['FdFFn'][:,t,:] = FdFF_norm[:,(fridx[c,t]-n_samp_isi):(fridx[c,t]+n_samp_stim+n_samp_isi)]
-        data[index]['Fzsc'][:,t,:] = Fzsc_raw[:,(fridx[c,t]-n_samp_isi):(fridx[c,t]+n_samp_stim+n_samp_isi)]
-        data[index]['Fzscn'][:,t,:] = Fzsc_norm[:,(fridx[c,t]-n_samp_isi):(fridx[c,t]+n_samp_stim+n_samp_isi)]
-    data[index]['FdFF_meant'] = np.nanmean(data[index]['FdFF'], axis=1)
-    data[index]['FdFFn_meant'] = np.nanmean(data[index]['FdFFn'], axis=1)
-    data[index]['Fzsc_meant'] = np.nanmean(data[index]['Fzsc'], axis=1)
-    data[index]['Fzscn_meant'] = np.nanmean(data[index]['Fzscn'], axis=1)
-    index += 1
-index = 0
+        fr_start = fridx[c, t] - n_samp_isi
+        fr_end = fridx[c, t] + n_samp_stim + n_samp_isi
+        data[i_cond]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
+        data[i_cond]['FdFFn'][:, t, :] = FdFF_norm[:, fr_start:fr_end]
+        data[i_cond]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
+        data[i_cond]['Fzscn'][:, t, :] = Fzsc_norm[:, fr_start:fr_end]
+    data[i_cond]['FdFF_meant'] = np.nanmean(data[i_cond]['FdFF'], axis=1)
+    data[i_cond]['FdFFn_meant'] = np.nanmean(data[i_cond]['FdFFn'], axis=1)
+    data[i_cond]['Fzsc_meant'] = np.nanmean(data[i_cond]['Fzsc'], axis=1)
+    data[i_cond]['Fzscn_meant'] = np.nanmean(data[i_cond]['Fzscn'], axis=1)
+    i_cond += 1
+i_cond = 0
 
-#FdFF[FdFF['cat'] == b'face_mrm']['data'].shape
+#del FdFF_raw, FdFF_norm, Fzsc_raw, Fzsc_norm
+
+# FdFF[FdFF['cat'] == b'face_mrm']['data'].shape
 
 # # F__by_cond = [roi, cond, trial, frame]
 # FdFF_by_cond = np.full([n_ROIs, n_conds, n_trials, n_samp_isi+n_samp_stim+n_samp_isi], np.nan)
 # for c in range(n_conds):
-#     for r in range(n_ROIs):
-#         for t in range(n_trials):
-#             FdFF_by_cond[r,c,t,:] = FdFF[r,(acqfr_by_conds[c][t]-n_samp_isi):(acqfr_by_conds[c][t]+n_samp_stim+n_samp_isi)]
+#   for r in range(n_ROIs):
+#      for t in range(n_trials):
+#        FdFF_by_cond[r,c,t,:] = FdFF[r,(acqfr_by_conds[c][t]-n_samp_isi):(acqfr_by_conds[c][t]+n_samp_stim+n_samp_isi)]
 # FdFF_by_cond_Rstim = FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)] # [roi, cond, trial, frame]
 # FdFF_by_cond_meanRstim = np.mean(FdFF_by_cond_Rstim, axis=2) # [roi, cond, frame]
 # Fzsc_by_cond = np.full([n_ROIs, n_conds, n_trials, n_samp_isi+n_samp_stim+n_samp_isi], np.nan)
@@ -563,37 +488,38 @@ index = 0
 # Fzsc_by_cat_Rstim = Fzsc_by_cat[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)] # [roi, cat, trial, frame]
 # Fzsc_by_cat_meanRstim = np.mean(Fzsc_by_cat_Rstim, axis=2) # [roi, cat, frame]
 
-
+#
 #%% Calculate tuning properties for each ROI (i.e. compute face selectivity index)
 # ? ? ? and find preferred face(s)?
 
-### FSI = (meanR_faces – meanR_nonfaceobj) / (meanR_faces + meanR_nonfaceobj)
+#
+# # FSI = (meanR_faces – meanR_nonfaceobj) / (meanR_faces + meanR_nonfaceobj)
 # based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci https://doi.org/10.1038/nn.2363
 # A face selectivity index was then computed as the ratio between difference
 # and sum of face- and object-related responses. For 
 # |face-selectivity index| = 1/3, that is, if the response to faces was at 
 # least twice (or at most half) that of nonface objects, a cell was classed 
-# as being face selective45–47.
+# as being face selective [45–47].
 
 # FdFF_by_cat_meanRstimall = np.mean(FdFF_by_cat_meanRstim, axis=-1)
 # Fzsc_by_cat_meanRstimall = np.mean(Fzsc_by_cat_meanRstim, axis=-1)
 # FdFF_by_cat_meanRstimallnorm = FdFF_by_cat_meanRstimall + np.abs(np.min(FdFF_by_cat_meanRstimall))
 # Fzsc_by_cat_meanRstimallnorm = Fzsc_by_cat_meanRstimall + np.abs(np.min(Fzsc_by_cat_meanRstimall))
 
-#FdFF_by_cat_meanRstimall = np.nanmean(FdFF_by_cat_meanRstim, axis=-1)
-#Fzsc_by_cat_meanRstimall = np.nanmean(Fzsc_by_cat_meanRstim, axis=-1)
-#FdFF_by_cat_meanRstimallnorm = FdFF_by_cat_meanRstimall + np.abs(np.nanmin(FdFF_by_cat_meanRstimall))
-#Fzsc_by_cat_meanRstimallnorm = Fzsc_by_cat_meanRstimall + np.abs(np.nanmin(Fzsc_by_cat_meanRstimall))
+# FdFF_by_cat_meanRstimall = np.nanmean(FdFF_by_cat_meanRstim, axis=-1)
+# Fzsc_by_cat_meanRstimall = np.nanmean(Fzsc_by_cat_meanRstim, axis=-1)
+# FdFF_by_cat_meanRstimallnorm = FdFF_by_cat_meanRstimall + np.abs(np.nanmin(FdFF_by_cat_meanRstimall))
+# Fzsc_by_cat_meanRstimallnorm = Fzsc_by_cat_meanRstimall + np.abs(np.nanmin(Fzsc_by_cat_meanRstimall))
 
-#key_faces = [c for c in categories if categories[c] =='m'][0]
-#key_objs = [c for c in categories if categories[c] =='u'][0]
-#key_bodies = [c for c in categories if categories[c] =='b'][0]
-#FdFF_allfaces_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_faces]
-#Fzsc_allfaces_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_faces]
-#FdFF_allobjs_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_objs]
-#Fzsc_allobjs_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_objs]
-#FdFF_allbodies_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_bodies]
-#Fzsc_allbodies_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_bodies]
+# key_faces = [c for c in categories if categories[c] =='m'][0]
+# key_objs = [c for c in categories if categories[c] =='u'][0]
+# key_bodies = [c for c in categories if categories[c] =='b'][0]
+# FdFF_allfaces_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_faces]
+# Fzsc_allfaces_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_faces]
+# FdFF_allobjs_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_objs]
+# Fzsc_allobjs_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_objs]
+# FdFF_allbodies_meanRstimall = FdFF_by_cat_meanRstimallnorm[:,key_bodies]
+# Fzsc_allbodies_meanRstimall = Fzsc_by_cat_meanRstimallnorm[:,key_bodies]
 
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
@@ -639,12 +565,26 @@ nn_FSIs_zscn = (nn_Fzscn_allfaces_meanRstimall - nn_Fzscn_allobjs_meanRstimall) 
 print('|FSI| threshold: {}' .format(fsi_tuning_thresh))
 nn_tunidx_fsi = nn_FSIs_zsc
 nn_tunidx_fsi_argsrt = np.argsort(nn_tunidx_fsi)[::-1]
-#n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) <= fsi_tuning_thresh)[0][0]
+# n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) <= fsi_tuning_thresh)[0][0]
 nn_ROIs_tuned = np.argwhere(np.abs(nn_tunidx_fsi[nn_tunidx_fsi_argsrt]) > fsi_tuning_thresh).shape[0]
 nn_pct_tuned = round(((100 * nn_ROIs_tuned) / n_ROIs), 2)
 print('Tuned ROIs: {}. Total ROIs: {}.'.format(nn_ROIs_tuned, n_ROIs))
 print('Percentage of tuned ROIs: {}%'.format(nn_pct_tuned))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Nothing below this is expected to work.
 
 
 
@@ -681,8 +621,8 @@ def plot_ROIs_RGB(ROIs, RGB_ROIs, fov_size=(512,512), ref_image=None, scale_bar=
         canvas[ry,rx,:] = RGB_ROIs[r]
         
     ax.tick_params(left=False, right=False, labelleft=False,
-                    labelbottom=False, bottom=False)
-    #plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
+                   labelbottom=False, bottom=False)
+    # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     f0.show()
@@ -753,9 +693,7 @@ plot_ROIs_RGB(ROIs_for_plot_discrete, Fzsc_for_plot_discrete,
           fov_size=fov_size, ref_image=ref_image, save_path=save_path)
 
 
-#%%
-
-
+# %%
 
 ### TODO *** Could also calculate d’
 # e.g. from https://www.biorxiv.org/content/10.1101/2022.03.06.483186v1.full.pdf
@@ -980,8 +918,8 @@ for c in range(0,11):
 #         plt.ylabel(normalize, fontsize=6)
 #         plt.tick_params(axis='both', which='major', labelsize=5)
 #         for t in range(conds_per_cat * n_trials):
-#             plt.plot(range(n_samples), Frois_by_cat_tuned[r,c,t,:], color=str((0.4)+0.4*t/Frois_by_cat_tuned.shape[2]))
-#         plt.plot(range(n_samples), np.mean(Frois_by_cat_tuned[r,c,:,:], axis=0))
+#             plt.plot(range(n_samp), Frois_by_cat_tuned[r,c,t,:], color=str((0.4)+0.4*t/Frois_by_cat_tuned.shape[2]))
+#         plt.plot(range(n_samp), np.mean(Frois_by_cat_tuned[r,c,:,:], axis=0))
 #         plt.suptitle('roi {} '.format(r), fontsize=10)
 #         #plt.waitforbuttonpress()
 #         print(np.std(np.mean(Frois_by_cat_tuned[r,c,:,:], axis=0)))
@@ -1038,7 +976,7 @@ for r in range(n_ROIs_tuned):
                      np.max(FdFF_by_cat[ridx,:,:,:]) + 0.1))
         for t in range(conds_per_cat * n_trials):
             ax.plot(range(n_samp), FdFF_by_cat[ridx,c,t,:], color=str((0.4)+0.4*t/FdFF_by_cat.shape[2]))
-        ax.plot(range(n_samp), np.mean(FdFF_by_cat[ridx,c,:,:], axis=0), color='tab:blue') 
+        ax.plot(range(n_samp), np.mean(FdFF_by_cat[ridx,c,:,:], axis=0), color='tab:blue')
     plt.show()
     #fig.savefig(save_path + os.path.sep + 'CadBury_20221016d_PD_FSI_roi{}.svg'.format(r), format='svg', dpi=1200)
     plt.pause(0.05)
@@ -1090,7 +1028,7 @@ for r in range(Frois_by_cat_tuned.shape[0]):
         ax.set_ylim((-1,2))
         for t in range(conds_per_cat * n_trials):
             ax.plot(range(n_samp), FdFF_by_cat_tuned[r,c,t,:], color=str((0.4)+0.4*t/Frois_by_cat_tuned.shape[2]))
-        ax.plot(range(n_samp), np.mean(FdFF_by_cat_tuned[r,c,:,:], axis=0), color='tab:blue') 
+        ax.plot(range(n_samp), np.mean(FdFF_by_cat_tuned[r,c,:,:], axis=0), color='tab:blue')
     for c in range(n_cats):
         ax = axes[2,c]
         ax.set_title(str(cats[c]), fontsize=10)
