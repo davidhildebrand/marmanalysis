@@ -22,6 +22,8 @@ from warnings import warn
 
 # TODO: exclude suite2p badframes
 # TODO: exclude when eyes are not open
+# TODO: set path for images to include in figures during processing
+# TODO: plot neuron traces over all conds or cats
 
 
 # Remove stale metadata

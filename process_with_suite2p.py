@@ -10,6 +10,11 @@ from warnings import warn
 import metadata
 
 
+# TODO: mean_img "always looks good" ... maybe switch from 3 to 2
+# TODO: look at cellprob_threshold negatives and flow_threshold
+# TODO: implement parameter sweep option
+
+
 # Parse command line options
 parser = argparse.ArgumentParser()
 parser.add_argument('source',
