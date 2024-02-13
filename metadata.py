@@ -427,6 +427,9 @@ def extract_useful_metadata(scanimage_metadata):
     umd['fov']['positions_deg'] = fov_positions_deg
     umd['fov']['w_px'] = len(fov_positions_deg[0])
     umd['fov']['h_px'] = len(fov_positions_deg[1])
+    if 'resolution_umpx' in umd['fov']:
+        umd['fov']['w_um'] = umd['fov']['w_px'] * umd['fov']['resolution_umpx'][0]
+        umd['fov']['h_um'] = umd['fov']['h_px'] * umd['fov']['resolution_umpx'][1]
     for i_mroi in range(umd['n_mrois']):
         i_m = umd['mrois']['lrsort_arg'][i_mroi]
         umd['mrois']['orig'][i_m]['corner_tl_deg'] = mroi_corners_tl_deg[i_mroi]
