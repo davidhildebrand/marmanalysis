@@ -14,7 +14,7 @@ import argparse
 import cv2
 import json
 import math
-import numpy
+import numpy as np
 import os
 import skimage
 from ScanImageTiffReader import ScanImageTiffReader
@@ -31,11 +31,12 @@ def directory(path):
         raise argparse.ArgumentTypeError(m)
     return path
 
-# Not sure what the actual limits are.
-video_max_w = 2**13 #4096
-video_max_h = 2**13 #2160
+
 def write_video(filepath, stack, framerate=20.0):
-    (z,h,w) = stack.shape[0:3]
+    # Not sure what the actual limits are.
+    video_max_w = 2 ** 13  # 4096
+    video_max_h = 2 ** 13  # 2160
+    (z, h, w) = stack.shape[0:3]
     ratio_w = w / video_max_w
     ratio_h = h / video_max_h
     ratio_max = max(ratio_w, ratio_h)
@@ -45,9 +46,9 @@ def write_video(filepath, stack, framerate=20.0):
         warn(m)
         dw = round(w / ratio_max)
         dh = round(h / ratio_max)
-        print('resizing to w={} h={}'.format(dw,dh))
-        dstack = numpy.empty([z, dh, dw], dtype=numpy.float64)
-        dstack.fill(numpy.nan)
+        print('resizing to w={} h={}'.format(dw, dh))
+        dstack = np.empty([z, dh, dw], dtype=np.float64)
+        dstack.fill(np.nan)
         for dz in range(z):
             dstack[dz] = skimage.transform.rescale(stack[dz], (1 / ratio_max), anti_aliasing=True)
         stack = dstack
@@ -61,18 +62,20 @@ def write_video(filepath, stack, framerate=20.0):
         video_writer.write(stack[f])
     video_writer.release()
 
+
 def save_stack(save_path, save_stack, overwrite=False):
     if not os.path.isfile(save_path):
         print('  Saving {}... '.format(save_path), end='')
-        tifffile.imsave(save_path, save_stack)
+        tifffile.imwrite(save_path, save_stack)
         print('done.')
     elif os.path.isfile(save_path) and overwrite:
         print('  Overwriting {}... '.format(gZps_path), end='')
-        tifffile.imsave(save_path, save_stack)
+        tifffile.imwrite(save_path, save_stack)
         print('done.')
     elif os.path.isfile(save_path) and not overwrite:
         print('  Not saving {}, file already exists.'.format(save_path))
-        
+
+
 def save_video(save_path, save_stack, framerate=20.0, overwrite=False):
     if not os.path.isfile(save_path):
         print('  Saving {}... '.format(save_path), end='')
@@ -206,11 +209,11 @@ if grouping:
     print('  Generating grouped projection stack with a window size of ' + \
           '{} frames... '.format(window_size), end='')
     bins = math.floor(frames.shape[0] / window_size)
-    groupZproj = numpy.empty([bins, frames.shape[1], frames.shape[2]], dtype=frames.dtype)
-    groupZproj.fill(numpy.nan)
+    groupZproj = np.empty([bins, frames.shape[1], frames.shape[2]], dtype=frames.dtype)
+    groupZproj.fill(np.nan)
     for idx in range(bins):
         idx_rng = range(idx * window_size, (idx * window_size) + window_size)
-        groupZproj[idx,:,:] = numpy.mean(frames[idx_rng], axis=0, dtype=frames.dtype)
+        groupZproj[idx,:,:] = np.mean(frames[idx_rng], axis=0, dtype=frames.dtype)
     groupZproj_int = skimage.util.img_as_int(groupZproj)
     print('done.')
     
@@ -225,7 +228,7 @@ if grouping:
                    overwrite=overwrite)
     
     print('  Rescaling grouped projection stack intensity... ', end='')
-    gZp_low, gZp_high = numpy.percentile(groupZproj, intens_pctiles)
+    gZp_low, gZp_high = np.percentile(groupZproj, intens_pctiles)
     groupZproj_rescale  = skimage.exposure.rescale_intensity(groupZproj, 
                                                              in_range=(gZp_low, gZp_high))
     groupZproj_rescale_int = skimage.util.img_as_int(groupZproj_rescale)
@@ -245,8 +248,8 @@ if grouping:
 if sliding:
     print('  Generating sliding window stack with a window size of ' + \
           '{} frames... '.format(window_size), end='')
-    frames_movmean = numpy.empty(frames.shape, dtype=numpy.float64)
-    frames_movmean.fill(numpy.nan)
+    frames_movmean = np.empty(frames.shape, dtype=np.float64)
+    frames_movmean.fill(np.nan)
     for idx in range(frames.shape[0]):
         # The first and last window/2 frames of the sliding mean average
         # are the same.
@@ -257,7 +260,7 @@ if sliding:
             idx_rng = range(frames.shape[0] - window_size, frames.shape[0])
         else:
             idx_rng = range(idx - math.floor(window_size / 2), idx + math.ceil(window_size / 2))
-        frames_movmean[idx,:,:] = numpy.mean(frames[idx_rng], axis=0, dtype=float)
+        frames_movmean[idx,:,:] = np.mean(frames[idx_rng], axis=0, dtype=float)
     frames_movmean_int = skimage.util.img_as_int(frames_movmean)
     print('done.')
     
@@ -272,7 +275,7 @@ if sliding:
                    overwrite=overwrite)
     
     print('  Rescaling sliding window stack intensity... ', end='')
-    sw_low, sw_high = numpy.percentile(frames_movmean, intens_pctiles)
+    sw_low, sw_high = np.percentile(frames_movmean, intens_pctiles)
     sw_rescale = skimage.exposure.rescale_intensity(frames_movmean, 
                                                     in_range=(sw_low, sw_high))
     sw_rescale_int = skimage.util.img_as_int(sw_rescale)
