@@ -224,26 +224,19 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 # Approaches for computing dF/F with more sophisticated F0 calculations.
 # from Gordon Smith (https://doi.org/10.1038/s41592-023-02098-1):
 #   Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence trace (tenth
-#   percentile) with a rolling time window of 60s.
+#   percentile) with a rolling time window of 60 sec.
 # from Gordon Smith (https://doi.org/10.1016/j.jneumeth.2023.110051):
 #   The baseline fluorescence (F0) for each pixel was obtained by applying a rank-order filter to the raw fluorescence
-#   trace with a rank 70 samples and a time window of 30s (451 samples).
+#   trace with a rank 70 samples and a time window of 30 sec (451 samples).
 # from Wilson et al Fitzpatrick (e.g. https://doi.org/10.1038/s41586-018-0354-1):
-#   ΔF/F0 was computed by defining F0 using a 60s percentile filter (typically 10th percentile), which was then
+#   ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), which was then
 #   low-pass filtered at 0.01 Hz.
 
-# plt(FdFF_raw[0, :])
+# plt.plot(FdFF_raw[0])
+# n_rolling_average = 120
+# FdFF_tmp = FdFF_raw[0] - np.convolve(FdFF_raw[0], np.ones(n_rolling_average)/n_rolling_average, mode='same')
+# plt.plot(FdFF_tmp)
 
-FdFF_raw_20pct = np.percentile(FdFF_raw, 0.2)
-Fzsc_raw_20pct = np.percentile(Fzsc_raw, 0.2)
-# FdFF_raw_norm = FdFF_raw + np.abs(np.nanmin(FdFF_raw))
-# Fzsc_raw_norm = Fzsc_raw + np.abs(np.nanmin(Fzsc_raw))
-FdFF_norm = FdFF_raw.copy()
-FdFF_norm[FdFF_norm < FdFF_raw_20pct] = FdFF_raw_20pct
-FdFF_norm = FdFF_norm + np.abs(np.nanmin(FdFF_norm))
-Fzsc_norm = Fzsc_raw.copy()
-Fzsc_norm[Fzsc_norm < Fzsc_raw_20pct] = Fzsc_raw_20pct
-Fzsc_norm = Fzsc_norm + np.abs(np.nanmin(Fzsc_norm))
 
 if save_path == '':
     saving = False
@@ -592,32 +585,18 @@ data = np.zeros(n_conds, dtype=[('cond', 'S8'),
                                 ('FdFF', 'f4', (n_ROIs,
                                                 n_trials,
                                                 n_samp_trial)),
-                                ('FdFFn', 'f4', (n_ROIs,
-                                                 n_trials,
-                                                 n_samp_trial)),
                                 ('Fzsc', 'f4', (n_ROIs,
                                                 n_trials,
                                                 n_samp_trial)),
-                                ('Fzscn', 'f4', (n_ROIs,
-                                                 n_trials,
-                                                 n_samp_trial)),
                                 ('FdFF_meant', 'f4', (n_ROIs,
                                                       n_samp_trial)),
-                                ('FdFFn_meant', 'f4', (n_ROIs,
-                                                       n_samp_trial)),
                                 ('Fzsc_meant', 'f4', (n_ROIs,
-                                                      n_samp_trial)),
-                                ('Fzscn_meant', 'f4', (n_ROIs,
-                                                       n_samp_trial))
+                                                      n_samp_trial))
                                 ])
 data[:]['FdFF'] = np.nan
-data[:]['FdFFn'] = np.nan
 data[:]['Fzsc'] = np.nan
-data[:]['Fzscn'] = np.nan
 data[:]['FdFF_meant'] = np.nan
-data[:]['FdFFn_meant'] = np.nan
 data[:]['Fzsc_meant'] = np.nan
-data[:]['Fzscn_meant'] = np.nan
 
 #
 # Fzsc = np.zeros(n_conds * n_trials, dtype=[('cond', 'S8'),
@@ -794,14 +773,10 @@ for c in range(n_conds):
         #          'But in the future this trial should be excluded.')
         #     n_missing = np.abs(fr_start)
         #     data[c]['FdFF'][:, t, 0] = FdFF_raw[:, -1]
-        #     data[c]['FdFFn'][:, t, 0] = FdFF_norm[:, -1]
         #     data[c]['Fzsc'][:, t, 0] = Fzsc_raw[:, -1]
-        #     data[c]['Fzscn'][:, t, 0] = Fzsc_norm[:, -1]
         #     fr_start = 0
         #     data[c]['FdFF'][:, t, 1:n_samp_trial] = FdFF_raw[:, fr_start:fr_end]
-        #     data[c]['FdFFn'][:, t, 1:n_samp_trial] = FdFF_norm[:, fr_start:fr_end]
         #     data[c]['Fzsc'][:, t, 1:n_samp_trial] = Fzsc_raw[:, fr_start:fr_end]
-        #     data[c]['Fzscn'][:, t, 1:n_samp_trial] = Fzsc_norm[:, fr_start:fr_end]
         #     continue
         if fr_start < 0 and t == 0:
             warn('Period before first trial was shorter than inter-stimulus interval. ' +
@@ -809,28 +784,20 @@ for c in range(n_conds):
                  'But in the future this trial should be excluded.')
             n_missing = abs(fr_start)
             data[c]['FdFF'][:, t, 0:n_missing] = np.array([FdFF_raw[:, 0],] * n_missing).transpose()
-            data[c]['FdFFn'][:, t, 0:n_missing] = np.array([FdFF_norm[:, 0],] * n_missing).transpose()
             data[c]['Fzsc'][:, t, 0:n_missing] = np.array([Fzsc_raw[:, 0],] * n_missing).transpose()
-            data[c]['Fzscn'][:, t, 0:n_missing] = np.array([Fzsc_norm[:, 0],] * n_missing).transpose()
             fr_start = 0
             data[c]['FdFF'][:, t, n_missing:n_samp_trial] = FdFF_raw[:, fr_start:fr_end]
-            data[c]['FdFFn'][:, t, n_missing:n_samp_trial] = FdFF_norm[:, fr_start:fr_end]
             data[c]['Fzsc'][:, t, n_missing:n_samp_trial] = Fzsc_raw[:, fr_start:fr_end]
-            data[c]['Fzscn'][:, t, n_missing:n_samp_trial] = Fzsc_norm[:, fr_start:fr_end]
             continue
         if fr_end > n_frames:
             # TODO: support throwing away trials after imaging stops
             raise RuntimeError('Imaging was stopped before stimulus. ' +
                                'Handling this is not yet implemented.')
         data[c]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
-        data[c]['FdFFn'][:, t, :] = FdFF_norm[:, fr_start:fr_end]
         data[c]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
-        data[c]['Fzscn'][:, t, :] = Fzsc_norm[:, fr_start:fr_end]
         # if fr_start >= 0:
         #     data[c]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
-        #     data[c]['FdFFn'][:, t, :] = FdFF_norm[:, fr_start:fr_end]
         #     data[c]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
-        #     data[c]['Fzscn'][:, t, :] = Fzsc_norm[:, fr_start:fr_end]
         # elif fr_start < 0 and t == 0:
         #     # TODO: support throwing away trials with ISI before imaging
         #     warn('Period before first trial was shorter than inter-stimulus interval. ' +
@@ -838,14 +805,10 @@ for c in range(n_conds):
         #          'But in the future this trial should be excluded.')
         #     n_missing = abs(fr_start)
         #     data[c]['FdFF'][:, t, 0:n_missing] = np.array([FdFF_raw[:, 0],] * n_missing).transpose()
-        #     data[c]['FdFFn'][:, t, 0:n_missing] = np.array([FdFF_norm[:, 0],] * n_missing).transpose()
         #     data[c]['Fzsc'][:, t, 0:n_missing] = np.array([Fzsc_raw[:, 0],] * n_missing).transpose()
-        #     data[c]['Fzscn'][:, t, 0:n_missing] = np.array([Fzsc_norm[:, 0],] * n_missing).transpose()
         #     fr_start = 0
         #     data[c]['FdFF'][:, t, n_missing:n_samp_trial] = FdFF_raw[:, fr_start:fr_end]
-        #     data[c]['FdFFn'][:, t, n_missing:n_samp_trial] = FdFF_norm[:, fr_start:fr_end]
         #     data[c]['Fzsc'][:, t, n_missing:n_samp_trial] = Fzsc_raw[:, fr_start:fr_end]
-        #     data[c]['Fzscn'][:, t, n_missing:n_samp_trial] = Fzsc_norm[:, fr_start:fr_end]
         # elif fr_end > n_frames:
         #     # TODO: support throwing away trials after imaging stops
         #     raise RuntimeError('Imaging was stopped before stimulus. ' +
@@ -853,12 +816,10 @@ for c in range(n_conds):
         # else:
         #     raise RuntimeError('Something went wrong when organizing the data.')
     data[c]['FdFF_meant'] = np.nanmean(data[c]['FdFF'], axis=1)
-    data[c]['FdFFn_meant'] = np.nanmean(data[c]['FdFFn'], axis=1)
     data[c]['Fzsc_meant'] = np.nanmean(data[c]['Fzsc'], axis=1)
-    data[c]['Fzscn_meant'] = np.nanmean(data[c]['Fzscn'], axis=1)
 
 
-# del FdFF_raw, FdFF_norm, Fzsc_raw, Fzsc_norm
+# del FdFF_raw, Fzsc_raw
 
 
 #
