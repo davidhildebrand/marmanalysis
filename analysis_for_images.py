@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
-# import pandas as pd
+import pandas as pd
 import re
 # from scipy.optimize import minimize as scipy_minimize
 # from scipy.signal import find_peaks as find_peaks
@@ -24,6 +24,9 @@ from warnings import warn
 # TODO: exclude when eyes are not open
 # TODO: set path for images to include in figures during processing
 # TODO: plot neuron traces over all conds or cats
+
+plt.rcParams['figure.dpi'] = 600
+dpi = plt.rcParams['figure.dpi']
 
 
 # Remove stale metadata
@@ -44,7 +47,7 @@ if 'md' in locals():
 
 # --  GOOD OLD Cadbury PD  20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx
 animal_str = 'Cadbury'
-date_str = '20221016d_olds2p'
+# date_str = '20221016d_olds2p'
 date_str = '20221016d'
 session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
 md = dict()
@@ -54,8 +57,7 @@ md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
 md['fov']['w_px'] = 730
 md['fov']['h_px'] = 730
 
-
-# -- MAYBE Cadbury MD?BOD? 
+# -- MAYBE Cadbury MD?BOD?
 #  - not sure what to make of this, area tuning looks very jumbled now
 # animal_str = 'Cadbury'
 # date_str = '20231003d'
@@ -103,6 +105,7 @@ mdfile_str = '*_metadata.pickle'
 datafile_str = '*_00001.tif'
 logfile_str = '*.log'
 logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
+stimlogfile_str = '*_stimlog.csv'
 suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
 
@@ -119,11 +122,13 @@ save_path = ''
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
 mdfile_list = glob(os.path.join(session_path, mdfile_str))
 datafile_list = [f for f in glob(os.path.join(session_path, datafile_str))
-                 if not os.path.isdir(f)]
+                 if os.path.isfile(f)]
 logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
-                if re.search(logfile_re, f) and not os.path.isdir(f)]
+                if re.search(logfile_re, f) and os.path.isfile(f)]
+stimlogfile_list = [f for f in glob(os.path.join(session_path, stimlogfile_str))
+                    if os.path.isfile(f)]
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
-                if not os.path.isfile(d)]
+                if os.path.isdir(d)]
 
 if 'md' not in locals():
     if not mdfile_list and not datafile_list:
@@ -151,15 +156,24 @@ if 'md' not in locals():
         raise RuntimeError('Could not load metadata from either file.')
 
 if len(logfile_list) > 0:
-    if len(logfile_list) > 1:
-        warn('Found multiple log files, using the first one: {}'.format(logfile_list[0]))
     lf_path = logfile_list[0]
+    if len(logfile_list) > 1:
+        warn('Found multiple log files, using the first one: {}'.format(lf_path))
     if os.path.isfile(lf_path):
         lf = open(lf_path, 'r')
         log = lf.read()
         lf.close()
     else:
         raise RuntimeError('Could not find log file.')
+
+if len(stimlogfile_list) > 0:
+    slf_path = stimlogfile_list[0]
+    if len(stimlogfile_list) > 1:
+        warn('Found multiple stimlog files, using the first one: {}'.format(slf_path))
+    if os.path.isfile(slf_path):
+        stimlog = pd.read_csv(slf_path)
+    else:
+        stimlog = None
 
 if len(suite2p_list) > 0:
     if len(suite2p_list) > 1:
@@ -181,36 +195,44 @@ osi_tuning_thresh = 1 / 4
 
 cell_probability_thresh = 0.00
 
-plt.rcParams['figure.dpi'] = 600
-dpi = plt.rcParams['figure.dpi']
-
-
 s2p_iscell = np.load(os.path.join(s2p_plane_path, 'iscell.npy'))
 s2p_F = np.load(os.path.join(s2p_plane_path, 'F.npy'))
 s2p_stat = np.load(os.path.join(s2p_plane_path, 'stat.npy'), allow_pickle=True)
 s2p_ops = np.load(os.path.join(s2p_plane_path, 'ops.npy'), allow_pickle=True).item()
-fov_image = s2p_ops['meanImg']
 
-# cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
 cellinds = np.where(s2p_iscell[:, 1] >= cell_probability_thresh)[0]
-tmpROIs = s2p_stat[cellinds]
+# cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
+# cellinds = np.logical_and(s2p_iscell[:, 1] >= cell_probability_thresh, np.std(s2p_F, axis=1) != 0)
+# cellinds = np.logical_and(s2p_iscell[:, 0] == 1.0, np.std(s2p_F, axis=1) != 0)
+inactives = np.where(np.std(s2p_F, axis=1) == 0)[0]
+if len(inactives) > 0:
+    warn('Excluded {} inactive ROIs: {}'.format(len(inactives), inactives))
+cellinds = np.delete(cellinds, inactives)
+ROIs = s2p_stat[cellinds]
 Frois = s2p_F[cellinds]
-ROIidx_excl = np.where(np.std(Frois, axis=1) == 0)
-ROIidx_incl = np.delete(np.arange(Frois.shape[0]), ROIidx_excl)
-ROIs = tmpROIs[ROIidx_incl]
-Frois = Frois[ROIidx_incl]
 fov_h = s2p_ops['Ly']
 fov_w = s2p_ops['Lx']
 fov_size = (fov_h, fov_w)  # rows/height/y, columns/width/x
+fov_image = s2p_ops['meanImg']
 n_frames = Frois.shape[1]
 
-###
-# Alternative approach to computing FdFF, likely from David Fitzpatrick's lab:
-# Baseline fluorescence (F0) was calculated by applying a rank-order filter to
-# the raw fluorescence trace (10th percentile) with a rolling time window of 60s.
+# Compute dF/F and z-scored dF/F
 n_ROIs = Frois.shape[0]
 FdFF_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.mean(Frois, axis=1)[:, np.newaxis]
 Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=1)[:, np.newaxis]
+
+# Approaches for computing dF/F with more sophisticated F0 calculations.
+# from Gordon Smith (https://doi.org/10.1038/s41592-023-02098-1):
+#   Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence trace (tenth
+#   percentile) with a rolling time window of 60s.
+# from Gordon Smith (https://doi.org/10.1016/j.jneumeth.2023.110051):
+#   The baseline fluorescence (F0) for each pixel was obtained by applying a rank-order filter to the raw fluorescence
+#   trace with a rank 70 samples and a time window of 30s (451 samples).
+# from Wilson et al Fitzpatrick (e.g. https://doi.org/10.1038/s41586-018-0354-1):
+#   ΔF/F0 was computed by defining F0 using a 60s percentile filter (typically 10th percentile), which was then
+#   low-pass filtered at 0.01 Hz.
+
+# plt(FdFF_raw[0, :])
 
 FdFF_raw_20pct = np.percentile(FdFF_raw, 0.2)
 Fzsc_raw_20pct = np.percentile(Fzsc_raw, 0.2)
