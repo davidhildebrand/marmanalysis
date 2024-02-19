@@ -53,7 +53,7 @@ import matplotlib.pyplot as plt
 #     return y
 
 
-def prctilefilt1d(x, n, block_size, percentile):
+def prctilefilt1d(x, percentile=50, n=3, block_size=1000):
     """
     One dimensional median filter.
 
@@ -79,44 +79,6 @@ def prctilefilt1d(x, n, block_size, percentile):
     return y
 
 
-def percentileFilt1(x, percentile=50, n=3, blksz=None):  # , DIM=None):
-    """
-    One dimensional median filter.
-    """
-    # Check if the input arguments are valid
-    if DIM is not None and DIM > x.ndim:
-        raise ValueError('Invalid Dimensions')
-
-    # Reshape x into the right dimension.
-    if DIM is None:
-        # Work along the first non-singleton dimension
-        x = np.moveaxis(x, np.argmin(x.shape), 0)
-    else:
-        # Put DIM in the first (row) dimension
-        x = np.moveaxis(x, DIM, 0)
-
-    # Verify that the block size is valid.
-    if blksz is None:
-        blksz = x.shape[0]  # number of rows of x (default)
-
-    # Initialize y with the correct dimension
-    y = np.zeros(x.shape)
-
-    # Call prctilefilt1d (vector)
-    # for i in range(np.prod(x.shape[1:]).astype(int)):
-    #     y[:, i] = prctilefilt1d(x[:, i], n, blksz, percentile)
-    y = prctilefilt1d(x, n, blksz, percentile)
-
-    # # Convert y to the original shape of x
-    # if DIM is None:
-    #     y = np.moveaxis(y, 0, np.argmin(y.shape))
-    # else:
-    #     y = np.moveaxis(y, 0, DIM)
-    #
-    # return y
-
-
-
 def baselinePercentileFilter(inputTrace, fps=15.1515, filteredCutOff=60, desiredPercentileRank=50):
     """
     Uses a combination of 1-d median/butterworth high-pass filtered to compute a baseline
@@ -127,7 +89,7 @@ def baselinePercentileFilter(inputTrace, fps=15.1515, filteredCutOff=60, desired
     # Compute a low-pass median filter
     paddingLength = np.ceil(len(inputTrace) / 1).astype(int)
     paddedTrace = np.concatenate([inputTrace[paddingLength::-1], inputTrace, inputTrace[paddingLength::-1]])
-    filteredTrace = percentileFilt1(paddedTrace, desiredPercentileRank, round(filteredCutOff * fps))
+    filteredTrace = prctilefilt1d(paddedTrace, desiredPercentileRank, round(filteredCutOff * fps))
     filteredTrace = filteredTrace[paddingLength:paddingLength+len(inputTrace)]
 
     if isVerbose:
