@@ -86,14 +86,14 @@ for i_plane in range(md['n_planes']):
 del data
 
 # Generate volume from MROIs.
+if type(overlap_px) is not int:
+    overlap_px = int(overlap_px)
 n_f = md['n_frames']
-n_x, n_y = md['fov']['w_px'], md['fov']['h_px']  # [len(md['fov']['positions_deg'][a]) for a in range(2)]
+n_x = md['fov']['w_px'] - (overlap_px * (md['n_mrois'] - 1))
+n_y = md['fov']['h_px']  # [len(md['fov']['positions_deg'][a]) for a in range(2)]
 n_z = md['n_planes']
 mroi_sizes_px = np.array([r['size_px'] for r in md['mrois']['lrsort']], dtype=int)
 mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']], dtype=int)
-
-if type(overlap_px) is not int:
-    overlap_px = int(overlap_px)
 
 volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
 # volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
