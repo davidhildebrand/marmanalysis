@@ -100,7 +100,8 @@ volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
 print('volume shape: {}'.format(volume.shape))
 
 for i_plane in range(n_z):
-    plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
+    plane_w = n_x
+    # plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
     plane_h = n_y
     # canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
     canvas = np.full((n_f, plane_w, plane_h), np.nan, dtype=np.float32)
