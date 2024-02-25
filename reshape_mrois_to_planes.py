@@ -92,10 +92,12 @@ n_z = md['n_planes']
 mroi_sizes_px = np.array([r['size_px'] for r in md['mrois']['lrsort']], dtype=int)
 mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']], dtype=int)
 
-volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
-# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
 if type(overlap_px) is not int:
     overlap_px = int(overlap_px)
+
+volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
+# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
+
 for i_plane in range(n_z):
     plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
     plane_h = n_y
@@ -189,13 +191,9 @@ if p['save']['mean']:
     from skimage.io import imsave
     from skimage.util import img_as_ubyte
 
-    print('volume min: {}'.format(np.min(volume)))
-    print('volume max: {}'.format(np.max(volume)))
-    volume_mean = np.mean(volume, axis=0)  # .astype(np.int16)
-    print('volume_mean dtype: {}'.format(volume_mean.dtype))
+    volume_mean = np.mean(volume, axis=0)
     pl, ph = np.percentile(volume_mean, [1, 99.9])
     volume_mean_rescale = img_as_ubyte(rescale_intensity(volume_mean, in_range=(pl, ph)))
-    print('volume_mean_rescale dtype: {}'.format(volume_mean_rescale.dtype))
     imwrite(save_path_mean, volume_mean_rescale)
 
 if p['save']['video']:
