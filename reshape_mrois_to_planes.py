@@ -190,8 +190,10 @@ if p['save']['mean']:
     from skimage.util import img_as_ubyte
 
     volume_mean = np.mean(volume, axis=0)
+    print('volume_mean dtype: {}'.format(volume_mean.dtype))
     pl, ph = np.percentile(volume_mean, [1, 99.9])
     volume_mean_rescale = img_as_ubyte(rescale_intensity(volume_mean, in_range=(pl, ph)))
+    print('volume_mean_rescale dtype: {}'.format(volume_mean_rescale.dtype))
     imwrite(save_path_mean, volume_mean_rescale)
 
 if p['save']['video']:
