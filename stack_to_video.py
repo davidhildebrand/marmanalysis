@@ -57,7 +57,7 @@ def write_video(filepath, stack, framerate=20.0):
         stack = skimage.exposure.rescale_intensity(stack, out_range=(0, 1))
         stack = skimage.util.img_as_ubyte(stack)
     codec = cv2.VideoWriter_fourcc(*'mp4v')
-    video_writer = cv2.VideoWriter(filepath, codec, framerate, (w,h), isColor=False)
+    video_writer = cv2.VideoWriter(filepath, codec, framerate, (w, h), isColor=False)
     for f in range(z):
         video_writer.write(stack[f])
     video_writer.release()
@@ -99,13 +99,13 @@ parser.add_argument(
     help='Output directory path. [optional, default: source path]')
 parser.add_argument(
     '-gp', '--groupproj', action='store_true',
-    help='Perform an mean grouped projection in which every <windowsize> ' + \
+    help='Perform an mean grouped projection in which every <windowsize> ' +
          'frames are averaged into a single frame. [optional, default: true]')
 parser.add_argument(
     '-sw', '--slidewin', action='store_true',
-    help='Perform a central moving average (mean) over a sliding window ' + \
-         'that incorporates <windowsize>/2 frames on either side of the ' + \
-         'center frame (except at the stack edges). Preserves original ' + \
+    help='Perform a central moving average (mean) over a sliding window ' +
+         'that incorporates <windowsize>/2 frames on either side of the ' +
+         'center frame (except at the stack edges). Preserves original ' +
          'stack size. [optional, default: true]')
 parser.add_argument(
     '-v', '--videos', action='store_true',
@@ -115,10 +115,10 @@ parser.add_argument(
     help='Save outputs as uncompressed image stacks. [optional, default: False]')
 parser.add_argument(
     '-ws', '--windowsize', type=int, default=10,
-    help='Window size for grouping or averaging. [optional, default: 10]' + \
-         '  Note that for sliding window averages, windowsize/2 frames on' + \
-         '  either side of the (included) centered frame are processed.' + \
-         '  This implies that each resulting frame with windowsize=10 is' + \
+    help='Window size for grouping or averaging. [optional, default: 10]' +
+         '  Note that for sliding window averages, windowsize/2 frames on' +
+         '  either side of the (included) centered frame are processed.' +
+         '  This implies that each resulting frame with windowsize=10 is' +
          '  an actually an average of 11 frames.')
 parser.add_argument(
     '-f', '--frames', type=int, default=100,
@@ -128,7 +128,7 @@ parser.add_argument(
     help='Framerate for generated video output. [optional, default: 20.0]')
 parser.add_argument(
     '-ip', '--intenspct', type=float, default=[1.0, 99.98], nargs=2,
-    help='Intensity min and max cutoff percentiles for rescaling. [optional, ' + \
+    help='Intensity min and max cutoff percentiles for rescaling. [optional, ' +
          'default: 1.0 99.98]')
 parser.add_argument(
     '-o', '--overwrite', action='store_true',
@@ -172,7 +172,7 @@ if not save_videos and not save_stacks:
 
 if framerate is not None:
     if not save_videos:
-        warn('Without the videos output argument (-v/--videos), ' + \
+        warn('Without the videos output argument (-v/--videos), ' +
              'the framerate argument is ignored.')
         framerate = None
 
