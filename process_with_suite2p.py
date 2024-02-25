@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from glob import glob
 import numpy as np
 import os
 import suite2p
@@ -16,7 +17,12 @@ import metadata
 
 # Parse command line options
 parser = argparse.ArgumentParser()
-parser.add_argument('source', help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument(
+    'source',
+    help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument(
+    '-ps', '--preprocstr', type=str, default='*preprocd_olap00px*',
+    help='String contained in filename of preprocessed data file. [optional, default: \'*preprocd_olap00px*\']')
 opts = parser.parse_args()
 
 if os.path.isfile(opts.source):
@@ -28,11 +34,24 @@ if os.path.isfile(opts.source):
 else:
     raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
 
+preproc_str = opts.preprocstr
 
-# Check if preprocessed file exists.
-source_preproc = os.path.splitext(os.path.basename(source_name))[0] + '_preprocd_olap00px.h5'
-if not os.path.isfile(os.path.join(source_path, source_preproc)):
-    warn('Preprocessed file does not exist ({}).'.format(source_preproc))
+# Find preprocessed file.
+# source_preproc = os.path.splitext(os.path.basename(source_name))[0] + '_preprocd_olap00px.h5'
+# if not os.path.isfile(os.path.join(source_path, source_preproc)):
+#     warn('Preprocessed file does not exist ({}).'.format(source_preproc))
+
+preproc_list = [f for f in glob(os.path.join(source_path, preproc_str))
+                if os.path.isfile(f)]
+
+if len(preproc_list) > 0:
+    pp_path = preproc_list[0]
+    if len(preproc_list) > 1:
+        warn('Found multiple matching preprocessed data files, using the first one: {}'.format(pp_path))
+    if os.path.isfile(pp_path):
+        source_preproc = pp_path
+    else:
+        raise RuntimeError('Could not find preprocessed data file.')
 
 # Load metadata.
 amd = metadata.get_metadata(source)
