@@ -92,8 +92,8 @@ n_z = md['n_planes']
 mroi_sizes_px = np.array([r['size_px'] for r in md['mrois']['lrsort']], dtype=int)
 mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']], dtype=int)
 
-volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
-# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
+# volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
+volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
 if type(overlap_px) is not int:
     overlap_px = int(overlap_px)
 for i_plane in range(n_z):
