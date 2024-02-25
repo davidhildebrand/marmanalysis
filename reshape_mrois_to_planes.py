@@ -31,8 +31,12 @@ def json_serializer(obj):
 
 # Parse command line options
 parser = argparse.ArgumentParser()
-parser.add_argument('source',
-                    help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument(
+    'source',
+    help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument(
+    '-o', '--overlap', type=int, default=0,
+    help='Overlapping pixels between MROIs. [optional, default: 0]')
 opts = parser.parse_args()
 
 if os.path.isfile(opts.source):
@@ -44,7 +48,9 @@ if os.path.isfile(opts.source):
 else:
     raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
 
-if not is_tiff(source):  # source_ext != '.tif' and source_ext != '.tiff':
+overlap_px = opts.overlap
+
+if not is_tiff(source):
     raise RuntimeError('Source file must be a TIFF stack.')
 
 
@@ -67,9 +73,6 @@ if md['n_planes'] != 1:
 data = ScanImageTiffReader(source).data()
 data = np.expand_dims(data, 1)
 data = np.swapaxes(data, 1, 3)
-# chans_order = params['chans_order_1plane']
-# rows, columns = 1, 1  # For png and mp4
-# tiff_file = tiff_file[..., chans_order]
 
 # Divide long acquisition strip into MROI chunks.
 planes_mrois = np.empty((md['n_planes'], md['n_mrois']), dtype=np.ndarray)
@@ -91,14 +94,13 @@ mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']]
 
 volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
 # volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
-overlap_px = 4
 if type(overlap_px) is not int:
     overlap_px = int(overlap_px)
 for i_plane in range(n_z):
     plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
     plane_h = n_y
-    # canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
-    canvas = np.full((n_f, plane_w, plane_h), np.nan, dtype=np.float32)
+    canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
+    # canvas = np.full((n_f, plane_w, plane_h), np.nan, dtype=np.float32)
     xe_canv = plane_w
     for i_mroi in range(md['n_mrois']):
         if i_mroi == 0:
@@ -138,8 +140,7 @@ if np.any(np.isnan(volume)):
 
 if volume.dtype != np.int16:
     volume = volume.astype(np.int16)
-volume = np.swapaxes(volume, 1, 2)
-volume = np.squeeze(volume)
+volume = np.squeeze(np.swapaxes(volume, 1, 2))
 
 md_str = json.dumps(md, default=json_serializer)
 sp = source_path + os.path.sep
