@@ -66,7 +66,8 @@ simd = metadata.get_metadata(source)
 md = metadata.extract_useful_metadata(simd)
 
 if md['mrois']['overlap'] is not False or md['mrois']['overlap_px'] is not None:
-    raise Exception('Handling overlapping MROIs is not yet implemented.')
+    # raise Exception('Handling overlapping MROIs is not yet implemented.')
+    warn('Overlap between MROIs may require calculation, which is not yet supported.')
 if md['n_planes'] != 1:
     RuntimeError('Handing multi-plane data is not yet implemented.')
 
@@ -97,7 +98,7 @@ mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']]
 
 volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
 # volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
-print('volume shape: {}'.format(volume.shape))
+# print('volume shape: {}'.format(volume.shape))
 
 for i_plane in range(n_z):
     plane_w = n_x
@@ -105,7 +106,7 @@ for i_plane in range(n_z):
     plane_h = n_y
     # canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
     canvas = np.full((n_f, plane_w, plane_h), np.nan, dtype=np.float32)
-    print('canvas shape: {}'.format(canvas.shape))
+    # print('canvas shape: {}'.format(canvas.shape))
     xe_canv = plane_w
     for i_mroi in range(md['n_mrois']):
         if i_mroi == 0:
@@ -124,7 +125,7 @@ for i_plane in range(n_z):
             xe_canv = plane_w
             xs_mroi = np.ceil(overlap_px / 2).astype(int)
             xe_mroi = mroi_sizes_px[i_mroi][0]
-        print(xs_canv, xe_canv, xs_mroi, xe_mroi)
+        # print(xs_canv, xe_canv, xs_mroi, xe_mroi)
 
         ys_canv = mroi_corners_tl_px[i_mroi, 1]
         ye_canv = ys_canv + mroi_sizes_px[i_mroi, 1]
