@@ -25,7 +25,7 @@ def json_serializer(obj):
     if isinstance(obj, (datetime, date, time)):
         return obj.isoformat()
     else:
-        warn('Type {} not serializable.'.format(type(obj)))
+        # warn('Type {} not serializable.'.format(type(obj)))
         return str(obj)
 
 
