@@ -61,13 +61,14 @@ p['save']['tif'] = True
 p['save']['metadata'] = True
 p['save']['mean'] = True
 p['save']['video'] = True
+p['overwrite_warn'] = False
 
 simd = metadata.get_metadata(source)
 md = metadata.extract_useful_metadata(simd)
 
 if md['mrois']['overlap'] is not False or md['mrois']['overlap_px'] is not None:
-    # raise Exception('Handling overlapping MROIs is not yet implemented.')
     warn('Overlap between MROIs may require calculation, which is not yet supported.')
+    # raise Exception('Handling overlapping MROIs is not yet implemented.')
 if md['n_planes'] != 1:
     RuntimeError('Handing multi-plane data is not yet implemented.')
 
@@ -153,7 +154,7 @@ sp = source_path + os.path.sep
 
 if p['save']['hdf5']:
     save_path_h5 = sp + source_name + '_preprocd_olap{:02d}px.h5'.format(overlap_px)
-    if os.path.isfile(save_path_h5):
+    if os.path.isfile(save_path_h5) and not p['overwrite_warn']:
         warn('Preprocessed HDF5 ouput already exists, overwriting ({}).'.format(save_path_h5))
     h5f = h5py.File(save_path_h5, 'w')
     h5f.create_dataset('data', data=volume)
@@ -163,7 +164,7 @@ if p['save']['hdf5']:
 
 if p['save']['tif']:
     save_path_tif = sp + source_name + '_preprocd_olap{:02d}px.tif'.format(overlap_px)
-    if os.path.isfile(save_path_tif):
+    if os.path.isfile(save_path_tif) and not p['overwrite_warn']:
         warn('Preprocessed TIF ouput already exists, overwriting ({}).'.format(save_path_tif))
 
     import tifffile
@@ -174,20 +175,20 @@ if p['save']['metadata']:
     import pickle
 
     save_path_mdp = sp + source_name + '_metadata.pickle'
-    if os.path.isfile(save_path_mdp):
+    if os.path.isfile(save_path_mdp) and not p['overwrite_warn']:
         warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdp))
     with open(save_path_mdp, 'wb') as mdpf:
         pickle.dump(md, mdpf)
 
     save_path_mdj = sp + source_name + '_metadata.json'
-    if os.path.isfile(save_path_mdj):
+    if os.path.isfile(save_path_mdj) and not p['overwrite_warn']:
         warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdj))
     with open(save_path_mdj, 'w') as mdjf:
         json.dump(md, mdjf, indent=4, sort_keys=True, default=json_serializer)
 
 if p['save']['mean']:
     save_path_mean = sp + source_name + '_preprocd_olap{:02d}px_mean.png'.format(overlap_px)
-    if os.path.isfile(save_path_mean):
+    if os.path.isfile(save_path_mean) and not p['overwrite_warn']:
         warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
 
     from cv2 import imwrite
@@ -202,7 +203,7 @@ if p['save']['mean']:
 
 if p['save']['video']:
     save_path_video = sp + source_name + '_preprocd_olap{:02d}px_clip.mp4'.format(overlap_px)
-    if os.path.isfile(save_path_video):
+    if os.path.isfile(save_path_video) and not p['overwrite_warn']:
         warn('Video clip already exists, overwriting ({}).'.format(save_path_video))
 
     from cv2 import VideoWriter_fourcc, VideoWriter
