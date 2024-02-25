@@ -189,6 +189,8 @@ if p['save']['mean']:
     from skimage.io import imsave
     from skimage.util import img_as_ubyte
 
+    print('volume min: {}'.format(np.min(volume)))
+    print('volume max: {}'.format(np.max(volume)))
     volume_mean = np.mean(volume, axis=0).astype(np.int16)
     print('volume_mean dtype: {}'.format(volume_mean.dtype))
     pl, ph = np.percentile(volume_mean, [1, 99.9])
