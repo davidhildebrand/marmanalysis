@@ -189,7 +189,7 @@ if p['save']['mean']:
     from skimage.io import imsave
     from skimage.util import img_as_ubyte
 
-    volume_mean = np.mean(volume, axis=0)
+    volume_mean = np.mean(volume, axis=0).astype(np.int16)
     print('volume_mean dtype: {}'.format(volume_mean.dtype))
     pl, ph = np.percentile(volume_mean, [1, 99.9])
     volume_mean_rescale = img_as_ubyte(rescale_intensity(volume_mean, in_range=(pl, ph)))
