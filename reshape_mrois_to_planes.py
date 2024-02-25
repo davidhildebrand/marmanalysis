@@ -154,7 +154,7 @@ sp = source_path + os.path.sep
 
 if p['save']['hdf5']:
     save_path_h5 = sp + source_name + '_preprocd_olap{:02d}px.h5'.format(overlap_px)
-    if os.path.isfile(save_path_h5) and not p['overwrite_warn']:
+    if os.path.isfile(save_path_h5) and p['overwrite_warn']:
         warn('Preprocessed HDF5 ouput already exists, overwriting ({}).'.format(save_path_h5))
     h5f = h5py.File(save_path_h5, 'w')
     h5f.create_dataset('data', data=volume)
@@ -164,7 +164,7 @@ if p['save']['hdf5']:
 
 if p['save']['tif']:
     save_path_tif = sp + source_name + '_preprocd_olap{:02d}px.tif'.format(overlap_px)
-    if os.path.isfile(save_path_tif) and not p['overwrite_warn']:
+    if os.path.isfile(save_path_tif) and p['overwrite_warn']:
         warn('Preprocessed TIF ouput already exists, overwriting ({}).'.format(save_path_tif))
 
     import tifffile
@@ -175,20 +175,20 @@ if p['save']['metadata']:
     import pickle
 
     save_path_mdp = sp + source_name + '_metadata.pickle'
-    if os.path.isfile(save_path_mdp) and not p['overwrite_warn']:
+    if os.path.isfile(save_path_mdp) and p['overwrite_warn']:
         warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdp))
     with open(save_path_mdp, 'wb') as mdpf:
         pickle.dump(md, mdpf)
 
     save_path_mdj = sp + source_name + '_metadata.json'
-    if os.path.isfile(save_path_mdj) and not p['overwrite_warn']:
+    if os.path.isfile(save_path_mdj) and p['overwrite_warn']:
         warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdj))
     with open(save_path_mdj, 'w') as mdjf:
         json.dump(md, mdjf, indent=4, sort_keys=True, default=json_serializer)
 
 if p['save']['mean']:
     save_path_mean = sp + source_name + '_preprocd_olap{:02d}px_mean.png'.format(overlap_px)
-    if os.path.isfile(save_path_mean) and not p['overwrite_warn']:
+    if os.path.isfile(save_path_mean) and p['overwrite_warn']:
         warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
 
     from cv2 import imwrite
@@ -203,7 +203,7 @@ if p['save']['mean']:
 
 if p['save']['video']:
     save_path_video = sp + source_name + '_preprocd_olap{:02d}px_clip.mp4'.format(overlap_px)
-    if os.path.isfile(save_path_video) and not p['overwrite_warn']:
+    if os.path.isfile(save_path_video) and p['overwrite_warn']:
         warn('Video clip already exists, overwriting ({}).'.format(save_path_video))
 
     from cv2 import VideoWriter_fourcc, VideoWriter
