@@ -1,23 +1,18 @@
 import numpy as np
-from scipy.signal import butter, filtfilt
-import matplotlib.pyplot as plt
-
-# TODO test this against MATLAB version and compare results
 
 
-# Functions ported from 2017 MPFI Imaging Course Workshop demo MATLAB code:
-#   https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop
-#
-# confirmed same output as MATLAB
-def percentile_func(x, k):
+def prctile_alternative(x, k):
     """
-    Calculate the k'th percentile of x.
-    This function is derived from a MATLAB function that is "similar to, but generally much faster than",
-    the MATLAB prctile function.
+    Calculate the k'th percentile of one-dimensional signal x.
+    Described by the author as being "similar to, but generally much faster than", the MATLAB prctile function.
+
+    This function is derived from a MATLAB function named 'percentile' included with function 'RankOrderFilter'
+        Author: Arash Salarian <arash.salarian@ieee.org>
+        Copyright: 2008 Arash Salarian
+        URL: https://www.mathworks.com/matlabcentral/fileexchange/22111-rank-order-filter
     """
     x = np.sort(x)
     n = len(x)
-
     p = 1 + (n - 1) * k / 100
 
     if p == int(p):
@@ -30,89 +25,89 @@ def percentile_func(x, k):
     return y
 
 
-# confirmed same output as MATLAB
-def rankOrderFilter(x, p, N):
+def rank_order_filter(x, p, n):
     """
-    Rank order filter for 1D signals.
-    %RankOrderFilter Rank order filter for 1D signals
-    %  y = RankOrderFilter(x, window, thd) runs a rank-order filtering of order
-    %  N on x. y is the same size as x. To avoid edge effects, the x is expanded
-    %  by repeating the first and the last samples N/2 times. if x is a matrix,
-    %  RankOrderFilter operates along the columns of x.
+    Rank order filter for one-dimensional signals.
+
+    % y = rankOrderFilter(x, p, N) runs a rank-order filtering of order
+    % N on x. y is the same size as x. To avoid edge effects, the x is expanded
+    % by repeating the first and the last samples N/2 times. If x is a matrix,
+    % RankOrderFilter operates along the columns of x.
     %
-    %  Rank-order filter calculates the p'th percentile of the data on a N
-    %  sized window round each point of x. p can be a number between 0 and 100.
+    % Rank-order filter calculates the p'th percentile of the data on an N-sized
+    % window round each point of x. p can be a number between 0 and 100.
     %
-    %  When p is equal to 50, the output of this function will be the same as
-    %  MATLAB's PRCTILEFILT1(x,N); however, RankOrderFilter is almost always much
-    %  faster and needs less memory.
+    % When p is equal to 50, the output of this function will be the same as
+    % MATLAB's PRCTILEFILT1(x,N); however, RankOrderFilter is almost always much
+    % faster and needs less memory.
     %
-    %  When p is close to 0 (or to 100), a RankOrderFilter calculates an
-    %  approximate lower (or upper) envlope of the signal.
-    %
-    %  Copyright 2008, Arash Salarian
-    %  mailto://arash.salarian@ieee.org
+    % When p is close to 0 (or to 100), a RankOrderFilter calculates an
+    % approximate lower (or upper) envlope of the signal.
+
+    This function is derived from a MATLAB function named RankOrderFilter
+        Author: Arash Salarian <arash.salarian@ieee.org>
+        Copyright: 2008 Arash Salarian
     """
 
     # if x.ndim == 1:
     #     x = np.expand_dims(x, axis=-1)
-
     # m, n = x.shape
+
     m = len(x)
     y = np.zeros(x.shape)
-    k = N // 2
+    k = n // 2
 
     # for i in range(n):
     # X = np.concatenate([np.full(k, x[0,0]), x[:,0], np.full(k, x[-1,0])])
-    X = np.concatenate([np.full(k, x[0]), x[:], np.full(k, x[-1])])
+    x_pad = np.concatenate([np.full(k, x[0]), x[:], np.full(k, x[-1])])
     for j in range(m):
-        # y[j] = percentile_func(X[j:j + N], p)
-        y[j] = np.percentile(X[j:j + N], p, axis=0, method='midpoint')
+        y[j] = prctile_alternative(x_pad[j:j+n], p)
+        # y[j] = np.percentile(x_pad[j:j+n], p, axis=0, method='midpoint')
 
-    return y  # np.squeeze(y)
+    # return np.squeeze(y)
+    return y
 
 
-# confirmed same output as MATLAB
-def prctilefilt1d(x, percentile=50, n=3, block_size=1000):
+def percentile_filter_1d(x, p, n=3, block_size=1000):
     """
-    One dimensional median filter.
-    %percentileFilt1  One dimensional median filter.
-    %   Y = percentileFilt1(X, percentile, N) returns the output of the order N, one dimensional
-    %   percentile filtering of X.  Y is the same size as X; for the edge points,
-    %   zeros are assumed to the left and right of X.  If X is a matrix,
-    %   then percentileFilt1 operates along the columns of X.
-    %
-    %   If you do not specify N, percentileFilt1 uses a default of N = 3.
-    %   For N odd, Y(k) is the percentile of X( k-(N-1)/2 : k+(N-1)/2 ).
-    %   For N even, Y(k) is the percentile of X( k-N/2 : k+N/2-1 ).
-    %
-    %   Y = percentileFilt1(X,N,BLKSZ) uses a for-loop to compute BLKSZ ("block size")
-    %   output samples at a time.  Use this option with BLKSZ << LENGTH(X) if
-    %   you are low on memory (percentileFilt1 uses a working matrix of size
-    %   N x BLKSZ).  By default, BLKSZ == LENGTH(X); this is the fastest
-    %   execution if you have the memory for it.
-    %
-    %   For matrices and N-D arrays, Y = percentileFilt1(X,N,[],DIM) or
-    %   Y = percentileFilt1(X,N,BLKSZ,DIM) operates along the dimension DIM.
-    %
-    %   % Example:
-    %   %   Construct a noisy signal and apply a 10th order one-dimensional
-    %   %   median filter to it.
-    %
-    %   fs = 100;                               % Sampling rate
-    %   t = 0:1/fs:1;                           % Time vector
-    %   x = sin(2*pi*t*3)+.25*sin(2*pi*t*40);   % Noise Signal - Input
-    %   y = percentileFilt1(x,50,10);           % Median filtering - Output
-    %   plot(t,x,'k',t,y,'r'); grid;            % Plot
-    %   legend('Original Signal','Filtered Signal')
-    %
-    %   See also MEDIAN, FILTER, SGOLAYFILT, and MEDFILT1 in the Image
-    %   Processing Toolbox.
+    Median filter for one-dimensional signals.
 
-    %   Author(s): L. Shure and T. Krauss, 8-3-93
-    %   Copyright 1988-2004 The MathWorks, Inc.
-    %   $Revision: 1.8.4.6 $  $Date: 2012/10/29 19:31:41 $
+    % Y = percentileFilt1(X, percentile, N) returns the output of the order N, one dimensional
+    % percentile filtering of X.  Y is the same size as X; for the edge points,
+    % zeros are assumed to the left and right of X.  If X is a matrix,
+    % then percentileFilt1 operates along the columns of X.
+    %
+    % If you do not specify N, percentileFilt1 uses a default of N = 3.
+    % For N odd, Y(k) is the percentile of X( k-(N-1)/2 : k+(N-1)/2 ).
+    % For N even, Y(k) is the percentile of X( k-N/2 : k+N/2-1 ).
+    %
+    % Y = percentileFilt1(X,N,BLKSZ) uses a for-loop to compute BLKSZ ("block size")
+    % output samples at a time.  Use this option with BLKSZ << LENGTH(X) if
+    % you are low on memory (percentileFilt1 uses a working matrix of size
+    % N x BLKSZ).  By default, BLKSZ == LENGTH(X); this is the fastest
+    % execution if you have the memory for it.
+    %
+    % For matrices and N-D arrays, Y = percentileFilt1(X,N,[],DIM) or
+    % Y = percentileFilt1(X,N,BLKSZ,DIM) operates along the dimension DIM.
+    %
+    % Example:
+    %   Construct a noisy signal and apply a 10th order one-dimensional
+    %   median filter to it.
+    %
+    % fs = 100;                               % Sampling rate
+    % t = 0:1/fs:1;                           % Time vector
+    % x = sin(2*pi*t*3)+.25*sin(2*pi*t*40);   % Noise Signal - Input
+    % y = percentileFilt1(x,50,10);           % Median filtering - Output
+    % plot(t,x,'k',t,y,'r'); grid;            % Plot
+    % legend('Original Signal','Filtered Signal')
+
+    This function is derived from a MATLAB function named percentileFilt1
+        Authors: L. Shure and T. Krauss (1993-08-03)
+        Copyright: 1988-2004 The MathWorks, Inc.
+        Revision: 1.8.4.6
+        Date: 2012-10-29 19:31:41
     """
+
     nx = len(x)
     m = n // 2 if n % 2 == 0 else (n - 1) // 2
     x_pad = np.concatenate([np.zeros(m), x, np.zeros(m)])
@@ -123,43 +118,42 @@ def prctilefilt1d(x, percentile=50, n=3, block_size=1000):
     indc = np.arange(nx)
 
     for i in range(0, nx, block_size):
-        end = min(i + block_size, nx)  # min(i + blksz - 1, nx) - i + 1
+        end = min(i + block_size, nx)
         ind = np.add.outer(indc[i:end], indr)
         xx = x_pad[ind].transpose().reshape((n, end - i), order='F')
-        y[i:end] = np.percentile(xx, percentile, axis=0, method='midpoint')
+        y[i:end] = np.percentile(xx, p, axis=0, method='midpoint')
+
     return y
 
 
-# confirmed same output as MATLAB
-def baselinePercentileFilter(inputTrace, fps=15.1515, filteredCutOff=60, desiredPercentileRank=50):
+def baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
     """
-    Uses a combination of 1-d median/butterworth high-pass filtered to compute a baseline
+    Uses a combination of one-dimensional median/butterworth high-pass filtered to compute a baseline
     for the input trace.
+
+    x: signal
+    fs: sampling frequency
+
+    This function is derived from a MATLAB function named baselinePercentileFilter
+        Authors: David Whitney (david.whitney@mpfi.org)
+        Copyright: 2016 Max Planck Florida Institute
+        URL: https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop/
     """
-    isVerbose = False
+
+    from scipy.signal import butter, filtfilt
 
     # Compute a low-pass median filter
-    paddingLength = np.ceil(len(inputTrace) / 1).astype(int)
-    paddedTrace = np.concatenate([inputTrace[paddingLength::-1], inputTrace, inputTrace[paddingLength::-1]])
-    # filteredTrace = prctilefilt1d(paddedTrace, desiredPercentileRank, round(filteredCutOff * fps))
-    filteredTrace = rankOrderFilter(paddedTrace, desiredPercentileRank, round(filteredCutOff * fps))
-    filteredTrace = filteredTrace[paddingLength:paddingLength+len(inputTrace)]
+    pad = np.ceil(len(x) / 1).astype(int)
+    x_pad = np.concatenate([x[pad::-1], x, x[pad::-1]])
+    # x_lowpass = percentile_filter_1d(x_pad, p_rank, round(filtered_cutoff * fs))
+    x_lowpass = rank_order_filter(x_pad, p_rank, round(filtered_cutoff * fs))
+    x_lowpass = x_lowpass[pad:pad+len(x)]
 
-    if isVerbose:
-        plt.figure()
-        plt.plot(filteredTrace)
-        plt.show()
+    # Butterworth filter to smooth
+    n_butter = 1
+    wn = (1 / p_rank) / (fs / 2)  # Normalized cutoff frequency in NyQuist frequency units
+    b, a = butter(n_butter, wn, btype='low')
+    x_bw = filtfilt(b, a, np.concatenate([x_lowpass[pad::-1], x_lowpass, x_lowpass[:pad]]))
+    x_bw = x_bw[pad:pad+len(x)]
 
-    # The low-pass filter the filtered trace to smooth it out
-    butterWorthOrder = 1
-    Wn = (1 / filteredCutOff) / (fps / 2)  # normalized cutoff frequency in unit of nyquist frequency
-    b, a = butter(butterWorthOrder, Wn, 'low')
-    highpassFilteredTrace = filtfilt(b, a, np.concatenate([filteredTrace[paddingLength::-1], filteredTrace, filteredTrace[:paddingLength]]))
-    highpassFilteredTrace = highpassFilteredTrace[paddingLength:paddingLength+len(inputTrace)]
-
-    if isVerbose:
-        plt.figure()
-        plt.plot(highpassFilteredTrace)
-        plt.show()
-
-    return highpassFilteredTrace
+    return x_bw
