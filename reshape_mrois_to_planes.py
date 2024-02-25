@@ -121,7 +121,7 @@ for i_plane in range(n_z):
             xe_canv = plane_w
             xs_mroi = np.ceil(overlap_px / 2).astype(int)
             xe_mroi = mroi_sizes_px[i_mroi][0]
-        # print(xs_canv, xe_canv, xs_mroi, xe_mroi)
+        print(xs_canv, xe_canv, xs_mroi, xe_mroi)
 
         ys_canv = mroi_corners_tl_px[i_mroi, 1]
         ye_canv = ys_canv + mroi_sizes_px[i_mroi, 1]
