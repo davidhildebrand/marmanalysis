@@ -202,14 +202,6 @@ if p['save']['mean']:
         warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
     imwrite(save_path_mean, volume_mean_rescale)
 
-    # pl, ph = np.percentile(volume, [1, 99.9])
-    # volume_rescale = img_as_ubyte(rescale_intensity(volume, in_range=(pl, ph)))
-    # volume_rescale_mean = np.mean(volume_rescale, axis=0)
-    #
-    # if os.path.isfile(save_path_mean) and p['overwrite_warn']:
-    #     warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
-    # imwrite(save_path_mean, volume_rescale_mean)
-
     volume_rescale_mean = volume_mean_rescale
     if np.median(volume_mean_rescale) < 20:
         save_path_mean_rescaled = sp + source_name + '_preprocd_olap{:02d}px_mean_rescaled.png'.format(overlap_px)
