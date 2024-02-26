@@ -288,10 +288,10 @@ def extract_useful_metadata(scanimage_metadata):
         mrois_raw = simd['json']['RoiGroups']['imagingRoiGroup']['rois']
     else:
         mrois_raw = json.loads(simd["Artist"])['RoiGroups']['imagingRoiGroup']['rois']
-    if type(mrois_raw) != dict:
+    if type(mrois_raw) is not dict:
         mrois_orig = []
         for roi in mrois_raw:
-            if type(roi['scanfields']) != list:
+            if type(roi['scanfields']) is not list:
                 scanfield = roi['scanfields']
             else:
                 scanfield = roi['scanfields'][np.where(np.array(roi['zs']) == 0)[0][0]]
