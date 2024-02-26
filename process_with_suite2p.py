@@ -10,8 +10,6 @@ from warnings import warn
 
 import metadata
 
-
-# TODO: implement parameter sweeping options
 # TODO Write a function to merge registered TIF files into a single file and also save as registered h5.
 
 
@@ -36,7 +34,7 @@ else:
 
 preproc_str = opts.preprocstr
 
-# Find preprocessed file.
+# Find preprocessed data file.
 # source_preproc = os.path.splitext(os.path.basename(source_name))[0] + '_preprocd_olap00px.h5'
 # if not os.path.isfile(os.path.join(source_path, source_preproc)):
 #     warn('Preprocessed file does not exist ({}).'.format(source_preproc))
@@ -156,7 +154,7 @@ if ops['anatomical_only'] > 0:
         # Set diameter to 0 for automatic estimation.
         ops['diameter'] = 0
     ops['cellprob_threshold'] = -3.5  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
-    ops['flow_threshold'] = 2.0  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
+    ops['flow_threshold'] = 1.5  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
     # ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
     # ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
     # ops['chan2_thres']  # Threshold for detecting an ROI in channel 2.
