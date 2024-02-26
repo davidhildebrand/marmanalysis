@@ -1,4 +1,9 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import numpy as np
+
+# TODO make filters work with 2D arrays
 
 
 def prctile_alternative(x, k):
@@ -110,7 +115,8 @@ def percentile_filter_1d(x, p, n=3, block_size=1000):
 
     nx = len(x)
     m = n // 2 if n % 2 == 0 else (n - 1) // 2
-    x_pad = np.concatenate([np.zeros(m), x, np.zeros(m)])
+    # x_pad = np.concatenate([np.zeros(m), x, np.zeros(m)])
+    x_pad = np.concatenate([x[m::-1], x, x[m::-1]])
     y = np.zeros(nx)
 
     # Work in chunks to save memory
@@ -124,6 +130,26 @@ def percentile_filter_1d(x, p, n=3, block_size=1000):
         y[i:end] = np.percentile(xx, p, axis=0, method='midpoint')
 
     return y
+
+
+def butterworth_filter(x, fs, p=10):
+    """
+    Applies SciPy low-pass butterworth filter to a one-dimensional signal.
+    """
+
+    from scipy.signal import butter, filtfilt
+
+    pad = np.ceil(len(x) / 1).astype(int)
+    x_pad = np.concatenate([x[pad::-1], x, x[pad::-1]])
+
+    n_butter = 1
+    wn = (1 / p) / (fs / 2)  # Normalized cutoff frequency in NyQuist frequency units
+    b, a = butter(n_butter, wn, btype='low')
+    x_bw = filtfilt(b, a, x_pad)
+
+    x_bw = x_bw[pad:pad+len(x)]
+
+    return x_bw
 
 
 def baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
@@ -145,8 +171,8 @@ def baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
     # Compute a low-pass median filter
     pad = np.ceil(len(x) / 1).astype(int)
     x_pad = np.concatenate([x[pad::-1], x, x[pad::-1]])
-    # x_lowpass = percentile_filter_1d(x_pad, p_rank, round(filtered_cutoff * fs))
-    x_lowpass = rank_order_filter(x_pad, p_rank, round(filtered_cutoff * fs))
+    x_lowpass = percentile_filter_1d(x_pad, p_rank, round(filtered_cutoff * fs))
+    # x_lowpass = rank_order_filter(x_pad, p_rank, round(filtered_cutoff * fs))
     x_lowpass = x_lowpass[pad:pad+len(x)]
 
     # Butterworth filter to smooth
