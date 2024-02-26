@@ -206,7 +206,7 @@ if p['save']['mean']:
     if np.median(volume_mean_rescale) < 20:
         save_path_mean_rescaled = sp + source_name + '_preprocd_olap{:02d}px_mean_rescaled.png'.format(overlap_px)
 
-        subvolume = volume[0:np.min([1000, volume.shape[0]]).astype(int)]
+        subvolume = volume[0:np.min([500, volume.shape[0]]).astype(int)]
         high = 100.0
         while np.median(volume_rescale_mean) < 20 and high > 0:
             high = high - 0.5
