@@ -156,7 +156,7 @@ if ops['anatomical_only'] > 0:
         # Set diameter to 0 for automatic estimation.
         ops['diameter'] = 0
     ops['cellprob_threshold'] = -3.5  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
-    ops['flow_threshold'] = 1.0  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
+    ops['flow_threshold'] = 2.0  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
     # ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
     # ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
     # ops['chan2_thres']  # Threshold for detecting an ROI in channel 2.
