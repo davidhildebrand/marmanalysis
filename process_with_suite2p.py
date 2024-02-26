@@ -52,6 +52,8 @@ if len(preproc_list) > 0:
         source_preproc = pp_path
     else:
         raise RuntimeError('Could not find preprocessed data file.')
+else:
+    raise RuntimeError('Could not find preprocessed data file.')
 
 # Load metadata.
 amd = metadata.get_metadata(source)
@@ -70,7 +72,7 @@ db['save_path0'] = source_path
 db['fast_disk'] = []  # Path for storing temporary binary, defaults to 'save_path0'.
 db['subfolders'] = []
 db['look_one_level_down'] = False
-db['move_bin'] = True  # Move binary file from 'fast_disk' to 'save_folder'.
+db['move_bin'] = False  # Move binary file from 'fast_disk' to 'save_folder'.
 ppext = os.path.splitext(os.path.basename(source_preproc))[1]
 if ppext == '.h5' or ppext == '.hdf5':
     db['h5py'] = [os.path.join(source_path, source_preproc)]
@@ -153,7 +155,7 @@ if ops['anatomical_only'] > 0:
     else:
         # Set diameter to 0 for automatic estimation.
         ops['diameter'] = 0
-    ops['cellprob_threshold'] = -3.0  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
+    ops['cellprob_threshold'] = -4.0  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
     ops['flow_threshold'] = 1.5  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
     # ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
     # ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
