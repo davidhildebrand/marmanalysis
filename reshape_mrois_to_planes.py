@@ -206,12 +206,13 @@ if p['save']['mean']:
     if np.median(volume_mean_rescale) < 20:
         save_path_mean_rescaled = sp + source_name + '_preprocd_olap{:02d}px_mean_rescaled.png'.format(overlap_px)
 
+        subvolume = volume[0:np.min([1000, volume.shape[0]]).astype(int)]
         high = 100.0
         while np.median(volume_rescale_mean) < 20 and high > 0:
             high = high - 0.5
             print('Rescaling mean image. (median = {}, high = {})'.format(np.median(volume_mean_rescale), high))
-            pl, ph = np.percentile(volume, [0, high])
-            volume_rescale = img_as_ubyte(rescale_intensity(volume, in_range=(pl, ph)))
+            pl, ph = np.percentile(subvolume, [0, high])
+            volume_rescale = img_as_ubyte(rescale_intensity(subvolume, in_range=(pl, ph)))
             volume_rescale_mean = np.mean(volume_rescale, axis=0)
 
         if os.path.isfile(save_path_mean_rescaled) and p['overwrite_warn']:
