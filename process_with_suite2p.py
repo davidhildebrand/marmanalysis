@@ -21,7 +21,7 @@ parser.add_argument(
     'source',
     help='Path to a ScanImage TIFF data file. [required]')
 parser.add_argument(
-    '-ps', '--preprocstr', type=str, default='*preprocd_olap00px*',
+    '-ps', '--preprocstr', type=str, default='*preprocd_olap00px*.h5',
     help='String contained in filename of preprocessed data file. [optional, default: \'*preprocd_olap00px*\']')
 opts = parser.parse_args()
 
@@ -153,7 +153,7 @@ if ops['anatomical_only'] > 0:
     else:
         # Set diameter to 0 for automatic estimation.
         ops['diameter'] = 0
-    ops['cellprob_threshold'] = 0.0  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
+    ops['cellprob_threshold'] = -1.0  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
     ops['flow_threshold'] = 1.5  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
     # ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
     # ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
