@@ -232,10 +232,39 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 #   ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), which was then
 #   low-pass filtered at 0.01 Hz.
 
-# plt.plot(FdFF_raw[0])
-# n_rolling_average = 120
-# FdFF_tmp = FdFF_raw[0] - np.convolve(FdFF_raw[0], np.ones(n_rolling_average)/n_rolling_average, mode='same')
-# plt.plot(FdFF_tmp)
+filter_percentile = 10
+filter_window = 60  # sec
+
+F0_rnk = np.zeros((n_ROIs, n_frames))
+FdFF_rnk = np.zeros((n_ROIs, n_frames))
+F0_pct = np.zeros((n_ROIs, n_frames))
+FdFF_pct = np.zeros((n_ROIs, n_frames))
+F0_rnkbw = np.zeros((n_ROIs, n_frames))
+FdFF_rnkbw = np.zeros((n_ROIs, n_frames))
+F0_pctbw = np.zeros((n_ROIs, n_frames))
+FdFF_pctbw = np.zeros((n_ROIs, n_frames))
+for r in range(n_ROIs):
+    F0_rnk[r] = filters.rank_order_filter(Frois[r], p=filter_percentile, n=round(filter_window * md['framerate']))
+    FdFF_rnk[r] = (Frois[r] - F0_rnk[r]) / F0_rnk[r]
+    F0_pct[r] = filters.percentile_filter_1d(Frois[r], p=filter_percentile, n=round(filter_window * md['framerate']))
+    FdFF_pct[r] = (Frois[r] - F0_pct[r]) / F0_pct[r]
+    F0_rnkbw[r] = filters.butterworth_filter(F0_rnk[r], fs=md['framerate'], p=filter_percentile)
+    FdFF_rnkbw[r] = (Frois[r] - F0_rnkbw[r]) / F0_rnkbw[r]
+    F0_pctbw[r] = filters.butterworth_filter(Frois[r], fs=md['framerate'], p=filter_percentile)
+    FdFF_pctbw[r] = (Frois[r] - F0_pctbw[r]) / F0_pctbw[r]
+
+n_rolling_average = 120
+FdFF_sw = np.zeros((n_ROIs, n_frames))
+for r in range(n_ROIs):
+    FdFF_sw[r] = FdFF_raw[r] - np.convolve(FdFF_raw[r], np.ones(n_rolling_average)/n_rolling_average, mode='same')
+
+r = 8
+plt.plot(FdFF_raw[r, 0:249], 'k', alpha=0.5)
+plt.plot(FdFF_sw[r, 0:249], 'g', alpha=0.5)
+plt.plot(FdFF_rnk[r, 0:249], 'c', alpha=0.5)
+plt.plot(FdFF_pct[r, 0:249], 'y', alpha=0.5)
+plt.plot(FdFF_rnkbw[r, 0:249], 'b', alpha=0.5)
+plt.plot(FdFF_pctbw[r, 0:249], 'r', alpha=0.5)
 
 
 if save_path == '':
