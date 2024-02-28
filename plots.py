@@ -13,8 +13,8 @@ from warnings import warn
 
 # % Define plotting function for face-body-object selective cells
 
-def plot_ROIs_RGB(ROIs, RGB_ROIs, size=(512, 512), image=None, scale_bar=False, um_per_px=None,
-                  n_neighbors=None, title: str = '', save_path: str = '', imn: str = ''):
+def plot_roi_overlays(rois, colors, size=(512, 512), image=None, scale_bar=False, um_per_px=None,
+                      n_neighbors=None, title: str = '', save_path: str = '', imn: str = ''):
     dpi = plt.rcParams['figure.dpi'] / 2
     h, w = size  # rows/height/y, columns/width/x
     figsize = w / float(dpi), h / float(dpi)
@@ -22,7 +22,6 @@ def plot_ROIs_RGB(ROIs, RGB_ROIs, size=(512, 512), image=None, scale_bar=False, 
     f0 = plt.figure(figsize=figsize)
     ax = f0.add_axes((0, 0, 1, 1))
     plt.set_cmap('hsv')
-    # plt.axis('off')
     ax.axis('off')
     ax.set_frame_on(False)
     if image is not None:
@@ -34,11 +33,11 @@ def plot_ROIs_RGB(ROIs, RGB_ROIs, size=(512, 512), image=None, scale_bar=False, 
     else:
         canvas = np.zeros([h, w, 3], dtype=np.float64)  # create a color canvas with frame size
 
-    for r in range(len(ROIs)):
-        ROI = ROIs[r]
-        ry = ROI['ypix']
-        rx = ROI['xpix']
-        canvas[ry, rx, :] = RGB_ROIs[r]
+    for r in range(len(rois)):
+        rt = rois[r]
+        ry = rt['ypix']
+        rx = rt['xpix']
+        canvas[ry, rx, :] = colors[r]
 
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
@@ -52,7 +51,7 @@ def plot_ROIs_RGB(ROIs, RGB_ROIs, size=(512, 512), image=None, scale_bar=False, 
         now = datetime.now()
         dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
         save_name = dt + '_ROIplot_FSIzsc' + \
-                    '_tuned{}_{}'.format(len(RGB_ROIs), imn) + \
+                    '_tuned{}_{}'.format(len(colors), imn) + \
                     '.png'
         f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
 
