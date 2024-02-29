@@ -11,6 +11,19 @@ from skimage import exposure, util
 from warnings import warn
 
 
+def auto_level_image(image, target_median=20):
+    from skimage.exposure import rescale_intensity
+    from skimage.util import img_as_ubyte
+
+    if image.ndim > 2:
+        warn('auto_level_image may work slowly for image stacks')
+    high = 100.0
+    while np.median(image) < target_median and high > 0:
+        high = high - 0.5
+        pl, ph = np.percentile(image, [0, high])
+        image = img_as_ubyte(rescale_intensity(image, in_range=(pl, ph)))
+    return image
+
 # % Define plotting function for face-body-object selective cells
 
 def plot_roi_overlays(rois, colors, size=(512, 512), image=None, scale_bar=False, um_per_px=None,
