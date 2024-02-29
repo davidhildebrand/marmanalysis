@@ -11,11 +11,14 @@ from skimage import exposure, util
 from warnings import warn
 
 
-def auto_level_image_8bit(image, target_median=20):
+def auto_level_s2p_image(image, target_median=20):
     from skimage.exposure import rescale_intensity
-    from skimage.util import img_as_ubyte
+    from skimage.util import img_as_ubyte, img_as_float
 
-    image = img_as_ubyte(image)
+    if image.max() > 255:
+        image = img_as_ubyte(img_as_float(image.astype('uint16')))
+    else:
+        image = img_as_ubyte(img_as_float(image.astype('uint8')))
     if image.ndim > 2:
         warn('auto_level_image may work slowly for image stacks')
     high = 100.0
