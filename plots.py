@@ -2,74 +2,106 @@
 # -*- coding: utf-8 -*-
 
 import colorsys
-import datetime
+from datetime import datetime
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from skimage import exposure, util
+from skimage import util
+from skimage.exposure import rescale_intensity as ski_rescale_intensity
+from skimage.transform import rotate as ski_rotate
+
 from warnings import warn
 
 
-def auto_level_s2p_image(image, target_median=20):
-    from skimage.exposure import rescale_intensity
-    from skimage.util import img_as_ubyte, img_as_float
+def auto_level_s2p_image(image, target_median=int((20/255)*65535)):
+    from skimage.util import img_as_uint, img_as_float64
 
-    if image.max() > 255:
-        image = img_as_ubyte(img_as_float(image.astype('uint16')))
-    else:
-        image = img_as_ubyte(img_as_float(image.astype('uint8')))
     if image.ndim > 2:
         warn('auto_level_image may work slowly for image stacks')
+
+    image = img_as_uint(image / 65535)
     high = 100.0
     while np.median(image) < target_median and high > 0:
         high = high - 0.5
+        # print('Rescaling mean image. (median = {}, high = {})'.format(np.median(image), high))
         pl, ph = np.percentile(image, [0, high])
-        image = img_as_ubyte(rescale_intensity(image, in_range=(pl, ph)))
-    return image
+        image = img_as_uint(ski_rescale_intensity(image, in_range=(pl, ph)))
+        
+    return img_as_float64(image)
+
 
 # % Define plotting function for face-body-object selective cells
 
-def plot_roi_overlays(rois, colors, size=(512, 512), image=None, scale_bar=False, um_per_px=None,
-                      n_neighbors=None, title: str = '', save_path: str = '', imn: str = ''):
+def plot_roi_overlays(rois, colors, size=None, 
+                      image=None, flip='lr', rotate=-90,
+                      scale_bar=False, um_per_px=None,
+                      title: str = '', save_path: str = '', imn: str = ''):
     dpi = plt.rcParams['figure.dpi'] / 2
-    h, w = size  # rows/height/y, columns/width/x
-    figsize = w / float(dpi), h / float(dpi)
+    n_rois = len(rois)
 
-    f0 = plt.figure(figsize=figsize)
-    ax = f0.add_axes((0, 0, 1, 1))
-    plt.set_cmap('hsv')
-    ax.axis('off')
-    ax.set_frame_on(False)
     if image is not None:
-        ilow, ihigh = np.percentile(image, (1.0, 99.98))
-        ref_f64 = util.img_as_float64(image)
-        ref_rescale = exposure.rescale_intensity(ref_f64, in_range=(ilow, ihigh))
-        ref = ref_rescale
-        canvas = np.stack((ref,) * 3, axis=-1)  # copy single channel to form RGB image
+        if size is not None and size != image.shape:
+            warn('input image size does not match input size parameter, using image size')
+        ref = ski_rescale_intensity(util.img_as_float64(image))
+        if image.ndim == 2:
+            # Copy single channel image to form an RGB image
+            canvas = np.stack((ref,) * 3, axis=-1)
+        elif image.ndim == 3:
+            if image.shape[2] == 3:
+                pass
+            else:
+                warn('unsupported input image type (grayscale or RGB)')
+        else:
+            warn('unsupported input image type (grayscale or RGB)')
+        h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
     else:
-        canvas = np.zeros([h, w, 3], dtype=np.float64)  # create a color canvas with frame size
+        if size is not None:
+            h, w = size  # rows/h/y, columns/w/x 
+        else:
+            warn('no input image or input size, estimating from ROI mask positions')
+            w = np.array([rois[r]['xpix'].max() for r in range(n_rois)]).max()  # columns/w/x
+            h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
+        canvas = np.zeros([h, w, 3], dtype=np.float64)
 
-    for r in range(len(rois)):
+    for r in range(n_rois):
         rt = rois[r]
         ry = rt['ypix']
         rx = rt['xpix']
         canvas[ry, rx, :] = colors[r]
 
+    match flip:
+        case 'lr':
+            canvas = np.fliplr(canvas)
+        case 'ud':
+            canvas = np.flipud(canvas)
+        case None:
+            pass
+        case _:
+            warn('unsupported flip parameter')
+            
+    if rotate is not None and rotate != 0:
+        if rotate % 90 == 0:
+            k = rotate / -90
+            canvas = np.rot90(canvas, -k)
+        else:
+            canvas = ski_rotate(canvas, rotate)
+        h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
+
+    f0 = plt.figure(figsize=(w / float(dpi), h / float(dpi)))  # (w, h), in
+    ax = f0.add_axes((0, 0, 1, 1))
+    plt.set_cmap('hsv')
+    ax.axis('off')
+    ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
-    # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     if title != '':
         ax.set_title(title, fontsize=2)
     f0.show()
     if save_path != '':
-        now = datetime.now()
-        dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
-        save_name = dt + '_ROIplot_FSIzsc' + \
-                    '_tuned{}_{}'.format(len(colors), imn) + \
-                    '.png'
+        save_name = '{}'.format(imn) + '_ROIplot.png'
         f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
 
 
@@ -107,7 +139,7 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
     if image is not None:
         ilow, ihigh = np.percentile(image, (1.0, 99.98))
         ref_f64 = util.img_as_float64(image)
-        ref_rescale = exposure.rescale_intensity(ref_f64, in_range=(ilow, ihigh))
+        ref_rescale = ski_rescale_intensity(ref_f64, in_range=(ilow, ihigh))
         ref = ref_rescale
         canvas = np.stack((ref,) * 3, axis=-1)  # copy single channel to form RGB image
     else:
