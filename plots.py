@@ -20,7 +20,9 @@ def auto_level_s2p_image(image, target_median=int((20/255)*65535)):
     if image.ndim > 2:
         warn('auto_level_image may work slowly for image stacks')
 
+    image = image - image.min()
     image = img_as_uint(image / 65535)
+    
     high = 100.0
     while np.median(image) < target_median and high > 0:
         high = high - 0.5
