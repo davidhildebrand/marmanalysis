@@ -1129,13 +1129,15 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 
 # above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 
-# mean_by_cat = np.array([np.nanmean(data[data['cat'] == cat]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1)) for cat in categories]).swapaxes(0, 1)
-mean_by_cat = np.array([np.nanmean(data[data['cat'] == cat]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1)) for cat in fob]).swapaxes(0, 1)
+mean_by_cat = np.array([np.nanmean(data[data['cat'] == cat]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1)) for cat in cat_subset]).swapaxes(0, 1)
 top_cat_mean = categories[np.argmax(mean_by_cat, axis=-1)]
 
-# top_cat_mean_id = [np.argwhere(categories == top_cat_mean[rat])[0][0] for rat in above_threshold]
-top_cat_mean_id = [np.argwhere(categories == top_cat_mean[r])[0][0] for r in range(n_ROIs)]
-top_cat_mean_idn = np.divide(top_cat_mean_id, len(categories))
+# top_cat_mean_id = [np.argwhere(categories == top_cat_mean[r])[0][0] for r in range(n_ROIs)]
+# top_cat_mean_idn = np.divide(top_cat_mean_id, len(categories))
+# TODO check if fob here can be cat_subset
+top_cat_mean_id = [np.argwhere(fob == top_cat_mean[r])[0][0] for r in range(n_ROIs)]
+top_cat_mean_idn = np.divide(top_cat_mean_id, len(cat_subset))
+
 
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs 
 # with at least one stimulus period z-score > 0.5
