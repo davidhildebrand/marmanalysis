@@ -1202,8 +1202,8 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         Fzsc_fob_norm[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image),
                         flip='lr', rotate=-90,
-                        # save_path=save_path,
-                        # imn=savepfix_str + '_RelativeResponseStrength_threshFSIgtlt0p33')
+                        save_path=save_path,
+                        imn=savepfix_str + '_RelativeResponseStrength_threshFSIgtlt0p33')
 
 
 
