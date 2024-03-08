@@ -313,6 +313,14 @@ def extract_useful_metadata(scanimage_metadata):
     else:
         raise Exception('Not all MROIs have the same width.')
 
+    # Check that fill fractions are correctly related.
+    spatial_from_temporal = np.cos((1 - umd['fill_fraction_temporal']) * np.pi/2)
+    if not np.isclose(umd['fill_fraction_spatial'], spatial_from_temporal):
+        warn('Fill fractions do not match expected relationship [spatial = cos((1-temporal) * pi/2)]. ' +
+             'temporal: {:.3f}, '.format(umd['fill_fraction_temporal']) +
+             'spatial: {:.3f}, '.format(umd['fill_fraction_spatial']) +
+             'spatial calculated from temporal: {:.3f}'.format(spatial_from_temporal))
+
     # Extract acquisition strip information.
     umd['acqstrip'] = dict()
     umd['acqstrip']['w_px'] = simd['acqstrip_w']
