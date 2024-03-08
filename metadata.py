@@ -269,7 +269,8 @@ def extract_useful_metadata(scanimage_metadata):
     umd['objective_resolution'] = simd['SI']['objectiveResolution']  # um/deg
     umd['framerate'] = simd['SI']['hRoiManager']['scanFrameRate']
     umd['framerate_str'] = 'fr{:06.3f}Hz'.format(umd['framerate']).replace('.', 'p')
-    umd['temporal_fill_fraction'] = simd['SI']['hScan2D']['fillFractionTemporal']
+    umd['fill_fraction_temporal'] = simd['SI']['hScan2D']['fillFractionTemporal']
+    umd['fill_fraction_spatial'] = simd['SI']['hScan2D']['fillFractionSpatial']
     umd['resonant_scanner_frequency'] = simd['SI']['hScan2D']['scannerFrequency']
 
     # Estimate start time.
