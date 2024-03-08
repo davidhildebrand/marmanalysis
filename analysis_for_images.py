@@ -1166,17 +1166,19 @@ above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
 plots.plot_roi_overlays(ROIs[above_threshold], 
                         ROI_colors[above_threshold], 
-                        image=plots.auto_level_s2p_image(fov_image))  #,
-                        # save_path=save_path,
-                        # imn=savepfix_str + '_CategoryOfMostActivatingCategoryOnAverage_threshZgt0p5')
+                        image=plots.auto_level_s2p_image(fov_image),
+                        flip='lr', rotate=-90,
+                        save_path=save_path,
+                        imn=savepfix_str + '_CategoryOfMostActivatingCategoryOnAverage_threshZgt0p5')
 
 # Plot for each ROI the category elicited the largest average response
 # for only ROIs with FSI > threshold
 above_threshold = np.where(np.abs(FSIs_zsc) > fsi_tuning_thresh)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
-plots.plot_roi_overlays(ROIs[above_threshold], 
-                        ROI_colors[above_threshold], 
-                        image=plots.auto_level_s2p_image(fov_image),  #,
+plots.plot_roi_overlays(ROIs[above_threshold],
+                        ROI_colors[above_threshold],
+                        image=plots.auto_level_s2p_image(fov_image),
+                        flip='lr', rotate=-90,
                         save_path=save_path,
                         imn=savepfix_str + '_CategoryOfMostActivatingCategoryOnAverage_threshFSIgtlt0p33')
 
