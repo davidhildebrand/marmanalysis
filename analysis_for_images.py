@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import colorsys
-import copy  # TODO not sure if this is necessary
-from datetime import datetime
 from glob import glob
 import matplotlib.pyplot as plt
 import numpy as np
