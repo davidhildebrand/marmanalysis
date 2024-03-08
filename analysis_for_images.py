@@ -75,10 +75,10 @@ if 'md' in locals():
 
 
 # # -- Cadbury OBJ ()
-# animal_str = 'Cadbury'
-# date_str = '20230809d'
-# session_str = '173936tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
+animal_str = 'Cadbury'
+date_str = '20230809d'
+session_str = '173936tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimImagesFOBmin'
+stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
 
 # # -- Cadbury PD ()
