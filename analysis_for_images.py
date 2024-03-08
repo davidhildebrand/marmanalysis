@@ -4,6 +4,7 @@
 import colorsys
 from glob import glob
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import numpy as np
 import os
 import pickle
@@ -33,7 +34,8 @@ fsi_tuning_thresh = 1 / 3
 cell_probability_thresh = 0.0
 
 save_path = ''
-# save_path = 'F:\Sync\Transient\Science\Conferences\20240301d_FreiwaldLabMeeting\media'
+# save_path = r'F:\Sync\Transient\Science\Conferences\20240301d_FreiwaldLabMeeting\media'
+stimimage_path = r''
 
 plt.rcParams['figure.dpi'] = 600
 dpi = plt.rcParams['figure.dpi']
@@ -475,6 +477,7 @@ data = np.zeros(n_conds, dtype=[('cond', 'S8'),
                                 ('id', 'S8'),
                                 ('view', 'i2'),
                                 ('roll', 'i2'),
+                                ('imagename', np.unicode_, 256),
                                 ('FdFF', 'f4', (n_ROIs,
                                                 n_trials,
                                                 n_samp_trial)),
@@ -499,6 +502,7 @@ for c in range(n_conds):
     tmp_view = -32768
     tmp_roll = -32768
     imn = image_names[c]
+    tmp_imagename = image_filenames[c]
     if image_set == 'FOBmin' or image_set == 'FOBmany':
         # pattern_fn = r'^([0-9]{6}tUTC).*$'
         # FreiwaldFOB2018_Marm_Body_Spring_7_erode3px
@@ -650,6 +654,7 @@ for c in range(n_conds):
     data[c]['id'] = tmp_id
     data[c]['view'] = tmp_view
     data[c]['roll'] = tmp_roll
+    data[c]['imagename'] = tmp_imagename
     for t in range(n_trials):
         fr_start = fridx[c, t] - n_samp_isi
         fr_end = fridx[c, t] + n_samp_stim + n_samp_isi
@@ -1085,12 +1090,38 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 # #               size=fov_size, image=fov_image, save_path=r'F:\Sync\Transient\Science\Conferences\20231111d-20231115d_SocietyForNeuroscience_AnnualMeeting_WashingtonDC\media')
 
 
+# % Plot stimulus images
+
+n_subconds = len(cond_subset)
+
+if n_conds % 20 == 0:
+    n_cols = 20
+    n_rows = int(n_subconds / 20)
+else:
+    n_cols = 20
+    n_rows = round(n_subconds / 20)
+    
+fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows, 
+                        figsize=(n_cols * 512 / dpi, n_rows * 512 / dpi),
+                        layout='constrained')
+for row in range(n_rows):
+    for col in range(n_cols):
+        i = col + (row * n_cols)
+        ax = axs[row, col]
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+        ax.axis('off')
+        imp = os.path.join(stimimage_path, data[cond_idx[i]]['imagename'])
+        ax.imshow(mpimg.imread(imp))
+if saving:
+    fig.savefig(os.path.join(save_path, savepfix_str + '_StimulusImages.png'), 
+                dpi=dpi, transparent=True)
 
 
 
 
 
-# # %% Plot tuned cells with discreete tuning-wheel
+# %% Plot tuned cells with discreete tuning-wheel
 
 # # parameters
 # plotting_threshold_discrete = 0.15
