@@ -30,7 +30,7 @@ import plots
 # larger than 1/3 or smaller than -1/3, dotted lines).
 fsi_tuning_thresh = 1 / 3
 
-cell_probability_thresh = 0.01
+cell_probability_thresh = 0.0
 
 save_path = ''
 # save_path = 'F:\Sync\Transient\Science\Conferences\20240301d_FreiwaldLabMeeting\media'
