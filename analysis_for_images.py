@@ -771,7 +771,7 @@ for c in range(n_conds):
             pattern_ctn = r'^[^_]*Cartoon_([0-9]+)_?[^_]*_?(inverted)?$'
             if re.match(pattern_ctn, imn) is not None:
                 nm = re.match(pattern_ctn, imn).group(1)
-                tmp_cond = bytes('fc{:02}'.format(nm), 'ascii')
+                tmp_cond = bytes('fcm{:02}'.format(nm), 'ascii')
                 tmp_cat = b'face_ctn'
                 tmp_id = bytes(nm, 'ascii')
                 tmp_view = 0
