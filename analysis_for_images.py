@@ -1047,11 +1047,19 @@ fhm = plt.figure()
 plt.xlabel('Image')
 plt.ylabel('ROI')
 ax = plt.gca()
-ax.set_xticks([19.5, 39.5])
-ax.set_xticklabels([None, None])
-ax.set_xticks([10, 30, 50], minor=True)
-ax.set_xticklabels(['faces', 'objects', 'bodies'], minor=True)
-xticks = ax.xaxis.get_major_ticks()
+match image_set:
+    case 'Song_etal_Wang_2022_FOBonly':
+        if n_conds == 60:
+            ax.set_xticks([19.5, 39.5])
+            ax.set_xticklabels([None, None])
+            ax.set_xticks([10, 30, 50], minor=True)
+            ax.set_xticklabels(['faces', 'objects', 'bodies'], minor=True)
+        if n_conds == 130 or n_conds == 131:
+            ax.set_xticks([19.5, 59.5])
+            ax.set_xticklabels([None, None])
+            ax.set_xticks([10, 40, 70], minor=True)
+            ax.set_xticklabels(['faces', 'objects', 'bodies'], minor=True)
+# xticks = ax.xaxis.get_major_ticks()
 ax.tick_params(which='minor', length=0)
 # plt.imshow(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold], vmin=0.5-0.0001, vmax=0.5+0.0001, aspect='auto', cmap='gray', interpolation='none')
 plt.imshow(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold[at_sortidx]], 
