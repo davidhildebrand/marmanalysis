@@ -236,9 +236,9 @@ def get_metadata(filepath):
 
 def roi_from_scanfield(scanfield):
     r = dict()
-    r['center_deg'] = np.array(scanfield['centerXY'])
-    r['size_deg'] = np.array(scanfield['sizeXY'])
-    r['size_px'] = np.array(scanfield['pixelResolutionXY'])
+    r['center_deg'] = np.array(scanfield['centerXY'], dtype=float)
+    r['size_deg'] = np.array(scanfield['sizeXY'], dtype=float)
+    r['size_px'] = np.array(scanfield['pixelResolutionXY'], dtype=int)
     return r
 
 
@@ -337,7 +337,7 @@ def extract_useful_metadata(scanimage_metadata):
         warn('Acquisition strip height does not match expectation from MROI sizes.')
     if umd['acqstrip']['w_px'] != mroi_w_px:
         warn('Acquisition strip width does not match expectation from MROI widths. ' +
-             'Forcing MROI widths to conform.')
+             'Forcing conformation to acquisition strip size.')
         for r in range(umd['n_mrois']):
             umd['mrois']['orig'][r]['size_px'][0] = umd['acqstrip']['w_px']
     del mroi_w_px
@@ -432,7 +432,7 @@ def extract_useful_metadata(scanimage_metadata):
     if len(fov_positions_deg[0]) == np.sum(mroi_sizes_px[:, 0]) + 1:
         warn('Removed extra pixel from reconstructed image width.')
         fov_positions_deg[0] = fov_positions_deg[0][:-1]
-    #if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
+    # if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
     #    warn('Removed extra pixel from reconstructed image height.')
     #    fov_positions_deg[1] = fov_positions_deg[1][:-1]
 
