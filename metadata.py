@@ -342,7 +342,7 @@ def extract_useful_metadata(scanimage_metadata):
             umd['mrois']['orig'][r]['size_px'][0] = umd['acqstrip']['w_px']
     del mroi_w_px
 
-    # Calculate MROI resolutions.
+    # Calculate MROI resolutions.  Note that the objective resolution is in um/deg.
     for r in umd['mrois']['orig']:
         if type(umd['objective_resolution']) is float:
             r['resolution_umpx'] = umd['objective_resolution'] / (r['size_px'] / r['size_deg'])
