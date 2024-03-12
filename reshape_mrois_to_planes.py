@@ -101,6 +101,7 @@ n_y = md['fov']['h_px']  # [len(md['fov']['positions_deg'][a]) for a in range(2)
 n_z = md['n_planes']
 mroi_sizes_px = np.array([r['size_px'] for r in md['mrois']['lrsort']], dtype=int)
 mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']], dtype=int)
+# print('n_f={} n_x={} n_y={} n_z={}'.format(n_f, n_x, n_y, n_z))
 
 volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
 # volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
@@ -132,6 +133,7 @@ for i_plane in range(n_z):
             xs_mroi = np.ceil(overlap_px / 2).astype(int)
             xe_mroi = mroi_sizes_px[i_mroi][0]
         # print(xs_canv, xe_canv, xs_mroi, xe_mroi)
+        # print('xs_canv={} xe_canv={}'.format(xs_canv, xe_canv))
 
         ys_canv = mroi_corners_tl_px[i_mroi, 1]
         ye_canv = ys_canv + mroi_sizes_px[i_mroi, 1]
