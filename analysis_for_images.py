@@ -681,6 +681,13 @@ for c in range(n_conds):
             ct = re.match(pattern_imn, imn).group(5)
             di = re.match(pattern_imn, imn).group(6)
             nm = re.match(pattern_imn, imn).group(7)
+            if nm.isnumeric():
+                nm = float(nm)
+                if nm.is_integer():
+                    nm = int(nm)
+                else:
+                    warn('View index in filename incorrect ({}). '.format(tmp_imagename) +
+                         'Expected integer, not float.')
             iv = re.match(pattern_imn, imn).group(8) is not None
             match sp:
                 case 'Human':
@@ -699,37 +706,37 @@ for c in range(n_conds):
                         tmp_roll = 0
                 case 'Marm':
                     if ct == 'Head':
+                        if iv is True:
+                            nm = 9
                         tmp_cond = bytes('fm{}{:02}'.format(di[0:3], nm), 'ascii')
                         tmp_cat = b'face_mrm'
                         tmp_id = bytes(di[0:8], 'ascii')
-                        if iv is True:
-                            nm = '9'
                         match nm:
-                            case '1':
+                            case 1:
                                 tmp_view = 0
                                 tmp_roll = 0
-                            case '2':
+                            case 2:
                                 tmp_view = 180
                                 tmp_roll = 0
-                            case '3':
+                            case 3:
                                 tmp_view = 0
                                 tmp_roll = -45
-                            case '4':
+                            case 4:
                                 tmp_view = 0
                                 tmp_roll = 45
-                            case '5':
+                            case 5:
                                 tmp_view = -90
                                 tmp_roll = 0
-                            case '6':
+                            case 6:
                                 tmp_view = -45
                                 tmp_roll = 0
-                            case '7':
+                            case 7:
                                 tmp_view = 45
                                 tmp_roll = 0
-                            case '8':
+                            case 8:
                                 tmp_view = 90
                                 tmp_roll = 0
-                            case '9':
+                            case 9:
                                 tmp_view = 0
                                 tmp_roll = 180
                             case _:
@@ -737,7 +744,7 @@ for c in range(n_conds):
                                 tmp_view = None
                                 tmp_roll = None
                     if ct == 'Body':
-                        tmp_cond = bytes('bm{}{:02}'.format(ct[0:3], nm), 'ascii')
+                        tmp_cond = bytes('bm{}{:02}'.format(di[0:3], nm), 'ascii')
                         tmp_cat = b'body_mrm'
                         tmp_id = bytes(di[0:8], 'ascii')
                 case 'Objects':
@@ -746,7 +753,7 @@ for c in range(n_conds):
                         ct_p1 = re.match(pattern_ct, ct).group(1)
                         ct_p2 = re.match(pattern_ct, ct).group(2)
                         ct = ct_p1
-                        nm = ct_p2 + nm
+                        nm = ct_p2 + '{:03}'.format(nm)
                     if 'Manmade' in ct:
                         tmp_cond = bytes('om{:02}'.format(nm), 'ascii')
                         tmp_cat = b'obj'
@@ -853,6 +860,13 @@ for c in range(n_conds):
 
 categories = np.unique(data[:]['cat'])
 conditions = np.unique(data[:]['cond'])
+
+if n_conds != conditions.shape[0]:
+    u, c = np.unique(data[:]['cond'], return_counts=True)
+    mult = u[c > 1]
+    warn('Some different image files were combined into the same condition. ' +
+         '{}'.format(data[data['cond'] == mult]['imagename']))
+    del u, c, mult
 
 
 # % Calculate tuning properties for each ROI (i.e. compute face selectivity index)
