@@ -326,9 +326,6 @@ def extract_useful_metadata(scanimage_metadata):
     umd['acqstrip']['w_px'] = simd['acqstrip_w']
     umd['acqstrip']['h_px'] = simd['acqstrip_h']
     umd['acqstrip']['size_px'] = np.array([umd['acqstrip']['w_px'], umd['acqstrip']['h_px']], dtype=int)
-    # mroi_hs_px = np.array([r['size_px'][1] for r in umd['mrois']['orig']], dtype=int)
-    # umd['acqstrip']['flyback_h_px'] = (umd['acqstrip']['h_px'] - (mroi_hs_px.sum())) // (umd['n_mrois'] - 1)
-    # acqstrip_hcalc_px = mroi_hs_px.sum() + ((umd['n_mrois'] - 1) * umd['acqstrip']['flyback_h_px'])
     umd['acqstrip']['flyback_h_px'] = (umd['acqstrip']['h_px'] - (mroi_sizes_px[:, 1].sum())) // (umd['n_mrois'] - 1)
 
     # Compare acquisition strip details to MROI details and conform to acquisition strip if necessary.
@@ -410,7 +407,7 @@ def extract_useful_metadata(scanimage_metadata):
                                    umd['fov']['corner_br_deg'][1],  # y_deg max
                                    umd['fov']['resolution_degpx'][1])]
 
-    # Estimate neuron size in px, assuming average diameter of 15um.
+    # Estimate neuron size (i.e. cell body diameter) in px, assuming average diameter of 15um.
     if umd['fov']['resolution_umpx'] is not None:
         neuron_diameter_um = 15
         umd['fov']['neurondiameter_px'] = int(np.mean(neuron_diameter_um / umd['fov']['resolution_umpx']))
@@ -428,13 +425,13 @@ def extract_useful_metadata(scanimage_metadata):
                 warn('Fit of MROI into reconstructed image is imperfect: ' +
                      'MROI %d, corner %.4f, closest available %.4f'.format(mroi_corners_tl_deg[i_mroi, i_xy],
                                                                            closest_xy_deg))
-    # If necessary, remove extra pixel added to reconstruction width due to rounding errors.
+    # If necessary, remove extra pixel added to reconstruction width due to rounding errors or ScanImage errors.
     if len(fov_positions_deg[0]) == np.sum(mroi_sizes_px[:, 0]) + 1:
         warn('Removed extra pixel from reconstructed image width.')
         fov_positions_deg[0] = fov_positions_deg[0][:-1]
-    # if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
-    #    warn('Removed extra pixel from reconstructed image height.')
-    #    fov_positions_deg[1] = fov_positions_deg[1][:-1]
+    if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
+       warn('Removed extra pixel from reconstructed image height.')
+       fov_positions_deg[1] = fov_positions_deg[1][:-1]
 
     umd['fov']['positions_deg'] = fov_positions_deg
     umd['fov']['w_px'] = len(fov_positions_deg[0])
