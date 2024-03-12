@@ -15,6 +15,11 @@ import metadata
 
 def is_tiff(filepath: str) -> bool:
     allowed_types = ['image/tiff', 'image/tif']
+    if os.name == 'nt':
+        warn('Could not verify file type is TIFF because of Windows file system, basing on file extension.')
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext == '.tif' or ext == '.tiff':
+            return True
     if magic.from_file(filepath, mime=True) not in allowed_types:
         return False
     return True
