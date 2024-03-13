@@ -407,24 +407,21 @@ def extract_useful_metadata(scanimage_metadata):
                                    umd['fov']['corner_br_deg'][1],  # y_deg max
                                    umd['fov']['resolution_degpx'][1])]
 
-    # Estimate neuron size (i.e. cell body diameter) in px, assuming average diameter of 15um.
-    if umd['fov']['resolution_umpx'] is not None:
-        neuron_diameter_um = 15
-        umd['fov']['neurondiameter_px'] = int(np.mean(neuron_diameter_um / umd['fov']['resolution_umpx']))
-    else:
-        umd['fov']['neurondiameter_px'] = None
-
     # Calculate the pixel coordinates for MROIs in reconstructed volume.
     mroi_corners_tl_px = np.empty((umd['n_mrois'], 2), dtype=int)
     for i_xy in range(2):
+        dimax = 'width' if i_xy == 0 else 'height'
         for i_mroi in range(umd['n_mrois']):
             closest_xy_px = np.argmin(np.abs(fov_positions_deg[i_xy] - mroi_corners_tl_deg[i_mroi, i_xy])).astype(int)
             mroi_corners_tl_px[i_mroi, i_xy] = closest_xy_px
             closest_xy_deg = fov_positions_deg[i_xy][closest_xy_px]
             if not np.isclose(closest_xy_deg, mroi_corners_tl_deg[i_mroi, i_xy]):
-                warn('Fit of MROI into reconstructed image is imperfect: ' +
-                     'MROI %d, corner %.4f, closest available %.4f'.format(mroi_corners_tl_deg[i_mroi, i_xy],
-                                                                           closest_xy_deg))
+                warn('Fit of MROI into reconstructed image {} is imperfect: '.format(dimax) +
+                     'MROI {}, top-left corner {:.4f}, closest {:.4f}'.format(i_mroi,
+                                                                              mroi_corners_tl_deg[i_mroi, i_xy],
+                                                                              closest_xy_deg))
+    del dimax
+
     # If necessary, remove extra pixel added to reconstruction width due to rounding errors or ScanImage errors.
     if len(fov_positions_deg[0]) == np.sum(mroi_sizes_px[:, 0]) + 1:
         warn('Removed extra pixel from reconstructed image width.')
@@ -445,6 +442,13 @@ def extract_useful_metadata(scanimage_metadata):
         umd['mrois']['orig'][i_m]['corner_tl_px'] = mroi_corners_tl_px[i_mroi]
         umd['mrois']['lrsort'][i_mroi]['corner_tl_deg'] = mroi_corners_tl_deg[i_mroi]
         umd['mrois']['lrsort'][i_mroi]['corner_tl_px'] = mroi_corners_tl_px[i_mroi]
+
+    # Estimate neuron size (i.e. cell body diameter) in px, assuming average diameter of 15um.
+    if umd['fov']['resolution_umpx'] is not None:
+        neuron_diameter_um = 15
+        umd['fov']['neurondiameter_px'] = int(np.mean(neuron_diameter_um / umd['fov']['resolution_umpx']))
+    else:
+        umd['fov']['neurondiameter_px'] = None
 
     # Calculate additional values if all MROIs have the same size, resolution, and vertical position.
     if np.all(np.isclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1])) and \
