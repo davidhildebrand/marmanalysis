@@ -121,7 +121,7 @@ def get_metadata(filepath):
         fn = os.path.basename(filepath)
 
         # Attempt to determine acquisition time from filename.
-        pattern_t0 = r'^([0-9]{6}tUTC).*$'
+        pattern_t0 = r'^.*([0-9]{6}tUTC).*$'
         if re.match(pattern_t0, fn) is not None:
             m = re.match(pattern_t0, fn)
         else:
@@ -430,8 +430,8 @@ def extract_useful_metadata(scanimage_metadata):
         warn('Removed extra pixel from reconstructed image width.')
         fov_positions_deg[0] = fov_positions_deg[0][:-1]
     if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
-       warn('Removed extra pixel from reconstructed image height.')
-       fov_positions_deg[1] = fov_positions_deg[1][:-1]
+        warn('Removed extra pixel from reconstructed image height.')
+        fov_positions_deg[1] = fov_positions_deg[1][:-1]
 
     umd['fov']['positions_deg'] = fov_positions_deg
     umd['fov']['w_px'] = len(fov_positions_deg[0])
