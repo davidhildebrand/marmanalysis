@@ -14,6 +14,30 @@ from skimage.transform import rotate as ski_rotate
 from warnings import warn
 
 
+# % Define plotting function for histograms of selectivity indices
+def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41):
+    f, ax1 = plt.subplots()
+    plt.hist(fsis, bins=bins, range=(-1, 1), color='0.4')
+    plt.xlim([-1, 1])
+    ax1.set_xticks([-1.0, -0.5, 0, 0.5, 1.0])
+    ax1.set_xticks([-0.75, -0.25, 0.25, 0.75], minor=True)
+    ax1.set_xticklabels([None, None, None, None], minor=True)
+    plt.xlabel('Face-Selectivity Index')
+    plt.ylabel('Number of ROIs')
+
+    ax2 = ax1.twinx()
+    n_rois = len(fsis)
+    weights = np.ones(n_rois) / n_rois
+    plt.hist(fsis, weights=weights, bins=bins, range=(-1, 1), edgecolor='none', facecolor='None')
+    plt.ylabel('Fraction of ROIs')
+
+    plt.axvline(-fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
+    plt.axvline(fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
+
+    f.tight_layout()
+    f.show()
+
+
 def auto_level_s2p_image(image, target_median=int((20/255)*65535)):
     from skimage.util import img_as_uint, img_as_float64
 
