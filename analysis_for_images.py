@@ -293,7 +293,9 @@ if session_str.find('_') != -1:
 else:
     session_abbrev_str = ''
     title_str = animal_str + '_' + date_str + '_' + session_str
-savepfix_str = animal_str + date_str + session_abbrev_str
+save_pfix = animal_str + date_str + session_abbrev_str
+save_ext = '.png'
+
 mdfile_str = '*_metadata.pickle'
 datafile_str = '*_00001.tif'
 logfile_str = '*.log'
@@ -674,7 +676,7 @@ for c in range(n_conds):
         # FreiwaldFOB2018_Marm_Head_Hunter_8_erode3px
         # FreiwaldFOB2018_Objects_Manmade1_8_erode3px
         # FreiwaldMarmosetCartoon_0_erode3px
-        # pattern_imn = r'^[^_]*_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?[^_]*_?(inverted)?$'
+        # FreiwaldFOB2018_Marm_Head_Lollipop_1_erode3px_inverted
         pattern_imn = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?[^_]*_?(inverted)?$'
         if re.match(pattern_imn, imn) is not None:
             sp = re.match(pattern_imn, imn).group(4)
@@ -958,32 +960,12 @@ print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
 
 # TODO regorganize
 
-# Plot FSI histogram
-f0 = plt.figure()
-plt.hist(FSIs_zsc, bins=100)
-plt.xlabel('Face-Selectivity Index')
-plt.ylabel('ROIs')
-plt.xlim([-1, 1])
-plt.axvline(fsi_tuning_thresh, color='m')
-plt.axvline(-fsi_tuning_thresh, color='m')
-f0.show()
-if saving:
-    save_name = savepfix_str + '_Histogram_FSIdFF_thresh' + \
-                '{:.2f}'.format(fsi_tuning_thresh).replace('.', 'p') + '.png'
-    f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
+# Plot histograms
+plots.plot_hist_fsi(FSIs_dFF, fsi_thresh=fsi_tuning_thresh, title='FSIs calculated from FdFF values', 
+                    save_path=os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromFdFF' + save_ext))
+plots.plot_hist_fsi(FSIs_zsc, fsi_thresh=fsi_tuning_thresh, title='FSIs calculated from z-scored values', 
+                    save_path=os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromZscr' + save_ext))
 
-f0 = plt.figure()
-plt.hist(FSIs_zsc, bins=100)
-plt.xlabel('Face-Selectivity Index')
-plt.ylabel('ROIs')
-plt.xlim([-1, 1])
-plt.axvline(fsi_tuning_thresh, color='m')
-plt.axvline(-fsi_tuning_thresh, color='m')
-f0.show()
-if saving:
-    save_name = savepfix_str + '_Histogram_FSIzsc_thresh' + \
-                '{:.2f}'.format(fsi_tuning_thresh).replace('.', 'p') + '.png'
-    f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
 
 # Summarize responsiveness of each ROI
 
@@ -1087,7 +1069,7 @@ cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stimulus period')
 plt.show()
 if saving:
-    fhm.savefig(os.path.join(save_path, savepfix_str + '_Heatmap_byCondition_sortMeanFace_threshZgt0p5.png'),
+    fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace_threshZgt0p5' + save_ext),
                 dpi=dpi, transparent=True)
 
 # # Plot sorted heatmap of mean responses to all presented conditions (images) for ROIs 
@@ -1126,7 +1108,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image),
                         flip='lr', rotate=-90,
                         save_path=save_path,
-                        imn=savepfix_str + '_CategoryOfMostActivatingCondition_threshZgt0p5')
+                        imn=save_pfix + '_CategoryOfMostActivatingCondition_threshZgt0p5' + save_ext)
 
 # Plot for each ROI the category of the condition (image) that elicited the largest response  
 above_threshold = np.where(np.abs(FSIs_zsc) > fsi_tuning_thresh)[0]
@@ -1136,7 +1118,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image),
                         flip='lr', rotate=-90,
                         save_path=save_path,
-                        imn=savepfix_str + '_CategoryOfMostActivatingCondition_threshFSIgtlt0p33')
+                        imn=save_pfix + '_CategoryOfMostActivatingCondition_threshFSIgtlt0p33' + save_ext)
 
 # Determine for each ROI which category elicited the largest average response
 # TODO improve variable naming here for clarity
@@ -1171,7 +1153,7 @@ cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
 plt.show()
 if saving:
-    fhm.savefig(os.path.join(save_path, savepfix_str + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5.png'), 
+    fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext), 
                 dpi=dpi, transparent=True)
 
 
@@ -1183,7 +1165,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image),
                         flip='lr', rotate=-90,
                         save_path=save_path,
-                        imn=savepfix_str + '_CategoryOfMostActivatingCategoryOnAverage_threshZgt0p5')
+                        imn=save_pfix + '_CategoryOfMostActivatingCategoryOnAverage_threshZgt0p5' + save_ext)
 
 # Plot for each ROI the category elicited the largest average response
 # for only ROIs with FSI > threshold
@@ -1194,7 +1176,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image),
                         flip='lr', rotate=-90,
                         save_path=save_path,
-                        imn=savepfix_str + '_CategoryOfMostActivatingCategoryOnAverage_threshFSIgtlt0p33')
+                        imn=save_pfix + '_CategoryOfMostActivatingCategoryOnAverage_threshFSIgtlt0p33' + save_ext)
 
 # Plot relative response strength
 
@@ -1220,7 +1202,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image),
                         flip='lr', rotate=-90,
                         save_path=save_path,
-                        imn=savepfix_str + '_RelativeResponseStrength_threshZgt0p5')
+                        imn=save_pfix + '_RelativeResponseStrength_threshZgt0p5' + save_ext)
 
 
 above_threshold = np.where(FSIs_zsc > fsi_tuning_thresh)[0]
@@ -1229,7 +1211,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image),
                         flip='lr', rotate=-90,
                         save_path=save_path,
-                        imn=savepfix_str + '_RelativeResponseStrength_threshFSIgtlt0p33')
+                        imn=save_pfix + '_RelativeResponseStrength_threshFSIgtlt0p33' + save_ext)
 
 
 
@@ -1310,7 +1292,7 @@ for row in range(n_rows):
         imp = os.path.join(stimimage_path, data[cond_idx[i]]['imagename'])
         ax.imshow(mpimg.imread(imp))
 if saving:
-    fig.savefig(os.path.join(save_path, savepfix_str + '_StimulusImages.png'), 
+    fig.savefig(os.path.join(save_path, save_pfix + '_StimulusImages' + save_ext), 
                 dpi=dpi, transparent=True)
 
 
