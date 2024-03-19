@@ -498,6 +498,10 @@ impaths = {}
 lf_categories = {}
 tmp_image = None
 tmp_imagepath = None
+tmp_units = None
+tmp_pos = None
+tmp_size = None
+tmp_ori = None
 tmp_category = None
 tmp_catid = None
 tmp_cond = None
@@ -548,12 +552,33 @@ for line in lines:
             impaths[tmp_imagepath] = tmp_cond
     else:
         print('could not get image name from log entry')
+    if 'units' in subcol[6]:
+        tmp_units = subcol[6].split('=')[1].strip()
+    else:
+        print('could not get units from log entry')
+    if 'pos' in subcol[7]:
+        tmp_pos = np.fromstring(subcol[7].split('=')[1].strip('[]'), sep=' ')
+    else:
+        print('could not get pos from log entry')
+    if 'size' in subcol[8]:
+        tmp_size = np.fromstring(subcol[8].split('=')[1].strip('[]'), sep=' ')
+    else:
+        print('could not get size from log entry')
+    if 'ori' in subcol[9]:
+        tmp_ori = float(subcol[9].split('=')[1].strip())
+    else:
+        print('could not get ori from log entry')
     if 'acqfr' in subcol[15]:
         tmp_acqfr = int(subcol[15].split('=')[1].strip())
     else:
         print('could not get acqfr from log entry')
     trialdata[tmp_trial] = {'cond': tmp_cond,  # effectively image_id
                             'image': tmp_image,
+                            'imagepath': tmp_imagepath,
+                            'units': tmp_units,
+                            'pos': tmp_pos,
+                            'size': tmp_size,
+                            'ori': tmp_ori,
                             'category': tmp_category,
                             'catid': tmp_catid,
                             'acqfr': tmp_acqfr}
@@ -608,30 +633,59 @@ image_filenames = {v: os.path.basename(k) for k, v in impaths.items()}
 image_names = {v: os.path.splitext(os.path.basename(k))[0] for k, v in impaths.items()}
 lf_conditions = image_names
 
-# trialdataarr[trial_idx] = [cond/imageid, category_id, acqfr]
-trialdataarr = np.full([len(trialdata), 3], np.nan)
+# trialdata_arr[trial_idx] = [cond/imageid, category_id, acqfr]
+trialdata_arr = np.full([len(trialdata), 3], np.nan)
 for td in trialdata:
-    trialdataarr[td] = [trialdata[td]['cond'], trialdata[td]['catid'], trialdata[td]['acqfr']]
-trialdataarr = trialdataarr.astype(int)
-all_stim_start_frames = trialdataarr[:, 2]
+    trialdata_arr[td] = [trialdata[td]['cond'], trialdata[td]['catid'], trialdata[td]['acqfr']]
+units_list = [v for k, v in enumerate(np.unique([trialdata[td]['units'] for td in trialdata]))]
+pos_arr = np.array([trialdata[td]['pos'] for td in trialdata])
+size_arr = np.array([trialdata[td]['size'] for td in trialdata])
+ori_arr = np.array([trialdata[td]['ori'] for td in trialdata])
+trialdata_arr = trialdata_arr.astype(int)
+all_stim_start_frames = trialdata_arr[:, 2]
+
+stim = {}
+if len(units_list) == 1:
+    stim['units'] = units_list[0]
+else:
+    print('Not all stimulus units were the same.')
+    stim['units'] = None
+if np.all(np.isclose(pos_arr[0, :], pos_arr[:, :])):
+    stim['pos'] = pos_arr[0]
+else:
+    print('Not all stimulus positions were the same.')
+    stim['pos'] = None
+if np.all(np.isclose(size_arr[0, :], size_arr[:, :])):
+    stim['size'] = size_arr[0]
+    print('All stimuli were the same size: {} {}'.format(stim['size'],
+                                                         stim['units'] if stim['units'] is not None else ''))
+else:
+    print('Not all stimulus sizes were the same.')
+    stim['size'] = None
+if np.all(np.isclose(ori_arr[0], ori_arr[:])):
+    stim['ori'] = ori_arr[0]
+else:
+    print('Not all stimulus orientations were the same.')
+    stim['ori'] = None
+
 
 if len(np.unique(all_stim_start_frames)) != len(all_stim_start_frames):
-    raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' + \
+    raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
                        'Handling this is not yet implemented.')                                
 
 # condinds = [cond, trial_idx]
-conds = np.unique(trialdataarr[:, 0])
+conds = np.unique(trialdata_arr[:, 0])
 n_conds = len(conds)
 n_trials = int(len(trialdata) / n_conds)
-cats = np.unique(trialdataarr[:, 1])
+cats = np.unique(trialdata_arr[:, 1])
 n_cats = len(cats)
 conds_per_cat = int(n_conds / n_cats)
 
 condinds = np.full([len(conds), n_trials], np.nan)
 for c in range(n_conds):
-    condinds[c] = np.argwhere(trialdataarr[:, 0] == c).transpose()[0]
+    condinds[c] = np.argwhere(trialdata_arr[:, 0] == c).transpose()[0]
 condinds = condinds.astype(int)
-acqfr_by_conds = trialdataarr[condinds[:], 2]
+acqfr_by_conds = trialdata_arr[condinds[:], 2]
 fridx = acqfr_by_conds
 
 
