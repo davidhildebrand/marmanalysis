@@ -66,9 +66,8 @@ def auto_level_s2p_image(image, target_median=5140):
 # % Define plotting function for face-body-object selective cells
 
 def plot_roi_overlays(rois, colors, size=None, 
-                      image=None, flip='lr', rotate=-90,
-                      scale_bar=False, um_per_px=None,
-                      title: str = '', save_path: str = '', imn: str = ''):
+                      image=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
+                      title: str = '', save_path: str = ''):
     dpi = plt.rcParams['figure.dpi']
     n_rois = len(rois)
 
@@ -133,8 +132,7 @@ def plot_roi_overlays(rois, colors, size=None,
         ax.set_title(title, fontsize=2)
     f0.show()
     if save_path != '':
-        save_name = '{}'.format(imn) + '_ROIplot.png'
-        f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
+        f0.savefig(save_path, dpi=dpi, transparent=True)
 
 
 def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
