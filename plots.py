@@ -19,7 +19,7 @@ def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41, title: str = '', save_path: str
     dpi = plt.rcParams['figure.dpi']
 
     f, ax1 = plt.subplots()
-    plt.hist(fsis, bins=bins, range=(-1, 1), color='0.4')
+    plt.hist(fsis, bins=bins, range=(-1, 1), color='0.5')
     plt.xlim([-1, 1])
     ax1.set_xticks([-1.0, -0.5, 0, 0.5, 1.0])
     ax1.set_xticks([-0.75, -0.25, 0.25, 0.75], minor=True)
