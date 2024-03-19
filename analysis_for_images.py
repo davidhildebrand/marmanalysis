@@ -394,6 +394,7 @@ s2p_iscell = np.load(os.path.join(s2p_plane_path, 'iscell.npy'))
 s2p_F = np.load(os.path.join(s2p_plane_path, 'F.npy'))
 s2p_stat = np.load(os.path.join(s2p_plane_path, 'stat.npy'), allow_pickle=True)
 s2p_ops = np.load(os.path.join(s2p_plane_path, 'ops.npy'), allow_pickle=True).item()
+s2p_badframes = np.where(s2p_ops['badframes'])[0]
 
 cellinds = np.where(s2p_iscell[:, 1] >= cell_probability_thresh)[0]
 # cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
@@ -410,7 +411,7 @@ fov_w = s2p_ops['Lx']
 fov_size = (fov_h, fov_w)  # rows/height/y, columns/width/x
 fov_image = s2p_ops['meanImg']
 n_frames = Frois.shape[1]
-bad_frames = np.where(s2p_ops['badframes'])
+
 
 # Compute dF/F and z-scored dF/F
 n_ROIs = Frois.shape[0]
