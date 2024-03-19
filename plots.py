@@ -15,7 +15,9 @@ from warnings import warn
 
 
 # % Define plotting function for histograms of selectivity indices
-def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41):
+def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41, title: str = '', save_path: str = ''):
+    dpi = plt.rcParams['figure.dpi']
+
     f, ax1 = plt.subplots()
     plt.hist(fsis, bins=bins, range=(-1, 1), color='0.4')
     plt.xlim([-1, 1])
@@ -24,11 +26,13 @@ def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41):
     ax1.set_xticklabels([None, None, None, None], minor=True)
     plt.xlabel('Face-Selectivity Index')
     plt.ylabel('Number of ROIs')
+    if title != '':
+        ax1.set_title(title)
 
     ax2 = ax1.twinx()
     n_rois = len(fsis)
     weights = np.ones(n_rois) / n_rois
-    plt.hist(fsis, weights=weights, bins=bins, range=(-1, 1), edgecolor='none', facecolor='None')
+    plt.hist(fsis, weights=weights, bins=bins, range=(-1, 1), edgecolor='none', facecolor='none')
     plt.ylabel('Fraction of ROIs')
 
     plt.axvline(-fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
@@ -36,9 +40,11 @@ def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41):
 
     f.tight_layout()
     f.show()
+    if save_path != '':
+        f.savefig(save_path, dpi=dpi, transparent=True)
 
 
-def auto_level_s2p_image(image, target_median=int((20/255)*65535)):
+def auto_level_s2p_image(image, target_median=5140):
     from skimage.util import img_as_uint, img_as_float64
 
     if image.ndim > 2:
@@ -63,7 +69,7 @@ def plot_roi_overlays(rois, colors, size=None,
                       image=None, flip='lr', rotate=-90,
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = '', imn: str = ''):
-    dpi = plt.rcParams['figure.dpi'] / 2
+    dpi = plt.rcParams['figure.dpi']
     n_rois = len(rois)
 
     if image is not None:
@@ -139,7 +145,7 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
     # (True for MT, False for auditory)
     # TODO **** implement scale bar?
 
-    dpi = plt.rcParams['figure.dpi'] / 2
+    dpi = plt.rcParams['figure.dpi']
     h, w = size  # rows/height/y, columns/width/x
     fsize = w / float(dpi), h / float(dpi)
 
@@ -259,7 +265,7 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
 #     # (True for MT, False for auditory)
 #     # TODO **** implement scale bar?
 #
-#     dpi = plt.rcParams['figure.dpi'] / 2
+#     dpi = plt.rcParams['figure.dpi']
 #     h, w = size  # rows/height/y, columns/width/x
 #     fsize = w / float(dpi), h / float(dpi)
 #
