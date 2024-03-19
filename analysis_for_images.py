@@ -581,8 +581,6 @@ n_samp_isi = int(np.round(dur_isi * md['framerate']))
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
 lf_categories = {v: k for k, v in lf_categories.items()}
-images_filename = {v: k for k, v in ims.items()}
-# image_names = {v: k.split('.')[0] for k, v in ims.items()}
 image_paths = {v: k for k, v in impaths.items()}
 image_dirpaths = {v: os.path.dirname(k) for k, v in impaths.items()}
 image_folders = {v: os.path.split(os.path.dirname(k))[-1] for k, v in impaths.items()}
