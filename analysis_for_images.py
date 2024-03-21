@@ -301,6 +301,7 @@ datafile_str = '*_00001.tif'
 logfile_str = '*.log'
 logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
 stimlogfile_str = '*_stimlog.csv'
+eyefile_str = '*_AIdata.p'
 if 'suite2p_str' not in locals():
     suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
@@ -327,6 +328,8 @@ logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
                 if re.search(logfile_re, f) and os.path.isfile(f)]
 stimlogfile_list = [f for f in glob(os.path.join(session_path, stimlogfile_str))
                     if os.path.isfile(f)]
+eyefile_list = [f for f in glob(os.path.join(session_path, eyefile_str))
+                 if os.path.isfile(f)]
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if os.path.isdir(d)]
 
@@ -376,6 +379,18 @@ if len(stimlogfile_list) > 0:
         stimlog = pd.read_csv(slf_path)
     else:
         stimlog = None
+
+if len(eyefile_list) > 0:
+    etf_path = eyefile_list[0]
+    if len(eyefile_list) > 1:
+        warn('Found multiple log files, using the first one: {}'.format(lf_path))
+    if os.path.isfile(etf_path):
+        with open(etf_path, 'rb') as etf:
+            et = pickle.load(etf)
+    else:
+        raise RuntimeError('Could not find eye tracking data file.')
+else:
+    etf_path = None
 
 if len(suite2p_list) > 0:
     if len(suite2p_list) > 1:
@@ -476,6 +491,15 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 # plt.plot(Frois[r, 0:500], 'b', alpha=0.5)
 # plt.plot(FdFF_raw[r, 0:500], 'k', alpha=0.5)
 # plt.plot(FdFF_c[r, 0:500], 'm')
+
+
+# % Look at eye tracking data
+# Take a look at this for density plotting:
+# https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density
+f = plt.figure()
+plt.scatter(et[:,0], et[:,1], s=1)
+plt.show()
+[np.std(et[:, d]) for d in range(0, et.shape[1])]
 
 
 # % Extract stimulus information from log file
