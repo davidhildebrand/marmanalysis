@@ -959,6 +959,17 @@ if n_conds != conditions.shape[0]:
 # least twice (or at most half) that of nonface objects, a cell was classed
 # as being face selective [45–47].
 
+
+# Face selectivity d′
+# based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
+# Face selectivity was quantified by computing the d′ sensitivity index comparing trial-averaged responses to faces
+# and non-faces:
+# d′ = (μ_F - μ_NF) / sqrt((σ_F^2 + σ_NF^2) / 2)
+# where μ_F and μ_NF are the across-stimulus averages of the trial-averaged responses to faces and non-faces, and
+# σ_F and σ_NF are the across-stimulus SDs. This face d′ value quantifies how much higher (positive d′) or lower
+# (negative d′) the response to a face is expected to be compared to a non-face, in SD units.
+
+
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
 # TODO: check for NaN values rather than using nanmean?
