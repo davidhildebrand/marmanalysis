@@ -770,7 +770,8 @@ fridx = acqfr_by_conds
 data = np.zeros(n_conds, dtype=[('cond', 'S8'),
                                 ('cat', 'S8'),
                                 ('id', 'S8'),
-                                ('view', 'i2'),
+                                ('pitch', 'i2'),
+                                ('yaw', 'i2'),
                                 ('roll', 'i2'),
                                 ('imagename', np.unicode_, 256),
                                 ('FdFF', 'f4', (n_ROIs,
@@ -794,7 +795,8 @@ for c in range(n_conds):
     tmp_cond = None
     tmp_cat = None
     tmp_id = None
-    tmp_view = -32768
+    tmp_pitch = -32768
+    tmp_yaw = -32768
     tmp_roll = -32768
     imn = image_names[c]
     tmp_imagename = image_filenames[c]
@@ -826,15 +828,17 @@ for c in range(n_conds):
                         tmp_cond = bytes('fh{:02}'.format(nm), 'ascii')
                         tmp_cat = b'face_hum'
                         tmp_id = bytes('Hum{:02}'.format(nm), 'ascii')
-                        tmp_view = 0
+                        tmp_pitch = 0
                         tmp_roll = 0
+                        tmp_yaw = 0
                 case 'MacaqueRhesus':
                     if ct == 'Head':
                         tmp_cond = bytes('fr{:02}'.format(nm), 'ascii')
                         tmp_cat = b'face_rhe'
                         tmp_id = bytes('Rhe{:02}'.format(nm), 'ascii')
-                        tmp_view = 0
+                        tmp_pitch = 0
                         tmp_roll = 0
+                        tmp_yaw = 0
                 case 'Marm':
                     if ct == 'Head':
                         if iv is True:
@@ -844,35 +848,45 @@ for c in range(n_conds):
                         tmp_id = bytes(di[0:8], 'ascii')
                         match nm:
                             case 1:
-                                tmp_view = 0
+                                tmp_pitch = 0
+                                tmp_yaw = 0
                                 tmp_roll = 0
                             case 2:
-                                tmp_view = 180
+                                tmp_pitch = 0
+                                tmp_yaw = 180
                                 tmp_roll = 0
                             case 3:
-                                tmp_view = 0
+                                tmp_pitch = 0
+                                tmp_yaw = 0
                                 tmp_roll = -45
                             case 4:
-                                tmp_view = 0
+                                tmp_pitch = 0
+                                tmp_yaw = 0
                                 tmp_roll = 45
                             case 5:
-                                tmp_view = -90
+                                tmp_pitch = 0
+                                tmp_yaw = -90
                                 tmp_roll = 0
                             case 6:
-                                tmp_view = -45
+                                tmp_pitch = 0
+                                tmp_yaw = -45
                                 tmp_roll = 0
                             case 7:
-                                tmp_view = 45
+                                tmp_pitch = 0
+                                tmp_yaw = 45
                                 tmp_roll = 0
                             case 8:
-                                tmp_view = 90
+                                tmp_pitch = 0
+                                tmp_yaw = 90
                                 tmp_roll = 0
                             case 9:
-                                tmp_view = 0
+                                tmp_pitch = 0
+                                tmp_yaw = 0
                                 tmp_roll = 180
                             case _:
-                                warn('Could not recognize view or roll of head image from filename.')
-                                tmp_view = None
+                                warn('Could not recognize pitch, yaw, or roll of head image from filename.')
+                                tmp_pitch = None
+                                tmp_yaw = None
                                 tmp_roll = None
                     if ct == 'Body':
                         tmp_cond = bytes('bm{}{:02}'.format(di[0:3], nm), 'ascii')
@@ -912,7 +926,8 @@ for c in range(n_conds):
                 tmp_cond = bytes('fcm{:02}'.format(nm), 'ascii')
                 tmp_cat = b'face_ctn'
                 tmp_id = bytes(nm, 'ascii')
-                tmp_view = 0
+                tmp_pitch = 0
+                tmp_yaw = 0
                 tmp_roll = 0
         else:
             warn('Could not recognize category or condition of image from filename.')
@@ -939,7 +954,8 @@ for c in range(n_conds):
                     tmp_cat = b'body_mrm'
             case 'm':
                 tmp_cat = b'face_mrm'
-                tmp_view = 0
+                tmp_pitch = 0
+                tmp_yaw = 0
                 tmp_roll = 0
             case 'u':
                 tmp_cat = b'obj'
@@ -954,7 +970,8 @@ for c in range(n_conds):
     data[c]['cond'] = tmp_cond
     data[c]['cat'] = tmp_cat
     data[c]['id'] = tmp_id
-    data[c]['view'] = tmp_view
+    data[c]['pitch'] = tmp_pitch
+    data[c]['yaw'] = tmp_yaw
     data[c]['roll'] = tmp_roll
     data[c]['imagename'] = tmp_imagename
     for t in range(n_trials):
@@ -1044,7 +1061,7 @@ for ct in np.unique(data['cat']):
     if absmintmp > Fzsc_absmin:
         Fzsc_absmin = absmintmp
 
-FdFF_allfaces_meanRstimall = np.nanmean(data[(data['cat'] == b'face_mrm') & (data['view'] == 0) & (data['roll'] == 0)]['FdFF_meant'][:, :, idx_stim],
+FdFF_allfaces_meanRstimall = np.nanmean(data[(data['cat'] == b'face_mrm') & (data['yaw'] == 0) & (data['roll'] == 0)]['FdFF_meant'][:, :, idx_stim],
                                         axis=(0, -1)) + FdFF_absmin
 FdFF_allobjs_meanRstimall = np.nanmean(data[data['cat'] == b'obj']['FdFF_meant'][:, :, idx_stim],
                                        axis=(0, -1)) + FdFF_absmin
@@ -1629,7 +1646,7 @@ if saving:
 #                             (Fzsc_nowface_meanRstimall[rti] + Fzsc_otherfaces_meanRstimall[rti])
 
 # # idx_trial = range(n_samp_trial)
-# # Fzsc_allfaces_meanRstim = np.nanmean(data[(data['cat'] == b'face_mrm') & (data['view'] == 0) & (data['roll'] == 0)]['Fzsc_meant'][:, :, idx_trial],
+# # Fzsc_allfaces_meanRstim = np.nanmean(data[(data['cat'] == b'face_mrm') & (data['yaw'] == 0) & (data['roll'] == 0)]['Fzsc_meant'][:, :, idx_trial],
 # #                                      axis=0) + Fzsc_absmin
 # # sorting_ind = ROIs_tuned_idx
 # # Fzsc_allfaces_meanRstim_sorted = Fzsc_allfaces_meanRstim[sorting_ind]
