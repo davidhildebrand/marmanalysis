@@ -19,9 +19,8 @@ import filters
 import plots
 
 # TODO: exclude suite2p badframes
-# TODO: exclude when eyes are not open
-# TODO: set path for images to include in figures during processing
-# TODO: plot neuron traces over all conds or cats
+# TODO: exclude based on eye tracking, at least when eyes are not open
+# TODO: plot neuron traces over conds or cats
 
 
 # % Settings
@@ -37,7 +36,7 @@ save_path = ''
 # save_path = r'F:\Sync\Transient\Science\Conferences\20240301d_FreiwaldLabMeeting\media'
 stimimage_path = r''
 
-plt.rcParams['figure.dpi'] = 600
+plt.rcParams['figure.dpi'] = 72
 dpi = plt.rcParams['figure.dpi']
 
 
@@ -241,8 +240,6 @@ stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022
 # ... Dali .... aniso until 20230804d
 
 
-
-
 # 
 # # 
 # # # -- MAYBE Cadbury MD?BOD?
@@ -302,6 +299,9 @@ logfile_str = '*.log'
 logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
 stimlogfile_str = '*_stimlog.csv'
 eyefile_str = '*_AIdata.p'
+eyecalib_dir_str = '*_EyeTrackingCalibration'
+eyecalib_logfile_str = '*_EyeTrackingCalibration.log'
+eyecalib_datafile_str = '*_EyeTrackingCalibration_AIdata.p'
 if 'suite2p_str' not in locals():
     suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
@@ -320,16 +320,25 @@ if save_path == '':
 else:
     saving = True
 
+date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
 mdfile_list = glob(os.path.join(session_path, mdfile_str))
-datafile_list = [f for f in glob(os.path.join(session_path, datafile_str))
-                 if os.path.isfile(f)]
+datafile_list = [f for f in glob(os.path.join(session_path, datafile_str)) if os.path.isfile(f)]
 logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
                 if re.search(logfile_re, f) and os.path.isfile(f)]
-stimlogfile_list = [f for f in glob(os.path.join(session_path, stimlogfile_str))
-                    if os.path.isfile(f)]
-eyefile_list = [f for f in glob(os.path.join(session_path, eyefile_str))
-                 if os.path.isfile(f)]
+stimlogfile_list = [f for f in glob(os.path.join(session_path, stimlogfile_str)) if os.path.isfile(f)]
+eyefile_list = [f for f in glob(os.path.join(session_path, eyefile_str)) if os.path.isfile(f)]
+eyecalib_dir_list = [d for d in glob(os.path.join(date_path, eyecalib_dir_str)) if os.path.isdir(d)]
+if len(eyecalib_dir_list) > 0:
+    ecd_path = eyecalib_dir_list[0]
+    if len(eyecalib_dir_list) > 1:
+        warn('Found multiple eye tracking calibration directories, using the first one: {}'.format(ecd_path))
+else:
+    ecd_path = None
+eyecalib_logfile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_logfile_str))
+                         if os.path.isfile(f)]
+eyecalib_datafile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_datafile_str))
+                          if os.path.isfile(f)]
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if os.path.isdir(d)]
 
@@ -383,7 +392,7 @@ if len(stimlogfile_list) > 0:
 if len(eyefile_list) > 0:
     etf_path = eyefile_list[0]
     if len(eyefile_list) > 1:
-        warn('Found multiple log files, using the first one: {}'.format(lf_path))
+        warn('Found multiple log files, using the first one: {}'.format(etf_path))
     if os.path.isfile(etf_path):
         with open(etf_path, 'rb') as etf:
             et = pickle.load(etf)
@@ -391,6 +400,34 @@ if len(eyefile_list) > 0:
         raise RuntimeError('Could not find eye tracking data file.')
 else:
     etf_path = None
+
+if len(eyecalib_logfile_list) > 0:
+    ec_lf_path = eyecalib_logfile_list[0]
+    if len(eyecalib_logfile_list) > 1:
+        warn('Found multiple eye tracking calibration log files, using the first one: {}'.format(ec_lf_path))
+    if os.path.isfile(ec_lf_path):
+        eclf = open(ec_lf_path, 'r')
+        eclog = eclf.read()
+        eclf.close()
+    else:
+        raise RuntimeError('Could not find eye tracking calibration log file.')
+else:
+    ec_lf_path = None
+    eclf = None
+    eclog = None
+
+if len(eyecalib_datafile_list) > 0:
+    ec_df_path = eyecalib_datafile_list[0]
+    if len(eyecalib_datafile_list) > 1:
+        warn('Found multiple eye tracking calibration data files, using the first one: {}'.format(ec_df_path))
+    if os.path.isfile(ec_df_path):
+        with open(ec_df_path, 'rb') as ec_df:
+            ecdf = pickle.load(ec_df)
+    else:
+        raise RuntimeError('Could not find eye tracking calibration data file.')
+else:
+    etf_path = None
+    ecdf = None
 
 if len(suite2p_list) > 0:
     if len(suite2p_list) > 1:
@@ -497,9 +534,24 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 # Take a look at this for density plotting:
 # https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density
 f = plt.figure()
-plt.scatter(et[:,0], et[:,1], s=1)
+etx, ety = np.transpose(et[:, :2])
+plt.scatter(et[:, 0], et[:, 1], s=1)
 plt.show()
 [np.std(et[:, d]) for d in range(0, et.shape[1])]
+
+# from scipy.stats import gaussian_kde
+#
+# # Calculate point density
+# etxy = np.vstack([etx, ety])
+# et_ptdensity = gaussian_kde(etxy)(etxy)
+#
+# # Sort the points by density, so that the densest points are plotted last
+# idx = et_ptdensity.argsort()
+# etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+#
+# fig, ax = plt.subplots()
+# ax.scatter(etx, ety, c=et_ptdensity, s=1)
+# plt.show()
 
 
 # % Extract stimulus information from log file
