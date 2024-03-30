@@ -1127,6 +1127,21 @@ FSIs_zsc = (Fzsc_allfaces_meanRstimall - Fzsc_allobjs_meanRstimall) / \
 #                  (Fzsc_allfaces_meanRstimall + Fzsc_allobjs_meanRstimall + Fzsc_allbodies_meanRstimall)
 
 
+# Face selectivity d′
+# based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
+# Face selectivity was quantified by computing the d′ sensitivity index comparing trial-averaged responses to faces
+# and non-faces:
+# d′ = (μ_F - μ_NF) / sqrt((σ_F^2 + σ_NF^2) / 2)
+# where μ_F and μ_NF are the across-stimulus averages of the trial-averaged responses to faces and non-faces, and
+# σ_F and σ_NF are the across-stimulus SDs. This face d′ value quantifies how much higher (positive d′) or lower
+# (negative d′) the response to a face is expected to be compared to a non-face, in SD units.
+
+mu_F = np.mean(data[(data['cat'] == b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
+mu_NF = np.mean(data[(data['cat'] != b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
+std_F = np.std(data[(data['cat'] == b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
+std_NF = np.std(data[(data['cat'] != b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
+dprime = (mu_F - mu_NF) / np.sqrt((std_F**2 + std_NF**2) / 2)
+
 # % Define ROIs as tuned or untuned using the FSI
 
 # based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci https://doi.org/10.1038/nn.2363
@@ -1339,38 +1354,91 @@ for t in tmpl:
 sort_dp = np.argsort(dprime)
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs
 # with at least one stimulus period z-score > 0.5
-fhm = plt.figure()
-plt.xlabel('Image')
-plt.ylabel('ROI')
-ax = plt.gca()
-match image_set:
-    case 'Song_etal_Wang_2022_FOBonly':
-        if n_conds == 60:
-            ax.set_xticks([19.5, 39.5])
-            ax.set_xticklabels([None, None])
-            ax.set_xticks([10, 30, 50], minor=True)
-            ax.set_xticklabels(['faces', 'objects', 'bodies'], minor=True)
-        if n_conds == 130 or n_conds == 131:
-            ax.set_xticks([19.5, 59.5])
-            ax.set_xticklabels([None, None])
-            ax.set_xticks([10, 40, 70], minor=True)
-            ax.set_xticklabels(['faces', 'objects', 'bodies'], minor=True)
-# xticks = ax.xaxis.get_major_ticks()
-ax.tick_params(which='minor', length=0)
-# plt.imshow(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold], vmin=0.5-0.0001, vmax=0.5+0.0001, aspect='auto', cmap='gray', interpolation='none')
-plt.imshow(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold[at_sortidx]], 
-           vmin=-1.0, vmax=1.0, 
-           aspect='auto', cmap='bwr', interpolation='none')
-# ax = plt.gca()
-# ax.axvline(x=20)
-cbar = plt.colorbar()
+fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
+plt.subplots_adjust(wspace=0.1)
+ax_hm.set_xlabel('Stimulus Image')
+ax_hm.set_ylabel('ROI')
+xtick_majors = []
+xtick_majorlabels = []
+xtick_minors = []
+xtick_minorlabels = []
+for i, t in enumerate(tickinfo):
+    ti = tickinfo[t]
+    if ti['start'] == ti['end']:
+        xtick_majors.append(ti['start'] + 0.5)
+        xtick_majorlabels.append(ti['label'])
+    elif ti['end'] > ti['start']:
+        # https://stackoverflow.com/questions/13576805/matplotlib-hiding-specific-ticks-on-x-axis
+        # if ti['end'] - ti['start'] > 10:
+        #     # some logic here to create a tick and hide it 
+        #     xtmn = ax.xaxis.get_minor_ticks()
+        #     xtmn[3].label1.set_visible(False)
+        xtick_majors.append(ti['start'] + 0.5)
+        xtick_majorlabels.append(None)
+        xtick_minors.append(ti['labelpos'] + 0.5)
+        xtick_minorlabels.append(ti['label'])
+        if i == len(tickinfo) - 1:
+            xtick_majors.append(ti['end'] + 0.5)
+            xtick_majorlabels.append(None)
+    else:
+        warn('Heatmap plot tick issue for category {}'.format(ti))
+ax_hm.set_xticks(xtick_majors)
+ax_hm.set_xticklabels(xtick_majorlabels)
+ax_hm.set_xticks(xtick_minors, minor=True)
+ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
+plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
+ax_hm.tick_params(which='minor', length=0)
+img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[sort_dp],
+                      vmin=-1.0, vmax=1.0,
+                      aspect='auto', cmap='bwr', interpolation='none')
+ax_hm.invert_yaxis()
+# ax_hm.axvline(x=20)
+# cbar = plt.colorbar(img_hm, ax=ax_hm, location='top')
 # cbar.ax.set_yticks(['0','1','2','>3'])
 # cbar.ax.set_yticklabels(['0','1','2','>3'])
-cbar.set_label('mean Zscore across stimulus period')
-plt.show()
+# cbar.set_label('mean Zscore across stimulus period')
+
+ax_dp.set_xlabel('Face d′')
+ax_dp.set_axisbelow(True)
+ax_dp.barh(range(0, n_ROIs), dprime[sort_dp], height=1.0, color='0.4')
+ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
+ax_dp.spines['right'].set_visible(False)
+ax_dp.spines['left'].set_visible(False)
+ax_dp.grid(linestyle='--', linewidth=0.5, color='0.6')  # axis='x'
+for tick in ax_dp.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(False)
+    tick.tick2line.set_visible(False)
+    tick.label1.set_visible(False)
+    tick.label2.set_visible(False)
+    
+ax_fsi.set_xlabel('FSI')
+ax_fsi.set_axisbelow(True)
+ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_dp], height=1.0, color='0.4')
+ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
+ax_fsi.spines['right'].set_visible(False)
+ax_fsi.spines['left'].set_visible(False)
+ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.6')  # axis='x'
+for tick in ax_fsi.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(False)
+    tick.tick2line.set_visible(False)
+    tick.label1.set_visible(False)
+    tick.label2.set_visible(False)
+
+plt.rc('axes', titlesize=8)
+plt.rc('axes', labelsize=8)
+plt.rc('xtick', labelsize=8)
+plt.rc('ytick', labelsize=8)
+plt.rc('legend', fontsize=16)
+plt.rc('figure', titlesize=8)
+fig_hm.tight_layout()
+fig_hm.show()
 if saving:
-    fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace_threshZgt0p5' + save_ext),
+    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace_threshZgt0p5' + save_ext),
                 dpi=dpi, transparent=True)
+
+
+
+
 
 # # Plot sorted heatmap of mean responses to all presented conditions (images) for ROIs 
 # # with at least one stimulus period z-score > 0.5
