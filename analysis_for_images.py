@@ -793,6 +793,7 @@ class StimulusImage(object):
 # % Organize and average fluorescence traces
 
 data = np.zeros(n_conds, dtype=[('cond', 'S8'),
+                                ('stimulus', object),
                                 ('cat', 'S8'),
                                 ('id', 'S8'),
                                 ('pitch', 'i2'),
