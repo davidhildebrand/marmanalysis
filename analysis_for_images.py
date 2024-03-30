@@ -764,6 +764,31 @@ condinds = condinds.astype(int)
 acqfr_by_conds = trialdata_arr[condinds[:], 2]
 fridx = acqfr_by_conds
 
+# Define stimuli
+
+
+class StimulusImage(object):
+    """Representation of stimulus images."""
+    def __init__(self, condition, category, orientation, identity=None, filename=None, filepath=None):
+        self.condition = condition
+        self.category = category
+        self.identity = identity
+        self.pitch = orientation[0]
+        self.yaw = orientation[1]
+        self.roll = orientation[2]
+        self.orientation = orientation
+        self.filename = filename
+        self.filepath = filepath
+
+    def __repr__(self):
+        return str((self.condition, self.category, self.identity, self.orientation, self.filename))
+
+    def __eq__(self, other):
+        return self.category == other.category and self.condition == other.condition
+
+    def __lt__(self, other):
+        return self.yaw < other.yaw
+
 
 # % Organize and average fluorescence traces
 
@@ -988,6 +1013,8 @@ for c in range(n_conds):
     data[c]['yaw'] = tmp_yaw
     data[c]['roll'] = tmp_roll
     data[c]['imagename'] = tmp_imagename
+    data[c]['stimulus'] = StimulusImage(tmp_cond, tmp_cat, (tmp_pitch, tmp_yaw, tmp_roll),
+                                        identity=tmp_id, filename=tmp_imagename, filepath=tmp_imagepath)
     for t in range(n_trials):
         fr_start = fridx[c, t] - n_samp_isi
         fr_end = fridx[c, t] + n_samp_stim + n_samp_isi
@@ -1192,12 +1219,124 @@ for r in range(n_ROIs):
     ROIinfo[r]['FSI_byFzsc'] = FSIs_zsc[r]
 
 # Determine for each ROI which condition (image) elicited the largest response
-# TODO improve variable naming here for clarity
+
 above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 # TODO THIS SHOULD NOT BE HARD CODED
 at_sortidx = (-np.mean(data[cond_idx[0:19]]['Fzsc_meant'][:, :, idx_stim], axis=(0,-1))[above_threshold]).argsort()
 
-# Plot heatmap of mean responses to all presented conditions (images) for ROIs 
+
+# Establish ordering for heatmaps
+tmpl = np.array([b'blank', b'scram_s', b'scram_p',
+                 b'face_mrm', b'face_rhe', b'face_hum', b'face_ctn',
+                 b'obj', b'food',
+                 b'body_mrm', b'animal'], dtype='|S8')
+stimarr = data[:]['stimulus']
+stimcond = [i for i, x in
+            sorted(enumerate(stimarr),
+                   key=lambda x: (np.where(tmpl == x[1].category)[0][0]
+                                  if np.where(tmpl == x[1].category)[0].size > 0
+                                  else np.iinfo(np.where(tmpl == x[1].category)[0].dtype).max,
+                                  np.abs(x[1].roll),
+                                  x[1].roll,
+                                  x[1].yaw,
+                                  x[1].condition.decode().lower()))]
+# stimsort = sorted(stimarr, key=lambda x: (np.where(tmpl == x.category)[0][0]
+#                                           if np.where(tmpl == x.category)[0].size > 0
+#                                           else np.iinfo(np.where(tmpl == x.category)[0].dtype).max,
+#                                           np.abs(x.roll),
+#                                           x.roll,
+#                                           x.yaw,
+#                                           x.condition.decode().lower()))
+
+tmpl = np.array([b'blank', b'scram_s', b'scram_p',
+                 b'face_mrm', b'face_rhe', b'face_hum', b'face_ctn',
+                 b'obj', b'food',
+                 b'body_mrm', b'animal'], dtype='|S8')
+tmpl_labels = {b'blank': 'Blank',
+               b'scram_s': 'Scramble (Spatial)',
+               b'scram_p': 'Scrambles (Phase)',
+               b'face_mrm': 'Faces (Marmo)',
+               b'face_rhe': 'R',  # 'Faces (Rhesus)',
+               b'face_hum': 'H',  # 'Faces (Human)',
+               b'face_ctn': 'Ctn',  # 'Faces (Cartoon)',
+               b'obj': 'Objects',
+               b'food': 'Foods',
+               b'body_mrm': 'Bodies (Marmo)',
+               b'animal': 'Animals'}
+
+tickinfo = {t.decode(): {} for t in tmpl}
+for t in tmpl:
+    ts = t.decode()
+    wheret = np.where(data[stimcond]['cat'] == t)[0]
+    if wheret.size > 0:
+        tickinfo[ts]['start'] = wheret[0]
+        tickinfo[ts]['end'] = wheret[-1]
+        tickinfo[ts]['labelpos'] = (tickinfo[ts]['start'] + tickinfo[ts]['end']) / 2
+        tickinfo[ts]['label'] = tmpl_labels[t]
+    else:
+        tickinfo.pop(ts)
+
+
+# # Plot heatmap of mean responses to all presented conditions (images) for ROIs
+# # with at least one stimulus period z-score > 0.5
+# fig_hm = plt.figure()
+# plt.xlabel('Image')
+# plt.ylabel('ROI')
+# ax = plt.gca()
+# xtick_majors = []
+# xtick_majorlabels = []
+# xtick_minors = []
+# xtick_minorlabels = []
+# for i, t in enumerate(tickinfo):
+#     ti = tickinfo[t]
+#     if ti['start'] == ti['end']:
+#         xtick_majors.append(ti['start'] + 0.5)
+#         xtick_majorlabels.append(ti['label'])
+#     elif ti['end'] > ti['start']:
+#         # https://stackoverflow.com/questions/13576805/matplotlib-hiding-specific-ticks-on-x-axis
+#         # if ti['end'] - ti['start'] > 10:
+#         #     # some logic here to create a tick and hide it 
+#         #     xtmn = ax.xaxis.get_minor_ticks()
+#         #     xtmn[3].label1.set_visible(False)
+#         xtick_majors.append(ti['start'] + 0.5)
+#         xtick_majorlabels.append(None)
+#         xtick_minors.append(ti['labelpos'] + 0.5)
+#         xtick_minorlabels.append(ti['label'])
+#         if i == len(tickinfo) - 1:
+#             xtick_majors.append(ti['end'] + 0.5)
+#             xtick_majorlabels.append(None)
+#     else:
+#         warn('Heatmap plot tick issue for category {}'.format(ti))
+# ax.set_xticks(xtick_majors)
+# ax.set_xticklabels(xtick_majorlabels)
+# ax.set_xticks(xtick_minors, minor=True)
+# ax.set_xticklabels(xtick_minorlabels, minor=True)
+# plt.setp(ax.xaxis.get_majorticklabels(), rotation=90)
+# ax.tick_params(which='minor', length=0)
+# # plt.imshow(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold],
+# #            vmin=0.5-0.0001, vmax=0.5+0.0001, aspect='auto', cmap='gray', interpolation='none')
+# # plt.imshow(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold[at_sortidx]],
+# #            vmin=-1.0, vmax=1.0,
+# #            aspect='auto', cmap='bwr', interpolation='none')
+# plt.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold],
+#            vmin=-1.0, vmax=1.0,
+#            aspect='auto', cmap='bwr', interpolation='none')
+# ax.invert_yaxis()
+# # ax = plt.gca()
+# # ax.axvline(x=20)
+# cbar = plt.colorbar()
+# # cbar.ax.set_yticks(['0','1','2','>3'])
+# # cbar.ax.set_yticklabels(['0','1','2','>3'])
+# cbar.set_label('mean Zscore across stimulus period')
+# fig_hm.tight_layout()
+# fig_hm.show()
+# if saving:
+#     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace_threshZgt0p5' + save_ext),
+#                 dpi=dpi, transparent=True)
+
+
+sort_dp = np.argsort(dprime)
+# Plot heatmap of mean responses to all presented conditions (images) for ROIs
 # with at least one stimulus period z-score > 0.5
 fhm = plt.figure()
 plt.xlabel('Image')
