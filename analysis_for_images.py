@@ -1373,9 +1373,9 @@ for i, t in enumerate(tickinfo):
         #     # some logic here to create a tick and hide it 
         #     xtmn = ax.xaxis.get_minor_ticks()
         #     xtmn[3].label1.set_visible(False)
-        xtick_majors.append(ti['start'] + 0.5)
+        xtick_majors.append(ti['start'] - 0.5)
         xtick_majorlabels.append(None)
-        xtick_minors.append(ti['labelpos'] + 0.5)
+        xtick_minors.append(ti['labelpos'])
         xtick_minorlabels.append(ti['label'])
         if i == len(tickinfo) - 1:
             xtick_majors.append(ti['end'] + 0.5)
