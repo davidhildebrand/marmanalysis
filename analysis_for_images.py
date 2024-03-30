@@ -1400,11 +1400,11 @@ ax_hm.invert_yaxis()
 
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
-ax_dp.barh(range(0, n_ROIs), dprime[sort_dp], height=1.0, color='0.4')
+ax_dp.barh(range(0, n_ROIs), dprime[sort_dp], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
 ax_dp.spines['right'].set_visible(False)
 ax_dp.spines['left'].set_visible(False)
-ax_dp.grid(linestyle='--', linewidth=0.5, color='0.6')  # axis='x'
+ax_dp.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
 for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick1line.set_visible(False)
     tick.tick2line.set_visible(False)
@@ -1413,11 +1413,11 @@ for tick in ax_dp.yaxis.get_major_ticks():
     
 ax_fsi.set_xlabel('FSI')
 ax_fsi.set_axisbelow(True)
-ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_dp], height=1.0, color='0.4')
+ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_dp], height=1.0, color='0.5')
 ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
 ax_fsi.spines['right'].set_visible(False)
 ax_fsi.spines['left'].set_visible(False)
-ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.6')  # axis='x'
+ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
 for tick in ax_fsi.yaxis.get_major_ticks():
     tick.tick1line.set_visible(False)
     tick.tick2line.set_visible(False)
