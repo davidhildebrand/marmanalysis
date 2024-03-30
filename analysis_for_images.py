@@ -36,7 +36,7 @@ save_path = ''
 # save_path = r'F:\Sync\Transient\Science\Conferences\20240301d_FreiwaldLabMeeting\media'
 stimimage_path = r''
 
-plt.rcParams['figure.dpi'] = 72
+plt.rcParams['figure.dpi'] = 120
 dpi = plt.rcParams['figure.dpi']
 
 
@@ -800,6 +800,8 @@ for c in range(n_conds):
     tmp_roll = -32768
     imn = image_names[c]
     tmp_imagename = image_filenames[c]
+    tmp_ip = os.path.join(stimimage_path, tmp_imagename)
+    tmp_imagepath = tmp_ip if os.path.isfile(tmp_ip) else None
     if image_set == 'FOBmin' or image_set == 'FOBmany':
         # pattern_fn = r'^([0-9]{6}tUTC).*$'
         # FreiwaldFOB2018_Marm_Body_Spring_7_erode3px
@@ -898,22 +900,34 @@ for c in range(n_conds):
                         ct_p1 = re.match(pattern_ct, ct).group(1)
                         ct_p2 = re.match(pattern_ct, ct).group(2)
                         ct = ct_p1
-                        nm = ct_p2 + '{:03}'.format(nm)
+                        if ct_p2.isnumeric():
+                            ct_p2 = float(ct_p2)
+                            if ct_p2.is_integer():
+                                ct_p2 = int(ct_p2)
+                            else:
+                                warn('Object identity index in filename incorrect ({}). '.format(tmp_imagename) +
+                                     'Expected integer, not float.')
+                    else:
+                        warn('Could not recognize object details from filename.')
+                        ct_p2 = 0
                     if 'Manmade' in ct:
-                        tmp_cond = bytes('om{:02}'.format(nm), 'ascii')
+                        tmp_cond = bytes('om{:01}{:03}'.format(ct_p2, nm), 'ascii')
                         tmp_cat = b'obj'
                     elif 'FruitVeg' in ct:
-                        tmp_cond = bytes('vf{:02}'.format(nm), 'ascii')
+                        tmp_cond = bytes('vf{:01}{:03}'.format(ct_p2, nm), 'ascii')
                         tmp_cat = b'food'
                     elif 'MultipartGeon' in ct:
-                        tmp_cond = bytes('og{:02}'.format(nm), 'ascii')
+                        tmp_cond = bytes('og{:01}{:03}'.format(ct_p2, nm), 'ascii')
+                        tmp_id = bytes('Geon{:01}'.format(ct_p2), 'ascii')
                         tmp_cat = b'obj'
                     elif 'Pairwise' in ct:
-                        tmp_cond = bytes('op{:02}'.format(nm), 'ascii')
+                        tmp_cond = bytes('op{:01}{:03}'.format(ct_p2, nm), 'ascii')
                         tmp_cat = b'obj'
                     elif 'String' in ct:
-                        tmp_cond = bytes('os{:02}'.format(nm), 'ascii')
+                        tmp_cond = bytes('os{:01}{:03}'.format(ct_p2, nm), 'ascii')
                         tmp_cat = b'obj'
+                    else:
+                        warn('Could not recognize category of object image from filename.')
                 case _:
                     warn('Could not recognize type of image from filename.')
         elif imn == 'blank':
@@ -923,7 +937,7 @@ for c in range(n_conds):
             pattern_ctn = r'^[^_]*Cartoon_([0-9]+)_?[^_]*_?(inverted)?$'
             if re.match(pattern_ctn, imn) is not None:
                 nm = re.match(pattern_ctn, imn).group(1)
-                tmp_cond = bytes('fcm{:02}'.format(nm), 'ascii')
+                tmp_cond = bytes('fcm{:04}'.format(nm), 'ascii')
                 tmp_cat = b'face_ctn'
                 tmp_id = bytes(nm, 'ascii')
                 tmp_pitch = 0
@@ -1027,17 +1041,6 @@ if n_conds != conditions.shape[0]:
 # |face-selectivity index| = 1/3, that is, if the response to faces was at
 # least twice (or at most half) that of nonface objects, a cell was classed
 # as being face selective [45–47].
-
-
-# Face selectivity d′
-# based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
-# Face selectivity was quantified by computing the d′ sensitivity index comparing trial-averaged responses to faces
-# and non-faces:
-# d′ = (μ_F - μ_NF) / sqrt((σ_F^2 + σ_NF^2) / 2)
-# where μ_F and μ_NF are the across-stimulus averages of the trial-averaged responses to faces and non-faces, and
-# σ_F and σ_NF are the across-stimulus SDs. This face d′ value quantifies how much higher (positive d′) or lower
-# (negative d′) the response to a face is expected to be compared to a non-face, in SD units.
-
 
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
