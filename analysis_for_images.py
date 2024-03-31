@@ -1190,17 +1190,6 @@ ROIinfo = np.zeros(n_ROIs, dtype=[('top_cat', 'S8'),
                                   ('FSI_byFzsc', 'f4')
                                   ])
 
-# ROIinfo = np.zeros(n_ROIs, dtype=[('cat_meanFdFF_meanTFstim', 'S8'),
-#                                   ('cond_meanFzsc_meanTFstim', 'S8'),
-#                                   ('cond_maxFdFF_meanTFstim', 'S8'),
-#                                   ('cond_maxFzsc_meanTFstim', 'S8'),
-#                                   ('cat_cond_maxFdFF_meanTFstim', 'S8'),
-#                                   ('cat_cond_maxFzsc_meanTFstim', 'S8'),
-#                                   ('val_cond_maxFdFF_meanTFstim', 'f4'),
-#                                   ('val_cond_maxFzsc_meanTFstim', 'f4'),
-#                                   ('FSI_byFdFF', 'f4'),
-#                                   ('FSI_byFzsc', 'f4')
-#                                   ])
 ROIinfo[:]['top_cond_FdFF'] = np.nan
 ROIinfo[:]['top_cond_Fzsc'] = np.nan
 ROIinfo[:]['FSI_byFdFF'] = np.nan
@@ -1772,63 +1761,6 @@ if saving:
 # tuning_index_cat = tunidx_fsi
 
 
-# %%
-# plt.figure()
-# plt.hist(tuning_index_cond, bins=1000)
-# plt.xlabel('Tuning index (cond/perimage): {}'.format(tuning))
-# plt.ylabel('Neurons')
-#
-# tuning_index_cond_tuned_neurons = tuning_index_cond[tuning_index_cond > tuning_index_thresh]
-# FdFF_by_cond_tuned = FdFF_by_cond[tuning_index_cond > tuning_index_thresh]
-# if plot_least_tuned_neurons_first:
-#     FdFF_by_cond_tuned = FdFF_by_cond_tuned[(+tuning_index_cond_tuned_neurons).argsort()]
-# else:
-#     FdFF_by_cond_tuned = FdFF_by_cond_tuned[(-tuning_index_cond_tuned_neurons).argsort()]
-# Fzsc_by_cond_tuned = Fzsc_by_cond[tuning_index_cond > tuning_index_thresh]
-# if plot_least_tuned_neurons_first:
-#     Fzsc_by_cond_tuned = Fzsc_by_cond_tuned[(+tuning_index_cond_tuned_neurons).argsort()]
-# else:
-#     Fzsc_by_cond_tuned = Fzsc_by_cond_tuned[(-tuning_index_cond_tuned_neurons).argsort()]
-
-# plt.figure()
-# plt.hist(tuning_index_cat, bins=1000)
-# plt.xlabel('Tuning index (category): {}'.format(tuning))
-# plt.ylabel('Neurons')
-#
-# tuning_index_cat_tuned_neurons = tuning_index_cat[tuning_index_cat > tuning_index_thresh]
-# FdFF_by_cat_tuned = FdFF_by_cat[tuning_index_cat > tuning_index_thresh]
-# if plot_least_tuned_neurons_first:
-#     FdFF_by_cat_tuned = FdFF_by_cat_tuned[(+tuning_index_cat_tuned_neurons).argsort()]
-# else:
-#     FdFF_by_cat_tuned = FdFF_by_cat_tuned[(-tuning_index_cat_tuned_neurons).argsort()]
-# Fzsc_by_cat_tuned = Fzsc_by_cat[tuning_index_cat > tuning_index_thresh]
-# if plot_least_tuned_neurons_first:
-#     Fzsc_by_cat_tuned = Fzsc_by_cat_tuned[(+tuning_index_cat_tuned_neurons).argsort()]
-# else:
-#     Fzsc_by_cat_tuned = Fzsc_by_cat_tuned[(-tuning_index_cat_tuned_neurons).argsort()]
-#
-# if normalize == 'dF/F':
-#     Frois_by_cond = FdFF_by_cond
-#     Frois_by_cat = FdFF_by_cat
-# elif normalize == 'Zscore':
-#     Frois_by_cond = Fzsc_by_cond
-#     Frois_by_cat = Fzsc_by_cat
-
-# redundant with cat
-# plt.figure()
-# plt.hist(tuning_index_cond, bins=1000)
-# plt.xlabel('FSI (per image)')
-# plt.ylabel('ROIs')
-# plt.xlim([-1, 1])
-#
-# tuning_index_cond_tuned_neurons = tuning_index_cond[np.abs(tuning_index_cond) > fsi_tuning_thresh]
-# #Frois_by_cond_tuned = Frois_by_cond[tuning_index_cond > tuning_index_thresh]
-# FdFF_by_cond_tuned = FdFF_by_cond[np.abs(tuning_index_cond) > fsi_tuning_thresh]
-# Fzsc_by_cond_tuned = Fzsc_by_cond[np.abs(tuning_index_cond) > fsi_tuning_thresh]
-# #Frois_by_cond_tuned = Frois_by_cond_tuned[(-tuning_index_cond_tuned_neurons).argsort()]
-# FdFF_by_cond_tuned = FdFF_by_cond_tuned[(-tuning_index_cond_tuned_neurons).argsort()]
-# Fzsc_by_cond_tuned = Fzsc_by_cond_tuned[(-tuning_index_cond_tuned_neurons).argsort()]
-
 # %% 
 
 # # Non-zero hack
@@ -1912,26 +1844,6 @@ if saving:
 #                             Fzsc_for_plot_discrete[above_threshold[rois_sel]],
 #                             image=plots.auto_level_s2p_image(fov_image), save_path=sp)
 
-
-# %% Compatibility with old variable names
-# tuning_index_cat_tuned_neurons = tuning_index_cat[np.abs(tuning_index_cond) > fsi_tuning_thresh]
-# #Frois_by_cat_tuned = Frois_by_cat[tuning_index_cat > tuning_index_thresh]
-# FdFF_by_cat_tuned = FdFF_by_cat[np.abs(tuning_index_cond) > fsi_tuning_thresh]
-# Fzsc_by_cat_tuned = Fzsc_by_cat[np.abs(tuning_index_cond) > fsi_tuning_thresh]
-# #Frois_by_cat_tuned = Frois_by_cat_tuned[(-tuning_index_cat_tuned_neurons).argsort()]
-# FdFF_by_cat_tuned = FdFF_by_cat_tuned[(-tuning_index_cat_tuned_neurons).argsort()]
-# Fzsc_by_cat_tuned = Fzsc_by_cat_tuned[(-tuning_index_cat_tuned_neurons).argsort()]
-
-
-# %% Plot tuning map
-
-# import time
-
-# for c in range(0, 11):
-#     c = 0.1 * c
-#     plots.plot_map(ROIs, c * np.ones(FSIs_zsc.shape), FSIs_zsc, tuning_thresh=fsi_tuning_thresh,
-#              size=fov_size, image=fov_image, circular=False, save_path=save_path)
-#     time.sleep(1.2)
 
 # %%
 
