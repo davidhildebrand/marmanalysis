@@ -14,7 +14,7 @@ from skimage.transform import rotate as ski_rotate
 from warnings import warn
 
 
-# % Define plotting function for histograms of selectivity indices
+# % Define plotting function for histograms of selectivity metrics
 def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41, title: str = '', save_path: str = ''):
     dpi = plt.rcParams['figure.dpi']
 
@@ -35,8 +35,12 @@ def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41, title: str = '', save_path: str
     plt.hist(fsis, weights=weights, bins=bins, range=(-1, 1), edgecolor='none', facecolor='none')
     plt.ylabel('Fraction of ROIs')
 
-    plt.axvline(-fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
-    plt.axvline(fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
+    if fsi_thresh is not None:
+        if fsi_thresh != 0:
+            plt.axvline(-fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
+            plt.axvline(fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
+        else:
+            plt.axvline(fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
 
     f.tight_layout()
     f.show()
