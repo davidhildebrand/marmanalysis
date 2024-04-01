@@ -1173,6 +1173,9 @@ plots.plot_hist_fsi(FSIs_dFF, fsi_thresh=fsi_tuning_thresh, title='FSIs calculat
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromZscr' + save_ext) if saving else ''
 plots.plot_hist_fsi(FSIs_zsc, fsi_thresh=fsi_tuning_thresh, title='FSIs calculated from z-scored values', save_path=sp)
 
+sp = os.path.join(save_path, save_pfix + '_Histogram_dprimes_fromFdFF' + save_ext) if saving else ''
+plots.plot_hist_dprime(dprime, title='dprimes calculated from FdFF values', save_path=sp)
+
 
 # Summarize responsiveness of each ROI
 
