@@ -1624,8 +1624,9 @@ del fr, xticks, xticklabels
 
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs
 # with at least one stimulus period z-score > 0.5
-fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
-plt.subplots_adjust(wspace=0.1)
+# fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
+fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
+plt.subplots_adjust(wspace=0.05)
 ax_hm.set_xlabel('Stimulus Image')
 ax_hm.set_ylabel('ROI')
 xtick_majors = []
@@ -1663,10 +1664,11 @@ img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis
                       aspect='auto', cmap='bwr', interpolation='none')
 ax_hm.invert_yaxis()
 # ax_hm.axvline(x=20)
-# cbar = plt.colorbar(img_hm, ax=ax_hm, location='top')
-# cbar.ax.set_yticks(['0','1','2','>3'])
-# cbar.ax.set_yticklabels(['0','1','2','>3'])
-# cbar.set_label('mean Zscore across stimulus period')
+
+cbar = plt.colorbar(img_hm, ax=ax_hm, shrink=0.6)  # , location='bottom', shrink=0.6)
+cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
+cbar.ax.set_yticklabels(['-1.0', '-0.5', '0','0.5','1'])
+cbar.set_label('mean Zscore during stimulus')
 
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
@@ -1681,18 +1683,19 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
     
-ax_fsi.set_xlabel('FSI')
-ax_fsi.set_axisbelow(True)
-ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_dp], height=1.0, color='0.5')
-ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
-ax_fsi.spines['right'].set_visible(False)
-ax_fsi.spines['left'].set_visible(False)
-ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
-for tick in ax_fsi.yaxis.get_major_ticks():
-    tick.tick1line.set_visible(False)
-    tick.tick2line.set_visible(False)
-    tick.label1.set_visible(False)
-    tick.label2.set_visible(False)
+# ax_fsi.set_xlabel('FSI')
+# ax_fsi.set_axisbelow(True)
+# ax_fsi.set_xlim([-1, 1])
+# ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_dp], height=1.0, color='0.5')
+# ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
+# ax_fsi.spines['right'].set_visible(False)
+# ax_fsi.spines['left'].set_visible(False)
+# ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
+# for tick in ax_fsi.yaxis.get_major_ticks():
+#     tick.tick1line.set_visible(False)
+#     tick.tick2line.set_visible(False)
+#     tick.label1.set_visible(False)
+#     tick.label2.set_visible(False)
 
 plt.rc('axes', titlesize=8)
 plt.rc('axes', labelsize=8)
@@ -1703,7 +1706,7 @@ plt.rc('figure', titlesize=8)
 fig_hm.tight_layout()
 fig_hm.show()
 if saving:
-    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace_threshZgt0p5' + save_ext),
+    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
                 dpi=dpi, transparent=True)
 
 
