@@ -379,6 +379,7 @@ if len(logfile_list) > 0:
         raise RuntimeError('Could not find log file.')
 else:
     lf_path = None
+    log = None
 
 if len(stimlogfile_list) > 0:
     slf_path = stimlogfile_list[0]
@@ -554,15 +555,113 @@ plt.show()
 # plt.show()
 
 
+# % Extract eye tracking calibration information from log file
+
+if eclog is not None:
+    eclines = eclog.splitlines()
+
+# # 37.1533         EXP     trial 0/240, stim start, image, cond=7, name=image7:b16.png,
+# # path=/FreiwaldSync/MarmoScope/Stimulus/Images/Song_etal_Wang_2020_NatCommun/480288_equalized_RGBA_FOBonly/b16.png,
+# # units=deg, pos=[0. 0.], size=[12.   7.2], ori=0.0, color=[1. 1. 1.], colorSpace=rgb, contrast=1.0,
+# # opacity=1.0, texRes=512, acqfr=23, AI_data.shape=(1336, 5)
+# ecdata = {}
+# ims = {}
+# impaths = {}
+# lf_categories = {}
+# tmp_image = None
+# tmp_imagepath = None
+# tmp_units = None
+# tmp_pos = None
+# tmp_size = None
+# tmp_ori = None
+# tmp_category = None
+# tmp_catid = None
+# tmp_cond = None
+# tmp_acqfr = None
+# tmp_stimtimestr = ''
+# stimtime_mode = False
+# tmp_isitimestr = ''
+# isitime_mode = False
+# for line in eclines:
+#     if 'EXP \tstim_times:' in line:
+#         stimtime_mode = True
+#     if 'EXP \tinterstim_times:' in line:
+#         isitime_mode = True
+#     if stimtime_mode:
+#         tmp_stimtimestr = tmp_stimtimestr + line
+#         if ']' in line:
+#             stimtime_mode = False
+#     if isitime_mode:
+#         tmp_isitimestr = tmp_isitimestr + line
+#         if ']' in line:
+#             isitime_mode = False
+#
+#     if 'stim start' not in line or 'image' not in line:
+#         continue
+#
+#     col = line.split('trial')
+#     if not col:
+#         continue
+#     subcol = [sc.strip() for sc in col[1].split(',')]
+#     tmp_trial = int(subcol[0].split('/')[0].strip())
+#     if 'cond' in subcol[3]:
+#         tmp_cond = int(subcol[3].split('=')[1].strip())
+#     else:
+#         print('could not get cond from log entry')
+#     if 'image' in subcol[4]:
+#         tmp_image = subcol[4].split(':')[1].strip()
+#         if tmp_image not in ims:
+#             ims[tmp_image] = tmp_cond
+#         tmp_category = tmp_image[0]
+#         if tmp_category not in lf_categories:
+#             lf_categories[tmp_category] = len(lf_categories)
+#         tmp_catid = lf_categories[tmp_category]
+#     else:
+#         print('could not get image name from log entry')
+#     if 'path' in subcol[5]:
+#         tmp_imagepath = subcol[5].split('=')[1].strip()
+#         if tmp_imagepath not in impaths:
+#             impaths[tmp_imagepath] = tmp_cond
+#     else:
+#         print('could not get image name from log entry')
+#     if 'units' in subcol[6]:
+#         tmp_units = subcol[6].split('=')[1].strip()
+#     else:
+#         print('could not get units from log entry')
+#     if 'pos' in subcol[7]:
+#         tmp_pos = np.fromstring(subcol[7].split('=')[1].strip('[]'), sep=' ')
+#     else:
+#         print('could not get pos from log entry')
+#     if 'size' in subcol[8]:
+#         tmp_size = np.fromstring(subcol[8].split('=')[1].strip('[]'), sep=' ')
+#     else:
+#         print('could not get size from log entry')
+#     if 'ori' in subcol[9]:
+#         tmp_ori = float(subcol[9].split('=')[1].strip())
+#     else:
+#         print('could not get ori from log entry')
+#     if 'acqfr' in subcol[15]:
+#         tmp_acqfr = int(subcol[15].split('=')[1].strip())
+#     else:
+#         print('could not get acqfr from log entry')
+#     trialdata[tmp_trial] = {'cond': tmp_cond,  # effectively image_id
+#                             'image': tmp_image,
+#                             'imagepath': tmp_imagepath,
+#                             'units': tmp_units,
+#                             'pos': tmp_pos,
+#                             'size': tmp_size,
+#                             'ori': tmp_ori,
+#                             'category': tmp_category,
+#                             'catid': tmp_catid,
+#                             'acqfr': tmp_acqfr}
+
+
 # % Extract stimulus information from log file
 
 # *** TODO load from a pickle file or pandas frame instead of a text log
 
-# if stimlog is None:
-
-file = open(os.path.join(lf_path), 'r')
-lines = file.read().splitlines()
-file.close()
+if log is not None:
+    lines = log.splitlines()
 
 # 37.1533         EXP     trial 0/240, stim start, image, cond=7, name=image7:b16.png,
 # path=/FreiwaldSync/MarmoScope/Stimulus/Images/Song_etal_Wang_2020_NatCommun/480288_equalized_RGBA_FOBonly/b16.png,
