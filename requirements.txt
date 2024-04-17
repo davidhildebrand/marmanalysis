@@ -9,6 +9,6 @@ scanimage-tiff-reader
 scipy
 scikit-image  # skimage
 scikit-learn  # sklearn
-seaborn
+# seaborn
 suite2p
 tifffile
