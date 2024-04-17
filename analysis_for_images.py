@@ -1443,19 +1443,30 @@ for t in tmpl:
 # %% Plot the data
 
 
-# data[metric] = [cond, roi, trial, frame]
+# Define a subset of ROIs to plot.
+n_plot_ROIs = 12
+n_plot_ROIs_div = np.round(n_plot_ROIs / 3).astype('int')
+plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
+                                  range(np.floor(n_ROIs / 2 - n_plot_ROIs_div / 2).astype('int'),
+                                        np.ceil(n_ROIs / 2 + n_plot_ROIs_div / 2).astype('int')),
+                                  range(n_ROIs - n_plot_ROIs_div, n_ROIs)))
+if len(plot_ROI_subset) > n_plot_ROIs:
+    n_diff = len(plot_ROI_subset) - n_plot_ROIs
+    plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
+                                      range(np.floor(n_ROIs / 2 - n_plot_ROIs_div / 2).astype('int'),
+                                            np.ceil(n_ROIs / 2 + n_plot_ROIs_div / 2).astype('int') - n_diff),
+                                      range(n_ROIs - n_plot_ROIs_div, n_ROIs)))
 
-
-# Plot summary of a single ROI's responses ...
+# Plot summary of each single ROI's responses ...
 
 metrics = ['FdFF', 'Fzsc']
 metric_labels = {'FdFF': 'dF/F',
                  'Fzsc': 'Z-score'}
 n_metrics = len(metrics)
 
-# ... by category, including the average for each condition within that category
+# ... by category, including the average for each condition within that category.
 fr = md['framerate']
-for r in range(n_ROIs):
+for r in plot_ROI_subset:
     ridx = sort_dp[r]
     fig = plt.figure()
     fig.suptitle('ROI {}: mean response by category (each cond mean plotted)'.format(ridx), fontsize=10)
@@ -1497,18 +1508,7 @@ del fr, xticks, xticklabels
 
 
 # ... by condition, including the average for each trial within that condition
-n_plot_ROIs = 12
-n_plot_ROIs_div = np.round(n_plot_ROIs / 3).astype('int')
-plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
-                                  range(np.floor(n_ROIs / 2 - n_plot_ROIs_div / 2).astype('int'),
-                                        np.ceil(n_ROIs / 2 + n_plot_ROIs_div / 2).astype('int')),
-                                  range(n_ROIs - n_plot_ROIs_div + 1, n_ROIs + 1)))
-if len(plot_ROI_subset) > n_plot_ROIs:
-    n_diff = len(plot_ROI_subset) - n_plot_ROIs
-    plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
-                                      range(np.floor(n_ROIs / 2 - n_plot_ROIs_div / 2).astype('int'),
-                                            np.ceil(n_ROIs / 2 + n_plot_ROIs_div / 2).astype('int') - n_diff),
-                                      range(n_ROIs - n_plot_ROIs_div + 1, n_ROIs + 1)))
+
 fr = md['framerate']
 fig = plt.figure()
 fig.suptitle('ROI {}: mean response by condition (each trial plotted)'.format(ridx), fontsize=10)
