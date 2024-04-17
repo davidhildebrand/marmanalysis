@@ -1466,8 +1466,8 @@ n_metrics = len(metrics)
 
 # ... by category, including the average for each condition within that category.
 fr = md['framerate']
-for r in plot_ROI_subset:
-    ridx = sort_dp[r]
+for r in range(n_plot_ROIs):
+    ridx = sort_dp[plot_ROI_subset[r]]
     fig = plt.figure()
     fig.suptitle('ROI {}: mean response by category (each cond mean plotted)'.format(ridx), fontsize=10)
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
@@ -1503,16 +1503,12 @@ for r in plot_ROI_subset:
             ax.plot(range(n_samp_trial), Fmean, color='0.0', zorder=3)
             ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
     plt.show()
-    plt.pause(10)
 del fr, xticks, xticklabels
 
 
 # ... by condition, including the average for each trial within that condition
 
-fr = md['framerate']
-fig = plt.figure()
-fig.suptitle('ROI {}: mean response by condition (each trial plotted)'.format(ridx), fontsize=10)
-met = 'Fzsc'
+
 
 # if F_r_ciFOB_t_fisi_iFOBsorted.shape[1] > 1:
 #     this_subplot_axs = axs[row_i, c]
@@ -1526,44 +1522,48 @@ met = 'Fzsc'
 #     this_subplot_axs.imshow(cond_image)
 #     this_subplot_axs.tick_params(labelleft=False, length=0, labelbottom=False)
 
-for r in plot_ROI_subset:
-    ridx = sort_dp[r]
-    axes = fig.subplots(nrows=n_plot_ROIs, ncols=n_conds)
-    for co in range(n_conds):
-        ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
-        ymax = np.max(np.mean(data[met][:, ridx, :, :], axis=1))
-        for cat in range(n_cats):
-            ax = axes[m, cat]
-            if m == 0:
-                ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
-            if ca == 0:
-                ax.set_ylabel(metric_labels[met], fontsize=10)
-                ax.tick_params(axis='both', which='major', labelsize=8)
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-                xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
-                xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr) 
-                               else '{}'.format(np.round(xt / fr).astype('int')) for xt in xticks]
-                ax.set_xticks(xticks)            
-                ax.set_xticklabels(xticklabels)
-            else:
-                ax.set_yticklabels([])
-                ax.set_xticklabels([])
-                ax.axis('off')
-            ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
-            ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-            n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
-            # for t in range(conds_per_cat * n_trials):
-            #     ax.plot(range(n_samp_trial), data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, t, :],
-            #             color=str(0.4 + 0.4 * t / data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, :, :].shape[0]))
-            for cnd in range(n_cnd_in_cat):
-                ax.plot(range(n_samp_trial), np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
-                        linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
-            Fmean = np.mean(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1))
-            Fsem = np.std(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
-            ax.plot(range(n_samp_trial), Fmean, color='0.0', zorder=3)
-            ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
-    plt.show()
+fr = md['framerate']
+fig = plt.figure()
+fig.suptitle('mean response by condition (each trial plotted)', fontsize=10)
+met = 'Fzsc'
+axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
+for r in range(n_plot_ROIs):
+    ridx = sort_dp[plot_ROI_subset[r]]
+    # Leftmost summary plot of category averages.
+    ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
+    ymax = np.max(np.mean(data[met][:, ridx, :, :], axis=1))
+    print(r)
+    ax = axes[r]
+    print(ax)
+    # if m == 0:
+    #     ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
+    ax.set_ylabel(metric_labels[met], fontsize=10)
+    ax.tick_params(axis='both', which='major', labelsize=8)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
+    xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr) 
+                   else '{}'.format(np.round(xt / fr).astype('int')) for xt in xticks]
+    ax.set_xticks(xticks)            
+    ax.set_xticklabels(xticklabels)
+        # ax.set_yticklabels([])
+        # ax.set_xticklabels([])
+        # ax.axis('off')
+    ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
+    ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
+    n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
+        # for t in range(conds_per_cat * n_trials):
+        #     ax.plot(range(n_samp_trial), data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, t, :],
+        #             color=str(0.4 + 0.4 * t / data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, :, :].shape[0]))
+        # for cnd in range(n_cnd_in_cat):
+        #     ax.plot(range(n_samp_trial), np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
+        #             linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
+    for cat in range(n_cats):
+        Fmean = np.mean(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1))
+        Fsem = np.std(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
+        ax.plot(range(n_samp_trial), Fmean, color='0.0', zorder=3)
+        ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
+plt.show()
 
 
 
