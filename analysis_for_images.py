@@ -1178,14 +1178,9 @@ if n_conds != conditions.shape[0]:
 # as being face selective [45–47].
 
 
-
 # TODO: check for NaN values rather than using nanmean?
 # if np.any(np.isnan(volume)):
 #     raise Exception('NaNs found in preprocessed volume.')
-
-# for reference...
-# data[cond]['FdFF'][roi, trial, frame]
-# data[cond]['FdFF_meant'][roi, frame]
 
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
@@ -1216,24 +1211,11 @@ Fzsc_allobjs_meanRstimall = np.nanmean(data[data['cat'] == b'obj']['Fzsc_meant']
 Fzsc_allbodies_meanRstimall = np.nanmean(data[data['cat'] == b'body_mrm']['Fzsc_meant'][:, :, idx_stim],
                                        axis=(0, -1)) + Fzsc_absmin
 
-# FdFFn_allfaces_meanRstimall = np.nanmean(data[data['cat'] == b'face_mrm']['FdFFn_meant'][:, :, idx_stim],
-#                                          axis=(0, -1))
-# FdFFn_allobjs_meanRstimall = np.nanmean(data[data['cat'] == b'obj']['FdFFn_meant'][:, :, idx_stim], axis=(0, -1))
-# Fzscn_allfaces_meanRstimall = np.nanmean(data[data['cat'] == b'face_mrm']['Fzscn_meant'][:, :, idx_stim],
-#                                          axis=(0, -1))
-# Fzscn_allobjs_meanRstimall = np.nanmean(data[data['cat'] == b'obj']['Fzscn_meant'][:, :, idx_stim], axis=(0, -1))
-
-
 # FSIs(_by_roi) = [roi, fsi]
 FSIs_dFF = (FdFF_allfaces_meanRstimall - FdFF_allobjs_meanRstimall) / \
            (FdFF_allfaces_meanRstimall + FdFF_allobjs_meanRstimall)
 FSIs_zsc = (Fzsc_allfaces_meanRstimall - Fzsc_allobjs_meanRstimall) / \
            (Fzsc_allfaces_meanRstimall + Fzsc_allobjs_meanRstimall)
-
-# FSIs_wbody_dFF = (FdFF_allfaces_meanRstimall - FdFF_allobjs_meanRstimall - FdFF_allbodies_meanRstimall) / \
-#                  (FdFF_allfaces_meanRstimall + FdFF_allobjs_meanRstimall + FdFF_allbodies_meanRstimall)
-# FSIs_wbody_zsc = (Fzsc_allfaces_meanRstimall - Fzsc_allobjs_meanRstimall - Fzsc_allbodies_meanRstimall) / \
-#                  (Fzsc_allfaces_meanRstimall + Fzsc_allobjs_meanRstimall + Fzsc_allbodies_meanRstimall)
 
 
 # Face selectivity d′
