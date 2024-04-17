@@ -1527,7 +1527,7 @@ met = 'Fzsc'
 #     this_subplot_axs.tick_params(labelleft=False, length=0, labelbottom=False)
 
 for r in plot_ROI_subset:
-    ridx = sort_dp[::-1][r]
+    ridx = sort_dp[r]
     axes = fig.subplots(nrows=n_plot_ROIs, ncols=n_conds)
     for co in range(n_conds):
         ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
