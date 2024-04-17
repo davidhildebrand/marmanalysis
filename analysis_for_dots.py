@@ -11,55 +11,53 @@ import os
 import pickle
 import re
 from scipy.optimize import minimize as scipy_minimize
+from scipy.optimize import least_squares as scipy_leastsquares
 from scipy.stats import binned_statistic as scipy_binned_statistic
 # from scipy.signal import find_peaks as find_peaks
 from skimage import exposure, util
 import socket
 from warnings import warn
 
+# Remove stale metadata
+if 'md' in locals():
+    md = dict()
+    del md
+
 
 # %% Read suite2p outputs
 
-# filepath = r'F:\Data\Larry\20231007d\213733tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p1mW_stimMovingDots16dirFF'
-# filename = '213715tUTC_Stimulus_MovingDotsFullField.log'
-# pf = r'F:\Data\Larry\20231007d\213733tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p1mW_stimMovingDots16dirFF\suite2p_scale12px\plane0'
-# save_path = ''
-# # save_path = '/Users/davidh/Data/Freiwald/Analysis/Cadbury/20221016d_2pRAM/SP_SiteB_200umdeep_1p46by1p46mm_2umppix_6p36Hz_59mW'
-# acq_framerate = 6.36
+# -- GOOD OLD Cadbury MT 20221016d
+animal_str = 'Cadbury'
+date_str = '20221016d'
+session_str = '163736tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p362Hz_pow059p0mW_stimMovingDots8dirFF'
+md = dict()
+md['framerate'] = 6.362
+md['fov'] = dict()
+md['fov']['resolution_umpx'] = np.array([2.0, 2.0])
+md['fov']['w_px'] = 730
+md['fov']['h_px'] = 730
 
-# filepath = r'F:\Data\Larry\20231007d\211856tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimMovingDots16dirFF'
-# filename = '211817tUTC_Stimulus_MovingDotsFullField.log'
-# filepath = r'F:\Data\Cadbury\20231001d\205309tUTC_SP_depth200um_fov1460x1200um_res2p00x2p00umpx_fr07p685Hz_pow060p3mW_stimMovingDots16dirFF'
-# filename = '205301tUTC_Stimulus_MovingDotsFullField.log'
-# pf = os.path.join(filepath, 'suite2p_scale6px', 'plane0')
-# save_path = ''
-# acq_framerate = 7.685
-# md = {'framerate': 6.364}
-
-# GOOD Cashew MT 20230728d
+# -- GOOD Cashew MT 20230728d
 # animal_str = 'Cashew'
 # date_str = '20230728d'
 # session_str = '153957tUTC_SP_depth200um_fov2190x2600um_res3p00x3p00umpx_fr05p381Hz_pow059p9mW_stimMovingDots16dirFF'
 
-# GOOD Cashew MT 20230809d
+# -- GOOD Cashew MT 20230809d
 # animal_str = 'Cashew'
 # date_str = '20230809d'
 # session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
 
-#
-animal_str = 'Cashew'
-date_str = '20230809d'
-session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
-
-
-title_str = animal_str + '_' + date_str + '_' + session_str
+# next
+# animal_str = 'Cashew'
+# date_str = '20230809d'
+# session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
 
 # try Dali 20230511d
 
 # 20230522d
-### TRY Dali 170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel
+# TRY Dali 170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel
 
-
+title_str = animal_str + '_' + date_str + '_' + session_str
 mdfile_str = '*_metadata.pickle'
 datafile_str = '*_00001.tif'
 logfile_str = '*.log'
@@ -86,30 +84,30 @@ logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if not os.path.isfile(d)]
 
-# if 'md' not in locals():
-if not mdfile_list and not datafile_list:
-    raise RuntimeError('Could not find metadata file or image data file.')
-if len(mdfile_list) > 0:
-    if len(mdfile_list) > 1:
-        warn('Found multiple metadata files, using the first one: {}'.format(mdfile_list[0]))
-    md_path = mdfile_list[0]
-    if os.path.isfile(md_path):
-        with open(md_path, 'rb') as mdf:
-            md = pickle.load(mdf)
-        # jf = open(md_path, 'r')
-        # md = json.load(jf)
-        # jf.close()
+if 'md' not in locals():
+    if not mdfile_list and not datafile_list:
+        raise RuntimeError('Could not find metadata file or image data file.')
+    if len(mdfile_list) > 0:
+        if len(mdfile_list) > 1:
+            warn('Found multiple metadata files, using the first one: {}'.format(mdfile_list[0]))
+        md_path = mdfile_list[0]
+        if os.path.isfile(md_path):
+            with open(md_path, 'rb') as mdf:
+                md = pickle.load(mdf)
+            # jf = open(md_path, 'r')
+            # md = json.load(jf)
+            # jf.close()
+        else:
+            raise RuntimeError('Could not load metadata from file.')
+    elif len(datafile_list) > 0:
+        warn('Could not find metadata file, using image data file.')
+        df_path = datafile_list[0]
+        if os.path.isfile(df_path):
+            import metadata
+            simd = metadata.get_metadata(df_path)
+            md = metadata.extract_useful_metadata(simd)
     else:
-        raise RuntimeError('Could not load metadata from file.')
-elif len(datafile_list) > 0:
-    warn('Could not find metadata file, using image data file.')
-    df_path = datafile_list[0]
-    if os.path.isfile(df_path):
-        import metadata
-        simd = metadata.get_metadata(df_path)
-        md = metadata.extract_useful_metadata(simd)
-else:
-    raise RuntimeError('Could not load metadata from either file.')
+        raise RuntimeError('Could not load metadata from either file.')
 
 if len(logfile_list) > 0:
     if len(logfile_list) > 1:
@@ -241,6 +239,7 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
              guess_amplitude,
              guess_amplitude]
 
+    # TODO: check fit success?
     result = scipy_minimize(dsi_objective, guess, args=(thetas, measRs), method='L-BFGS-B')
     fit = result['x']
     Tpref_f = fit[0]
@@ -259,16 +258,19 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
     # max_peak_loc = peak_locs[peaks.argmax()]
     Tpref = np.radians(max_peak_arg)
 
+    # TODO: separate to separate function
+    # TODO: calculate and plot mean +/- stderr
     if plotting:
         plt.figure()
-        plt.scatter(np.degrees(thetas), measRs, s=4, facecolors='none', edgecolors='k')
+        plt.scatter(np.degrees(thetas), measRs, s=4, marker='.', facecolors='none', edgecolors='k')
+        # plt.scatter(np.degrees(thetas), measRs, s=4, marker='.', facecolors='none', edgecolors='k')
         plt.plot(dsi_model(fit, np.radians(np.arange(0, 360))))
         plt.axvline(np.degrees(Tpref), color='m')
         ax = plt.gca()
-        ax.set_xlabel('Direction (' + deg_symbol + ')', fontsize=8)
-        ax.set_ylabel('dF/F', fontsize=8)
+        ax.set_xlabel('Direction (' + deg_symbol + ')', fontsize=12)
+        ax.set_ylabel('dF/F', fontsize=12)
         # ax.set_xlim((0,360))
-        ax.tick_params(axis='both', which='major', labelsize=8)
+        ax.tick_params(axis='both', which='major', labelsize=12)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.set_xticks([d for d in range(0, 360, np.diff(np.degrees(thetas)).max().astype('int'))])
@@ -293,41 +295,6 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
               'a1={:.2f} a2={:.2f} max_peak_arg={:.2f}'.format(a1_f, a2_f, max_peak_arg))
 
     return dsi, Tpref
-
-# from matplotlib.offsetbox import AnchoredOffsetbox
-# class AnchoredScaleBar(AnchoredOffsetbox):
-#     def __init__(self, transform, sizex=0, sizey=0, labelx=None, labely=None, loc=4,
-#                  pad=0.1, borderpad=0.1, sep=2, prop=None, barcolor="black", barwidth=None,
-#                  **kwargs):
-#         """
-#         Draw a horizontal and/or vertical  bar with the size in data coordinate
-#         of the give axes. A label will be drawn underneath (center-aligned).
-#         - transform : the coordinate frame (typically axes.transData)
-#         - sizex,sizey : width of x,y bar, in data units. 0 to omit
-#         - labelx,labely : labels for x,y bars; None to omit
-#         - loc : position in containing axes
-#         - pad, borderpad : padding, in fraction of the legend font size (or prop)
-#         - sep : separation between labels and bars in points.
-#         - **kwargs : additional arguments passed to base class constructor
-#         """
-#         from matplotlib.patches import Rectangle
-#         #from matplotlib.offsetbox import AuxTransformBox, VPacker, HPacker, TextArea, DrawingArea
-#         from matplotlib.offsetbox import AuxTransformBox, VPacker, HPacker, TextArea
-#         bars = AuxTransformBox(transform)
-#         if sizex:
-#             bars.add_artist(Rectangle((0,0), sizex, 0, ec=barcolor, lw=barwidth, fc="none"))
-#         if sizey:
-#             bars.add_artist(Rectangle((0,0), 0, sizey, ec=barcolor, lw=barwidth, fc="none"))
-#
-#         if sizex and labelx:
-#             self.xlabel = TextArea(labelx)
-#             bars = VPacker(children=[bars, self.xlabel], align="center", pad=0, sep=sep)
-#         if sizey and labely:
-#             self.ylabel = TextArea(labely)
-#             bars = HPacker(children=[self.ylabel, bars], align="center", pad=0, sep=sep)
-#
-#         AnchoredOffsetbox.__init__(self, loc, pad=pad, borderpad=borderpad,
-#                                    child=bars, prop=prop, frameon=False, **kwargs)
 
 
 # plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=dsi_tuning_thresh, title=title_str,
@@ -507,7 +474,6 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
         #             #pix[x,y,:] = tuple([int(round(c*255.0)) for c in rgb])
         # plt.imshow(pix)
         # f3.show()
-
 
     # Santi original
     # create colormap for reference
@@ -724,45 +690,12 @@ Ts = np.repeat(conds, n_trials)
 # distxs = np.repeat(conds, n_trials)
 Rs = np.full([n_ROIs, (n_conds * n_trials)], np.nan)
 dsiT = np.full([n_ROIs, 2], np.nan)
+# for r in range(10):
+#     Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
+#     dsiT[r] = calculate_dsi(Ts, Rs[r], plotting=True)
 for r in range(n_ROIs):
     Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
-    dsiT[r] = calculate_dsi(Ts, Rs[r])  # , plotting=True, debugging=True)
-
-# FdFF_test = FdFF_by_cond_meanR
-# Fzsc_test = Fzsc_by_cond_meanR
-#
-# # Define tuning indices using a t-tests
-# # TODO *** check if second argument should be a calculated baseline
-# tee_dFF = scipy.stats.ttest_1samp(FdFF_test, 0, axis=2)
-# Pvals_dFF = tee_dFF[1]
-# Pvals_dFF_min_cond = np.min(Pvals_dFF, axis=1)
-# tunidx_tee_dFF = 1 - Pvals_dFF_min_cond
-# tunidx_tee_dFF_argsrt = np.argsort(tunidx_tee_dFF)[::-1]
-# tee_zsc = scipy.stats.ttest_1samp(Fzsc_test, 0, axis=2)
-# Pvals_zsc = tee_zsc[1]
-# Pvals_zsc_min_cond = np.min(Pvals_zsc, axis=1)
-# tunidx_tee_zsc = 1 - Pvals_zsc_min_cond
-# tunidx_tee_zsc_argsrt = np.argsort(tunidx_tee_zsc)[::-1]
-#
-# # Define tuning indices using quantiles
-# qt1_dFF_all_conds = np.percentile(FdFF_test, percentile, axis=2)
-# qt1_dFF_max_cond = np.max(qt1_dFF_all_conds, axis=1)
-# tunidx_qt1_dFF = qt1_dFF_max_cond
-# tunidx_qt1_dFF_argsrt = np.argsort(tunidx_qt1_dFF)[::-1]
-# qt1_zsc_all_conds = np.percentile(Fzsc_test, percentile, axis=2)
-# qt1_zsc_max_cond = np.max(qt1_zsc_all_conds, axis=1)
-# tunidx_qt1_zsc = qt1_zsc_max_cond
-# tunidx_qt1_zsc_argsrt = np.argsort(tunidx_qt1_zsc)[::-1]
-#
-# # Define tuning indices using average intensity
-# avg_dFF = np.abs(np.mean(FdFF_test, axis=-1))
-# avg_dFF_max_cond = np.max(abs(avg_dFF), axis=1)
-# tunidx_avg_dFF = avg_dFF_max_cond
-# tunidx_avg_dFF_argsrt = np.argsort(tunidx_avg_dFF)[::-1]
-# avg_zsc = np.abs(np.mean(Fzsc_test, axis=-1))
-# avg_zsc_max_cond = np.max(abs(avg_zsc), axis=1)
-# tunidx_avg_zsc = avg_zsc_max_cond
-# tunidx_avg_zsc_argsrt = np.argsort(tunidx_avg_zsc)[::-1]
+    dsiT[r] = calculate_dsi(Ts, Rs[r])
 
 
 # %% Plot one experimentally measured distribution used for DSI fitting
@@ -826,6 +759,7 @@ if saving:
 plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=dsi_tuning_thresh, title=title_str,
          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
 
+
 # TODO *** note that the >= might not be general (e.g. with FSI)
 tuned_index = DSI >= dsi_tuning_thresh
 ROIs_tuned = ROIs[tuned_index]
@@ -840,6 +774,7 @@ n_regions_tuned = len(ROIs_tuned)
 
 
 roi_centers_px = np.empty([n_ROIs_tuned, 2])
+roi_centers_um = np.empty([n_ROIs_tuned, 2])
 roi_colors = np.empty([n_ROIs_tuned, 3])
 for r in range(n_ROIs_tuned):
     region = ROIs_tuned[r]
@@ -847,6 +782,7 @@ for r in range(n_ROIs_tuned):
     rys = region['ypix']
     rxys = np.array(list(zip(rxs, rys)))
     roi_centers_px[r] = np.average(rxys, axis=0)
+    roi_centers_um[r] = md['fov']['resolution_umpx'] * roi_centers_px[r]
     roi_colors[r] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
     # if r > 0:
     #     roi_dists[r - 1] = np.sqrt((roi_centers[r, 0] - last_roi_center[0])**2 + (roi_centers[r, 1] - last_roi_center[1])**2)
@@ -861,30 +797,34 @@ for r in range(n_ROIs_tuned):
 # roi_tuning_diffs = np.array([abs(a - b) % 180 for (a, b) in itertools.product(tuning_tuned_deg, tuning_tuned_deg)])
 # roi_tuning_diffs = np.array([abs(a - b) % 180 for (a, b) in itertools.permutations(tuning_tuned, 2)])
 
-rd = np.empty([n_ROIs_tuned, n_ROIs_tuned])
-rtd = np.empty([n_ROIs_tuned, n_ROIs_tuned])
-res = np.mean(md['fov']['resolution_umpx'])  # TODO: do this better for x and y sep if needed
+roi_distances_um = np.empty([n_ROIs_tuned, n_ROIs_tuned])
+roi_tuning_differences = np.empty([n_ROIs_tuned, n_ROIs_tuned])
 for r1 in range(n_ROIs_tuned):
-    r1_c = roi_centers_px[r1]
+    r1_c = roi_centers_um[r1]
     r1_t = tuning_tuned[r1]
     for r2 in range(n_ROIs_tuned):
-        r2_c = roi_centers_px[r2]
+        r2_c = roi_centers_um[r2]
         r2_t = tuning_tuned[r2]
-        # TODO: convert this calculation from px to um
-        rd[r1, r2] = res * np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
+        roi_distances_um[r1, r2] = np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
         # TODO: make sure this makes sense
-        rtd[r1, r2] = np.abs(r1_t - r2_t) % 180
+        roi_tuning_differences[r1, r2] = np.abs(r1_t - r2_t) % 180
 
-roi_distances = rd
-roi_tuning_differences = rtd
+# TODO: CHECK THESE
+np.allclose(roi_distances_um, roi_distances_um.T)
+np.allclose(roi_tuning_differences, roi_tuning_differences.T)
 
-np.allclose(rd, rd.T)
-np.allclose(rtd, rtd.T)
+assert roi_distances_um.shape == roi_tuning_differences.shape
+rinds, cinds = np.triu_indices_from(roi_distances_um, k=1)
+distprefs = np.array([[roi_distances_um[r, c], roi_tuning_differences[r, c]] for r, c in zip(rinds, cinds)])
 
-assert rd.shape == rtd.shape
-rinds, cinds = np.triu_indices_from(rd, k=1)
-distprefs = np.array([[rd[r, c], rtd[r, c]] for r, c in zip(rinds, cinds)])
+if 'resolution_umpx' in md['fov']:
+    if 'w_um' not in md['fov'] or 'h_um' not in md['fov']:
+        md['fov']['w_um'] = md['fov']['w_px'] * md['fov']['resolution_umpx'][0]
+        md['fov']['h_um'] = md['fov']['h_px'] * md['fov']['resolution_umpx'][1]
 
+fov_diagonal = np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)
+if np.any(distprefs > fov_diagonal):
+    warn('Distance between some ROIs exceeds expected FOV diagonal.')
 
 
 def dir_dist_dep_exp_equation(params, x):
@@ -895,7 +835,7 @@ def dir_dist_dep_exp_equation(params, x):
     C = params[0]  # saturation value
     A = params[1]  # start value
     k = params[2]  # decay space constant
-    y = C - A * np.exp(-k * x)
+    y = C - (A * np.exp(-k * x))
     return y
 
 def dirdist_objective(params, xs, measured_dirdiff):
@@ -903,19 +843,29 @@ def dirdist_objective(params, xs, measured_dirdiff):
     mse = np.square(np.subtract(predicted_dirdiff, measured_dirdiff)).mean()
     return mse
 
+
+
+# Calculate median values for 25 um distance bins
+w_bin_um = 25
+n_bins = int(np.ceil(distprefs[:, 0].max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+bin_medians, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
+bin_stds, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
+
+# TODO convert all this to take radians like other functions, then convert to deg
+
 # params = [C, A, k]
-guess = [60, 60, 0.2]
-
-# TODO should convert all this to take radians like other functions, then convert to deg
-
-result = scipy_minimize(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), method='L-BFGS-B')
+guess = [70, 80, 0.018]
+# result = scipy_minimize(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), method='L-BFGS-B')
+# result = scipy_minimize(dirdist_objective, guess, args=(bin_centers, bin_medians), method='Nelder-Mead')  # , method='L-BFGS-B')
+result = scipy_leastsquares(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), max_nfev=10000)
 fit = result['x']
 C_f = fit[0]
 A_f = fit[1]
 k_f = fit[2]
-
-ddxs = np.linspace(0, 1000, 10000)
-ddys = C_f - A_f * np.exp(-k_f * ddxs)
+ddxs = np.linspace(0, np.round(np.max(bin_edges)))
+ddys = C_f - (A_f * np.exp(-k_f * ddxs))
 
 # Jagruti paper
 # Error bars represent the angular standard deviation.
@@ -933,30 +883,15 @@ ddys = C_f - A_f * np.exp(-k_f * ddxs)
 
 f1 = plt.figure()
 ax = f1.subplots(1, 1)
-
-ax.set_ylabel('Direction difference (' + deg_symbol + ')', fontsize=10)
-
-
-ax.set_xlabel('Distance difference (µm)', fontsize=10)
-
-
-
+ax.set_ylabel('Preferred direction difference (' + deg_symbol + ')', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
-
 ax.tick_params(axis='both', which='major', labelsize=10)
-# ax.set_xlim((0, 1000))
+ax.set_xlim((0, 500))
 ax.set_ylim((0, 180))
 
 # Plot all pairs of direction difference and distance difference
 ax.scatter(distprefs[:, 0], distprefs[:, 1], marker='.', s=1, edgecolor='none')
-
-# Calculate median values for 25 um distance bins
-w_bin_um = 25
-n_bins = int(np.ceil(distprefs[:, 0].max() / w_bin_um))
-bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
-bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
-bin_medians, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
-bin_stds, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
 
 # Plot median values for 25um distance bins
 # ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')

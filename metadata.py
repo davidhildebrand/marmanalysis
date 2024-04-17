@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta, timezone
 import imagesize
@@ -120,7 +121,7 @@ def get_metadata(filepath):
         fn = os.path.basename(filepath)
 
         # Attempt to determine acquisition time from filename.
-        pattern_t0 = r'^([0-9]{6}tUTC).*$'
+        pattern_t0 = r'^.*([0-9]{6}tUTC).*$'
         if re.match(pattern_t0, fn) is not None:
             m = re.match(pattern_t0, fn)
         else:
@@ -235,9 +236,9 @@ def get_metadata(filepath):
 
 def roi_from_scanfield(scanfield):
     r = dict()
-    r['center_deg'] = np.array(scanfield['centerXY'])
-    r['size_deg'] = np.array(scanfield['sizeXY'])
-    r['size_px'] = np.array(scanfield['pixelResolutionXY'])
+    r['center_deg'] = np.array(scanfield['centerXY'], dtype=float)
+    r['size_deg'] = np.array(scanfield['sizeXY'], dtype=float)
+    r['size_px'] = np.array(scanfield['pixelResolutionXY'], dtype=int)
     return r
 
 
@@ -268,6 +269,9 @@ def extract_useful_metadata(scanimage_metadata):
     umd['objective_resolution'] = simd['SI']['objectiveResolution']  # um/deg
     umd['framerate'] = simd['SI']['hRoiManager']['scanFrameRate']
     umd['framerate_str'] = 'fr{:06.3f}Hz'.format(umd['framerate']).replace('.', 'p')
+    umd['fill_fraction_temporal'] = simd['SI']['hScan2D']['fillFractionTemporal']
+    umd['fill_fraction_spatial'] = simd['SI']['hScan2D']['fillFractionSpatial']
+    umd['resonant_scanner_frequency'] = simd['SI']['hScan2D']['scannerFrequency']
 
     # Estimate start time.
     sdt = simd['frame0desc']['epoch'] - timedelta(seconds=umd['framerate'])
@@ -287,10 +291,10 @@ def extract_useful_metadata(scanimage_metadata):
         mrois_raw = simd['json']['RoiGroups']['imagingRoiGroup']['rois']
     else:
         mrois_raw = json.loads(simd["Artist"])['RoiGroups']['imagingRoiGroup']['rois']
-    if type(mrois_raw) != dict:
+    if type(mrois_raw) is not dict:
         mrois_orig = []
         for roi in mrois_raw:
-            if type(roi['scanfields']) != list:
+            if type(roi['scanfields']) is not list:
                 scanfield = roi['scanfields']
             else:
                 scanfield = roi['scanfields'][np.where(np.array(roi['zs']) == 0)[0][0]]
@@ -309,14 +313,19 @@ def extract_useful_metadata(scanimage_metadata):
     else:
         raise Exception('Not all MROIs have the same width.')
 
+    # Check that fill fractions are correctly related.
+    spatial_from_temporal = np.cos((1 - umd['fill_fraction_temporal']) * np.pi/2)
+    if not np.isclose(umd['fill_fraction_spatial'], spatial_from_temporal):
+        warn('Fill fractions do not match expected relationship [spatial = cos((1-temporal) * pi/2)]. ' +
+             'temporal: {:.3f}, '.format(umd['fill_fraction_temporal']) +
+             'spatial: {:.3f}, '.format(umd['fill_fraction_spatial']) +
+             'spatial calculated from temporal: {:.3f}'.format(spatial_from_temporal))
+
     # Extract acquisition strip information.
     umd['acqstrip'] = dict()
     umd['acqstrip']['w_px'] = simd['acqstrip_w']
     umd['acqstrip']['h_px'] = simd['acqstrip_h']
     umd['acqstrip']['size_px'] = np.array([umd['acqstrip']['w_px'], umd['acqstrip']['h_px']], dtype=int)
-    # mroi_hs_px = np.array([r['size_px'][1] for r in umd['mrois']['orig']], dtype=int)
-    # umd['acqstrip']['flyback_h_px'] = (umd['acqstrip']['h_px'] - (mroi_hs_px.sum())) // (umd['n_mrois'] - 1)
-    # acqstrip_hcalc_px = mroi_hs_px.sum() + ((umd['n_mrois'] - 1) * umd['acqstrip']['flyback_h_px'])
     umd['acqstrip']['flyback_h_px'] = (umd['acqstrip']['h_px'] - (mroi_sizes_px[:, 1].sum())) // (umd['n_mrois'] - 1)
 
     # Compare acquisition strip details to MROI details and conform to acquisition strip if necessary.
@@ -325,12 +334,12 @@ def extract_useful_metadata(scanimage_metadata):
         warn('Acquisition strip height does not match expectation from MROI sizes.')
     if umd['acqstrip']['w_px'] != mroi_w_px:
         warn('Acquisition strip width does not match expectation from MROI widths. ' +
-             'Forcing MROI widths to conform.')
+             'Forcing conformation to acquisition strip size.')
         for r in range(umd['n_mrois']):
             umd['mrois']['orig'][r]['size_px'][0] = umd['acqstrip']['w_px']
     del mroi_w_px
 
-    # Calculate MROI resolutions.
+    # Calculate MROI resolutions.  Note that the objective resolution is in um/deg.
     for r in umd['mrois']['orig']:
         if type(umd['objective_resolution']) is float:
             r['resolution_umpx'] = umd['objective_resolution'] / (r['size_px'] / r['size_deg'])
@@ -398,41 +407,48 @@ def extract_useful_metadata(scanimage_metadata):
                                    umd['fov']['corner_br_deg'][1],  # y_deg max
                                    umd['fov']['resolution_degpx'][1])]
 
-    # Estimate neuron size in px, assuming average diameter of 15um.
-    if umd['fov']['resolution_umpx'] is not None:
-        neuron_diameter_um = 15
-        umd['fov']['neurondiameter_px'] = int(np.mean(neuron_diameter_um / umd['fov']['resolution_umpx']))
-    else:
-        umd['fov']['neurondiameter_px'] = None
-
     # Calculate the pixel coordinates for MROIs in reconstructed volume.
     mroi_corners_tl_px = np.empty((umd['n_mrois'], 2), dtype=int)
     for i_xy in range(2):
+        dimax = 'width' if i_xy == 0 else 'height'
         for i_mroi in range(umd['n_mrois']):
             closest_xy_px = np.argmin(np.abs(fov_positions_deg[i_xy] - mroi_corners_tl_deg[i_mroi, i_xy])).astype(int)
             mroi_corners_tl_px[i_mroi, i_xy] = closest_xy_px
             closest_xy_deg = fov_positions_deg[i_xy][closest_xy_px]
             if not np.isclose(closest_xy_deg, mroi_corners_tl_deg[i_mroi, i_xy]):
-                warn('Fit of MROI into reconstructed image is imperfect: ' +
-                     'MROI %d, corner %.4f, closest available %.4f'.format(mroi_corners_tl_deg[i_mroi, i_xy],
-                                                                           closest_xy_deg))
-    # If necessary, remove extra pixel added to reconstruction width due to rounding errors.
+                warn('Fit of MROI into reconstructed image {} is imperfect: '.format(dimax) +
+                     'MROI {}, top-left corner {:.4f}, closest {:.4f}'.format(i_mroi,
+                                                                              mroi_corners_tl_deg[i_mroi, i_xy],
+                                                                              closest_xy_deg))
+    del dimax
+
+    # If necessary, remove extra pixel added to reconstruction width due to rounding errors or ScanImage errors.
     if len(fov_positions_deg[0]) == np.sum(mroi_sizes_px[:, 0]) + 1:
         warn('Removed extra pixel from reconstructed image width.')
         fov_positions_deg[0] = fov_positions_deg[0][:-1]
-    #if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
-    #    warn('Removed extra pixel from reconstructed image height.')
-    #    fov_positions_deg[1] = fov_positions_deg[1][:-1]
+    if np.any(len(fov_positions_deg[1]) == mroi_sizes_px[:, 1] + 1):
+        warn('Removed extra pixel from reconstructed image height.')
+        fov_positions_deg[1] = fov_positions_deg[1][:-1]
 
     umd['fov']['positions_deg'] = fov_positions_deg
     umd['fov']['w_px'] = len(fov_positions_deg[0])
     umd['fov']['h_px'] = len(fov_positions_deg[1])
+    if 'resolution_umpx' in umd['fov']:
+        umd['fov']['w_um'] = umd['fov']['w_px'] * umd['fov']['resolution_umpx'][0]
+        umd['fov']['h_um'] = umd['fov']['h_px'] * umd['fov']['resolution_umpx'][1]
     for i_mroi in range(umd['n_mrois']):
         i_m = umd['mrois']['lrsort_arg'][i_mroi]
         umd['mrois']['orig'][i_m]['corner_tl_deg'] = mroi_corners_tl_deg[i_mroi]
         umd['mrois']['orig'][i_m]['corner_tl_px'] = mroi_corners_tl_px[i_mroi]
         umd['mrois']['lrsort'][i_mroi]['corner_tl_deg'] = mroi_corners_tl_deg[i_mroi]
         umd['mrois']['lrsort'][i_mroi]['corner_tl_px'] = mroi_corners_tl_px[i_mroi]
+
+    # Estimate neuron size (i.e. cell body diameter) in px, assuming average diameter of 15um.
+    if umd['fov']['resolution_umpx'] is not None:
+        neuron_diameter_um = 15
+        umd['fov']['neurondiameter_px'] = int(np.mean(neuron_diameter_um / umd['fov']['resolution_umpx']))
+    else:
+        umd['fov']['neurondiameter_px'] = None
 
     # Calculate additional values if all MROIs have the same size, resolution, and vertical position.
     if np.all(np.isclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1])) and \

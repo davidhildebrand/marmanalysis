@@ -15,6 +15,11 @@ import metadata
 
 def is_tiff(filepath: str) -> bool:
     allowed_types = ['image/tiff', 'image/tif']
+    if os.name == 'nt':
+        warn('Could not verify file type is TIFF because of Windows file system, basing on file extension.')
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext == '.tif' or ext == '.tiff':
+            return True
     if magic.from_file(filepath, mime=True) not in allowed_types:
         return False
     return True
@@ -25,14 +30,18 @@ def json_serializer(obj):
     if isinstance(obj, (datetime, date, time)):
         return obj.isoformat()
     else:
-        warn('Type {} not serializable.'.format(type(obj)))
+        # warn('Type {} not serializable.'.format(type(obj)))
         return str(obj)
 
 
 # Parse command line options
 parser = argparse.ArgumentParser()
-parser.add_argument('source',
-                    help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument(
+    'source',
+    help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument(
+    '-o', '--overlap', type=int, default=0,
+    help='Overlapping pixels between MROIs. [optional, default: 0]')
 opts = parser.parse_args()
 
 if os.path.isfile(opts.source):
@@ -44,7 +53,9 @@ if os.path.isfile(opts.source):
 else:
     raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
 
-if not is_tiff(source):  # source_ext != '.tif' and source_ext != '.tiff':
+overlap_px = opts.overlap
+
+if not is_tiff(source):
     raise RuntimeError('Source file must be a TIFF stack.')
 
 
@@ -55,21 +66,20 @@ p['save']['tif'] = True
 p['save']['metadata'] = True
 p['save']['mean'] = True
 p['save']['video'] = True
+p['overwrite_warn'] = False
 
 simd = metadata.get_metadata(source)
 md = metadata.extract_useful_metadata(simd)
 
 if md['mrois']['overlap'] is not False or md['mrois']['overlap_px'] is not None:
-    raise Exception('Handling overlapping MROIs is not yet implemented.')
+    warn('Overlap between MROIs may require calculation, which is not yet supported.')
+    # raise Exception('Handling overlapping MROIs is not yet implemented.')
 if md['n_planes'] != 1:
     RuntimeError('Handing multi-plane data is not yet implemented.')
 
 data = ScanImageTiffReader(source).data()
 data = np.expand_dims(data, 1)
 data = np.swapaxes(data, 1, 3)
-# chans_order = params['chans_order_1plane']
-# rows, columns = 1, 1  # For png and mp4
-# tiff_file = tiff_file[..., chans_order]
 
 # Divide long acquisition strip into MROI chunks.
 planes_mrois = np.empty((md['n_planes'], md['n_mrois']), dtype=np.ndarray)
@@ -83,21 +93,27 @@ for i_plane in range(md['n_planes']):
 del data
 
 # Generate volume from MROIs.
+if type(overlap_px) is not int:
+    overlap_px = int(overlap_px)
 n_f = md['n_frames']
-n_x, n_y = md['fov']['w_px'], md['fov']['h_px']  # [len(md['fov']['positions_deg'][a]) for a in range(2)]
+n_x = md['fov']['w_px'] - (overlap_px * (md['n_mrois'] - 1))
+n_y = md['fov']['h_px']  # [len(md['fov']['positions_deg'][a]) for a in range(2)]
 n_z = md['n_planes']
 mroi_sizes_px = np.array([r['size_px'] for r in md['mrois']['lrsort']], dtype=int)
 mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']], dtype=int)
+# print('n_f={} n_x={} n_y={} n_z={}'.format(n_f, n_x, n_y, n_z))
 
-# volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
-volume = np.empty((n_f, n_x, n_y, n_z), dtype = np.int16)
-overlap_px = 0
-if type(overlap_px) is not int:
-    overlap_px = int(overlap_px)
+volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
+# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
+# print('volume shape: {}'.format(volume.shape))
+
 for i_plane in range(n_z):
-    plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
+    plane_w = n_x
+    # plane_w = n_x - (overlap_px * (md['n_mrois'] - 1))
     plane_h = n_y
-    canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
+    # canvas = np.zeros((n_f, plane_w, plane_h), dtype=np.float32)
+    canvas = np.full((n_f, plane_w, plane_h), np.nan, dtype=np.float32)
+    # print('canvas shape: {}'.format(canvas.shape))
     xe_canv = plane_w
     for i_mroi in range(md['n_mrois']):
         if i_mroi == 0:
@@ -117,6 +133,7 @@ for i_plane in range(n_z):
             xs_mroi = np.ceil(overlap_px / 2).astype(int)
             xe_mroi = mroi_sizes_px[i_mroi][0]
         # print(xs_canv, xe_canv, xs_mroi, xe_mroi)
+        # print('xs_canv={} xe_canv={}'.format(xs_canv, xe_canv))
 
         ys_canv = mroi_corners_tl_px[i_mroi, 1]
         ye_canv = ys_canv + mroi_sizes_px[i_mroi, 1]
@@ -137,15 +154,14 @@ if np.any(np.isnan(volume)):
 
 if volume.dtype != np.int16:
     volume = volume.astype(np.int16)
-volume = np.swapaxes(volume, 1, 2)
-volume = np.squeeze(volume)
+volume = np.squeeze(np.swapaxes(volume, 1, 2))
 
 md_str = json.dumps(md, default=json_serializer)
 sp = source_path + os.path.sep
 
 if p['save']['hdf5']:
     save_path_h5 = sp + source_name + '_preprocd_olap{:02d}px.h5'.format(overlap_px)
-    if os.path.isfile(save_path_h5):
+    if os.path.isfile(save_path_h5) and p['overwrite_warn']:
         warn('Preprocessed HDF5 ouput already exists, overwriting ({}).'.format(save_path_h5))
     h5f = h5py.File(save_path_h5, 'w')
     h5f.create_dataset('data', data=volume)
@@ -155,7 +171,7 @@ if p['save']['hdf5']:
 
 if p['save']['tif']:
     save_path_tif = sp + source_name + '_preprocd_olap{:02d}px.tif'.format(overlap_px)
-    if os.path.isfile(save_path_tif):
+    if os.path.isfile(save_path_tif) and p['overwrite_warn']:
         warn('Preprocessed TIF ouput already exists, overwriting ({}).'.format(save_path_tif))
 
     import tifffile
@@ -166,21 +182,19 @@ if p['save']['metadata']:
     import pickle
 
     save_path_mdp = sp + source_name + '_metadata.pickle'
-    if os.path.isfile(save_path_mdp):
+    if os.path.isfile(save_path_mdp) and p['overwrite_warn']:
         warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdp))
     with open(save_path_mdp, 'wb') as mdpf:
         pickle.dump(md, mdpf)
 
     save_path_mdj = sp + source_name + '_metadata.json'
-    if os.path.isfile(save_path_mdj):
+    if os.path.isfile(save_path_mdj) and p['overwrite_warn']:
         warn('Metadata file already exists, overwriting ({}).'.format(save_path_mdj))
     with open(save_path_mdj, 'w') as mdjf:
         json.dump(md, mdjf, indent=4, sort_keys=True, default=json_serializer)
 
 if p['save']['mean']:
     save_path_mean = sp + source_name + '_preprocd_olap{:02d}px_mean.png'.format(overlap_px)
-    if os.path.isfile(save_path_mean):
-        warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
 
     from cv2 import imwrite
     from skimage.exposure import rescale_intensity
@@ -190,11 +204,31 @@ if p['save']['mean']:
     volume_mean = np.mean(volume, axis=0)
     pl, ph = np.percentile(volume_mean, [1, 99.9])
     volume_mean_rescale = img_as_ubyte(rescale_intensity(volume_mean, in_range=(pl, ph)))
+
+    if os.path.isfile(save_path_mean) and p['overwrite_warn']:
+        warn('Preprocessed mean image already exists, overwriting ({}).'.format(save_path_mean))
     imwrite(save_path_mean, volume_mean_rescale)
+
+    volume_rescale_mean = volume_mean_rescale
+    if np.median(volume_mean_rescale) < 20:
+        save_path_mean_rescaled = sp + source_name + '_preprocd_olap{:02d}px_mean_rescaled.png'.format(overlap_px)
+
+        subvolume = volume[0:np.min([500, volume.shape[0]]).astype(int)]
+        high = 100.0
+        while np.median(volume_rescale_mean) < 20 and high > 0:
+            high = high - 0.5
+            print('Rescaling mean image. (median = {}, high = {})'.format(np.median(volume_mean_rescale), high))
+            pl, ph = np.percentile(subvolume, [0, high])
+            volume_rescale = img_as_ubyte(rescale_intensity(subvolume, in_range=(pl, ph)))
+            volume_rescale_mean = np.mean(volume_rescale, axis=0)
+
+        if os.path.isfile(save_path_mean_rescaled) and p['overwrite_warn']:
+            warn('Preprocessed mean rescaled image already exists, overwriting ({}).'.format(save_path_mean_rescaled))
+        imwrite(save_path_mean_rescaled, volume_rescale_mean)
 
 if p['save']['video']:
     save_path_video = sp + source_name + '_preprocd_olap{:02d}px_clip.mp4'.format(overlap_px)
-    if os.path.isfile(save_path_video):
+    if os.path.isfile(save_path_video) and p['overwrite_warn']:
         warn('Video clip already exists, overwriting ({}).'.format(save_path_video))
 
     from cv2 import VideoWriter_fourcc, VideoWriter
