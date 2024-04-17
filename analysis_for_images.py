@@ -1227,12 +1227,16 @@ FSIs_zsc = (Fzsc_allfaces_meanRstimall - Fzsc_allobjs_meanRstimall) / \
 # σ_F and σ_NF are the across-stimulus SDs. This face d′ value quantifies how much higher (positive d′) or lower
 # (negative d′) the response to a face is expected to be compared to a non-face, in SD units.
 
-mu_F = np.mean(data[(data['cat'] == b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
-mu_NF = np.mean(data[(data['cat'] != b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
-std_F = np.std(data[(data['cat'] == b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
-std_NF = np.std(data[(data['cat'] != b'face_mrm')]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))
-dprime = (mu_F - mu_NF) / np.sqrt((std_F**2 + std_NF**2) / 2)
+bool_F = (data['cat'] == b'face_mrm')
+bool_NF = (data['cat'] != b'face_mrm')
+mu_F = np.mean(data[bool_F]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3))
+mu_NF = np.mean(data[bool_NF]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3))
+sigma_F = np.std(np.mean(data[bool_F]['FdFF'], axis=2)[:, :, idx_stim], axis=(0, 2))
+sigma_NF = np.std(np.mean(data[bool_NF]['FdFF'], axis=2)[:, :, idx_stim], axis=(0, 2))
+dprime = (mu_F - mu_NF) / np.sqrt((sigma_F**2 + sigma_NF**2) / 2)
 sort_dp = np.argsort(dprime)
+del bool_F, bool_NF, mu_F, mu_NF, sigma_F, sigma_NF
+
 
 # % Define ROIs as tuned or untuned using the FSI
 
