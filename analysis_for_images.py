@@ -312,8 +312,10 @@ if 'Galactica' in system_name:
     base_path = r'/Users/davidh/Data/Freiwald/suite2p_results'
 elif 'Obsidian' in system_name:
     base_path = r'F:\Data'
+elif 'Dobbin' in system_name:
+    base_path = r'D:\Data'
 else:
-    base_path = r'F:\Data'
+    base_path = r'C:\Data'
 
 if save_path == '':
     saving = False
