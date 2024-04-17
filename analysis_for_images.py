@@ -335,12 +335,15 @@ if len(eyecalib_dir_list) > 0:
     ecd_path = eyecalib_dir_list[0]
     if len(eyecalib_dir_list) > 1:
         warn('Found multiple eye tracking calibration directories, using the first one: {}'.format(ecd_path))
+    eyecalib_logfile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_logfile_str))
+                             if os.path.isfile(f)]
+    eyecalib_datafile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_datafile_str))
+                              if os.path.isfile(f)]
 else:
     ecd_path = None
-eyecalib_logfile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_logfile_str))
-                         if os.path.isfile(f)]
-eyecalib_datafile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_datafile_str))
-                          if os.path.isfile(f)]
+    eyecalib_logfile_list = []
+    eyecalib_datafile_list = []
+
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if os.path.isdir(d)]
 
@@ -664,6 +667,8 @@ if eclog is not None:
 
 if log is not None:
     lines = log.splitlines()
+else:
+    raise RuntimeError('Could not find log file.')
 
 # 37.1533         EXP     trial 0/240, stim start, image, cond=7, name=image7:b16.png,
 # path=/FreiwaldSync/MarmoScope/Stimulus/Images/Song_etal_Wang_2020_NatCommun/480288_equalized_RGBA_FOBonly/b16.png,
