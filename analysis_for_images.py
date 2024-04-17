@@ -1497,10 +1497,21 @@ del fr, xticks, xticklabels
 
 
 # ... by condition, including the average for each trial within that condition
+n_plot_ROIs = 12
+n_plot_ROIs_div = np.round(n_plot_ROIs / 3).astype('int')
+plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
+                                  range(np.floor(n_ROIs / 2 - n_plot_ROIs_div / 2).astype('int'),
+                                        np.ceil(n_ROIs / 2 + n_plot_ROIs_div / 2).astype('int')),
+                                  range(n_ROIs - n_plot_ROIs_div + 1, n_ROIs + 1)))
+if len(plot_ROI_subset) > n_plot_ROIs:
+    n_diff = len(plot_ROI_subset) - n_plot_ROIs
+    plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
+                                      range(np.floor(n_ROIs / 2 - n_plot_ROIs_div / 2).astype('int'),
+                                            np.ceil(n_ROIs / 2 + n_plot_ROIs_div / 2).astype('int') - n_diff),
+                                      range(n_ROIs - n_plot_ROIs_div + 1, n_ROIs + 1)))
 fr = md['framerate']
 fig = plt.figure()
 fig.suptitle('ROI {}: mean response by condition (each trial plotted)'.format(ridx), fontsize=10)
-n_plot_ROIs = 10
 met = 'Fzsc'
 
 # if F_r_ciFOB_t_fisi_iFOBsorted.shape[1] > 1:
