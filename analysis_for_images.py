@@ -1234,7 +1234,7 @@ mu_NF = np.mean(data[bool_NF]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3))
 sigma_F = np.std(np.mean(data[bool_F]['FdFF'], axis=2)[:, :, idx_stim], axis=(0, 2))
 sigma_NF = np.std(np.mean(data[bool_NF]['FdFF'], axis=2)[:, :, idx_stim], axis=(0, 2))
 dprime = (mu_F - mu_NF) / np.sqrt((sigma_F**2 + sigma_NF**2) / 2)
-sort_dp = np.argsort(dprime)
+sort_dp = np.argsort(dprime)[::-1]
 del bool_F, bool_NF, mu_F, mu_NF, sigma_F, sigma_NF
 
 
@@ -1456,7 +1456,7 @@ n_metrics = len(metrics)
 # ... by category, including the average for each condition within that category
 fr = md['framerate']
 for r in range(n_ROIs):
-    ridx = sort_dp[::-1][r]
+    ridx = sort_dp[r]
     fig = plt.figure()
     fig.suptitle('ROI {}: mean response by category (each cond mean plotted)'.format(ridx), fontsize=10)
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
@@ -1526,7 +1526,7 @@ met = 'Fzsc'
 #     this_subplot_axs.imshow(cond_image)
 #     this_subplot_axs.tick_params(labelleft=False, length=0, labelbottom=False)
 
-for r in range(n_plot_ROIs):
+for r in plot_ROI_subset:
     ridx = sort_dp[::-1][r]
     axes = fig.subplots(nrows=n_plot_ROIs, ncols=n_conds)
     for co in range(n_conds):
@@ -1571,7 +1571,7 @@ for r in range(n_plot_ROIs):
 n_plot_cnd_per_cat = 5
 fr = md['framerate']
 for r in range(n_ROIs):
-    ridx = sort_dp[::-1][r]
+    ridx = sort_dp[r]
     
     plot_conds = []
     for cat in range(n_cats):
