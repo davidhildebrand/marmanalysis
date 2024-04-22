@@ -1507,8 +1507,7 @@ for r in range(n_plot_ROIs):
 del fr, xticks, xticklabels
 
 
-# ... by condition, including the average for each trial within that condition
-
+# ... by conditions (selected subset), including the average for each trial within that condition
 fr = md['framerate']
 fig = plt.figure()
 fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
@@ -1520,7 +1519,7 @@ stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
 sortedstims = stims[stimconds]
 conds_in_fcat = [i for i, x in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
 n_cnd_in_fcat = len(sortedstims)
-axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1))
+axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1), sharey=True)
 for r in range(n_plot_ROIs):
     ridx = sort_dp[plot_ROI_subset[r]]
     if r == 0:
@@ -1570,130 +1569,71 @@ for r in range(n_plot_ROIs):
         ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
         for t in range(n_trials):
             ax.plot(range(n_samp_trial), data[bool_cnd][met][0, ridx, t, :],
-                    color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]),
+                    color=str(np.linspace(0.4, 0.7, n_trials)[t]),
                     linewidth=0.1)
         Fmean = np.mean(data[bool_cnd][met][0, ridx, :, :], axis=0)
         Fsem = np.std(data[bool_cnd][met][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
         ax.plot(range(n_samp_trial), Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
 del bool_cat, bool_cnd
-
 plt.show()
 
 
 
-# # ... by condition for the 5 most responsive ROIs on average in each category, including the average for each trial within that condition
-# n_plot_cnd_per_cat = 5
-# fr = md['framerate']
-# for r in range(n_ROIs):
-#     ridx = sort_dp[r]
-    
-#     plot_conds = []
-#     for cat in range(n_cats):
-#         n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
-#         if n_cnd_in_cat > n_plot_cnd_per_cat:
-#             rankcond = np.argsort(np.abs(np.mean(data[data['cat'] == categories[cat]]['FdFF'][:, ridx, :, :][:, :, idx_stim], axis=(1, 2))))
-#             for pc in range(n_plot_cnd_per_cat):
-#                 plot_conds.append(data[data['cat'] == categories[cat]]['cond'][rankcond[pc]])
-#                 # plot_conds = data[data['cat'] == categories[cat]]['cond'][rankcond[slice(n_plot_cnd_per_cat)]]
-#         else:
-#             for pc in range(n_cnd_in_cat):
-#                 plot_conds.append(data[data['cat'] == categories[cat]]['cond'][pc])
-#                 # plot_conds = data[data['cat'] == categories[cat]]['cond'][rankcond[slice(n_cnd_in_cat)]]
-    
-#     fig = plt.figure()
-#     fig.suptitle('ROI {}: mean response by condition (each trial plotted)'.format(ridx), fontsize=10)
-#     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
-#     for m, met in enumerate(metrics):
+# ... by conditions (selected subset), as a trial-averaged heatmap
+fr = md['framerate']
+fig = plt.figure()
+fig.suptitle('trial-averaged heat maps by condition', fontsize=8)
+met = 'Fzsc'
+focus_cat = b'face_mrm'
+bool_focuscat = data['cat'] == focus_cat
+stims = data[bool_focuscat]['stimulus']
+stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
+sortedstims = stims[stimconds]
+conds_in_fcat = [i for i, x in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
+n_cnd_in_fcat = len(sortedstims)
+axes = fig.subplots(nrows=2, ncols=(n_cnd_in_fcat + 1), height_ratios=[0.25, 2.75], sharey='row')
 
-#         ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
-#         ymax = np.max(np.mean(data[met][:, ridx, :, :], axis=1))
-#         for cat in range(n_cats):
-#             ax = axes[m, cat]
-#             if m == 0:
-#                 ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
-#             if ca == 0:
-#                 ax.set_ylabel(metric_labels[met], fontsize=10)
-#                 ax.tick_params(axis='both', which='major', labelsize=8)
-#                 ax.spines['top'].set_visible(False)
-#                 ax.spines['right'].set_visible(False)
-#                 xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
-#                 xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr) 
-#                                else '{}'.format(np.round(xt / fr).astype('int')) for xt in xticks]
-#                 ax.set_xticks(xticks)            
-#                 ax.set_xticklabels(xticklabels)
-#             else:
-#                 ax.set_yticklabels([])
-#                 ax.set_xticklabels([])
-#                 ax.axis('off')
-#             ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
-#             ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-#             n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
-#             # for t in range(conds_per_cat * n_trials):
-#             #     ax.plot(range(n_samp_trial), data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, t, :],
-#             #             color=str(0.4 + 0.4 * t / data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, :, :].shape[0]))
-#             for cnd in range(n_cnd_in_cat):
-#                 ax.plot(range(n_samp_trial), np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
-#                         linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
-#             Fmean = np.mean(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1))
-#             Fsem = np.std(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
-#             ax.plot(range(n_samp_trial), Fmean, color='0.0', zorder=3)
-#             ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
-#     plt.show()
-    
-    # ymin = np.min(data['Fzsc'][:, ridx, :, :])
-    # ymax = np.max(data['Fzsc'][:, ridx, :, :])
-    # for ca in range(n_cats):
-    #     ax = axes[0, ca]
-    #     ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
-    #     if ca == 0:
-    #         ax.set_ylabel('Z-score', fontsize=10)
-    #         ax.tick_params(axis='both', which='major', labelsize=8)
-    #         ax.spines['top'].set_visible(False)
-    #         ax.spines['right'].set_visible(False)
-    #         xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
-    #         xticklabels = ['' if not np.isclose(xt, dur_isi * md['framerate']) and not np.isclose(xt, (dur_isi + dur_stim) * md['framerate']) 
-    #                        else '{}'.format(np.round(xt / md['framerate']).astype('int')) for xt in xticks]
-    #         ax.set_xticks(xticks)            
-    #         ax.set_xticklabels(xticklabels)
-    #     else:
-    #         ax.axis('off')
-    #     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
-    #     ax.set_ylim((ymin - 0.2, ymax + 0.2))
-    #     n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
-    #     # for t in range(conds_per_cat * n_trials):
-    #     #     ax.plot(range(n_samp_trial), data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, t, :],
-    #     #             color=str(0.4 + 0.4 * t / data[data['cat'] == categories[cat]]['Fzsc'][c, ridx, :, :].shape[0]))
-    #     for co in range(n_cnd_in_cat):
-    #         ax.plot(range(n_samp_trial), np.mean(data[data['cat'] == categories[cat]]['Fzsc'][co, ridx, :, :], axis=0),
-    #                 linewidth=1, markersize=1, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[co]), zorder=1)
-    #     Fmean = np.mean(data[data['cat'] == categories[cat]]['Fzsc'][:, ridx, :, :], axis=(0, 1))
-    #     Fsem = np.std(data[data['cat'] == categories[cat]]['Fzsc'][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
-    #     ax.plot(range(n_samp_trial), Fmean, color='0.0', zorder=3)
-    #     ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
-    # for ca in range(n_cats):
-    #     ax = axes[1, ca]
-    #     if ca == 0:
-    #         ax.set_xlabel('Time (sec)', fontsize=8)
-    #         ax.set_ylabel('dF/F', fontsize=10)
-    #         ax.tick_params(axis='both', which='major', labelsize=8)
-    #         ax.spines['top'].set_visible(False)
-    #         ax.spines['right'].set_visible(False)
-    #         ax.set_xticks([x * md['framerate'] for x in range(5)])
-    #         ax.set_xticklabels(['', 0, '', 2, ''])
-    #     else:
-    #         ax.axis('off')
-    #     ax.axvspan(n_samp_isi, (n_samp_isi + n_samp_stim), color='0.9')
-    #     ax.set_xlim((0, 4 * md['framerate']))
-    #     # ax.set_ylim((-1,2))
-    #     ax.set_ylim((np.min(data[data['cat'] == categories[cat]]['FdFF'][:, ridx, :, :]) - 0.1,
-    #                  np.max(data[data['cat'] == categories[cat]]['FdFF'][:, ridx, :, :]) + 0.1))
-    #     for t in range(conds_per_cat * n_trials):
-    #         ax.plot(range(n_samp_trial), data[data['cat'] == categories[cat]]['FdFF'][c, ridx, t, :],
-    #                 color=str((0.4) + 0.4 * t / data[data['cat'] == categories[cat]]['FdFF'][c, ridx, :, :].shape[0]))
-    #     ax.plot(range(n_samp_trial), np.mean(data[data['cat'] == categories[cat]]['FdFF'][c, ridx, :, :], axis=0), color='tab:blue')
-#     plt.waitforbuttonpress()
-# del fr, xticks, xticklabels
+pr = 0
+ax = axes[pr, 0]
+ax.axis('off')
+for cnd in range(20):
+    bool_cnd = data['cond'] == sortedstims[cnd].condition
+    ax = axes[pr, cnd + 1]
+    ax.axis('off')
+    img_st = ax.imshow(mpimg.imread(data[bool_cnd]['stimulus'][0].filepath))
+    # ax.set_ylim((0, img_st.get_size()[0]))
+        
+pr = 1
+ax_dp = axes[pr, 0]
+ax_dp.set_xlabel('Face d′')
+ax_dp.set_axisbelow(True)
+ax_dp.barh(range(0, n_ROIs), dprime[sort_dp], height=1.0, color='0.5')
+ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
+ax_dp.spines['right'].set_visible(False)
+ax_dp.spines['left'].set_visible(False)
+ax_dp.grid(linestyle='--', linewidth=0.5, color='0.75')
+for tick in ax_dp.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(False)
+    tick.tick2line.set_visible(False)
+    tick.label1.set_visible(False)
+    tick.label2.set_visible(False)
+
+for cnd in range(n_cnd_in_fcat):
+    bool_cnd = data['cond'] == sortedstims[cnd].condition
+    ax = axes[pr, cnd + 1]
+    ax.axis('off')
+    img_hm = ax.imshow(np.mean(data[bool_cnd][met][0, :, :, :], axis=1)[sort_dp],
+                          vmin=-1.0, vmax=1.0,
+                          aspect='auto', cmap='bwr', interpolation='none')
+    xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
+    xlines = [dur_isi * fr, (dur_isi + dur_stim) * fr]
+    # ax.set_xticks(xticks)
+    for xl in xlines:
+        ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.5')
+
+del bool_cnd
+plt.show()
 
 
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs
@@ -1736,7 +1676,7 @@ ax_hm.tick_params(which='minor', length=0)
 img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[sort_dp],
                       vmin=-1.0, vmax=1.0,
                       aspect='auto', cmap='bwr', interpolation='none')
-ax_hm.invert_yaxis()
+# ax_hm.invert_yaxis()
 # ax_hm.axvline(x=20)
 
 cbar = plt.colorbar(img_hm, ax=ax_hm, shrink=0.6)  # , location='bottom', shrink=0.6)
@@ -1777,7 +1717,7 @@ plt.rc('xtick', labelsize=8)
 plt.rc('ytick', labelsize=8)
 plt.rc('legend', fontsize=16)
 plt.rc('figure', titlesize=8)
-fig_hm.tight_layout()
+# fig_hm.tight_layout()
 fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
