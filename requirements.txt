@@ -2,6 +2,7 @@ h5py
 imagesize
 matplotlib
 numpy
+oasis-deconv
 opencv-python
 pandas
 python-magic
