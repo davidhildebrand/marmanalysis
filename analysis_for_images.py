@@ -6,6 +6,7 @@ from glob import glob
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
+import oasis
 import os
 import pickle
 import pandas as pd
@@ -516,14 +517,14 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 #     F0_pctbw[r] = filters.butterworth_filter(Frois[r], fs=md['framerate'], p=filter_percentile)
 #     FdFF_pctbw[r] = (Frois[r] - F0_pctbw[r]) / F0_pctbw[r]
 #
-# n_rolling_average = 120  # frames
-# FdFF_sw = np.zeros((n_ROIs, n_frames))
+# n_moving_average = 120  # frames
+# FdFF_ma = np.zeros((n_ROIs, n_frames))
 # for r in range(n_ROIs):
-#     FdFF_sw[r] = FdFF_raw[r] - np.convolve(FdFF_raw[r], np.ones(n_rolling_average)/n_rolling_average, mode='same')
+#     FdFF_ma[r] = FdFF_raw[r] - np.convolve(FdFF_raw[r], np.ones(n_moving_average) / n_moving_average, mode='same')
 
 # r = 8
 # plt.plot(FdFF_raw[r, 0:249], 'k', alpha=0.5)
-# plt.plot(FdFF_sw[r, 0:249], 'g', alpha=0.5)
+# plt.plot(FdFF_ma[r, 0:249], 'g', alpha=0.5)
 # plt.plot(FdFF_rnk[r, 0:249], 'c', alpha=0.5)
 # plt.plot(FdFF_pct[r, 0:249], 'y', alpha=0.5)
 # plt.plot(FdFF_rnkbw[r, 0:249], 'b', alpha=0.5)
@@ -544,15 +545,61 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 # plt.plot(FdFF_c[r, 0:500], 'm')
 
 
-
 # Inspect fluorescence trace filtering
-n_plot_ROIs = 5
-n_samp_inspect = 256  # frames
+n_plot_ROIs = 2
+n_samp_inspect = 1000  # frames
 filter_percentile = 10
 filter_window = 60  # sec
-n_rolling_average = 120  # frames
+
 plot_ROIs = np.random.choice(n_ROIs, n_plot_ROIs)
+frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
+frame_end = frame_start + n_samp_inspect
 fr = md['framerate']
+
+fig = plt.figure()
+# fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
+axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
+for r in range(n_plot_ROIs):
+    ridx = plot_ROIs[r]
+    
+    Fr = Frois[ridx, frame_start:frame_end]
+    Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
+    F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
+    Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
+    F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
+    Fr_dFF_pct = (Fr - F0_pct) / F0_pct
+    F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
+    Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
+    F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
+    Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
+    F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
+    Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)    
+    # from scipy.ndimage.filters import minimum_filter1d, maximum_filter1d
+    # F0_rmrm = maximum_filter1d(minimum_filter1d(Fr, round(filter_window * fr)), round(filter_window * fr))
+    
+    Fr_dFF_all = np.concatenate((Fr_dFF, Fr_dFF_rnk, Fr_dFF_pct, Fr_dFF_rnkbw, Fr_dFF_pctbw, Fr_dFF_ma))
+    
+    ymin = np.min(Fr)
+    ymax = np.max(Fr)
+    ax = axes[r]
+    ax.set_ylabel('dF/F', fontsize=6)
+    ax.set_xlabel('Frames', fontsize=6)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
+    ax.set_xticks([0, n_samp_inspect])
+    ax.set_xticklabels([frame_start, frame_end])
+    ax.plot(range(n_samp_inspect), Fr, label='Fr', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), F0_rnk, label='F0_rnk', linewidth=1, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), F0_pct, label='F0_pct', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), F0_rnkbw, label='F0_rnkbw', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), F0_pctbw, label='F0_pctbw', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), F0_ma, label='F0_ma', linewidth=1, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), F0_rmrm, label='F0_rmrm', linewidth=1, alpha=0.5, zorder=3)
+    ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02,.85))
+plt.show()
+
 
 fig = plt.figure()
 # fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
@@ -572,31 +619,50 @@ for r in range(n_plot_ROIs):
     Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
     F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
     Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
-    Fr_dFF_sw = Fr_dFF - np.convolve(Fr_dFF, np.ones(n_rolling_average) / n_rolling_average, mode='same')
+    F0_ma = np.convolve(Fr, np.ones(n_moving_average) / n_moving_average, mode='same')
+    Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(n_moving_average) / n_moving_average, mode='same')
+
+    oasisL0_c, oasisL0_s, oasisL0_b, oasisL0_g, oasisL0_lam = oasis.functions.deconvolve(Fr, penalty=0)    
+    Fr_oasisL0 = oasisL0_c + oasisL0_b
+    Fr_dFF_oasisL0 = (Fr_oasisL0 - oasisL0_b) / oasisL0_b
     
-    Fr_dFF_all = np.concatenate((Fr_dFF, Fr_dFF_rnk, Fr_dFF_pct, Fr_dFF_rnkbw, Fr_dFF_pctbw, Fr_dFF_sw))
+    oasisL1_c, oasisL1_s, oasisL1_b, oasisL1_g, oasisL1_lam = oasis.functions.deconvolve(Fr, penalty=1)    
+    Fr_oasisL1 = oasisL1_c + oasisL1_b
+    Fr_dFF_oasisL1 = (Fr_oasisL1 - oasisL1_b) / oasisL1_b
     
+    Fr_dFF_all = np.concatenate((Fr_dFF, Fr_dFF_rnk, Fr_dFF_pct, Fr_dFF_rnkbw, Fr_dFF_pctbw, Fr_dFF_ma, Fr_dFF_oasisL0, Fr_dFF_oasisL1))
+
     ymin = np.min(Fr_dFF_all)
     ymax = np.max(Fr_dFF_all)
-    # if m == 0:
-    #     ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
-    ax = axes[r, 0]
-    # ax.axis('off')
-    # if r == 0:
-    #     ax.set_ylabel(metric_labels[met], fontsize=8)
-    # elif r == n_plot_ROIs - 1:
-    #     ax.set_xlabel('Time (sec)', fontsize=6)
-    # ax.tick_params(axis='both', which='major', length=2, labelsize=6)
-    # ax.spines['top'].set_visible(False)
-    # ax.spines['right'].set_visible(False)
+    ax = axes[r]
+    ax.set_ylabel('dF/F', fontsize=6)
+    ax.set_xlabel('Frames', fontsize=6)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-    frame_start
-    frame_end
-    ax.plot(range(n_samp_inspect), Fr_dFF, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
+    ax.set_xticks([0, n_samp_inspect])
+    ax.set_xticklabels([frame_start, frame_end])
+    ax.plot(range(n_samp_inspect), Fr_dFF, label='FdFF', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), Fr_dFF_rnk, label='FdFF_rnk', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), Fr_dFF_pct, label='FdFF_pct', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), Fr_dFF_rnkbw, label='FdFF_rnkbw', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), Fr_dFF_pctbw, label='FdFF_pctbw', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), Fr_dFF_ma, label='FdFF_ma', linewidth=0.5, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
+    ax.plot(range(n_samp_inspect), Fr_dFF_oasisL1, label='FdFF_oasisL1', color='b', linewidth=1, alpha=0.8, zorder=10)
+
+    ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02,.85))
+plt.show()
 
 del n_plot_ROIs, n_samp_inspect, plot_ROIs, fr
-plt.show()
+
+
+# from oasis.functions import gen_data, gen_sinusoidal_data, deconvolve, estimate_parameters
+# from oasis.plotting import simpleaxis
+# from oasis.oasis_methods import oasisAR1, oasisAR2
+
+# c, s, b, g, lam = deconvolve(Fr)  # , penalty=1)
 
 
 
