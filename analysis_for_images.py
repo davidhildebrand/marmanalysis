@@ -516,7 +516,7 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 #     F0_pctbw[r] = filters.butterworth_filter(Frois[r], fs=md['framerate'], p=filter_percentile)
 #     FdFF_pctbw[r] = (Frois[r] - F0_pctbw[r]) / F0_pctbw[r]
 #
-# n_rolling_average = 120
+# n_rolling_average = 120  # frames
 # FdFF_sw = np.zeros((n_ROIs, n_frames))
 # for r in range(n_ROIs):
 #     FdFF_sw[r] = FdFF_raw[r] - np.convolve(FdFF_raw[r], np.ones(n_rolling_average)/n_rolling_average, mode='same')
@@ -542,6 +542,62 @@ Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=
 # plt.plot(Frois[r, 0:500], 'b', alpha=0.5)
 # plt.plot(FdFF_raw[r, 0:500], 'k', alpha=0.5)
 # plt.plot(FdFF_c[r, 0:500], 'm')
+
+
+
+# Inspect fluorescence trace filtering
+n_plot_ROIs = 5
+n_samp_inspect = 256  # frames
+filter_percentile = 10
+filter_window = 60  # sec
+n_rolling_average = 120  # frames
+plot_ROIs = np.random.choice(n_ROIs, n_plot_ROIs)
+fr = md['framerate']
+
+fig = plt.figure()
+# fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
+axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
+for r in range(n_plot_ROIs):
+    ridx = plot_ROIs[r]
+    frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
+    frame_end = frame_start + n_samp_inspect
+    
+    Fr = Frois[ridx, frame_start:frame_end]
+    Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
+    F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
+    Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
+    F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
+    Fr_dFF_pct = (Fr - F0_pct) / F0_pct
+    F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
+    Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
+    F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
+    Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
+    Fr_dFF_sw = Fr_dFF - np.convolve(Fr_dFF, np.ones(n_rolling_average) / n_rolling_average, mode='same')
+    
+    Fr_dFF_all = np.concatenate((Fr_dFF, Fr_dFF_rnk, Fr_dFF_pct, Fr_dFF_rnkbw, Fr_dFF_pctbw, Fr_dFF_sw))
+    
+    ymin = np.min(Fr_dFF_all)
+    ymax = np.max(Fr_dFF_all)
+    # if m == 0:
+    #     ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
+    ax = axes[r, 0]
+    # ax.axis('off')
+    # if r == 0:
+    #     ax.set_ylabel(metric_labels[met], fontsize=8)
+    # elif r == n_plot_ROIs - 1:
+    #     ax.set_xlabel('Time (sec)', fontsize=6)
+    # ax.tick_params(axis='both', which='major', length=2, labelsize=6)
+    # ax.spines['top'].set_visible(False)
+    # ax.spines['right'].set_visible(False)
+    
+    ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
+    frame_start
+    frame_end
+    ax.plot(range(n_samp_inspect), Fr_dFF, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
+
+del n_plot_ROIs, n_samp_inspect, plot_ROIs, fr
+plt.show()
+
 
 
 # % Look at eye tracking data
@@ -1624,13 +1680,10 @@ for cnd in range(n_cnd_in_fcat):
     ax = axes[pr, cnd + 1]
     ax.axis('off')
     img_hm = ax.imshow(np.mean(data[bool_cnd][met][0, :, :, :], axis=1)[sort_dp],
-                          vmin=-1.0, vmax=1.0,
-                          aspect='auto', cmap='bwr', interpolation='none')
-    xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
+                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
     xlines = [dur_isi * fr, (dur_isi + dur_stim) * fr]
-    # ax.set_xticks(xticks)
     for xl in xlines:
-        ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.5')
+        ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.6')
 
 del bool_cnd
 plt.show()
@@ -1674,8 +1727,7 @@ ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
 plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
 img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[sort_dp],
-                      vmin=-1.0, vmax=1.0,
-                      aspect='auto', cmap='bwr', interpolation='none')
+                      vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 # ax_hm.invert_yaxis()
 # ax_hm.axvline(x=20)
 
