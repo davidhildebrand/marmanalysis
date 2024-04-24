@@ -3,8 +3,6 @@
 
 import numpy as np
 
-# TODO make filters work with 2D arrays
-
 
 def prctile_alternative(x, k):
     """
@@ -144,7 +142,7 @@ def butterworth_filter(x, fs, p=10):
 
     n_butter = 1
     wn = (1 / p) / (fs / 2)  # Normalized cutoff frequency in NyQuist frequency units
-    b, a = butter(n_butter, wn, btype='low')
+    b, a = butter(n_butter, wn, btype='low', output='ba')
     x_bw = filtfilt(b, a, x_pad)
 
     x_bw = x_bw[pad:pad+len(x)]
