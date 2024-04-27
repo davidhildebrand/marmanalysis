@@ -130,7 +130,7 @@ def percentile_filter_1d(x, p, n=3, block_size=1000):
     return y
 
 
-def butterworth_filter(x, fs, n=1):
+def butterworth_filter(x, fs, cutoff, n=1):
     """
     Applies the low-pass butterworth filter from the SciPy package to a one-dimensional signal.
     Returned filtered signal is the same size as input signal, which is padded with the edge
@@ -138,15 +138,16 @@ def butterworth_filter(x, fs, n=1):
 
     x: signal
     fs: sampling frequency
+    cutoff: cutoff period (sec)
     n: order of the butterworth filter
     """
 
     from scipy.signal import butter, filtfilt
 
     pad = np.ceil(len(x) / 1).astype(int)
-    x_pad = np.concatenate([x[pad::-1], x, x[pad::-1]])
-    wn = (1 / filtered_cutoff) / (fs / 2)  # Normalized cutoff frequency in NyQuist frequency units
-    b, a = butter(n, wn, btype='low', output='ba')
+    x_pad = np.concatenate([x[pad::-1], x, x[:pad]])
+    wn = (1 / cutoff) / (fs / 2)  # Cutoff frequency normalized to NyQuist frequency units
+    b, a = butter(n, wn, btype='low')
     x_bw = filtfilt(b, a, x_pad)
     x_bw = x_bw[pad:pad+len(x)]
 
@@ -180,8 +181,8 @@ def baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
 
     # Butterworth filter to smooth
     n_butter = 1
-    wn = (1 / filtered_cutoff) / (fs / 2)  # Normalized cutoff frequency in NyQuist frequency units
-    b, a = butter(n_butter, wn, btype='low', output='ba')
+    wn = (1 / filtered_cutoff) / (fs / 2)  # Cutoff frequency normalized to NyQuist frequency units
+    b, a = butter(n_butter, wn, btype='low')
     x_bw = filtfilt(b, a, np.concatenate([x_lowpass[pad::-1], x_lowpass, x_lowpass[:pad]]))
     x_bw = x_bw[pad:pad+len(x)]
 
