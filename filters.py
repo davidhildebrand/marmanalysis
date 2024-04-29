@@ -64,8 +64,8 @@ def rank_order_filter(x, p, n):
     # X = np.concatenate([np.full(k, x[0,0]), x[:,0], np.full(k, x[-1,0])])
     x_pad = np.concatenate([np.full(k, x[0]), x[:], np.full(k, x[-1])])
     for j in range(m):
-        y[j] = prctile_alternative(x_pad[j:j+n], p)
-        # y[j] = np.percentile(x_pad[j:j+n], p, axis=0, method='midpoint')
+        # y[j] = prctile_alternative(x_pad[j:j+n], p)
+        y[j] = np.percentile(x_pad[j:j+n], p, axis=0, method='midpoint')
 
     # return np.squeeze(y)
     return y
