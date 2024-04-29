@@ -574,39 +574,41 @@ axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
 for r in range(n_plot_ROIs):
     ridx = plot_ROIs[r]
     
+    wn = (1 / filter_window) / (fr / 2)  # Cutoff frequency normalized to NyQuist frequency units
+    butter_b, butter_a = scipy.signal.butter(1, wn, btype='low')
+    
     Fr = Frois[ridx, frame_start:frame_end]
-    Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
-    F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
-    Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
-    F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
-    Fr_dFF_pct = (Fr - F0_pct) / F0_pct
 
-    F0_rnk2 = scipy.ndimage.rank_filter(Fr, filter_percentile, size=round(filter_window * fr), mode='reflect')
-    F0_rnk2bw = filters.butterworth_filter(Fr, fs=fr, cutoff=filter_window)
-    
-    F0_pct2 = scipy.ndimage.percentile_filter(Fr, filter_percentile, size=round(filter_window * fr), mode='reflect')
-    F0_pct2bw = filters.butterworth_filter(Fr, fs=fr, cutoff=filter_window)
+    # F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
+    # F0_pctbw = filters.butterworth_filter(F0_pct, fs=fr, cutoff=filter_window)
+    F0_pct = scipy.ndimage.percentile_filter(Fr, percentile=filter_percentile, size=round(filter_window * fr), mode='reflect')
+    F0_pctbw = scipy.signal.filtfilt(butter_b, butter_a, F0_pct, method='pad', padtype='even')
 
-    F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, cutoff=filter_window)
-    Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
-    F0_pctbw = filters.butterworth_filter(Fr, fs=fr, cutoff=filter_window)
-    Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
-    # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * fr),)), axis=1)
-    # Fr_dFF_med = (Fr - F0_med) / F0_med
-    # def ra_strides(arr, window):
-    #     ''' Running average using as_strided'''
-    #     n = arr.shape[0] - window + 1
-    #     arr_strided = as_strided(arr, shape=[n, window], strides=2*arr.strides)
-    #     return arr_strided.mean(axis=1)
-    F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
-    Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)    
-    # from scipy.ndimage.filters import minimum_filter1d, maximum_filter1d
-    # F0_rmrm = maximum_filter1d(minimum_filter1d(Fr, round(filter_window * fr)), round(filter_window * fr))
+    F0_rnkord = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
+    F0_rnkordbw = scipy.signal.filtfilt(butter_b, butter_a, F0_rnkord, method='pad', padtype='even')
     
-    Fr_dFF_all = np.concatenate((Fr_dFF, Fr_dFF_rnk, Fr_dFF_pct, Fr_dFF_rnkbw, Fr_dFF_pctbw, Fr_dFF_ma))
+    F0_rnk = scipy.ndimage.rank_filter(Fr, rank=filter_percentile, size=round(filter_window * fr), mode='reflect')
+    F0_rnkbw = scipy.signal.filtfilt(butter_b, butter_a, F0_rnk, method='pad', padtype='even')
+
+    F0_rmed = scipy.ndimage.median_filter(Fr, size=round(filter_window * fr), mode='reflect')
+    F0_rmean = scipy.ndimage.convolve(Fr, np.ones(round(filter_window * fr)) / round(filter_window * fr))
+
+    # from scipy.ndimage import maximum_filter1d, minimum_filter1d, gaussian_filter
+    # "Fluorescent traces of each neuron were baseline corrected (ΔF/F) by dividing the fluorescence trace of that neuron by the rolling max of the rolling min, using a 60 s time window."
+    # — Finkelstein et al Svoboda bioRxiv https://doi.org/10.1101/2023.11.25.568673
+    F0_rgauss = scipy.ndimage.gaussian_filter(Fr, sigma=10., mode='reflect')
+    F0_rmin = scipy.ndimage.minimum_filter1d(F0_rgauss, size=round(filter_window * fr), mode='reflect')
+    F0_rmaxmin = scipy.ndimage.maximum_filter1d(F0_rmin, size=round(filter_window * fr), mode='reflect')
+    F0_rmaxminbw = scipy.signal.filtfilt(butter_b, butter_a, F0_rmaxmin, method='pad', padtype='even')
+    # suite2p documentation   # for computing and subtracting baseline
+    # baseline = 'maximin' # take the running max of the running min after smoothing with gaussian
+    # sig_baseline = 10.0 # in bins, standard deviation of gaussian with which to smooth
+    # win_baseline = 60.0 # in seconds, window in which to compute max/min filters
     
     ymin = np.min(Fr)
     ymax = np.max(Fr)
+    xs = range(n_samp_inspect)
+    
     ax = axes[r]
     ax.set_ylabel('dF/F', fontsize=6)
     ax.set_xlabel('Frames', fontsize=6)
@@ -616,18 +618,23 @@ for r in range(n_plot_ROIs):
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.set_xticks([0, n_samp_inspect])
     ax.set_xticklabels([frame_start, frame_end])
-    ax.plot(range(n_samp_inspect), Fr, label='Fr', linewidth=0.5, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_rnk, label='F0_rnk', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_rnk2, label='F0_rnk2', linestyle='dotted', linewidth=2, alpha=0.5, zorder=4)
-    # ax.plot(range(n_samp_inspect), F0_pct, label='F0_pct', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), F0_pct2, label='F0_pct2', linestyle='dotted', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_rnkbw, label='F0_rnkbw', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_rnk2bw, label='F0_rnk2bw', linestyle='dotted', linewidth=2, alpha=0.5, zorder=4)
-    # ax.plot(range(n_samp_inspect), F0_pctbw, label='F0_pctbw', linestyle='solid', linewidth=1, alpha=0.5, zorder=4)
-    # ax.plot(range(n_samp_inspect), F0_pct2bw, label='F0_pct2bw', linestyle='dotted', linewidth=1, alpha=0.5, zorder=4)
-    # ax.plot(range(n_samp_inspect), F0_ma, label='F0_med', linewidth=1, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), F0_ma, label='F0_ma', linewidth=1, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), F0_rmrm, label='F0_rmrm', linewidth=1, alpha=0.5, zorder=3)
+
+    ax.plot(xs, Fr, label='Fr', linewidth=0.5, alpha=0.5, zorder=1)
+
+    ax.plot(xs, F0_pct, label='F0_pct', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(xs, F0_pctbw, label='F0_pctbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=4)
+
+    # ax.plot(xs, F0_rnkord, label='F0_rnkord', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
+    # ax.plot(xs, F0_rnkordbw, label='F0_rnkordbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
+    
+    # ax.plot(xs, F0_rnk, label='F0_rnk', linestyle='solid', linewidth=1, alpha=0.5, zorder=4)
+    # ax.plot(xs, F0_rnkbw, label='F0_rnkbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=4)
+
+    ax.plot(xs, F0_rmed, label='F0_med', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+    ax.plot(xs, F0_rmean, label='F0_mean', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+    
+    # ax.plot(xs, F0_rmaxmin, label='F0_rmaxmin', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(xs, F0_rmaxminbw, label='F0_rmaxminbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=4)
     ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02,.85))
 plt.show()
 
@@ -670,6 +677,8 @@ for r in range(n_plot_ROIs):
 
     ymin = np.min(Fr_dFF_all)
     ymax = np.max(Fr_dFF_all)
+    xs = range(n_samp_inspect)
+    
     ax = axes[r]
     ax.set_ylabel('dF/F', fontsize=6)
     ax.set_xlabel('Frames', fontsize=6)
@@ -679,15 +688,15 @@ for r in range(n_plot_ROIs):
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.set_xticks([0, n_samp_inspect])
     ax.set_xticklabels([frame_start, frame_end])
-    ax.plot(range(n_samp_inspect), Fr_dFF, label='FdFF', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), Fr_dFF_rnk, label='FdFF_rnk', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), Fr_dFF_pct, label='FdFF_pct', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), Fr_dFF_rnkbw, label='FdFF_rnkbw', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), Fr_dFF_pctbw, label='FdFF_pctbw', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), Fr_dFF_ma, label='Fr_dFF_med', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), Fr_dFF_ma, label='FdFF_ma', linewidth=0.5, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
-    ax.plot(range(n_samp_inspect), Fr_dFF_oasisL1, label='FdFF_oasisL1', color='b', linewidth=1, alpha=0.8, zorder=10)
+    ax.plot(xs, Fr_dFF, label='FdFF', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(xs, Fr_dFF_rnk, label='FdFF_rnk', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(xs, Fr_dFF_pct, label='FdFF_pct', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(xs, Fr_dFF_rnkbw, label='FdFF_rnkbw', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(xs, Fr_dFF_pctbw, label='FdFF_pctbw', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(xs, Fr_dFF_ma, label='Fr_dFF_med', linewidth=0.5, alpha=0.5, zorder=3)
+    # ax.plot(xs, Fr_dFF_ma, label='FdFF_ma', linewidth=0.5, alpha=0.5, zorder=3)
+    ax.plot(xs, Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
+    ax.plot(xs, Fr_dFF_oasisL1, label='FdFF_oasisL1', color='b', linewidth=1, alpha=0.8, zorder=10)
 
     ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02,.85))
 plt.show()
