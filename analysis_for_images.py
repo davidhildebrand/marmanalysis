@@ -565,6 +565,9 @@ frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
 frame_end = frame_start + n_samp_inspect
 fr = md['framerate']
 
+import scipy
+
+
 fig = plt.figure()
 # fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
@@ -577,9 +580,16 @@ for r in range(n_plot_ROIs):
     Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
     F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
     Fr_dFF_pct = (Fr - F0_pct) / F0_pct
-    F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
+
+    F0_rnk2 = scipy.ndimage.rank_filter(Fr, filter_percentile, size=round(filter_window * fr), mode='reflect')
+    F0_rnk2bw = filters.butterworth_filter(Fr, fs=fr, cutoff=filter_window)
+    
+    F0_pct2 = scipy.ndimage.percentile_filter(Fr, filter_percentile, size=round(filter_window * fr), mode='reflect')
+    F0_pct2bw = filters.butterworth_filter(Fr, fs=fr, cutoff=filter_window)
+
+    F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, cutoff=filter_window)
     Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
-    F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
+    F0_pctbw = filters.butterworth_filter(Fr, fs=fr, cutoff=filter_window)
     Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
     # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * fr),)), axis=1)
     # Fr_dFF_med = (Fr - F0_med) / F0_med
@@ -607,12 +617,16 @@ for r in range(n_plot_ROIs):
     ax.set_xticks([0, n_samp_inspect])
     ax.set_xticklabels([frame_start, frame_end])
     ax.plot(range(n_samp_inspect), Fr, label='Fr', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), F0_rnk, label='F0_rnk', linewidth=1, alpha=0.5, zorder=3)
-    # ax.plot(range(n_samp_inspect), F0_pct, label='F0_pct', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_rnkbw, label='F0_rnkbw', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_pctbw, label='F0_pctbw', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_ma, label='F0_med', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(range(n_samp_inspect), F0_ma, label='F0_ma', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), F0_rnk, label='F0_rnk', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), F0_rnk2, label='F0_rnk2', linestyle='dotted', linewidth=2, alpha=0.5, zorder=4)
+    # ax.plot(range(n_samp_inspect), F0_pct, label='F0_pct', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), F0_pct2, label='F0_pct2', linestyle='dotted', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), F0_rnkbw, label='F0_rnkbw', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
+    ax.plot(range(n_samp_inspect), F0_rnk2bw, label='F0_rnk2bw', linestyle='dotted', linewidth=2, alpha=0.5, zorder=4)
+    # ax.plot(range(n_samp_inspect), F0_pctbw, label='F0_pctbw', linestyle='solid', linewidth=1, alpha=0.5, zorder=4)
+    # ax.plot(range(n_samp_inspect), F0_pct2bw, label='F0_pct2bw', linestyle='dotted', linewidth=1, alpha=0.5, zorder=4)
+    # ax.plot(range(n_samp_inspect), F0_ma, label='F0_med', linewidth=1, alpha=0.5, zorder=3)
+    # ax.plot(range(n_samp_inspect), F0_ma, label='F0_ma', linewidth=1, alpha=0.5, zorder=3)
     # ax.plot(range(n_samp_inspect), F0_rmrm, label='F0_rmrm', linewidth=1, alpha=0.5, zorder=3)
     ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02,.85))
 plt.show()
