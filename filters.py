@@ -4,15 +4,21 @@
 import numpy as np
 
 
-def prctile_alternative(x, k):
+# The mpfi_* functions were ported from 2018 MPFI Neuroimaging Workshop code written in MATLAB by
+# David Whitney <david.whitney@mpfi.org>:
+#   https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop
+
+def mpfi_prctile_alternative(x, k):
     """
     Calculate the k'th percentile of one-dimensional signal x.
     Described by the author as being "similar to, but generally much faster than", the MATLAB prctile function.
 
-    This function is derived from a MATLAB function named 'percentile' included with function 'RankOrderFilter'
+    This function was ported from a MATLAB function named 'percentile' included with function 'RankOrderFilter':
         Author: Arash Salarian <arash.salarian@ieee.org>
         Copyright: 2008 Arash Salarian
         URL: https://www.mathworks.com/matlabcentral/fileexchange/22111-rank-order-filter
+    which was included in the 2018 MPFI Neuroimaging Workshop code by David Whitney <david.whitney@mpfi.org>:
+         https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop
     """
     x = np.sort(x)
     n = len(x)
@@ -28,9 +34,9 @@ def prctile_alternative(x, k):
     return y
 
 
-def rank_order_filter(x, p, n):
+def mpfi_rank_order_filter(x, p, n):
     """
-    Rank order filter for one-dimensional signals.
+    Rank-order filter for one-dimensional signals.
 
     % y = rankOrderFilter(x, p, N) runs a rank-order filtering of order
     % N on x. y is the same size as x. To avoid edge effects, the x is expanded
@@ -47,9 +53,12 @@ def rank_order_filter(x, p, n):
     % When p is close to 0 (or to 100), a RankOrderFilter calculates an
     % approximate lower (or upper) envlope of the signal.
 
-    This function is derived from a MATLAB function named RankOrderFilter
+    This function was ported from a MATLAB function named 'RankOrderFilter':
         Author: Arash Salarian <arash.salarian@ieee.org>
         Copyright: 2008 Arash Salarian
+        URL: https://www.mathworks.com/matlabcentral/fileexchange/22111-rank-order-filter
+    which was included in the 2018 MPFI Neuroimaging Workshop code by David Whitney <david.whitney@mpfi.org>:
+         https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop
     """
 
     # if x.ndim == 1:
@@ -64,16 +73,16 @@ def rank_order_filter(x, p, n):
     # X = np.concatenate([np.full(k, x[0,0]), x[:,0], np.full(k, x[-1,0])])
     x_pad = np.concatenate([np.full(k, x[0]), x[:], np.full(k, x[-1])])
     for j in range(m):
-        # y[j] = prctile_alternative(x_pad[j:j+n], p)
+        # y[j] = mpfi_prctile_alternative(x_pad[j:j+n], p)
         y[j] = np.percentile(x_pad[j:j+n], p, axis=0, method='midpoint')
 
     # return np.squeeze(y)
     return y
 
 
-def percentile_filter_1d(x, p, n=3, block_size=1000):
+def mpfi_percentile_filter_1d(x, p, n=3, block_size=1000):
     """
-    Median filter for one-dimensional signals.
+    Percentile filter for one-dimensional signals.
 
     % Y = percentileFilt1(X, percentile, N) returns the output of the order N, one dimensional
     % percentile filtering of X.  Y is the same size as X; for the edge points,
@@ -104,11 +113,13 @@ def percentile_filter_1d(x, p, n=3, block_size=1000):
     % plot(t,x,'k',t,y,'r'); grid;            % Plot
     % legend('Original Signal','Filtered Signal')
 
-    This function is derived from a MATLAB function named percentileFilt1
+    This function was ported from a MATLAB function named 'percentileFilt1':
         Authors: L. Shure and T. Krauss (1993-08-03)
         Copyright: 1988-2004 The MathWorks, Inc.
         Revision: 1.8.4.6
         Date: 2012-10-29 19:31:41
+    which was included in the 2018 MPFI Neuroimaging Workshop code by David Whitney <david.whitney@mpfi.org>:
+         https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop
     """
 
     nx = len(x)
@@ -130,16 +141,19 @@ def percentile_filter_1d(x, p, n=3, block_size=1000):
     return y
 
 
-def butterworth_filter(x, fs, cutoff, n=1):
+def mpfi_butterworth_filter(x, fs, cutoff, n=1):
     """
     Applies the low-pass butterworth filter from the SciPy package to a one-dimensional signal.
-    Returned filtered signal is the same size as input signal, which is padded with the edge
-    values before filtering to reduce edge effects.
+    Returned filtered signal is the same size as input signal, which is padded before filtering to reduce edge effects.
 
     x: signal
     fs: sampling frequency
     cutoff: cutoff period (sec)
     n: order of the butterworth filter
+
+    This function is ported from a portion of a MATLAB function named 'baselinePercentileFilter':
+        Authors: David Whitney (david.whitney@mpfi.org)
+        URL: https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop
     """
 
     from scipy.signal import butter, filtfilt
@@ -154,7 +168,7 @@ def butterworth_filter(x, fs, cutoff, n=1):
     return x_bw
 
 
-def baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
+def mpfi_baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
     """
     Uses a combination of one-dimensional median/butterworth high-pass filtered to compute a baseline
     for the input trace.
@@ -164,10 +178,9 @@ def baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
     p_rank: percentile rank for the filter
     filtered_cutoff: cutoff for the filter
 
-    This function is derived from a MATLAB function named baselinePercentileFilter
+    This function is ported from a MATLAB function named 'baselinePercentileFilter':
         Authors: David Whitney (david.whitney@mpfi.org)
-        Copyright: 2016 Max Planck Florida Institute
-        URL: https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop/
+        URL: https://github.com/dwhitneycmu/MPFI-Neuroimaging-Workshop
     """
 
     from scipy.signal import butter, filtfilt
@@ -175,8 +188,8 @@ def baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
     # Compute a low-pass median filter
     pad = np.ceil(len(x) / 1).astype(int)
     x_pad = np.concatenate([x[pad::-1], x, x[pad::-1]])
-    # x_lowpass = percentile_filter_1d(x_pad, p_rank, round(filtered_cutoff * fs))
-    x_lowpass = rank_order_filter(x_pad, p_rank, round(filtered_cutoff * fs))
+    # x_lowpass = mpfi_percentile_filter_1d(x_pad, p_rank, round(filtered_cutoff * fs))
+    x_lowpass = mpfi_rank_order_filter(x_pad, p_rank, round(filtered_cutoff * fs))
     x_lowpass = x_lowpass[pad:pad+len(x)]
 
     # Butterworth filter to smooth
