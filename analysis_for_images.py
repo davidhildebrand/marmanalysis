@@ -2470,7 +2470,7 @@ stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
 sortedstims = stims[stimconds]
 conds_in_fcat = [i for i, x in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
 n_cnd_in_fcat = len(sortedstims)
-axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1), sharey=True)
+axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1), sharey='row')
 for r in range(n_plot_ROIs):
     ridx = sort_dp[plot_ROI_subset[r]]
     if r == 0:
