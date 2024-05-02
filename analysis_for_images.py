@@ -487,50 +487,17 @@ n_ROIs = Frois.shape[0]
 FdFF_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.mean(Frois, axis=1)[:, np.newaxis]
 Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=1)[:, np.newaxis]
 
-# Approaches for computing dF/F using more sophisticated baseline fluorescence (F0) calculations.
-# from Gordon Smith (https://doi.org/10.1038/s41592-023-02098-1):
-#   Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence trace (tenth
-#   percentile) with a rolling time window of 60 sec.
-# from Gordon Smith (https://doi.org/10.1016/j.jneumeth.2023.110051):
-#   The baseline fluorescence (F0) for each pixel was obtained by applying a rank-order filter to the raw fluorescence
-#   trace with a rank 70 samples and a time window of 30 sec (451 samples).
-# from Wilson et al Fitzpatrick (e.g. https://doi.org/10.1038/s41586-018-0354-1):
-#   ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), which was then
-#   low-pass filtered at 0.01 Hz.
-#
-# filter_percentile = 10
-# filter_window = 60  # sec
-#
-# # F0_rnk = np.zeros((n_ROIs, n_frames))
-# # FdFF_rnk = np.zeros((n_ROIs, n_frames))
-# F0_pct = np.zeros((n_ROIs, n_frames))
-# FdFF_pct = np.zeros((n_ROIs, n_frames))
-# # F0_rnkbw = np.zeros((n_ROIs, n_frames))
-# # FdFF_rnkbw = np.zeros((n_ROIs, n_frames))
-# F0_pctbw = np.zeros((n_ROIs, n_frames))
-# FdFF_pctbw = np.zeros((n_ROIs, n_frames))
-# for r in range(n_ROIs):
-#     # F0_rnk[r] = filters.rank_order_filter(Frois[r], p=filter_percentile, n=round(filter_window * md['framerate']))
-#     # FdFF_rnk[r] = (Frois[r] - F0_rnk[r]) / F0_rnk[r]
-#     F0_pct[r] = filters.percentile_filter_1d(Frois[r], p=filter_percentile, n=round(filter_window * md['framerate']))
-#     FdFF_pct[r] = (Frois[r] - F0_pct[r]) / F0_pct[r]
-#     # F0_rnkbw[r] = filters.butterworth_filter(F0_rnk[r], fs=md['framerate'], p=filter_percentile)
-#     # FdFF_rnkbw[r] = (Frois[r] - F0_rnkbw[r]) / F0_rnkbw[r]
-#     F0_pctbw[r] = filters.butterworth_filter(Frois[r], fs=md['framerate'], p=filter_percentile)
-#     FdFF_pctbw[r] = (Frois[r] - F0_pctbw[r]) / F0_pctbw[r]
-#
-# n_moving_average = 120  # frames
-# FdFF_ma = np.zeros((n_ROIs, n_frames))
-# for r in range(n_ROIs):
-#     FdFF_ma[r] = FdFF_raw[r] - np.convolve(FdFF_raw[r], np.ones(n_moving_average) / n_moving_average, mode='same')
 
-# r = 8
-# plt.plot(FdFF_raw[r, 0:249], 'k', alpha=0.5)
-# plt.plot(FdFF_ma[r, 0:249], 'g', alpha=0.5)
-# plt.plot(FdFF_rnk[r, 0:249], 'c', alpha=0.5)
-# plt.plot(FdFF_pct[r, 0:249], 'y', alpha=0.5)
-# plt.plot(FdFF_rnkbw[r, 0:249], 'b', alpha=0.5)
-# plt.plot(FdFF_pctbw[r, 0:249], 'r', alpha=0.5)
+# Approaches for computing dF/F using more sophisticated baseline fluorescence (F0) calculations.
+
+filter_percentile = 10
+filter_window = 60  # sec
+fr = md['framerate']
+
+
+filter_win = filter_window  # sec
+filter_win_frames = round(filter_win * md['framerate'])  # frames
+
 
 # # Deconvolve fluorescence signals.
 # from oasis.oasis_methods import oasisAR1
