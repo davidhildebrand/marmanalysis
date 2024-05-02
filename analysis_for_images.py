@@ -479,24 +479,21 @@ fov_h = s2p_ops['Ly']
 fov_w = s2p_ops['Lx']
 fov_size = (fov_h, fov_w)  # rows/height/y, columns/width/x
 fov_image = s2p_ops['meanImg']
-n_frames = Frois.shape[1]
+n_ROIs, n_frames = Frois.shape
 
+
+# # Inspect fluorescence baseline filters
+# filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
+#                                percentile=10, rank=10, sigma=10)
+
+# Calculate baseline fluorescence (F0)
+F0_filt_win_sec = 60  # sec
+F0_filt_win_frames = round(F0_filt_win_sec * md['framerate'])  # frames
+F0 = filters.calculate_baselines(Frois, framerate=md['framerate'], window=F0_filt_win_sec, method='meanbw')
 
 # Compute dF/F and z-scored dF/F
-n_ROIs = Frois.shape[0]
-FdFF_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.mean(Frois, axis=1)[:, np.newaxis]
-Fzsc_raw = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=1)[:, np.newaxis]
-
-
-# Approaches for computing dF/F using more sophisticated baseline fluorescence (F0) calculations.
-
-filter_percentile = 10
-filter_window = 60  # sec
-fr = md['framerate']
-
-
-filter_win = filter_window  # sec
-filter_win_frames = round(filter_win * md['framerate'])  # frames
+FdFF_raw = (Frois - F0) / F0
+Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Frois - F0, axis=1)[:, np.newaxis]
 
 
 # # Deconvolve fluorescence signals.
@@ -520,10 +517,6 @@ filter_win_frames = round(filter_win * md['framerate'])  # frames
 # as GCaMP6s it is more accurate to explicitly model the finite rise time. Typically we choose an AR(2) process,
 # though more structured responses (e.g. multiple decay time constants) can also be modeled with higher values for
 # the order p."
-
-# Inspect fluorescence baseline filters
-filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
-                               percentile=10, rank=10, sigma=10)
 
 fig = plt.figure()
 # fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
