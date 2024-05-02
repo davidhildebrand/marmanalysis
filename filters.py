@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from warnings import warn
 
 
 # The mpfi_* functions were ported from 2018 MPFI Neuroimaging Workshop code written in MATLAB by
@@ -202,204 +203,312 @@ def mpfi_baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
     return x_bw
 
 
-def calculate_baselines(f_rois, framerate=6.364, window=60, method='rollmeanbw', percentile=10):
+def calculate_baselines(f_rois, framerate=6.364, window=60, method='meanbw', **extras):
     """
     Calculate the baselines for all ROIs.
 
     f_rois: fluorescence trace signals for a set of ROIs, shape: (n_ROIs, n_frames)
     framerate: frame sampling frequency (Hz)
     window: period of filtering (sec)
-    percentile: percentile for the filter
-
     method: type of filter to use
-
     """
     if np.ndim(f_rois) == 1:
         f_rois = np.expand_dims(f_rois, axis=0)
 
     n_rois, n_frames = f_rois.shape
+    rate = framerate  # Hz
+    win = window  # sec
+    win_frames = round(win * rate)  # frames
 
     # Butterworth filter critical frequency (normalized to NyQuist frequency units)
-    wn = (1 / window) / (framerate / 2)
+    wn = (1 / win) / (rate / 2)
 
     match method:
-        case 'rollmean':
+        case 'mean':
             from scipy.ndimage import convolve
+
             f0 = convolve(f_rois,
-                          weights=[np.zeros(filter_win_frames), np.ones(filter_win_frames) / filter_win_frames],
+                          weights=[np.zeros(win_frames), np.ones(win_frames) / win_frames],
                           mode='reflect')
-        case 'rollmeanbw':
+
+        case 'meanbw':
             from scipy.ndimage import convolve
             from scipy.signal import butter, filtfilt
+
             f0 = convolve(f_rois,
-                          weights=[np.zeros(filter_win_frames), np.ones(filter_win_frames) / filter_win_frames],
+                          weights=[np.zeros(win_frames), np.ones(win_frames) / win_frames],
                           mode='reflect')
             b, a = butter(1, wn, btype='low')
             f0 = filtfilt(b, a, f0, method='pad', padtype='even')
 
-        case 'rollmed':
+        case 'median':
             from scipy.ndimage import median_filter
-            # Filter each ROI separately to avoid memory errors.
+
+            # Filter each ROI separately to avoid memory errors
             f0 = np.full([n_rois, n_frames], np.nan)
             for r in range(n_rois):
-                f0[r] = median_filter(f_rois[r], size=filter_win_frames, mode='reflect')
-        case 'rollmedbw':
+                f0[r] = median_filter(f_rois[r], size=win_frames, mode='reflect')
+
+        case 'medianbw':
             from scipy.ndimage import median_filter
             from scipy.signal import butter, filtfilt
-            # Filter each ROI separately to avoid memory errors.
+
+            # Filter each ROI separately to avoid memory errors
             f0 = np.full([n_rois, n_frames], np.nan)
             for r in range(n_rois):
-                f0[r] = median_filter(f_rois[r], size=filter_win_frames, mode='reflect')
+                f0[r] = median_filter(f_rois[r], size=win_frames, mode='reflect')
             b, a = butter(1, wn, btype='low')
             f0 = filtfilt(b, a, f0, method='pad', padtype='even')
 
         case 'pctile':
-            # first part of... Wilson et al Fitzpatrick (https://doi.org/10.1038/s41586-018-0354-1):
-            #   "ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), which
-            #   was then low-pass filtered at 0.01 Hz."
+            # Similar to Wilson et al Fitzpatrick (https://doi.org/10.1038/s41586-018-0354-1) but uses built-in python
+            # functions and different padding methods as a result:
+            #   "ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), [...]"
             from scipy.ndimage import percentile_filter
-            # Filter each ROI separately to avoid memory errors.
+
+            if not extras or 'percentile' not in extras:
+                warn('No percentile value specified for percentile filter, using default of percentile=10.')
+                pctl = 10
+            else:
+                pctl = extras['percentile']
+
+            # Filter each ROI separately to avoid memory errors
             f0 = np.full([n_rois, n_frames], np.nan)
             for r in range(n_rois):
-                f0[r] = percentile_filter(f_rois[r], percentile=percentile, size=filter_win_frames, mode='reflect')
+                f0[r] = percentile_filter(f_rois[r], percentile=pctl, size=win_frames, mode='reflect')
+
         case 'pctilebw':
-            # very similar to... Wilson et al Fitzpatrick (https://doi.org/10.1038/s41586-018-0354-1):
+            # Similar to Wilson et al Fitzpatrick (https://doi.org/10.1038/s41586-018-0354-1) but uses built-in python
+            # functions and different padding methods as a result:
             #   "ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), which
             #   was then low-pass filtered at 0.01 Hz."
             from scipy.ndimage import percentile_filter
             from scipy.signal import butter, filtfilt
-            # Filter each ROI separately to avoid memory errors.
+
+            if not extras or 'percentile' not in extras:
+                warn('No percentile value specified for percentile filter, using default of percentile=10.')
+                pctl = 10
+            else:
+                pctl = extras['percentile']
+
+            # Filter each ROI separately to avoid memory errors
             f0 = np.full([n_rois, n_frames], np.nan)
             for r in range(n_rois):
-                f0[r] = percentile_filter(f_rois[r], percentile=percentile, size=filter_win_frames, mode='reflect')
+                f0[r] = percentile_filter(f_rois[r], percentile=pctl, size=win_frames, mode='reflect')
             b, a = butter(1, wn, btype='low')
             f0 = filtfilt(b, a, f0, method='pad', padtype='even')
 
         case 'rank':
-            # not quite the same as part of... Gordon Smith (https://doi.org/10.1038/s41592-023-02098-1):
-            #   "Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence
-            #   trace (tenth percentile) with a rolling time window of 60 sec."
             from scipy.ndimage import rank_filter
-            # Filter each ROI separately to avoid memory errors.
+
+            if not extras or 'rank' not in extras:
+                warn('No rank value specified for rank filter, using default of rank=10.')
+                rnk = 10
+            else:
+                rnk = extras['rank']
+
+            # Filter each ROI separately to avoid memory errors
             f0 = np.full([n_rois, n_frames], np.nan)
             for r in range(n_rois):
-                f0[r] = rank_filter(f_rois[r], rank=filter_percentile, size=filter_win_frames, mode='reflect')
+                f0[r] = rank_filter(f_rois[r], rank=rnk, size=win_frames, mode='reflect')
+
         case 'rankbw':
-            # not quite the same as... Gordon Smith (https://doi.org/10.1038/s41592-023-02098-1):
-            #   "Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence
-            #   trace (tenth percentile) with a rolling time window of 60 sec."
             from scipy.ndimage import rank_filter
             from scipy.signal import butter, filtfilt
-            # Filter each ROI separately to avoid memory errors.
+
+            if not extras or 'rank' not in extras:
+                warn('No rank value specified for rank filter, using default of rank=10.')
+                rnk = 10
+            else:
+                rnk = extras['rank']
+
+            # Filter each ROI separately to avoid memory errors
             f0 = np.full([n_rois, n_frames], np.nan)
             for r in range(n_rois):
-                f0[r] = rank_filter(f_rois[r], rank=filter_percentile, size=filter_win_frames, mode='reflect')
+                f0[r] = rank_filter(f_rois[r], rank=rnk, size=win_frames, mode='reflect')
             b, a = butter(1, wn, btype='low')
             f0 = filtfilt(b, a, f0, method='pad', padtype='even')
 
         case 'maximin':
-            # from suite2p dcnv (https://github.com/MouseLand/suite2p/blob/c88e1b/suite2p/extraction/dcnv.py#L127)
+            # Same as suite2p dcnv (https://github.com/MouseLand/suite2p/blob/c88e1b/suite2p/extraction/dcnv.py#L127):
             #   "take the running max of the running min after smoothing with gaussian"
             #   sig_baseline = 10.0 # in bins, standard deviation of gaussian with which to smooth
             #   win_baseline = 60.0 # in seconds, window in which to compute max/min filters
             from scipy.ndimage import gaussian_filter, maximum_filter1d, minimum_filter1d
             from scipy.signal import butter, filtfilt
-            f0 = gaussian_filter(f_rois, sigma=[0., 10.], mode='reflect')
-            f0 = minimum_filter1d(f0, size=filter_win_frames, mode='reflect')
-            f0 = maximum_filter1d(f0, size=filter_win_frames, mode='reflect')
+
+            if not extras or 'sigma' not in extras:
+                warn('No sigma value specified for gaussian filter in maximin method, using default of sigma=10.')
+                sgma = 10.
+            else:
+                sgma = extras['sigma']
+
+            f0 = gaussian_filter(f_rois, sigma=[0., sgma], mode='reflect')
+            f0 = minimum_filter1d(f0, size=win_frames, mode='reflect')
+            f0 = maximum_filter1d(f0, size=win_frames, mode='reflect')
+
         case 'maximinbw':
-            # similar to from suite2p (https://github.com/MouseLand/suite2p/blob/c88e1b/suite2p/extraction/dcnv.py#L127)
+            # Similar to suite2p (https://github.com/MouseLand/suite2p/blob/c88e1b/suite2p/extraction/dcnv.py#L127)
+            # but with a butterworth filter applied to the result:
             #   "take the running max of the running min after smoothing with gaussian"
             #   sig_baseline = 10.0 # in bins, standard deviation of gaussian with which to smooth
             #   win_baseline = 60.0 # in seconds, window in which to compute max/min filters
             from scipy.ndimage import gaussian_filter, maximum_filter1d, minimum_filter1d
             from scipy.signal import butter, filtfilt
-            f0 = gaussian_filter(f_rois, sigma=[0., 10.], mode='reflect')
-            f0 = minimum_filter1d(f0, size=filter_win_frames, mode='reflect')
-            f0 = maximum_filter1d(f0, size=filter_win_frames, mode='reflect')
+
+            if not extras or 'sigma' not in extras:
+                warn('No sigma value specified for gaussian filter in maximin method, using default of sigma=10.')
+                sgma = 10.
+            else:
+                sgma = extras['sigma']
+
+            f0 = gaussian_filter(f_rois, sigma=[0., sgma], mode='reflect')
+            f0 = minimum_filter1d(f0, size=win_frames, mode='reflect')
+            f0 = maximum_filter1d(f0, size=win_frames, mode='reflect')
             b, a = butter(1, wn, btype='low')
             f0 = filtfilt(b, a, f0, method='pad', padtype='even')
 
-        case _:
-            raise ValueError(f"Unknown baseline filter type: {type}")
+        case 'mpfi_pctile':
+            # Same as first part of Wilson et al Fitzpatrick (e.g., https://doi.org/10.1038/s41586-018-0354-1):
+            #   "ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile) [...]"
 
+            if not extras or 'percentile' not in extras:
+                warn('No percentile value specified for percentile filter, using default of percentile=10.')
+                pctl = 10
+            else:
+                pctl = extras['percentile']
+
+            # Filter each ROI separately to be compatible with function and to avoid memory errors
+            f0 = np.full([n_rois, n_frames], np.nan)
+            for r in range(n_rois):
+                f0[r] = mpfi_percentile_filter_1d(f_rois[r], p=pctl, n=win_frames)
+
+        case 'mpfi_pctilebw':
+            # Same as Wilson et al Fitzpatrick (e.g., https://doi.org/10.1038/s41586-018-0354-1):
+            #   "ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile),
+            #   which was then low-pass filtered at 0.01 Hz."
+
+            if not extras or 'percentile' not in extras:
+                warn('No percentile value specified for percentile filter, using default of percentile=10.')
+                pctl = 10
+            else:
+                pctl = extras['percentile']
+
+            # Filter each ROI separately to be compatible with function and to avoid memory errors
+            f0 = np.full([n_rois, n_frames], np.nan)
+            for r in range(n_rois):
+                f0[r] = mpfi_percentile_filter_1d(f_rois[r], p=pctl, n=win_frames)
+                f0[r] = mpfi_butterworth_filter(f0[r], fs=rate, cutoff=win)
+            # b, a = butter(1, wn, btype='low')
+            # f0 = filtfilt(b, a, f0, method='pad', padtype='even')
+
+        case 'mpfi_rnkord':
+            # Same as Mulholland et al Smith (https://doi.org/10.1016/j.jneumeth.2023.110051) but with settings similar
+            # to (https://doi.org/10.1038/s41592-023-02098-1):
+            #   "Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence
+            #   trace (tenth percentile) with a rolling time window of 60 sec."
+
+            if not extras or 'rank' not in extras:
+                warn('No rank value specified for rank-order filter, using default of rank=10.')
+                rnk = 10
+            else:
+                rnk = extras['rank']
+
+            # Filter each ROI separately to be compatible with function and to avoid memory errors
+            f0 = np.full([n_rois, n_frames], np.nan)
+            for r in range(n_rois):
+                f0[r] = mpfi_rank_order_filter(f_rois[r], p=rnk, n=win_frames)
+
+        case 'mpfi_rnkordbw':
+            # Similar to Mulholland et al Smith (https://doi.org/10.1016/j.jneumeth.2023.110051) but with settings
+            # similar to (https://doi.org/10.1038/s41592-023-02098-1) and a butterworth filter applied to the result:
+            #   "Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence
+            #   trace (tenth percentile) with a rolling time window of 60 sec."
+
+            if not extras or 'rank' not in extras:
+                warn('No rank value specified for rank-order filter, using default of rank=10.')
+                rnk = 10
+            else:
+                rnk = extras['rank']
+
+            # Filter each ROI separately to be compatible with function and to avoid memory errors
+            f0 = np.full([n_rois, n_frames], np.nan)
+            for r in range(n_rois):
+                f0[r] = mpfi_rank_order_filter(f_rois[r], p=rnk, n=win_frames)
+                f0[r] = mpfi_butterworth_filter(f0[r], fs=rate, cutoff=win)
+            # b, a = butter(1, wn, btype='low')
+            # f0 = filtfilt(b, a, f0, method='pad', padtype='even')
+
+        case _:
+            raise ValueError('Unknown baseline filtering method: {}'.format(method))
+
+    if f0.shape[0] == 1:
+        f0 = np.squeeze(f0)
     return f0
 
 
-def plot_example_baselines(f_rois, rois=2, frames=1000, framerate=6.364, window=60, percentile=10, include_mpfi=False):
+def plot_example_baselines(f_rois, rois=2, frames=1000, framerate=6.364, window=60, include_mpfi=False, **extras):
     """
     Plot example baseline fluorescence traces for randomly sampled ROIs and frames.
     """
     import matplotlib.pyplot as plt
-    from scipy.ndimage import convolve, gaussian_filter, maximum_filter1d, median_filter, minimum_filter1d, \
-        percentile_filter
-    from scipy.signal import butter, filtfilt
+
+    if not extras or 'percentile' not in extras:
+        warn('No percentile value specified for percentile filter, using default of percentile=10.')
+        pctl = 10
+    else:
+        pctl = extras['percentile']
+    if not extras or 'sigma' not in extras:
+        warn('No sigma value specified for gaussian filter in maximin method, using default of sigma=10.')
+        sgma = 10.
+    else:
+        sgma = extras['sigma']
 
     n_rois, n_frames = f_rois.shape
-
     n_plot_rois = rois
     n_samp_inspect = frames
-    filter_percentile = percentile
-    filter_win = window  # sec
-    filter_win_frames = round(filter_win * framerate)  # frames
-
-    wn = (1 / filter_win) / (framerate / 2)  # Cutoff frequency normalized to NyQuist frequency units
-    butter_b, butter_a = butter(1, wn, btype='low')
+    rate = framerate  # Hz
+    win = window  # sec
 
     plot_rois = np.random.choice(n_rois, n_plot_rois)
     frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
     frame_end = frame_start + n_samp_inspect
 
     fig = plt.figure()
-    fig.suptitle('Baseline fluorescence traces for randomly sampled ROIs and frames')
+    fig.suptitle('Baseline fluorescence traces for a randomly sampled subset of ROIs and frames')
     axes = fig.subplots(nrows=n_plot_rois, ncols=1)
     for r in range(n_plot_rois):
         ridx = plot_rois[r]
-        f_subset = f_rois[ridx, frame_start:frame_end]
+        f_sub = f_rois[ridx, frame_start:frame_end]
 
-        f0_rmean = convolve(f_subset, np.ones(filter_win_frames) / filter_win_frames, mode='reflect')
-        f0_rmeanbw = filtfilt(butter_b, butter_a, f0_rmean, method='pad', padtype='even')
-        f0_rmed = median_filter(f_subset, size=filter_win_frames, mode='reflect')
-        f0_rmedbw = filtfilt(butter_b, butter_a, f0_rmed, method='pad', padtype='even')
+        f0_mean = calculate_baselines(f_sub, framerate=rate, window=win, method='mean')
+        f0_meanbw = calculate_baselines(f_sub, framerate=rate, window=win, method='meanbw')
+        f0_med = calculate_baselines(f_sub, framerate=rate, window=win, method='median')
+        f0_medbw = calculate_baselines(f_sub, framerate=rate, window=win, method='medianbw')
 
-        # very similar to... Wilson et al Fitzpatrick (https://doi.org/10.1038/s41586-018-0354-1):
-        #   "ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), which
-        #   was then low-pass filtered at 0.01 Hz."
-        f0_rpct = percentile_filter(f_subset, percentile=filter_percentile, size=filter_win_frames, mode='reflect')
-        f0_rpctbw = filtfilt(butter_b, butter_a, f0_rpct, method='pad', padtype='even')
+        f0_pctl = calculate_baselines(f_sub, framerate=rate, window=win, method='pctile', percentile=pctl)
+        f0_pctlbw = calculate_baselines(f_sub, framerate=rate, window=win, method='pctilebw', percentile=pctl)
 
-        # # not quite the same as... Gordon Smith (https://doi.org/10.1038/s41592-023-02098-1):
-        # #   "Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence
-        # #   trace (tenth percentile) with a rolling time window of 60 sec."
-        # f0_rnk = rank_filter(f_subset, rank=filter_percentile, size=filter_win_frames, mode='reflect')
-        # f0_rnkbw = filtfilt(butter_b, butter_a, f0_rnk, method='pad', padtype='even')
+        # f0_rnk = calculate_baselines(f_sub, framerate=rate, window=win, method='rank', rank=rnk)
+        # f0_rnkbw = calculate_baselines(f_sub, framerate=rate, window=win, method='rankbw', rank=rnk)
 
-        # from suite2p (https://github.com/MouseLand/suite2p/blob/c88e1b/suite2p/extraction/dcnv.py#L127)
-        #   "take the running max of the running min after smoothing with gaussian"
-        #   sig_baseline = 10.0 # in bins, standard deviation of gaussian with which to smooth
-        #   win_baseline = 60.0 # in seconds, window in which to compute max/min filters
-        f0_rgauss = gaussian_filter(f_subset, sigma=10., mode='reflect')
-        f0_rgmin = minimum_filter1d(f0_rgauss, size=filter_win_frames, mode='reflect')
-        f0_rgmaximin = maximum_filter1d(f0_rgmin, size=filter_win_frames, mode='reflect')
-        f0_rgmaximinbw = filtfilt(butter_b, butter_a, f0_rgmaximin, method='pad', padtype='even')
+        f0_maximin = calculate_baselines(f_sub, framerate=rate, window=win, method='maximin', sigma=sgma)
+        f0_maximinbw = calculate_baselines(f_sub, framerate=rate, window=win, method='maximinbw', sigma=sgma)
 
         if include_mpfi:
-            # from Wilson et al Fitzpatrick (e.g., https://doi.org/10.1038/s41586-018-0354-1):
-            #   "ΔF/F0 was computed by defining F0 using a 60 sec percentile filter (typically 10th percentile), which
-            #   was then low-pass filtered at 0.01 Hz."
-            f0_mpct = mpfi_percentile_filter_1d(f_subset, p=filter_percentile, n=filter_win_frames)
-            f0_mpctbw = mpfi_butterworth_filter(f0_mpct, fs=framerate, cutoff=filter_win)
-            # f0_mpctbw = filtfilt(butter_b, butter_a, f0_mpct, method='pad', padtype='even')
+            f0_mpct = calculate_baselines(f_sub, framerate=rate, window=win, method='mpfi_pctile', percentile=pctl)
+            f0_mpctbw = calculate_baselines(f_sub, framerate=rate, window=win, method='mpfi_pctilebw', percentile=pctl)
 
-            # from Gordon Smith (e.g., https://doi.org/10.1038/s41592-023-02098-1):
-            #   "Baseline fluorescence (F0) was calculated by applying a rank-order filter to the raw fluorescence
-            #   trace (tenth percentile) with a rolling time window of 60 sec."
-            f0_mrnkord = mpfi_rank_order_filter(f_subset, p=filter_percentile, n=filter_win_frames)
-            f0_mrnkordbw = mpfi_butterworth_filter(f0_mrnkord, fs=framerate, cutoff=filter_win)
-            # f0_mrnkordbw = filtfilt(butter_b, butter_a, f0_mrnkord, method='pad', padtype='even')
+            if not extras or 'rank' not in extras:
+                warn('No rank value specified for rank-order filter, using default of rank=10.')
+                rnk = 10
+            else:
+                rnk = extras['rank']
+            f0_mrnkord = calculate_baselines(f_sub, framerate=rate, window=win, method='mpfi_rnkord', rank=rnk)
+            f0_mrnkordbw = calculate_baselines(f_sub, framerate=rate, window=win, method='mpfi_rnkordbw', rank=rnk)
 
-        ymin = np.min(f_subset)
-        ymax = np.max(f_subset)
+        ymin = np.min(f_sub)
+        ymax = np.max(f_sub)
 
         ax = axes[r]
         ax.set_ylabel('F')
@@ -412,28 +521,28 @@ def plot_example_baselines(f_rois, rois=2, frames=1000, framerate=6.364, window=
 
         xs = range(n_samp_inspect)
 
-        ax.plot(xs, f_subset, label='F', linewidth=0.5, alpha=0.5, zorder=1)
+        ax.plot(xs, f_sub, label='F', linewidth=0.5, alpha=0.5, zorder=1)
 
-        ax.plot(xs, f0_rmean, label='rmean', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
-        ax.plot(xs, f0_rmeanbw, label='rmean', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
-        ax.plot(xs, f0_rmed, label='rmedian', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
-        ax.plot(xs, f0_rmedbw, label='rmedianbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
+        ax.plot(xs, f0_mean, label='mean', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+        ax.plot(xs, f0_meanbw, label='mean', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
+        ax.plot(xs, f0_med, label='median', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+        ax.plot(xs, f0_medbw, label='medianbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
 
-        ax.plot(xs, f0_rpct, label='rpctile', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
-        ax.plot(xs, f0_rpctbw, label='rpctilebw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
+        ax.plot(xs, f0_pctl, label='pctile', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+        ax.plot(xs, f0_pctlbw, label='pctilebw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
 
         # ax.plot(xs, f0_rnk, label='rnk', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
         # ax.plot(xs, f0_rnkbw, label='rnkbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
 
-        ax.plot(xs, f0_rgmaximin, label='gmaximin', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
-        ax.plot(xs, f0_rgmaximinbw, label='gmaximinbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
+        ax.plot(xs, f0_maximin, label='maximin', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+        ax.plot(xs, f0_maximinbw, label='maximinbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
 
         if include_mpfi:
-            ax.plot(xs, f0_mpct, label='mpfipct', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-            ax.plot(xs, f0_mpctbw, label='mpfipctbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=4)
+            ax.plot(xs, f0_mpct, label='mpfi pct', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+            ax.plot(xs, f0_mpctbw, label='mpfi pctbw', linestyle='dotted', linewidth=1, alpha=0.5, zorder=3)
 
-            ax.plot(xs, f0_mrnkord, label='mpfirnkord', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-            ax.plot(xs, f0_mrnkordbw, label='mpfirnkordbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
+            ax.plot(xs, f0_mrnkord, label='mpfi rnkord', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
+            ax.plot(xs, f0_mrnkordbw, label='mpfi rnkordbw', linestyle='dotted', linewidth=1, alpha=0.5, zorder=3)
 
         ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
     plt.show()
