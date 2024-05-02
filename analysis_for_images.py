@@ -521,90 +521,9 @@ filter_win_frames = round(filter_win * md['framerate'])  # frames
 # though more structured responses (e.g. multiple decay time constants) can also be modeled with higher values for
 # the order p."
 
-# Inspect fluorescence trace filtering
-n_plot_ROIs = 2
-n_samp_inspect = 1000  # frames
-filter_percentile = 10
-filter_window = 60  # sec
-
-plot_ROIs = np.random.choice(n_ROIs, n_plot_ROIs)
-frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
-frame_end = frame_start + n_samp_inspect
-fr = md['framerate']
-
-import scipy
-
-
-fig = plt.figure()
-# fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
-axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
-for r in range(n_plot_ROIs):
-    ridx = plot_ROIs[r]
-    
-    wn = (1 / filter_window) / (fr / 2)  # Cutoff frequency normalized to NyQuist frequency units
-    butter_b, butter_a = scipy.signal.butter(1, wn, btype='low')
-    
-    Fr = Frois[ridx, frame_start:frame_end]
-
-    # F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
-    # F0_pctbw = filters.butterworth_filter(F0_pct, fs=fr, cutoff=filter_window)
-    F0_pct = scipy.ndimage.percentile_filter(Fr, percentile=filter_percentile, size=round(filter_window * fr), mode='reflect')
-    F0_pctbw = scipy.signal.filtfilt(butter_b, butter_a, F0_pct, method='pad', padtype='even')
-
-    F0_rnkord = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
-    F0_rnkordbw = scipy.signal.filtfilt(butter_b, butter_a, F0_rnkord, method='pad', padtype='even')
-    
-    F0_rnk = scipy.ndimage.rank_filter(Fr, rank=filter_percentile, size=round(filter_window * fr), mode='reflect')
-    F0_rnkbw = scipy.signal.filtfilt(butter_b, butter_a, F0_rnk, method='pad', padtype='even')
-
-    F0_rmed = scipy.ndimage.median_filter(Fr, size=round(filter_window * fr), mode='reflect')
-    F0_rmean = scipy.ndimage.convolve(Fr, np.ones(round(filter_window * fr)) / round(filter_window * fr))
-
-    # from scipy.ndimage import maximum_filter1d, minimum_filter1d, gaussian_filter
-    # "Fluorescent traces of each neuron were baseline corrected (ΔF/F) by dividing the fluorescence trace of that neuron by the rolling max of the rolling min, using a 60 s time window."
-    # — Finkelstein et al Svoboda bioRxiv https://doi.org/10.1101/2023.11.25.568673
-    F0_rgauss = scipy.ndimage.gaussian_filter(Fr, sigma=10., mode='reflect')
-    F0_rmin = scipy.ndimage.minimum_filter1d(F0_rgauss, size=round(filter_window * fr), mode='reflect')
-    F0_rmaxmin = scipy.ndimage.maximum_filter1d(F0_rmin, size=round(filter_window * fr), mode='reflect')
-    F0_rmaxminbw = scipy.signal.filtfilt(butter_b, butter_a, F0_rmaxmin, method='pad', padtype='even')
-    # suite2p documentation   # for computing and subtracting baseline
-    # baseline = 'maximin' # take the running max of the running min after smoothing with gaussian
-    # sig_baseline = 10.0 # in bins, standard deviation of gaussian with which to smooth
-    # win_baseline = 60.0 # in seconds, window in which to compute max/min filters
-    
-    ymin = np.min(Fr)
-    ymax = np.max(Fr)
-    xs = range(n_samp_inspect)
-    
-    ax = axes[r]
-    ax.set_ylabel('dF/F', fontsize=6)
-    ax.set_xlabel('Frames', fontsize=6)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    
-    ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-    ax.set_xticks([0, n_samp_inspect])
-    ax.set_xticklabels([frame_start, frame_end])
-
-    ax.plot(xs, Fr, label='Fr', linewidth=0.5, alpha=0.5, zorder=1)
-
-    ax.plot(xs, F0_pct, label='F0_pct', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(xs, F0_pctbw, label='F0_pctbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=4)
-
-    # ax.plot(xs, F0_rnkord, label='F0_rnkord', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-    # ax.plot(xs, F0_rnkordbw, label='F0_rnkordbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=3)
-    
-    # ax.plot(xs, F0_rnk, label='F0_rnk', linestyle='solid', linewidth=1, alpha=0.5, zorder=4)
-    # ax.plot(xs, F0_rnkbw, label='F0_rnkbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=4)
-
-    ax.plot(xs, F0_rmed, label='F0_med', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
-    ax.plot(xs, F0_rmean, label='F0_mean', linestyle='solid', linewidth=1, alpha=0.5, zorder=2)
-    
-    # ax.plot(xs, F0_rmaxmin, label='F0_rmaxmin', linestyle='solid', linewidth=1, alpha=0.5, zorder=3)
-    ax.plot(xs, F0_rmaxminbw, label='F0_rmaxminbw', linestyle='dashed', linewidth=1, alpha=0.5, zorder=4)
-    ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02,.85))
-plt.show()
-
+# Inspect fluorescence baseline filters
+filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
+                               percentile=10, rank=10, sigma=10)
 
 fig = plt.figure()
 # fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
