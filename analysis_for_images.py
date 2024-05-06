@@ -2309,8 +2309,9 @@ n_metrics = len(metrics)
 fr = md['framerate']
 for r in range(n_plot_ROIs):
     ridx = sort_dp[plot_ROI_subset[r]]
+    dp = dprime[ridx]
     fig = plt.figure()
-    fig.suptitle('ROI {}: mean response by category (each cond mean plotted)'.format(ridx), fontsize=10)
+    fig.suptitle('ROI {} dprime={:0.2f}: mean response by category (each cond mean plotted)'.format(ridx, dp))
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
     for m, met in enumerate(metrics):
         ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
@@ -2318,9 +2319,9 @@ for r in range(n_plot_ROIs):
         for cat in range(n_cats):
             ax = axes[m, cat]
             if m == 0:
-                ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
+                ax.set_title(tmpl_labels[categories[cat]])
             if cat == 0:
-                ax.set_ylabel(metric_labels[met], fontsize=10)
+                ax.set_ylabel(metric_labels[met])
                 ax.tick_params(axis='both', which='major', labelsize=8)
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
