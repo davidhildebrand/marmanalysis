@@ -15,7 +15,7 @@ from warnings import warn
 
 
 # % Define plotting function for histograms of selectivity metrics
-def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41, title: str = '', save_path: str = ''):
+def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path: str = ''):
     dpi = plt.rcParams['figure.dpi']
 
     f, ax1 = plt.subplots()
@@ -35,12 +35,12 @@ def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41, title: str = '', save_path: str
     plt.hist(fsis, weights=weights, bins=bins, range=(-1, 1), edgecolor='none', facecolor='none')
     plt.ylabel('Fraction of ROIs')
 
-    if fsi_thresh is not None:
-        if fsi_thresh != 0:
-            plt.axvline(-fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
-            plt.axvline(fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
+    if threshold is not None:
+        if threshold != 0:
+            plt.axvline(-threshold, color='0.2', linestyle='dashed', linewidth=1)
+            plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
         else:
-            plt.axvline(fsi_thresh, color='0.2', linestyle='dashed', linewidth=1)
+            plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
 
     f.tight_layout()
     f.show()
@@ -48,7 +48,7 @@ def plot_hist_fsi(fsis, fsi_thresh=1/3, bins=41, title: str = '', save_path: str
         f.savefig(save_path, dpi=dpi, transparent=True)
 
 
-def plot_hist_dprime(dprimes, bins=41, title: str = '', save_path: str = ''):
+def plot_hist_dprime(dprimes, threshold=0.2, bins=41, title: str = '', save_path: str = ''):
     dpi = plt.rcParams['figure.dpi']
 
     f, ax1 = plt.subplots()
@@ -67,6 +67,13 @@ def plot_hist_dprime(dprimes, bins=41, title: str = '', save_path: str = ''):
     weights = np.ones(n_rois) / n_rois
     plt.hist(dprimes, weights=weights, bins=bins, range=(-1, 1), edgecolor='none', facecolor='none')
     plt.ylabel('Fraction of ROIs')
+
+    if threshold is not None:
+        if threshold != 0:
+            plt.axvline(-threshold, color='0.2', linestyle='dashed', linewidth=1)
+            plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
+        else:
+            plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
 
     f.tight_layout()
     f.show()
