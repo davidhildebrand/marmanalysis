@@ -522,52 +522,61 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 # though more structured responses (e.g. multiple decay time constants) can also be modeled with higher values for
 # the order p."
 
+n_plot_ROIs = 1
+n_samp_inspect = 1000
+plot_ROIs = np.random.choice(n_ROIs, n_plot_ROIs)
+frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
+frame_end = frame_start + n_samp_inspect
+
 fig = plt.figure()
 # fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
 for r in range(n_plot_ROIs):
     ridx = plot_ROIs[r]
-    frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
-    frame_end = frame_start + n_samp_inspect
-    
+    # frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
+    # frame_end = frame_start + n_samp_inspect
     Fr = Frois[ridx, frame_start:frame_end]
-    Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
-    F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
-    Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
-    F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
-    Fr_dFF_pct = (Fr - F0_pct) / F0_pct
-    F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
-    Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
-    F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
-    Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
-    # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * fr),)), axis=1)
-    # Fr_dFF_med = (Fr - F0_med) / F0_med
-    F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
-    Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)  
 
-    oasisL0_c, oasisL0_s, oasisL0_b, oasisL0_g, oasisL0_lam = oasis.functions.deconvolve(Fr, penalty=0)    
+    # Fr = Frois[ridx, frame_start:frame_end]
+    Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
+    # F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
+    # Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
+    # F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
+    # Fr_dFF_pct = (Fr - F0_pct) / F0_pct
+    # F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
+    # Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
+    # F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
+    # Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
+    # # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * fr),)), axis=1)
+    # # Fr_dFF_med = (Fr - F0_med) / F0_med
+    # F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
+    # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(
+    #     filter_window * fr)
+
+    oasisL0_c, oasisL0_s, oasisL0_b, oasisL0_g, oasisL0_lam = oasis.functions.deconvolve(Fr, penalty=0)
     Fr_oasisL0 = oasisL0_c + oasisL0_b
     Fr_dFF_oasisL0 = (Fr_oasisL0 - oasisL0_b) / oasisL0_b
-    
-    oasisL1_c, oasisL1_s, oasisL1_b, oasisL1_g, oasisL1_lam = oasis.functions.deconvolve(Fr, penalty=1)    
+
+    oasisL1_c, oasisL1_s, oasisL1_b, oasisL1_g, oasisL1_lam = oasis.functions.deconvolve(Fr, penalty=1)
     Fr_oasisL1 = oasisL1_c + oasisL1_b
     Fr_dFF_oasisL1 = (Fr_oasisL1 - oasisL1_b) / oasisL1_b
-    
+
     # c, _ = oasisAR1(Fr, g=.95, s_min=.55)
     # oasisAR1_c, oasisAR1_s, oasisAR1_b, oasisAR1_g, oasisAR1_lam = deconvolve(Fr, penalty=1)
-    
-    Fr_dFF_all = np.concatenate((Fr_dFF, Fr_dFF_rnk, Fr_dFF_pct, Fr_dFF_rnkbw, Fr_dFF_pctbw, Fr_dFF_ma, Fr_dFF_oasisL0, Fr_dFF_oasisL1))
 
-    ymin = np.min(Fr_dFF_all)
-    ymax = np.max(Fr_dFF_all)
+    ymin = np.min(Fr_dFF)
+    ymax = np.max(Fr_dFF)
     xs = range(n_samp_inspect)
-    
-    ax = axes[r]
+
+    if n_plot_ROIs > 1:
+        ax = axes[r]
+    else:
+        ax = axes
     ax.set_ylabel('dF/F', fontsize=6)
     ax.set_xlabel('Frames', fontsize=6)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    
+
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.set_xticks([0, n_samp_inspect])
     ax.set_xticklabels([frame_start, frame_end])
@@ -581,11 +590,8 @@ for r in range(n_plot_ROIs):
     ax.plot(xs, Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
     ax.plot(xs, Fr_dFF_oasisL1, label='FdFF_oasisL1', color='b', linewidth=1, alpha=0.8, zorder=10)
 
-    ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02,.85))
+    ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
 plt.show()
-
-del n_plot_ROIs, n_samp_inspect, plot_ROIs, fr
-
 
 # from oasis.functions import gen_data, gen_sinusoidal_data, deconvolve, estimate_parameters
 # from oasis.plotting import simpleaxis
