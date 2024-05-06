@@ -28,11 +28,15 @@ import plots
 
 # % Settings
 
-# based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci https://doi.org/10.1038/nn.2363
+# FSI threshold based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci (https://doi.org/10.1038/nn.2363):
 # [...] neurons (94%) were face selective (that is, face-selectivity index
 # larger than 1/3 or smaller than -1/3, dotted lines).
-fsi_tuning_thresh = 1 / 3
-cell_probability_thresh = 0.0
+threshold_fsi = 1 / 3
+# dprime_F threshold based on Shi et al Tsao bioRxiv (Fig 1g, https://doi.org/10.1101/2023.12.06.570341):
+# "The dotted vertical line marks d’ = 0.2, which we used as our threshold for identifying face-selective units."
+threshold_dprime = 0.2
+
+threshold_cellprob = 0.0
 
 plt.rcParams['figure.dpi'] = 600
 dpi = plt.rcParams['figure.dpi']
@@ -47,7 +51,7 @@ if 'md' in locals():
 
 # --  GOOD OLD Cadbury PD  20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx
 # |FSI| threshold: 0.25
-# Tuned ROIs: 894. Total ROIs: 6020.   (note: using cell_probability_threshold = 0.0)
+# Tuned ROIs: 894. Total ROIs: 6020.   (note: using threshold_cellprob old = 0.0)
 # Percentage of tuned ROIs: 14.85%
 animal_str = 'Cadbury'
 # date_str = '20221016d_olds2p'
@@ -465,9 +469,9 @@ s2p_stat = np.load(os.path.join(s2p_plane_path, 'stat.npy'), allow_pickle=True)
 s2p_ops = np.load(os.path.join(s2p_plane_path, 'ops.npy'), allow_pickle=True).item()
 s2p_badframes = np.where(s2p_ops['badframes'])[0]
 
-cellinds = np.where(s2p_iscell[:, 1] >= cell_probability_thresh)[0]
+cellinds = np.where(s2p_iscell[:, 1] >= threshold_cellprob)[0]
 # cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
-# cellinds = np.logical_and(s2p_iscell[:, 1] >= cell_probability_thresh, np.std(s2p_F, axis=1) != 0)
+# cellinds = np.logical_and(s2p_iscell[:, 1] >= threshold_cellprob, np.std(s2p_F, axis=1) != 0)
 # cellinds = np.logical_and(s2p_iscell[:, 0] == 1.0, np.std(s2p_F, axis=1) != 0)
 inactives = np.where(np.std(s2p_F, axis=1) == 0)[0]
 if len(inactives) > 0:
@@ -2085,11 +2089,11 @@ del bool_F, bool_NF, mu_F, mu_NF, sigma_F, sigma_NF
 # least twice (or at most half) that of nonface objects, a cell was classed
 # as being face selective45–47.
 
-print('|FSI| threshold: {}'.format(fsi_tuning_thresh))
+print('|FSI| threshold: {}'.format(threshold_fsi))
 tunidx_fsi = FSIs_zsc
 tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
-ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).squeeze()
-n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).shape[0]
+ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).squeeze()
+n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).shape[0]
 pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
 print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
 print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
@@ -2099,12 +2103,12 @@ print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
 
 # Plot histograms
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromFdFF' + save_ext) if saving else ''
-plots.plot_hist_fsi(FSIs_dFF, fsi_thresh=fsi_tuning_thresh, title='FSIs calculated from FdFF values', save_path=sp)
+plots.plot_hist_fsi(FSIs_dFF, threshold=threshold_fsi, title='FSIs calculated from FdFF values', save_path=sp)
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromZscr' + save_ext) if saving else ''
-plots.plot_hist_fsi(FSIs_zsc, fsi_thresh=fsi_tuning_thresh, title='FSIs calculated from z-scored values', save_path=sp)
+plots.plot_hist_fsi(FSIs_zsc, threshold=threshold_fsi, title='FSIs calculated from z-scored values', save_path=sp)
 
 sp = os.path.join(save_path, save_pfix + '_Histogram_dprimes_fromFdFF' + save_ext) if saving else ''
-plots.plot_hist_dprime(dprime, title='dprimes calculated from FdFF values', save_path=sp)
+plots.plot_hist_dprime(dprime, threshold=threshold_dprime, title='dprimes calculated from FdFF values', save_path=sp)
 
 
 # Summarize responsiveness of each ROI
@@ -2589,7 +2593,7 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
 
 # Plot for each ROI the category of the condition (image) that elicited the largest response  
-above_threshold = np.where(np.abs(FSIs_zsc) > fsi_tuning_thresh)[0]
+above_threshold = np.where(np.abs(FSIs_zsc) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -2644,7 +2648,7 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
 
 # Plot for each ROI the category elicited the largest average response
 # for only ROIs with FSI > threshold
-above_threshold = np.where(np.abs(FSIs_zsc) > fsi_tuning_thresh)[0]
+above_threshold = np.where(np.abs(FSIs_zsc) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -2674,7 +2678,7 @@ sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], Fzsc_fob_norm[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
 
-above_threshold = np.where(FSIs_zsc > fsi_tuning_thresh)[0]
+above_threshold = np.where(FSIs_zsc > threshold_fsi)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], Fzsc_fob_norm[above_threshold],
@@ -2781,7 +2785,7 @@ if saving:
 #         Fzsc_for_plot_discrete[row_i] = this_row - response_to_non_preferred_stim
 
 
-# above_threshold = np.where(FSIs_zsc > fsi_tuning_thresh)[0]
+# above_threshold = np.where(FSIs_zsc > threshold_fsi)[0]
 
 # Fzsc_for_plot_preferredKey = np.argmax(Fzsc_for_plot_discrete, axis=1)
 # Fzsc_for_plot_discrete[:] = 0  # We will re-fill the preferredkeys with 1s in the folowwing for loop
@@ -2872,11 +2876,11 @@ if saving:
 # least twice (or at most half) that of nonface objects, a cell was classed
 # as being face selective45–47.
 
-# print('|FSI| threshold: {}'.format(fsi_tuning_thresh))
+# print('|FSI| threshold: {}'.format(threshold_fsi))
 # tunidx_fsi = FSIs_zsc
 # tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
-# ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).squeeze()
-# n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).shape[0]
+# ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).squeeze()
+# n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).shape[0]
 # pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
 # print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
 # print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
@@ -2950,8 +2954,8 @@ if saving:
 
 # # tunidx_fsi = ImSIs_zsc
 # # tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
-# # ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).squeeze()
-# # n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > fsi_tuning_thresh).shape[0]
+# # ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).squeeze()
+# # n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).shape[0]
 # # pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
 # # print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
 # # print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
@@ -2960,7 +2964,7 @@ if saving:
 
 # for it in range(20):
 #     ImSIs_zsc_argsort_imt = ImSIs_zsc[:, it].argsort()
-#     rois_sel = np.argwhere(np.abs(ImSIs_zsc[ImSIs_zsc_argsort_imt, it]) > fsi_tuning_thresh).squeeze()
+#     rois_sel = np.argwhere(np.abs(ImSIs_zsc[ImSIs_zsc_argsort_imt, it]) > threshold_fsi).squeeze()
 #     cn = data['cond'][(data['cat'] == b'face_mrm')][it].decode()
 #     sn = save_pfix + '_ROIplot_ColorByDiscrete_' + cn + '_inclFSIthrs' + save_ext
 #     sp = os.path.join(save_path, sn) if saving else ''
