@@ -553,6 +553,13 @@ for r in range(n_plot_ROIs):
     # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(
     #     filter_window * fr)
 
+    # y: observed fluorescence
+    # c: calcium concentration
+    # s: neural activity / spike train
+    # b: baseline
+    # "To produce calcium trace c, spike train s is filtered with the inverse filter of g, an infinite impulse response h, c = s * h."
+    # decay factor γ, regularization parameter λ, data y, sigma noise
+
     oasisL0_c, oasisL0_s, oasisL0_b, oasisL0_g, oasisL0_lam = oasis.functions.deconvolve(Fr, penalty=0)
     Fr_oasisL0 = oasisL0_c + oasisL0_b
     Fr_dFF_oasisL0 = (Fr_oasisL0 - oasisL0_b) / oasisL0_b
