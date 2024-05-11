@@ -2665,7 +2665,7 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category eliciting the largest average response, z > 0.5', save_path=sp)
 
-# Plot for each ROI the category elicited the largest average response
+# Plot for each ROI the category eliciting the largest average response
 # for only ROIs with FSI > threshold
 above_threshold = np.where(np.abs(FSIs_zsc) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
