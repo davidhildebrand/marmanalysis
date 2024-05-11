@@ -2598,21 +2598,25 @@ top_cat_id = [np.argwhere(categories == ROIinfo[r]['top_cat'])[0][0] for r in ra
 # top_cat_idn = np.divide(top_cat_id, len(categories))
 top_cat_idn = np.divide(top_cat_id, len(cat_subset))
 
-# Plot for each ROI the category of the condition (image) that elicited the largest response
+# Plot for each ROI the category of the condition (image) eliciting the largest response
 above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='category of the condition (image) eliciting the largest response, z > 0.5', save_path=sp)
 
-# Plot for each ROI the category of the condition (image) that elicited the largest response  
+# Plot for each ROI the category of the condition (image) eliciting the largest response
 above_threshold = np.where(np.abs(FSIs_zsc) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='category of the condition (image) eliciting the largest response, '
+                              + 'FSI > {:0.2f}'.format(threshold_fsi),
+                        save_path=sp)
 
 # Determine for each ROI which category elicited the largest average response
 # TODO improve variable naming here for clarity
@@ -2652,13 +2656,14 @@ if saving:
                 dpi=dpi, transparent=True)
 
 
-# Plot for each ROI the category elicited the largest average response
+# Plot for each ROI the category eliciting the largest average response
 above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='category eliciting the largest average response, z > 0.5', save_path=sp)
 
 # Plot for each ROI the category elicited the largest average response
 # for only ROIs with FSI > threshold
@@ -2667,7 +2672,10 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mea
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='category eliciting the largest average response, '
+                              + 'FSI > {:0.2f}'.format(threshold_fsi),
+                        save_path=sp)
 
 # Plot relative response strength
 
@@ -2690,14 +2698,16 @@ above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], Fzsc_fob_norm[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='relative response strength, z > 0.5', save_path=sp)
 
 above_threshold = np.where(FSIs_zsc > threshold_fsi)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], Fzsc_fob_norm[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90, save_path=sp)
-
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='relative response strength, FSI > {:0.2f}'.format(threshold_fsi),
+                        save_path=sp)
 
 #
 # OLD VERSION OF CONTINUOUS PLOT
