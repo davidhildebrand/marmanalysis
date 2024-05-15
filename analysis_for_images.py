@@ -496,23 +496,36 @@ F0_filt_win_frames = round(F0_filt_win_sec * md['framerate'])  # frames
 F0 = filters.calculate_baselines(Frois, framerate=md['framerate'], window=F0_filt_win_sec, method='meanbw')
 
 # Compute dF/F and z-scored dF/F
+FdF = Frois - F0
 FdFF_raw = (Frois - F0) / F0
 Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Frois - F0, axis=1)[:, np.newaxis]
 
 
+# Estimate SNR
+
+# noise_level = np.median(np.abs(np.diff(dFF_trace)))/np.sqrt(framerate)
+
 # # Deconvolve fluorescence signals.
 # from oasis.oasis_methods import oasisAR1
-# from oasis.functions import gen_data, gen_sinusoidal_data, deconvolve, estimate_parameters
+# from oasis.functions import deconvolve, estimate_parameters, GetSn
 #
-# FdFF_c = np.zeros((n_ROIs, n_frames))
+# caconc = np.full((n_ROIs, n_frames), np.nan)
+# spikes = np.full((n_ROIs, n_frames), np.nan)
+# basels = np.full(n_ROIs, np.nan)
+# decays = np.full(n_ROIs, np.nan)
+# lamdas = np.full(n_ROIs, np.nan)
+# sigmas = np.full(n_ROIs, np.nan)
 # for r in range(n_ROIs):
-#     # c[r], _ = oasisAR1(Frois[r].astype('float64'), g=.95, s_min=.55)
-#     FdFF_c[r], _, b, g, lam = deconvolve(FdFF_raw[r], penalty=1)
-# # plot_trace(True)
+#     # FdFF_c[r], _, b, g, lam = deconvolve(FdFF_raw[r], penalty=1)
+#     # caconc[r], spikes[r], basels[r], decays[r], lamdas[r] = deconvolve(FdF[r], penalty=0, optimize_g=5)
+#     sigmas[r] = GetSn(FdF[r], range_ff=[0.25, 0.5], method='mean')
+#     # c[r], _ = oasisAR1(FdF[r].astype('float64'), g=.95)
+#     # c[r], _ = oasisAR1(FdF[r], g=.95)
+#
 # r = 0
-# plt.plot(Frois[r, 0:500], 'b', alpha=0.5)
-# plt.plot(FdFF_raw[r, 0:500], 'k', alpha=0.5)
-# plt.plot(FdFF_c[r, 0:500], 'm')
+# plt.plot(FdF[r, 0:500], 'b', alpha=0.5)
+# plt.plot(caconc[r, 0:500] + basels[r], 'm')
+
 
 # Friedrich et al 2017 Paninski https://doi.org/10.1371/journal.pcbi.1005423
 # "An AR(1) process models the calcium response to a spike as an instantaneous increase followed by an exponential
@@ -564,13 +577,6 @@ for r in range(n_plot_ROIs):
     Fr_oasisL0 = oasisL0_c + oasisL0_b
     Fr_dFF_oasisL0 = (Fr_oasisL0 - oasisL0_b) / oasisL0_b
 
-    oasisL1_c, oasisL1_s, oasisL1_b, oasisL1_g, oasisL1_lam = oasis.functions.deconvolve(Fr, penalty=1)
-    Fr_oasisL1 = oasisL1_c + oasisL1_b
-    Fr_dFF_oasisL1 = (Fr_oasisL1 - oasisL1_b) / oasisL1_b
-
-    # c, _ = oasisAR1(Fr, g=.95, s_min=.55)
-    # oasisAR1_c, oasisAR1_s, oasisAR1_b, oasisAR1_g, oasisAR1_lam = deconvolve(Fr, penalty=1)
-
     ymin = np.min(Fr_dFF)
     ymax = np.max(Fr_dFF)
     xs = range(n_samp_inspect)
@@ -595,7 +601,6 @@ for r in range(n_plot_ROIs):
     # ax.plot(xs, Fr_dFF_ma, label='Fr_dFF_med', linewidth=0.5, alpha=0.5, zorder=3)
     # ax.plot(xs, Fr_dFF_ma, label='FdFF_ma', linewidth=0.5, alpha=0.5, zorder=3)
     ax.plot(xs, Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
-    ax.plot(xs, Fr_dFF_oasisL1, label='FdFF_oasisL1', color='b', linewidth=1, alpha=0.8, zorder=10)
 
     ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
 plt.show()
@@ -2466,6 +2471,12 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+if threshold_dprime is not None:
+    if threshold_dprime != 0:
+        ax_dp.axhline(np.where(dprime[sort_dp] < -threshold_dprime)[0].min(), color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(dprime[sort_dp] > threshold_dprime)[0].max(), color='0.2', linestyle='dotted', linewidth=1)
+    else:
+        ax_dp.axhline(np.where(np.isclose(dprime[sort_dp], threshold_dprime), atol=0.05), color='0.2', linestyle='dotted', linewidth=1)
 
 for cnd in range(n_cnd_in_fcat):
     bool_cnd = data['cond'] == sortedstims[cnd].condition
@@ -2540,6 +2551,12 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+if threshold_dprime is not None:
+    if threshold_dprime != 0:
+        ax_dp.axhline(np.where(dprime[sort_dp] < -threshold_dprime)[0].min(), color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(dprime[sort_dp] > threshold_dprime)[0].max(), color='0.2', linestyle='dotted', linewidth=1)
+    else:
+        ax_dp.axhline(np.where(np.isclose(dprime[sort_dp], threshold_dprime, atol=0.05)), color='0.2', linestyle='dotted', linewidth=1)
     
 # ax_fsi.set_xlabel('FSI')
 # ax_fsi.set_axisbelow(True)
