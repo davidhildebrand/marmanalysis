@@ -23,7 +23,6 @@ import plots
 # including colorblind palette options https://personal.sron.nl/~pault/
 # TODO: exclude suite2p badframes
 # TODO: exclude based on eye tracking, at least when eyes are not open
-# TODO: plot neuron traces over conds or cats
 
 
 # % Settings
