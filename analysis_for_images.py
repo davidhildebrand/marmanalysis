@@ -640,219 +640,8 @@ plt.show()
 
 if eclog is not None:
     eclines = eclog.splitlines()
-
-#
-# 234.5829 	DATA 	Keypress: right
-# 234.7007 	EXP 	oculomatic zeroing, hiding face, AI_data.shape = (133928, 6)
-# 234.7010 	EXP 	oculomatic zeroing end, AI_data.shape = (133928, 6)
-# 234.8201 	EXP 	coarse eye-tracking calibration start, AI_data.shape = (134078, 6)
-# 234.8261 	EXP 	coarse trial 0, showing face,face.pos = [ 5. -5.], AI_data.shape = (134078, 6)
-# 243.3137 	DATA 	Keypress: left
-# 243.3274 	EXP 	coarse trial 0, hiding face, AI_data.shape = (138942, 6)
-# 243.8351 	DATA 	Keypress: right
-# 243.8488 	EXP 	coarse trial 0, showing face,face.pos = [ 5. -5.], AI_data.shape = (139240, 6)
-# 247.9851 	DATA 	Keypress: right
-# 247.9988 	EXP 	coarse trial 0, hiding face, coarse_oculomatic_calib_values_candidate = [ 0.825335  -2.4251535] for face.pos = [ 5. -5.], AI_data.shape = (141609, 6)
-# 248.4397 	DATA 	Keypress: right
-# 248.4444 	EXP 	coarse trial 0, candidate values accepted,coarse_oculomatic_calib_values[0] = [ 0.82533503 -2.42515349], AI_data.shape = (141873, 6)
-# 248.4576 	EXP 	coarse trial 1, showing face,face.pos = [-5.  0.], AI_data.shape = (141878, 6)
-# 250.8841 	DATA 	Keypress: right
-# 250.8974 	EXP 	coarse trial 1, hiding face, coarse_oculomatic_calib_values_candidate = [-2.6176107  -0.39334545] for face.pos = [-5.  0.], AI_data.shape = (143265, 6)
-# 251.1865 	DATA 	Keypress: right
-# 251.1903 	EXP 	coarse trial 1, candidate values accepted,coarse_oculomatic_calib_values[1] = [-2.61761069 -0.39334545], AI_data.shape = (143444, 6)
-# 251.2032 	EXP 	coarse trial 2, showing face,face.pos = [ 5. -5.], AI_data.shape = (143449, 6)
-# 251.8365 	DATA 	Keypress: right
-# 251.8499 	EXP 	coarse trial 2, hiding face, coarse_oculomatic_calib_values_candidate = [2.3267987 2.5205238] for face.pos = [ 5. -5.], AI_data.shape = (143813, 6)
-# 252.8094 	DATA 	Keypress: right
-# 252.8099 	EXP 	coarse trial 2, candidate values accepted,coarse_oculomatic_calib_values[2] = [2.32679868 2.52052379], AI_data.shape = (144374, 6)
-# 252.8232 	EXP 	coarse trial 3, showing face,face.pos = [5. 0.], AI_data.shape = (144379, 6)
-# 253.7063 	DATA 	Keypress: right
-# 253.7198 	EXP 	coarse trial 3, hiding face, coarse_oculomatic_calib_values_candidate = [ 1.0137813  -0.71914685] for face.pos = [5. 0.], AI_data.shape = (144888, 6)
-# 253.9685 	DATA 	Keypress: right
-# 253.9713 	EXP 	coarse trial 3, candidate values accepted,coarse_oculomatic_calib_values[3] = [ 1.01378131 -0.71914685], AI_data.shape = (145042, 6)
-# 253.9843 	EXP 	coarse trial 4, showing face,face.pos = [ 0. -5.], AI_data.shape = (145047, 6)
-# 254.6653 	DATA 	Keypress: right
-# 254.6790 	EXP 	coarse trial 4, hiding face, coarse_oculomatic_calib_values_candidate = [ 0.6928083 -1.7855618] for face.pos = [ 0. -5.], AI_data.shape = (145438, 6)
-# 255.0501 	DATA 	Keypress: right
-# 255.0549 	EXP 	coarse trial 4, candidate values accepted,coarse_oculomatic_calib_values[4] = [ 0.69280827 -1.7855618 ], AI_data.shape = (145665, 6)
-# 255.0684 	EXP 	coarse trial 5, showing face,face.pos = [-5.  5.], AI_data.shape = (145669, 6)
-# 255.6733 	DATA 	Keypress: right
-# 255.6874 	EXP 	coarse trial 5, hiding face, coarse_oculomatic_calib_values_candidate = [-3.3262887  1.0924864] for face.pos = [-5.  5.], AI_data.shape = (146016, 6)
-# 255.9472 	DATA 	Keypress: right
-# 255.9522 	EXP 	coarse trial 5, candidate values accepted,coarse_oculomatic_calib_values[5] = [-3.3262887   1.09248638], AI_data.shape = (146179, 6)
-# 255.9650 	EXP 	coarse trial 6, showing face,face.pos = [-5.  0.], AI_data.shape = (146184, 6)
-# 256.6258 	DATA 	Keypress: right
-# 256.6391 	EXP 	coarse trial 6, hiding face, coarse_oculomatic_calib_values_candidate = [-3.0205312 -0.5992691] for face.pos = [-5.  0.], AI_data.shape = (146564, 6)
-# 257.4876 	DATA 	Keypress: left
-# 257.5012 	EXP 	coarse trial 6, showing face,face.pos = [-5.  0.], AI_data.shape = (147067, 6)
-# 259.8440 	DATA 	Keypress: right
-# 259.8577 	EXP 	coarse trial 6, hiding face, coarse_oculomatic_calib_values_candidate = [-1.2768182 -3.5795538] for face.pos = [-5.  0.], AI_data.shape = (148413, 6)
-# 260.9100 	DATA 	Keypress: left
-# 260.9283 	EXP 	coarse trial 6, showing face,face.pos = [-5.  0.], AI_data.shape = (149033, 6)
-# 262.9931 	DATA 	Keypress: right
-# 263.0067 	EXP 	coarse trial 6, hiding face, coarse_oculomatic_calib_values_candidate = [-2.4761193 -0.6247902] for face.pos = [-5.  0.], AI_data.shape = (150216, 6)
-# 263.3433 	DATA 	Keypress: right
-# 263.3480 	EXP 	coarse trial 6, candidate values accepted,coarse_oculomatic_calib_values[6] = [-2.47611928 -0.62479019], AI_data.shape = (150423, 6)
-# 263.3613 	EXP 	coarse trial 7, showing face,face.pos = [5. 0.], AI_data.shape = (150428, 6)
-# 263.8549 	DATA 	Keypress: right
-# 263.8686 	EXP 	coarse trial 7, hiding face, coarse_oculomatic_calib_values_candidate = [ 1.0083752 -0.6322563] for face.pos = [5. 0.], AI_data.shape = (150710, 6)
-# 264.1260 	DATA 	Keypress: right
-# 264.1266 	EXP 	coarse trial 7, candidate values accepted,coarse_oculomatic_calib_values[7] = [ 1.00837517 -0.63225633], AI_data.shape = (150868, 6)
-# 264.1397 	EXP 	coarse trial 8, showing face,face.pos = [-5. -5.], AI_data.shape = (150873, 6)
-# 266.1769 	DATA 	Keypress: right
-# 266.1903 	EXP 	coarse trial 8, hiding face, coarse_oculomatic_calib_values_candidate = [-1.1659087 -1.782281 ] for face.pos = [-5. -5.], AI_data.shape = (152041, 6)
-# 266.5713 	DATA 	Keypress: right
-# 266.5740 	EXP 	coarse trial 8, candidate values accepted,coarse_oculomatic_calib_values[8] = [-1.16590869 -1.78228104], AI_data.shape = (152272, 6)
-# 266.5868 	EXP 	coarse trial 9, showing face,face.pos = [-5.  0.], AI_data.shape = (152277, 6)
-# 267.2959 	DATA 	Keypress: right
-# 267.3096 	EXP 	coarse trial 9, hiding face, coarse_oculomatic_calib_values_candidate = [-2.3525956   0.22579882] for face.pos = [-5.  0.], AI_data.shape = (152684, 6)
-# 267.7708 	DATA 	Keypress: right
-# 267.7758 	EXP 	coarse trial 9, candidate values accepted,coarse_oculomatic_calib_values[9] = [-2.35259557  0.22579882], AI_data.shape = (152962, 6)
-# 267.7892 	EXP 	coarse trial 10, showing face,face.pos = [-5.  5.], AI_data.shape = (152966, 6)
-# 268.5196 	DATA 	Keypress: right
-# 268.5330 	EXP 	coarse trial 10, hiding face, coarse_oculomatic_calib_values_candidate = [-1.3513215 -2.1745203] for face.pos = [-5.  5.], AI_data.shape = (153388, 6)
-# 269.1728 	DATA 	Keypress: left
-# 269.1864 	EXP 	coarse trial 10, showing face,face.pos = [-5.  5.], AI_data.shape = (153769, 6)
-# 270.1392 	DATA 	Keypress: right
-# 270.1526 	EXP 	coarse trial 10, hiding face, coarse_oculomatic_calib_values_candidate = [-2.1677294  0.8058794] for face.pos = [-5.  5.], AI_data.shape = (154315, 6)
-# 270.5797 	DATA 	Keypress: right
-# 270.5842 	EXP 	coarse trial 10, candidate values accepted,coarse_oculomatic_calib_values[10] = [-2.16772938  0.80587941], AI_data.shape = (154572, 6)
-# 270.5976 	EXP 	coarse trial 11, showing face,face.pos = [-5. -5.], AI_data.shape = (154576, 6)
-# 271.2165 	DATA 	Keypress: right
-# 271.2300 	EXP 	coarse trial 11, hiding face, coarse_oculomatic_calib_values_candidate = [-2.7706397 -2.2990272] for face.pos = [-5. -5.], AI_data.shape = (154931, 6)
-# 271.6612 	DATA 	Keypress: left
-# 271.6748 	EXP 	coarse trial 11, showing face,face.pos = [-5. -5.], AI_data.shape = (155193, 6)
-# 274.8519 	DATA 	Keypress: right
-# 274.8656 	EXP 	coarse trial 11, hiding face, coarse_oculomatic_calib_values_candidate = [-1.466981  -1.6323916] for face.pos = [-5. -5.], AI_data.shape = (157017, 6)
-# 275.2342 	DATA 	Keypress: right
-# 275.2345 	EXP 	coarse trial 11, candidate values accepted,coarse_oculomatic_calib_values[11] = [-1.46698105 -1.63239157], AI_data.shape = (157241, 6)
-# 275.2479 	EXP 	coarse trial 12, showing face,face.pos = [5. 5.], AI_data.shape = (157245, 6)
-# 275.8946 	DATA 	Keypress: right
-# 275.9083 	EXP 	coarse trial 12, hiding face, coarse_oculomatic_calib_values_candidate = [-3.4193316   0.31815547] for face.pos = [5. 5.], AI_data.shape = (157617, 6)
-# 276.7429 	DATA 	Keypress: left
-# 276.7564 	EXP 	coarse trial 12, showing face,face.pos = [5. 5.], AI_data.shape = (158113, 6)
-# 277.4865 	DATA 	Keypress: right
-# 277.5002 	EXP 	coarse trial 12, hiding face, coarse_oculomatic_calib_values_candidate = [1.0798211 1.2261193] for face.pos = [5. 5.], AI_data.shape = (158532, 6)
-# 277.9037 	DATA 	Keypress: right
-# 277.9041 	EXP 	coarse trial 12, candidate values accepted,coarse_oculomatic_calib_values[12] = [1.07982111 1.22611928], AI_data.shape = (158775, 6)
-# 277.9172 	EXP 	coarse trial 13, showing face,face.pos = [-5. -5.], AI_data.shape = (158780, 6)
-# 279.9263 	DATA 	Keypress: left
-# 279.9400 	EXP 	coarse trial 13, hiding face, AI_data.shape = (159938, 6)
-# 280.2254 	DATA 	Keypress: right
-# 280.2392 	EXP 	coarse trial 13, showing face,face.pos = [-5. -5.], AI_data.shape = (160109, 6)
-# 281.2680 	DATA 	Keypress: left
-# 281.2816 	EXP 	coarse trial 13, hiding face, AI_data.shape = (160705, 6)
-# 281.7411 	DATA 	Keypress: right
-# 281.7544 	EXP 	coarse trial 13, showing face,face.pos = [-5. -5.], AI_data.shape = (160977, 6)
-# 284.6671 	DATA 	Keypress: left
-# 284.6808 	EXP 	coarse trial 13, hiding face, AI_data.shape = (162661, 6)
-# 285.0396 	DATA 	Keypress: right
-# 285.0563 	EXP 	coarse trial 13, showing face,face.pos = [-5. -5.], AI_data.shape = (162877, 6)
-# 287.4692 	DATA 	Keypress: left
-# 287.4823 	EXP 	coarse trial 13, hiding face, AI_data.shape = (164271, 6)
-# 287.8879 	DATA 	Keypress: right
-# 287.9062 	EXP 	coarse trial 13, showing face,face.pos = [-5. -5.], AI_data.shape = (164514, 6)
-# 288.4833 	DATA 	Keypress: right
-# 288.4971 	EXP 	coarse trial 13, hiding face, coarse_oculomatic_calib_values_candidate = [ 0.9138386 -0.9331798] for face.pos = [-5. -5.], AI_data.shape = (164845, 6)
-# 289.3412 	DATA 	Keypress: right
-# 289.3458 	EXP 	coarse trial 13, candidate values accepted,coarse_oculomatic_calib_values[13] = [ 0.91383862 -0.9331798 ], AI_data.shape = (165344, 6)
-# 289.3591 	EXP 	coarse trial 14, showing face,face.pos = [ 5. -5.], AI_data.shape = (165349, 6)
-# 290.2560 	DATA 	Keypress: right
-# 290.2696 	EXP 	coarse trial 14, hiding face, coarse_oculomatic_calib_values_candidate = [ 1.7659917 -1.6876354] for face.pos = [ 5. -5.], AI_data.shape = (165863, 6)
-# 290.6175 	DATA 	Keypress: right
-# 290.6179 	EXP 	coarse trial 14, candidate values accepted,coarse_oculomatic_calib_values[14] = [ 1.76599169 -1.68763542], AI_data.shape = (166075, 6)
-# 290.6312 	EXP 	coarse trial 15, showing face,face.pos = [0. 5.], AI_data.shape = (166080, 6)
-# 291.2223 	DATA 	Keypress: right
-# 291.2359 	EXP 	coarse trial 15, hiding face, coarse_oculomatic_calib_values_candidate = [-0.4509764  0.9100183] for face.pos = [0. 5.], AI_data.shape = (166417, 6)
-# 291.4934 	DATA 	Keypress: right
-# 291.4939 	EXP 	coarse trial 15, candidate values accepted,coarse_oculomatic_calib_values[15] = [-0.4509764   0.91001832], AI_data.shape = (166576, 6)
-# 291.5071 	EXP 	coarse trial 16, showing face,face.pos = [0. 5.], AI_data.shape = (166581, 6)
-# 291.9877 	DATA 	Keypress: right
-# 292.0006 	EXP 	coarse trial 16, hiding face, coarse_oculomatic_calib_values_candidate = [0.04890592 1.2413023 ] for face.pos = [0. 5.], AI_data.shape = (166856, 6)
-# 292.2790 	DATA 	Keypress: right
-# 292.2795 	EXP 	coarse trial 16, candidate values accepted,coarse_oculomatic_calib_values[16] = [0.04890592 1.24130225], AI_data.shape = (167025, 6)
-# 292.2926 	EXP 	coarse trial 17, showing face,face.pos = [ 0. -5.], AI_data.shape = (167030, 6)
-# 293.4818 	DATA 	Keypress: right
-# 293.4951 	EXP 	coarse trial 17, hiding face, coarse_oculomatic_calib_values_candidate = [-0.10208441 -1.7719047 ] for face.pos = [ 0. -5.], AI_data.shape = (167715, 6)
-# 293.7873 	DATA 	Keypress: right
-# 293.7878 	EXP 	coarse trial 17, candidate values accepted,coarse_oculomatic_calib_values[17] = [-0.10208441 -1.77190471], AI_data.shape = (167895, 6)
-# 293.8009 	EXP 	coarse trial 18, showing face,face.pos = [ 0. -5.], AI_data.shape = (167900, 6)
-# 295.2543 	DATA 	Keypress: right
-# 295.2677 	EXP 	coarse trial 18, hiding face, coarse_oculomatic_calib_values_candidate = [ 0.29843286 -2.2534485 ] for face.pos = [ 0. -5.], AI_data.shape = (168734, 6)
-# 295.6562 	DATA 	Keypress: right
-# 295.6585 	EXP 	coarse trial 18, candidate values accepted,coarse_oculomatic_calib_values[18] = [ 0.29843286 -2.25344849], AI_data.shape = (168967, 6)
-# 295.6709 	EXP 	coarse trial 19, showing face,face.pos = [0. 0.], AI_data.shape = (168972, 6)
-# 298.4725 	DATA 	Keypress: right
-# 298.4861 	EXP 	coarse trial 19, hiding face, coarse_oculomatic_calib_values_candidate = [ 0.09800802 -0.5614969 ] for face.pos = [0. 0.], AI_data.shape = (170580, 6)
-# 298.7704 	DATA 	Keypress: right
-# 298.7724 	EXP 	coarse trial 19, candidate values accepted,coarse_oculomatic_calib_values[19] = [ 0.09800802 -0.56149691], AI_data.shape = (170752, 6)
-# 298.7851 	EXP 	coarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (170757, 6)
-# 300.9193 	DATA 	Keypress: left
-# 300.9328 	EXP 	coarse trial 20, hiding face, AI_data.shape = (171990, 6)
-# 301.2807 	DATA 	Keypress: right
-# 301.2946 	EXP 	coarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (172196, 6)
-# 302.0249 	DATA 	Keypress: left
-# 302.0383 	EXP 	coarse trial 20, hiding face, AI_data.shape = (172622, 6)
-# 302.6155 	DATA 	Keypress: right
-# 302.6291 	EXP 	coarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (172960, 6)
-# 303.2619 	DATA 	Keypress: left
-# 303.2756 	EXP 	coarse trial 20, hiding face, AI_data.shape = (173332, 6)
-# 304.0076 	DATA 	Keypress: right
-# 304.0263 	EXP 	coarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (173761, 6)
-# 305.1456 	DATA 	Keypress: right
-# 305.1594 	EXP 	coarse trial 20, hiding face, coarse_oculomatic_calib_values_candidate = [-3.3869004   0.05144549] for face.pos = [-5.  5.], AI_data.shape = (174405, 6)
-# 305.4259 	DATA 	Keypress: right
-# 305.4310 	EXP 	coarse trial 20, candidate values accepted,coarse_oculomatic_calib_values[20] = [-3.38690042  0.05144549], AI_data.shape = (174570, 6)
-# 305.4444 	EXP 	coarse trial 21, showing face,face.pos = [0. 5.], AI_data.shape = (174574, 6)
-# 305.9659 	DATA 	Keypress: right
-# 305.9796 	EXP 	coarse trial 21, hiding face, coarse_oculomatic_calib_values_candidate = [0.20977661 1.2132251 ] for face.pos = [0. 5.], AI_data.shape = (174874, 6)
-# 306.1745 	DATA 	Keypress: right
-# 306.1749 	EXP 	coarse trial 21, candidate values accepted,coarse_oculomatic_calib_values[21] = [0.20977661 1.21322513], AI_data.shape = (174998, 6)
-# 306.1882 	EXP 	coarse trial 22, showing face,face.pos = [0. 0.], AI_data.shape = (175002, 6)
-# 306.7932 	DATA 	Keypress: right
-# 306.8068 	EXP 	coarse trial 22, hiding face, coarse_oculomatic_calib_values_candidate = [-3.0744348   0.30259103] for face.pos = [0. 0.], AI_data.shape = (175348, 6)
-# 307.4090 	DATA 	Keypress: right
-# 307.4127 	EXP 	coarse trial 22, candidate values accepted,coarse_oculomatic_calib_values[22] = [-3.07443476  0.30259103], AI_data.shape = (175707, 6)
-# 307.4256 	EXP 	coarse trial 23, showing face,face.pos = [5. 5.], AI_data.shape = (175712, 6)
-# 308.1416 	DATA 	Keypress: right
-# 308.1553 	EXP 	coarse trial 23, hiding face, coarse_oculomatic_calib_values_candidate = [2.6770077 0.6244469] for face.pos = [5. 5.], AI_data.shape = (176123, 6)
-# 308.5193 	DATA 	Keypress: right
-# 308.5243 	EXP 	coarse trial 23, candidate values accepted,coarse_oculomatic_calib_values[23] = [2.67700768 0.62444693], AI_data.shape = (176347, 6)
-# 308.5378 	EXP 	coarse trial 24, showing face,face.pos = [0. 0.], AI_data.shape = (176351, 6)
-# 310.4635 	DATA 	Keypress: right
-# 310.4773 	EXP 	coarse trial 24, hiding face, coarse_oculomatic_calib_values_candidate = [-0.49066135 -0.73969233] for face.pos = [0. 0.], AI_data.shape = (177455, 6)
-# 310.7693 	DATA 	Keypress: right
-# 310.7697 	EXP 	coarse trial 24, candidate values accepted,coarse_oculomatic_calib_values[24] = [-0.49066135 -0.73969233], AI_data.shape = (177632, 6)
-# 310.7830 	EXP 	coarse trial 25, showing face,face.pos = [5. 0.], AI_data.shape = (177636, 6)
-# 311.4714 	DATA 	Keypress: right
-# 311.4850 	EXP 	coarse trial 25, hiding face, coarse_oculomatic_calib_values_candidate = [ 0.9200567  -0.52850425] for face.pos = [5. 0.], AI_data.shape = (178031, 6)
-# 311.8122 	DATA 	Keypress: right
-# 311.8127 	EXP 	coarse trial 25, candidate values accepted,coarse_oculomatic_calib_values[25] = [ 0.9200567  -0.52850425], AI_data.shape = (178229, 6)
-# 311.8258 	EXP 	coarse trial 26, showing face,face.pos = [5. 5.], AI_data.shape = (178234, 6)
-# 313.9599 	DATA 	Keypress: left
-# 313.9736 	EXP 	coarse trial 26, hiding face, AI_data.shape = (179469, 6)
-# 314.2728 	DATA 	Keypress: right
-# 314.2865 	EXP 	coarse trial 26, showing face,face.pos = [5. 5.], AI_data.shape = (179649, 6)
-# 314.9817 	DATA 	Keypress: left
-# 314.9954 	EXP 	coarse trial 26, hiding face, AI_data.shape = (180054, 6)
-# 315.6067 	DATA 	Keypress: right
-# 315.6212 	EXP 	coarse trial 26, showing face,face.pos = [5. 5.], AI_data.shape = (180413, 6)
-# 315.9758 	DATA 	Keypress: right
-# 315.9895 	EXP 	coarse trial 26, hiding face, coarse_oculomatic_calib_values_candidate = [1.5333806 1.3557628] for face.pos = [5. 5.], AI_data.shape = (180617, 6)
-# 316.3789 	DATA 	Keypress: right
-# 316.3792 	EXP 	coarse trial 26, candidate values accepted,coarse_oculomatic_calib_values[26] = [1.53338063 1.35576284], AI_data.shape = (180852, 6)
-# 316.3800 	EXP 	coarse eye-tracking calibration end, coarse_stims_pos = [[ 5 -5]
-
-# 316.3821 	EXP 	circular trajectory calibration start, AI_data.shape = (180857, 6)
-# 316.3927 	EXP 	circular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)
-# 316.3927 	EXP 	circular trajectory trial 0, turn 0 start, AI_data.shape = (180857, 6)
-# [...]
-# 328.4045 	EXP 	circular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)
-# 328.4045 	EXP 	circular trajectory trial 0 end, AI_data.shape = (187767, 6)
-# 328.4115 	EXP 	circular trajectory trial 1 start, faceID = 12, AI_data.shape = (187775, 6)
-# [...]
-# 388.5193 	EXP 	circular trajectory trial 5 end, AI_data.shape = (222356, 6)
-# 388.5193 	EXP 	circular trajectory calibration end, AI_data.shape = (222356, 6)
+else:
+    eclines = ''
 
 #
 # 388.5270 	EXP 	grid faces calibration start, AI_data.shape = (222368, 6)
@@ -1428,96 +1217,95 @@ if eclog is not None:
 # 697.7146 	EXP 	calibration complete, duration 695.61sec, dropped frames = 40522
 #
 
-# ecdata = {}
-# ims = {}
-# impaths = {}
-# lf_categories = {}
-# tmp_image = None
-# tmp_imagepath = None
-# tmp_units = None
-# tmp_pos = None
-# tmp_size = None
-# tmp_ori = None
-# tmp_category = None
-# tmp_catid = None
-# tmp_cond = None
-# tmp_acqfr = None
-# tmp_stimtimestr = ''
-# stimtime_mode = False
-# tmp_isitimestr = ''
-# isitime_mode = False
-# for line in eclines:
-#     if 'EXP \tstim_times:' in line:
-#         stimtime_mode = True
-#     if 'EXP \tinterstim_times:' in line:
-#         isitime_mode = True
-#     if stimtime_mode:
-#         tmp_stimtimestr = tmp_stimtimestr + line
-#         if ']' in line:
-#             stimtime_mode = False
-#     if isitime_mode:
-#         tmp_isitimestr = tmp_isitimestr + line
-#         if ']' in line:
-#             isitime_mode = False
-#
-#     if 'stim start' not in line or 'image' not in line:
-#         continue
-#
-#     col = line.split('trial')
-#     if not col:
-#         continue
-#     subcol = [sc.strip() for sc in col[1].split(',')]
-#     tmp_trial = int(subcol[0].split('/')[0].strip())
-#     if 'cond' in subcol[3]:
-#         tmp_cond = int(subcol[3].split('=')[1].strip())
-#     else:
-#         print('could not get cond from log entry')
-#     if 'image' in subcol[4]:
-#         tmp_image = subcol[4].split(':')[1].strip()
-#         if tmp_image not in ims:
-#             ims[tmp_image] = tmp_cond
-#         tmp_category = tmp_image[0]
-#         if tmp_category not in lf_categories:
-#             lf_categories[tmp_category] = len(lf_categories)
-#         tmp_catid = lf_categories[tmp_category]
-#     else:
-#         print('could not get image name from log entry')
-#     if 'path' in subcol[5]:
-#         tmp_imagepath = subcol[5].split('=')[1].strip()
-#         if tmp_imagepath not in impaths:
-#             impaths[tmp_imagepath] = tmp_cond
-#     else:
-#         print('could not get image name from log entry')
-#     if 'units' in subcol[6]:
-#         tmp_units = subcol[6].split('=')[1].strip()
-#     else:
-#         print('could not get units from log entry')
-#     if 'pos' in subcol[7]:
-#         tmp_pos = np.fromstring(subcol[7].split('=')[1].strip('[]'), sep=' ')
-#     else:
-#         print('could not get pos from log entry')
-#     if 'size' in subcol[8]:
-#         tmp_size = np.fromstring(subcol[8].split('=')[1].strip('[]'), sep=' ')
-#     else:
-#         print('could not get size from log entry')
-#     if 'ori' in subcol[9]:
-#         tmp_ori = float(subcol[9].split('=')[1].strip())
-#     else:
-#         print('could not get ori from log entry')
-#     if 'acqfr' in subcol[15]:
-#         tmp_acqfr = int(subcol[15].split('=')[1].strip())
-#     else:
-#         print('could not get acqfr from log entry')
-#     trialdata[tmp_trial] = {'cond': tmp_cond,  # effectively image_id
-#                             'image': tmp_image,
-#                             'imagepath': tmp_imagepath,
-#                             'units': tmp_units,
-#                             'pos': tmp_pos,
-#                             'size': tmp_size,
-#                             'ori': tmp_ori,
-#                             'category': tmp_category,
-#                             'catid': tmp_catid,
-#                             'acqfr': tmp_acqfr}
+
+ecdata = {'zeroing': {},
+          'coarse': {},
+          'circular': {},
+          'facegrid': {},
+          'spotgrid': {}}
+
+pattern_AIidx = r'.*AI_data\.shape\ *=\ *\((\d+),\ *([0-9]+)\).*'
+pattern_pos = r'.*face\.pos\ *=\ *\[(.*)\].*'
+pattern_candvals = r'.*coarse_oculomatic_calib_values_candidate\ *=\ *\[(.*)\].*'
+
+lmode = ''
+for idx_line, line in enumerate(eclines):
+    # First pass through eye-calibration log file
+    if 'EXP \toculomatic zeroing start' in line:
+        # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
+        lmode = 'zeroing'
+        # '234.7010 \tEXP \toculomatic zeroing end, AI_data.shape = (133928, 6)'
+    elif 'EXP \tcoarse eye-tracking calibration start' in line:
+        # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
+        lmode = 'coarse'
+        # '316.3800 \tEXP \tcoarse eye-tracking calibration end, coarse_stims_pos = [[ 5 -5]'
+    elif 'EXP \tcircular trajectory calibration start' in line:
+        # '316.3821 \tEXP \tcircular trajectory calibration start, AI_data.shape = (180857, 6)'
+        lmode = 'circular'
+        # '388.5193 \tEXP \tcircular trajectory calibration end, AI_data.shape = (222356, 6)'
+    elif 'end' in line:
+        lmode = ''
+    if lmode == '':
+        continue
+
+    match lmode:
+        case 'zeroing':
+            if 'AIrng' not in ecdata['zeroing']:
+                ecdata['zeroing']['AIrng'] = [None, None]
+            pattern_zero = r'.*oculomatic\ *zeroing,\ *(presenting|hiding)\ *face,\ *' + \
+                           r'AI_data\.shape\ *=\ *\((\d+),\ *([0-9]+)\).*'
+            # '6.3156 \tEXP \toculomatic zeroing, presenting face, AI_data.shape = (2529, 6)'
+            # '234.7007 \tEXP \toculomatic zeroing, hiding face, AI_data.shape = (133928, 6)'
+            if re.match(pattern_zero, line) is not None:
+                g = re.match(pattern_zero, line).groups()
+                if g[0] == 'presenting':
+                    ecdata['zeroing']['AIrng'][0] = int(g[1])
+                elif g[0] == 'hiding':
+                    ecdata['zeroing']['AIrng'][1] = int(g[1])
+
+        case 'coarse':
+            pattern_coarse = r'.*coarse\ *trial\ *(\d+),\ *(showing|hiding)\ *face,.*' + pattern_pos
+            # '304.0263 \tEXP \tcoarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (173761, 6)'
+            # '305.1594 \tEXP \tcoarse trial 20, hiding face, coarse_oculomatic_calib_values_candidate = [-3.3869004   0.05144549] for face.pos = [-5.  5.], AI_data.shape = (174405, 6)'
+            if re.match(pattern_coarse, line) is not None:
+                g = re.match(pattern_coarse, line).groups()
+                t = int(g[0])
+                if g[1] == 'showing':
+                    if 'n_trials' not in ecdata['coarse']:
+                        ecdata['coarse']['n_trials'] = -1
+                    if ecdata['coarse']['n_trials'] < t:
+                        ecdata['coarse']['n_trials'] = t
+                        ecdata['coarse'][t] = {'pos': None,
+                                               'AIrng': [None, None],
+                                               'cvals': None}
+                    ecdata['coarse'][t]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[0])
+                    tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float, sep=' ')
+                    ecdata['coarse'][t]['pos'] = tmp_pos
+                elif g[1] == 'hiding':
+                    ecdata['coarse'][t]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[0])
+                    tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float, sep=' ')
+                    if not np.array_equal(ecdata['coarse'][t]['pos'], tmp_pos):
+                        warn('Mismatched stimulus positions in eye-tracking calibration log line {}.'.format(idx_line))
+                    tmp_candvals = np.fromstring(re.match(pattern_candvals, line).groups()[0].strip(),
+                                                 dtype=float, sep=' ')
+                    ecdata['coarse'][t]['cvals'] = tmp_candvals
+
+        #
+        # 316.3821 	EXP 	circular trajectory calibration start, AI_data.shape = (180857, 6)
+        # 316.3927 	EXP 	circular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)
+        # 316.3927 	EXP 	circular trajectory trial 0, turn 0 start, AI_data.shape = (180857, 6)
+        # [...]
+        # 328.4045 	EXP 	circular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)
+        # 328.4045 	EXP 	circular trajectory trial 0 end, AI_data.shape = (187767, 6)
+        # 328.4115 	EXP 	circular trajectory trial 1 start, faceID = 12, AI_data.shape = (187775, 6)
+        # [...]
+        # 388.5193 	EXP 	circular trajectory trial 5 end, AI_data.shape = (222356, 6)
+        # 388.5193 	EXP 	circular trajectory calibration end, AI_data.shape = (222356, 6)
+        case 'circular':
+            print('circ')
+
+        case _:
+            continue
 
 
 # % Extract stimulus information from log file
