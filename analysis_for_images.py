@@ -502,7 +502,7 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 
 # Estimate SNR
 
-# noise_level = np.median(np.abs(np.diff(dFF_trace)))/np.sqrt(framerate)
+# v_noiselev = np.median(np.abs(np.diff(FdF)), axis=1) / np.sqrt(md['framerate'])
 
 # # Deconvolve fluorescence signals.
 # from oasis.oasis_methods import oasisAR1
