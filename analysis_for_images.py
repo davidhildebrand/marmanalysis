@@ -1225,8 +1225,8 @@ ecdata = {'zeroing': {},
           'spotgrid': {}}
 
 pattern_AIidx = r'.*AI_data\.shape\ *=\ *\((\d+),\ *([0-9]+)\).*'
-pattern_pos = r'.*face\.pos\ *=\ *\[(.*)\].*'
-pattern_candvals = r'.*coarse_oculomatic_calib_values_candidate\ *=\ *\[(.*)\].*'
+pattern_pos = r'.*face\.pos\ *=\ *\[([^\[\]]*)\].*'
+pattern_cvals = r'.*calib_values_candidate\ *=\ *\[([^\[\]]*)\].*'
 
 lmode = ''
 for idx_line, line in enumerate(eclines):
@@ -1235,16 +1235,20 @@ for idx_line, line in enumerate(eclines):
         # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
         lmode = 'zeroing'
         # '234.7010 \tEXP \toculomatic zeroing end, AI_data.shape = (133928, 6)'
+        if 'zeroing end' in line:
+            lmode = ''
     elif 'EXP \tcoarse eye-tracking calibration start' in line:
         # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
         lmode = 'coarse'
         # '316.3800 \tEXP \tcoarse eye-tracking calibration end, coarse_stims_pos = [[ 5 -5]'
+        if 'calibration end' in line:
+            lmode = ''
     elif 'EXP \tcircular trajectory calibration start' in line:
         # '316.3821 \tEXP \tcircular trajectory calibration start, AI_data.shape = (180857, 6)'
         lmode = 'circular'
         # '388.5193 \tEXP \tcircular trajectory calibration end, AI_data.shape = (222356, 6)'
-    elif 'end' in line:
-        lmode = ''
+        if 'calibration end' in line:
+            lmode = ''
     if lmode == '':
         continue
 
@@ -1264,7 +1268,8 @@ for idx_line, line in enumerate(eclines):
                     ecdata['zeroing']['AIrng'][1] = int(g[1])
 
         case 'coarse':
-            pattern_coarse = r'.*coarse\ *trial\ *(\d+),\ *(showing|hiding)\ *face,.*' + pattern_pos
+            pattern_coarse = r'.*coarse\ *trial\ *(\d+),\ *(showing|hiding)\ *face,\ *' + \
+                             r'([^\[\]]*values_candidate\ *=\ *\[(.*)\]\ *[^\[\]]*\ *)?' + pattern_pos
             # '304.0263 \tEXP \tcoarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (173761, 6)'
             # '305.1594 \tEXP \tcoarse trial 20, hiding face, coarse_oculomatic_calib_values_candidate = [-3.3869004   0.05144549] for face.pos = [-5.  5.], AI_data.shape = (174405, 6)'
             if re.match(pattern_coarse, line) is not None:
@@ -1273,8 +1278,8 @@ for idx_line, line in enumerate(eclines):
                 if g[1] == 'showing':
                     if 'n_trials' not in ecdata['coarse']:
                         ecdata['coarse']['n_trials'] = -1
-                    if ecdata['coarse']['n_trials'] < t:
-                        ecdata['coarse']['n_trials'] = t
+                    if ecdata['coarse']['n_trials'] - 1 < t:
+                        ecdata['coarse']['n_trials'] = t + 1
                         ecdata['coarse'][t] = {'pos': None,
                                                'AIrng': [None, None],
                                                'cvals': None}
@@ -1286,9 +1291,9 @@ for idx_line, line in enumerate(eclines):
                     tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float, sep=' ')
                     if not np.array_equal(ecdata['coarse'][t]['pos'], tmp_pos):
                         warn('Mismatched stimulus positions in eye-tracking calibration log line {}.'.format(idx_line))
-                    tmp_candvals = np.fromstring(re.match(pattern_candvals, line).groups()[0].strip(),
+                    tmp_cvals = np.fromstring(re.match(pattern_cvals, line).groups()[0].strip(),
                                                  dtype=float, sep=' ')
-                    ecdata['coarse'][t]['cvals'] = tmp_candvals
+                    ecdata['coarse'][t]['cvals'] = tmp_cvals
 
         #
         # 316.3821 	EXP 	circular trajectory calibration start, AI_data.shape = (180857, 6)
@@ -1302,8 +1307,36 @@ for idx_line, line in enumerate(eclines):
         # 388.5193 	EXP 	circular trajectory trial 5 end, AI_data.shape = (222356, 6)
         # 388.5193 	EXP 	circular trajectory calibration end, AI_data.shape = (222356, 6)
         case 'circular':
-            print('circ')
-
+            pattern_circ = r'.*circular\ *trajectory\ *trial\ *(\d+),?\ *(start|turn|end),?\ *' + \
+                           r'(faceID\ *=\ *)?(\d+)?\ *(start|end)?,*\ *' + pattern_AIidx
+            # '316.3927 \tEXP \tcircular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)'
+            # '325.4014 \tEXP \tcircular trajectory trial 0, turn 3 start, AI_data.shape = (186039, 6)'
+            # '328.4045 \tEXP \tcircular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)'
+            # '328.4045 \tEXP \tcircular trajectory trial 0 end, AI_data.shape = (187767, 6)'
+            if re.match(pattern_circ, line) is not None:
+                g = re.match(pattern_circ, line).groups()
+                trl = int(g[0])
+                if g[1] == 'start':
+                    if 'n_trials' not in ecdata['circular']:
+                        ecdata['circular']['n_trials'] = -1
+                    if ecdata['circular']['n_trials'] - 1 < trl:
+                        ecdata['circular']['n_trials'] = trl + 1
+                        ecdata['circular'][trl] = {'stim': None,
+                                                   'AIrng': [None, None],
+                                                   'n_turns': -1}
+                    ecdata['circular'][trl]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[0])
+                    ecdata['circular'][trl]['stim'] = g[2].replace(' ', '').replace('=', '').strip() + g[3]
+                elif g[1] == 'turn':
+                    trn = int(g[3])
+                    if ecdata['circular'][trl]['n_turns'] - 1 < trn:
+                        if g[4] == 'start':
+                            ecdata['circular'][trl][trn] = {'AIrng': [None, None]}
+                            ecdata['circular'][trl][trn]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[0])
+                        elif g[4] == 'end':
+                            ecdata['circular'][trl][trn]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[0])
+                            ecdata['circular'][trl]['n_turns'] = trn + 1
+                elif g[1] == 'end':
+                    ecdata['circular'][trl]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[0])
         case _:
             continue
 
