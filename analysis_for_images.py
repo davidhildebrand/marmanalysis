@@ -649,218 +649,7 @@ else:
 # 389.0546 	EXP 	grid face trial 0, ISI end, AI_data.shape = see next entry
 # 389.0546 	EXP 	grid face trial 0, face start, face.pos = [ 0. -5.], AI_data.shape = (222662, 6)
 # 392.0783 	EXP 	grid face trial 0, face end, AI_data.shape = see next entry
-# 392.0783 	EXP 	grid face trial 1, ISI start, AI_data.shape = (224406, 6)
-# 392.5928 	EXP 	grid face trial 1, ISI end, AI_data.shape = see next entry
-# 392.5928 	EXP 	grid face trial 1, face start, face.pos = [ 5. -5.], AI_data.shape = (224699, 6)
-# 395.6166 	EXP 	grid face trial 1, face end, AI_data.shape = see next entry
-# 395.6166 	EXP 	grid face trial 2, ISI start, AI_data.shape = (226445, 6)
-# 396.1311 	EXP 	grid face trial 2, ISI end, AI_data.shape = see next entry
-# 396.1311 	EXP 	grid face trial 2, face start, face.pos = [-5. -5.], AI_data.shape = (226736, 6)
-# 399.1548 	EXP 	grid face trial 2, face end, AI_data.shape = see next entry
-# 399.1548 	EXP 	grid face trial 3, ISI start, AI_data.shape = (228477, 6)
-# 399.6694 	EXP 	grid face trial 3, ISI end, AI_data.shape = see next entry
-# 399.6694 	EXP 	grid face trial 3, face start, face.pos = [5. 0.], AI_data.shape = (228773, 6)
-# 402.6931 	EXP 	grid face trial 3, face end, AI_data.shape = see next entry
-# 402.6931 	EXP 	grid face trial 4, ISI start, AI_data.shape = (230515, 6)
-# 403.2077 	EXP 	grid face trial 4, ISI end, AI_data.shape = see next entry
-# 403.2077 	EXP 	grid face trial 4, face start, face.pos = [5. 0.], AI_data.shape = (230810, 6)
-# 406.2312 	EXP 	grid face trial 4, face end, AI_data.shape = see next entry
-# 406.2312 	EXP 	grid face trial 5, ISI start, AI_data.shape = (232550, 6)
-# 406.7458 	EXP 	grid face trial 5, ISI end, AI_data.shape = see next entry
-# 406.7458 	EXP 	grid face trial 5, face start, face.pos = [5. 0.], AI_data.shape = (232841, 6)
-# 409.7696 	EXP 	grid face trial 5, face end, AI_data.shape = see next entry
-# 409.7696 	EXP 	grid face trial 6, ISI start, AI_data.shape = (234581, 6)
-# 410.2840 	EXP 	grid face trial 6, ISI end, AI_data.shape = see next entry
-# 410.2840 	EXP 	grid face trial 6, face start, face.pos = [-5.  5.], AI_data.shape = (234876, 6)
-# 413.3077 	EXP 	grid face trial 6, face end, AI_data.shape = see next entry
-# 413.3077 	EXP 	grid face trial 7, ISI start, AI_data.shape = (236617, 6)
-# 413.8221 	EXP 	grid face trial 7, ISI end, AI_data.shape = see next entry
-# 413.8221 	EXP 	grid face trial 7, face start, face.pos = [ 5. -5.], AI_data.shape = (236912, 6)
-# 416.8461 	EXP 	grid face trial 7, face end, AI_data.shape = see next entry
-# 416.8461 	EXP 	grid face trial 8, ISI start, AI_data.shape = (238652, 6)
-# 417.3604 	EXP 	grid face trial 8, ISI end, AI_data.shape = see next entry
-# 417.3604 	EXP 	grid face trial 8, face start, face.pos = [-5.  0.], AI_data.shape = (238948, 6)
-# 420.3842 	EXP 	grid face trial 8, face end, AI_data.shape = see next entry
-# 420.3842 	EXP 	grid face trial 9, ISI start, AI_data.shape = (240689, 6)
-# 420.8985 	EXP 	grid face trial 9, ISI end, AI_data.shape = see next entry
-# 420.8985 	EXP 	grid face trial 9, face start, face.pos = [ 5. -5.], AI_data.shape = (240983, 6)
-# 423.9224 	EXP 	grid face trial 9, face end, AI_data.shape = see next entry
-# 423.9224 	EXP 	grid face trial 10, ISI start, AI_data.shape = (242724, 6)
-# 424.4368 	EXP 	grid face trial 10, ISI end, AI_data.shape = see next entry
-# 424.4368 	EXP 	grid face trial 10, face start, face.pos = [ 0. -5.], AI_data.shape = (243018, 6)
-# 427.4606 	EXP 	grid face trial 10, face end, AI_data.shape = see next entry
-# 427.4606 	EXP 	grid face trial 11, ISI start, AI_data.shape = (244758, 6)
-# 427.9749 	EXP 	grid face trial 11, ISI end, AI_data.shape = see next entry
-# 427.9749 	EXP 	grid face trial 11, face start, face.pos = [5. 5.], AI_data.shape = (245054, 6)
-# 430.9988 	EXP 	grid face trial 11, face end, AI_data.shape = see next entry
-# 430.9988 	EXP 	grid face trial 12, ISI start, AI_data.shape = (246794, 6)
-# 431.5133 	EXP 	grid face trial 12, ISI end, AI_data.shape = see next entry
-# 431.5133 	EXP 	grid face trial 12, face start, face.pos = [-5.  0.], AI_data.shape = (247087, 6)
-# 434.5301 	EXP 	grid face trial 12, face end, AI_data.shape = see next entry
-# 434.5301 	EXP 	grid face trial 13, ISI start, AI_data.shape = (248824, 6)
-# 435.0445 	EXP 	grid face trial 13, ISI end, AI_data.shape = see next entry
-# 435.0445 	EXP 	grid face trial 13, face start, face.pos = [-5.  5.], AI_data.shape = (249118, 6)
-# 438.0683 	EXP 	grid face trial 13, face end, AI_data.shape = see next entry
-# 438.0683 	EXP 	grid face trial 14, ISI start, AI_data.shape = (250861, 6)
-# 438.5828 	EXP 	grid face trial 14, ISI end, AI_data.shape = see next entry
-# 438.5828 	EXP 	grid face trial 14, face start, face.pos = [5. 0.], AI_data.shape = (251157, 6)
-# 441.6065 	EXP 	grid face trial 14, face end, AI_data.shape = see next entry
-# 441.6065 	EXP 	grid face trial 15, ISI start, AI_data.shape = (252897, 6)
-# 442.1209 	EXP 	grid face trial 15, ISI end, AI_data.shape = see next entry
-# 442.1209 	EXP 	grid face trial 15, face start, face.pos = [5. 0.], AI_data.shape = (253193, 6)
-# 445.1447 	EXP 	grid face trial 15, face end, AI_data.shape = see next entry
-# 445.1447 	EXP 	grid face trial 16, ISI start, AI_data.shape = (254930, 6)
-# 445.6592 	EXP 	grid face trial 16, ISI end, AI_data.shape = see next entry
-# 445.6592 	EXP 	grid face trial 16, face start, face.pos = [0. 5.], AI_data.shape = (255224, 6)
-# 448.6760 	EXP 	grid face trial 16, face end, AI_data.shape = see next entry
-# 448.6760 	EXP 	grid face trial 17, ISI start, AI_data.shape = (256960, 6)
-# 449.1904 	EXP 	grid face trial 17, ISI end, AI_data.shape = see next entry
-# 449.1904 	EXP 	grid face trial 17, face start, face.pos = [5. 5.], AI_data.shape = (257253, 6)
-# 452.2143 	EXP 	grid face trial 17, face end, AI_data.shape = see next entry
-# 452.2143 	EXP 	grid face trial 18, ISI start, AI_data.shape = (258993, 6)
-# 452.7286 	EXP 	grid face trial 18, ISI end, AI_data.shape = see next entry
-# 452.7286 	EXP 	grid face trial 18, face start, face.pos = [0. 5.], AI_data.shape = (259287, 6)
-# 455.7524 	EXP 	grid face trial 18, face end, AI_data.shape = see next entry
-# 455.7524 	EXP 	grid face trial 19, ISI start, AI_data.shape = (261027, 6)
-# 456.2669 	EXP 	grid face trial 19, ISI end, AI_data.shape = see next entry
-# 456.2669 	EXP 	grid face trial 19, face start, face.pos = [5. 5.], AI_data.shape = (261322, 6)
-# 459.2906 	EXP 	grid face trial 19, face end, AI_data.shape = see next entry
-# 459.2906 	EXP 	grid face trial 20, ISI start, AI_data.shape = (263062, 6)
-# 459.8051 	EXP 	grid face trial 20, ISI end, AI_data.shape = see next entry
-# 459.8051 	EXP 	grid face trial 20, face start, face.pos = [ 0. -5.], AI_data.shape = (263356, 6)
-# 462.8288 	EXP 	grid face trial 20, face end, AI_data.shape = see next entry
-# 462.8288 	EXP 	grid face trial 21, ISI start, AI_data.shape = (265098, 6)
-# 463.3434 	EXP 	grid face trial 21, ISI end, AI_data.shape = see next entry
-# 463.3434 	EXP 	grid face trial 21, face start, face.pos = [ 5. -5.], AI_data.shape = (265392, 6)
-# 466.3600 	EXP 	grid face trial 21, face end, AI_data.shape = see next entry
-# 466.3600 	EXP 	grid face trial 22, ISI start, AI_data.shape = (267128, 6)
-# 466.8745 	EXP 	grid face trial 22, ISI end, AI_data.shape = see next entry
-# 466.8745 	EXP 	grid face trial 22, face start, face.pos = [5. 0.], AI_data.shape = (267424, 6)
-# 469.8982 	EXP 	grid face trial 22, face end, AI_data.shape = see next entry
-# 469.8982 	EXP 	grid face trial 23, ISI start, AI_data.shape = (269163, 6)
-# 470.4128 	EXP 	grid face trial 23, ISI end, AI_data.shape = see next entry
-# 470.4128 	EXP 	grid face trial 23, face start, face.pos = [-5. -5.], AI_data.shape = (269457, 6)
-# 473.4296 	EXP 	grid face trial 23, face end, AI_data.shape = see next entry
-# 473.4296 	EXP 	grid face trial 24, ISI start, AI_data.shape = (271193, 6)
-# 473.9441 	EXP 	grid face trial 24, ISI end, AI_data.shape = see next entry
-# 473.9441 	EXP 	grid face trial 24, face start, face.pos = [0. 0.], AI_data.shape = (271488, 6)
-# 476.9678 	EXP 	grid face trial 24, face end, AI_data.shape = see next entry
-# 476.9678 	EXP 	grid face trial 25, ISI start, AI_data.shape = (273228, 6)
-# 477.4822 	EXP 	grid face trial 25, ISI end, AI_data.shape = see next entry
-# 477.4822 	EXP 	grid face trial 25, face start, face.pos = [0. 0.], AI_data.shape = (273521, 6)
-# 480.5060 	EXP 	grid face trial 25, face end, AI_data.shape = see next entry
-# 480.5060 	EXP 	grid face trial 26, ISI start, AI_data.shape = (275261, 6)
-# 481.0205 	EXP 	grid face trial 26, ISI end, AI_data.shape = see next entry
-# 481.0205 	EXP 	grid face trial 26, face start, face.pos = [-5.  5.], AI_data.shape = (275554, 6)
-# 484.0441 	EXP 	grid face trial 26, face end, AI_data.shape = see next entry
-# 484.0441 	EXP 	grid face trial 27, ISI start, AI_data.shape = (277294, 6)
-# 484.5586 	EXP 	grid face trial 27, ISI end, AI_data.shape = see next entry
-# 484.5586 	EXP 	grid face trial 27, face start, face.pos = [0. 5.], AI_data.shape = (277589, 6)
-# 487.5823 	EXP 	grid face trial 27, face end, AI_data.shape = see next entry
-# 487.5823 	EXP 	grid face trial 28, ISI start, AI_data.shape = (279329, 6)
-# 488.0967 	EXP 	grid face trial 28, ISI end, AI_data.shape = see next entry
-# 488.0967 	EXP 	grid face trial 28, face start, face.pos = [0. 0.], AI_data.shape = (279624, 6)
-# 491.1206 	EXP 	grid face trial 28, face end, AI_data.shape = see next entry
-# 491.1206 	EXP 	grid face trial 29, ISI start, AI_data.shape = (281365, 6)
-# 491.6351 	EXP 	grid face trial 29, ISI end, AI_data.shape = see next entry
-# 491.6351 	EXP 	grid face trial 29, face start, face.pos = [0. 0.], AI_data.shape = (281661, 6)
-# 494.6590 	EXP 	grid face trial 29, face end, AI_data.shape = see next entry
-# 494.6590 	EXP 	grid face trial 30, ISI start, AI_data.shape = (283401, 6)
-# 495.1732 	EXP 	grid face trial 30, ISI end, AI_data.shape = see next entry
-# 495.1732 	EXP 	grid face trial 30, face start, face.pos = [-5.  0.], AI_data.shape = (283696, 6)
-# 498.1970 	EXP 	grid face trial 30, face end, AI_data.shape = see next entry
-# 498.1970 	EXP 	grid face trial 31, ISI start, AI_data.shape = (285437, 6)
-# 498.7114 	EXP 	grid face trial 31, ISI end, AI_data.shape = see next entry
-# 498.7114 	EXP 	grid face trial 31, face start, face.pos = [-5. -5.], AI_data.shape = (285729, 6)
-# 501.7351 	EXP 	grid face trial 31, face end, AI_data.shape = see next entry
-# 501.7351 	EXP 	grid face trial 32, ISI start, AI_data.shape = (287470, 6)
-# 502.2496 	EXP 	grid face trial 32, ISI end, AI_data.shape = see next entry
-# 502.2496 	EXP 	grid face trial 32, face start, face.pos = [-5. -5.], AI_data.shape = (287766, 6)
-# 505.2736 	EXP 	grid face trial 32, face end, AI_data.shape = see next entry
-# 505.2736 	EXP 	grid face trial 33, ISI start, AI_data.shape = (289504, 6)
-# 505.7878 	EXP 	grid face trial 33, ISI end, AI_data.shape = see next entry
-# 505.7878 	EXP 	grid face trial 33, face start, face.pos = [ 0. -5.], AI_data.shape = (289800, 6)
-# 508.8116 	EXP 	grid face trial 33, face end, AI_data.shape = see next entry
-# 508.8116 	EXP 	grid face trial 34, ISI start, AI_data.shape = (291539, 6)
-# 509.3260 	EXP 	grid face trial 34, ISI end, AI_data.shape = see next entry
-# 509.3260 	EXP 	grid face trial 34, face start, face.pos = [0. 5.], AI_data.shape = (291834, 6)
-# 512.3498 	EXP 	grid face trial 34, face end, AI_data.shape = see next entry
-# 512.3498 	EXP 	grid face trial 35, ISI start, AI_data.shape = (293574, 6)
-# 512.8643 	EXP 	grid face trial 35, ISI end, AI_data.shape = see next entry
-# 512.8643 	EXP 	grid face trial 35, face start, face.pos = [0. 0.], AI_data.shape = (293870, 6)
-# 515.8811 	EXP 	grid face trial 35, face end, AI_data.shape = see next entry
-# 515.8811 	EXP 	grid face trial 36, ISI start, AI_data.shape = (295606, 6)
-# 516.3955 	EXP 	grid face trial 36, ISI end, AI_data.shape = see next entry
-# 516.3955 	EXP 	grid face trial 36, face start, face.pos = [-5.  5.], AI_data.shape = (295899, 6)
-# 519.4193 	EXP 	grid face trial 36, face end, AI_data.shape = see next entry
-# 519.4193 	EXP 	grid face trial 37, ISI start, AI_data.shape = (297639, 6)
-# 519.9337 	EXP 	grid face trial 37, ISI end, AI_data.shape = see next entry
-# 519.9337 	EXP 	grid face trial 37, face start, face.pos = [5. 5.], AI_data.shape = (297934, 6)
-# 522.9578 	EXP 	grid face trial 37, face end, AI_data.shape = see next entry
-# 522.9578 	EXP 	grid face trial 38, ISI start, AI_data.shape = (299675, 6)
-# 523.4722 	EXP 	grid face trial 38, ISI end, AI_data.shape = see next entry
-# 523.4722 	EXP 	grid face trial 38, face start, face.pos = [-5.  0.], AI_data.shape = (299971, 6)
-# 526.4957 	EXP 	grid face trial 38, face end, AI_data.shape = see next entry
-# 526.4957 	EXP 	grid face trial 39, ISI start, AI_data.shape = (301709, 6)
-# 527.0102 	EXP 	grid face trial 39, ISI end, AI_data.shape = see next entry
-# 527.0102 	EXP 	grid face trial 39, face start, face.pos = [0. 5.], AI_data.shape = (302003, 6)
-# 530.0343 	EXP 	grid face trial 39, face end, AI_data.shape = see next entry
-# 530.0343 	EXP 	grid face trial 40, ISI start, AI_data.shape = (303744, 6)
-# 530.5484 	EXP 	grid face trial 40, ISI end, AI_data.shape = see next entry
-# 530.5484 	EXP 	grid face trial 40, face start, face.pos = [0. 5.], AI_data.shape = (304039, 6)
-# 533.5652 	EXP 	grid face trial 40, face end, AI_data.shape = see next entry
-# 533.5652 	EXP 	grid face trial 41, ISI start, AI_data.shape = (305778, 6)
-# 534.0796 	EXP 	grid face trial 41, ISI end, AI_data.shape = see next entry
-# 534.0796 	EXP 	grid face trial 41, face start, face.pos = [ 5. -5.], AI_data.shape = (306070, 6)
-# 537.1034 	EXP 	grid face trial 41, face end, AI_data.shape = see next entry
-# 537.1034 	EXP 	grid face trial 42, ISI start, AI_data.shape = (307810, 6)
-# 537.6178 	EXP 	grid face trial 42, ISI end, AI_data.shape = see next entry
-# 537.6178 	EXP 	grid face trial 42, face start, face.pos = [5. 5.], AI_data.shape = (308104, 6)
-# 540.6416 	EXP 	grid face trial 42, face end, AI_data.shape = see next entry
-# 540.6416 	EXP 	grid face trial 43, ISI start, AI_data.shape = (309844, 6)
-# 541.1560 	EXP 	grid face trial 43, ISI end, AI_data.shape = see next entry
-# 541.1560 	EXP 	grid face trial 43, face start, face.pos = [5. 5.], AI_data.shape = (310139, 6)
-# 544.1798 	EXP 	grid face trial 43, face end, AI_data.shape = see next entry
-# 544.1798 	EXP 	grid face trial 44, ISI start, AI_data.shape = (311879, 6)
-# 544.6943 	EXP 	grid face trial 44, ISI end, AI_data.shape = see next entry
-# 544.6943 	EXP 	grid face trial 44, face start, face.pos = [-5.  0.], AI_data.shape = (312172, 6)
-# 547.7111 	EXP 	grid face trial 44, face end, AI_data.shape = see next entry
-# 547.7111 	EXP 	grid face trial 45, ISI start, AI_data.shape = (313909, 6)
-# 548.2255 	EXP 	grid face trial 45, ISI end, AI_data.shape = see next entry
-# 548.2255 	EXP 	grid face trial 45, face start, face.pos = [-5.  0.], AI_data.shape = (314205, 6)
-# 551.2493 	EXP 	grid face trial 45, face end, AI_data.shape = see next entry
-# 551.2493 	EXP 	grid face trial 46, ISI start, AI_data.shape = (315945, 6)
-# 551.7637 	EXP 	grid face trial 46, ISI end, AI_data.shape = see next entry
-# 551.7637 	EXP 	grid face trial 46, face start, face.pos = [ 0. -5.], AI_data.shape = (316240, 6)
-# 554.7875 	EXP 	grid face trial 46, face end, AI_data.shape = see next entry
-# 554.7875 	EXP 	grid face trial 47, ISI start, AI_data.shape = (317984, 6)
-# 555.3019 	EXP 	grid face trial 47, ISI end, AI_data.shape = see next entry
-# 555.3019 	EXP 	grid face trial 47, face start, face.pos = [-5. -5.], AI_data.shape = (318278, 6)
-# 558.3257 	EXP 	grid face trial 47, face end, AI_data.shape = see next entry
-# 558.3257 	EXP 	grid face trial 48, ISI start, AI_data.shape = (320018, 6)
-# 558.8402 	EXP 	grid face trial 48, ISI end, AI_data.shape = see next entry
-# 558.8402 	EXP 	grid face trial 48, face start, face.pos = [ 5. -5.], AI_data.shape = (320313, 6)
-# 561.8640 	EXP 	grid face trial 48, face end, AI_data.shape = see next entry
-# 561.8640 	EXP 	grid face trial 49, ISI start, AI_data.shape = (322057, 6)
-# 562.3784 	EXP 	grid face trial 49, ISI end, AI_data.shape = see next entry
-# 562.3784 	EXP 	grid face trial 49, face start, face.pos = [0. 0.], AI_data.shape = (322347, 6)
-# 565.4023 	EXP 	grid face trial 49, face end, AI_data.shape = see next entry
-# 565.4023 	EXP 	grid face trial 50, ISI start, AI_data.shape = (324088, 6)
-# 565.9167 	EXP 	grid face trial 50, ISI end, AI_data.shape = see next entry
-# 565.9167 	EXP 	grid face trial 50, face start, face.pos = [ 0. -5.], AI_data.shape = (324384, 6)
-# 568.9404 	EXP 	grid face trial 50, face end, AI_data.shape = see next entry
-# 568.9404 	EXP 	grid face trial 51, ISI start, AI_data.shape = (326125, 6)
-# 569.4548 	EXP 	grid face trial 51, ISI end, AI_data.shape = see next entry
-# 569.4548 	EXP 	grid face trial 51, face start, face.pos = [-5. -5.], AI_data.shape = (326416, 6)
-# 572.4787 	EXP 	grid face trial 51, face end, AI_data.shape = see next entry
-# 572.4787 	EXP 	grid face trial 52, ISI start, AI_data.shape = (328156, 6)
-# 572.9931 	EXP 	grid face trial 52, ISI end, AI_data.shape = see next entry
-# 572.9931 	EXP 	grid face trial 52, face start, face.pos = [-5.  5.], AI_data.shape = (328450, 6)
-# 576.0170 	EXP 	grid face trial 52, face end, AI_data.shape = see next entry
-# 576.0170 	EXP 	grid face trial 53, ISI start, AI_data.shape = (330190, 6)
-# 576.5314 	EXP 	grid face trial 53, ISI end, AI_data.shape = see next entry
-# 576.5314 	EXP 	grid face trial 53, face start, face.pos = [-5.  5.], AI_data.shape = (330486, 6)
-# 579.5482 	EXP 	grid face trial 53, face end, AI_data.shape = see next entry
+# [...]
 # 579.5484 	EXP 	grid faces calibration end, AI_data.shape = (332223, 6)
 # 579.5631 	EXP 	grid target eye-tracking calibration start, AI_data.shape = (332239, 6)
 # 579.5829 	EXP 	grid target trial 0, ISI start, AI_data.shape = (332239, 6)
@@ -875,74 +664,7 @@ else:
 # 581.9812 	EXP 	grid target trial 0, central target fixation start, AI_data.shape = (333622, 6)
 # 582.0229 	EXP 	grid target trial 0, central target fixation interrupted, AI_data.shape = (333646, 6)
 # 582.5928 	EXP 	grid target trial 0, central target end, fixation fail, AI_data.shape = see next entry
-# 582.6137 	EXP 	grid target trial 1, ISI start, AI_data.shape = (333976, 6)
-# 583.6077 	EXP 	grid target trial 1, ISI end, AI_data.shape = see next entry
-# 583.6077 	EXP 	grid target trial 1, central target start, AI_data.shape = (334556, 6)
-# 585.2830 	EXP 	grid target trial 1, central target fixation start, AI_data.shape = (335516, 6)
-# 585.3872 	EXP 	grid target trial 1, central target fixation completed, AI_data.shape = (335576, 6)
-# 585.4010 	EXP 	grid target trial 1, central target end, fixation success, AI_data.shape = see next entry
-# 585.4149 	EXP 	grid target trial 1, grid target start, grid_target.pos = [5. 0.], AI_data.shape = (335589, 6)
-# 585.4177 	EXP 	grid target trial 1, grid target fixation start, grid_target.pos = [5. 0.], AI_data.shape = (335596, 6)
-# 585.5225 	EXP 	grid target trial 1, grid target fixation completed, grid_target.pos = [5. 0.], AI_data.shape = (335652, 6)
-# 585.5332 	EXP 	grid target trial 1, grid target end, fixation success, AI_data.shape = see next entry
-# 585.5332 	EXP 	grid target trial 1, face reward start, face.pos = [5. 0.], AI_data.shape = (335657, 6)
-# 586.0616 	EXP 	grid target trial 1, face reward end, AI_data.shape = see next entry
-# 586.0616 	EXP 	grid target trial 2, ISI start, AI_data.shape = (335950, 6)
-# 587.0556 	EXP 	grid target trial 2, ISI end, AI_data.shape = see next entry
-# 587.0556 	EXP 	grid target trial 2, central target start, AI_data.shape = (336530, 6)
-# 588.6545 	EXP 	grid target trial 2, central target fixation start, AI_data.shape = (337445, 6)
-# 588.7588 	EXP 	grid target trial 2, central target fixation completed, AI_data.shape = (337505, 6)
-# 588.7726 	EXP 	grid target trial 2, central target end, fixation success, AI_data.shape = see next entry
-# 588.7865 	EXP 	grid target trial 2, grid target start, grid_target.pos = [0. 0.], AI_data.shape = (337518, 6)
-# 588.7895 	EXP 	grid target trial 2, grid target fixation start, grid_target.pos = [0. 0.], AI_data.shape = (337525, 6)
-# 588.8910 	EXP 	grid target trial 2, grid target fixation completed, grid_target.pos = [0. 0.], AI_data.shape = (337580, 6)
-# 588.9046 	EXP 	grid target trial 2, grid target end, fixation success, AI_data.shape = see next entry
-# 588.9046 	EXP 	grid target trial 2, face reward start, face.pos = [0. 0.], AI_data.shape = (337584, 6)
-# 589.4260 	EXP 	grid target trial 2, face reward end, AI_data.shape = see next entry
-# 589.4260 	EXP 	grid target trial 3, ISI start, AI_data.shape = (337877, 6)
-# 590.4200 	EXP 	grid target trial 3, ISI end, AI_data.shape = see next entry
-# 590.4200 	EXP 	grid target trial 3, central target start, AI_data.shape = (338457, 6)
-# 590.9205 	EXP 	grid target trial 3, central target fixation start, AI_data.shape = (338745, 6)
-# 591.0248 	EXP 	grid target trial 3, central target fixation completed, AI_data.shape = (338805, 6)
-# 591.0387 	EXP 	grid target trial 3, central target end, fixation success, AI_data.shape = see next entry
-# 591.0525 	EXP 	grid target trial 3, grid target start, grid_target.pos = [0. 0.], AI_data.shape = (338818, 6)
-# 593.0755 	EXP 	grid target trial 3, grid target end, fixation fail, AI_data.shape = see next entry
-# 593.0755 	EXP 	grid target trial 4, ISI start, AI_data.shape = (339966, 6)
-# 594.0694 	EXP 	grid target trial 4, ISI end, AI_data.shape = see next entry
-# 594.0694 	EXP 	grid target trial 4, central target start, AI_data.shape = (340545, 6)
-# 595.8421 	EXP 	grid target trial 4, central target fixation start, AI_data.shape = (341563, 6)
-# 595.8491 	EXP 	grid target trial 4, central target fixation interrupted, AI_data.shape = (341567, 6)
-# 595.8561 	EXP 	grid target trial 4, central target fixation start, AI_data.shape = (341571, 6)
-# 595.9603 	EXP 	grid target trial 4, central target fixation completed, AI_data.shape = (341631, 6)
-# 595.9742 	EXP 	grid target trial 4, central target end, fixation success, AI_data.shape = see next entry
-# 595.9882 	EXP 	grid target trial 4, grid target start, grid_target.pos = [ 0. -5.], AI_data.shape = (341645, 6)
-# 597.7679 	EXP 	grid target trial 4, grid target fixation start, grid_target.pos = [ 0. -5.], AI_data.shape = (342663, 6)
-# 597.8722 	EXP 	grid target trial 4, grid target fixation completed, grid_target.pos = [ 0. -5.], AI_data.shape = (342721, 6)
-# 597.8857 	EXP 	grid target trial 4, grid target end, fixation success, AI_data.shape = see next entry
-# 597.8857 	EXP 	grid target trial 4, face reward start, face.pos = [ 0. -5.], AI_data.shape = (342725, 6)
-# 598.4071 	EXP 	grid target trial 4, face reward end, AI_data.shape = see next entry
-# 598.4071 	EXP 	grid target trial 5, ISI start, AI_data.shape = (343019, 6)
-# 599.4009 	EXP 	grid target trial 5, ISI end, AI_data.shape = see next entry
-# 599.4009 	EXP 	grid target trial 5, central target start, AI_data.shape = (343599, 6)
-# 601.4170 	EXP 	grid target trial 5, central target end, fixation fail, AI_data.shape = see next entry
-# 601.4379 	EXP 	grid target trial 6, ISI start, AI_data.shape = (344760, 6)
-# 602.4319 	EXP 	grid target trial 6, ISI end, AI_data.shape = see next entry
-# 602.4319 	EXP 	grid target trial 6, central target start, AI_data.shape = (345340, 6)
-# 602.8491 	EXP 	grid target trial 6, central target fixation start, AI_data.shape = (345579, 6)
-# 602.8560 	EXP 	grid target trial 6, central target fixation interrupted, AI_data.shape = (345583, 6)
-# 602.8630 	EXP 	grid target trial 6, central target fixation start, AI_data.shape = (345587, 6)
-# 602.9603 	EXP 	grid target trial 6, central target fixation interrupted, AI_data.shape = (345642, 6)
-# 602.9672 	EXP 	grid target trial 6, central target fixation start, AI_data.shape = (345646, 6)
-# 602.9881 	EXP 	grid target trial 6, central target fixation interrupted, AI_data.shape = (345658, 6)
-# 603.7040 	EXP 	grid target trial 6, central target fixation start, AI_data.shape = (346069, 6)
-# 603.7944 	EXP 	grid target trial 6, central target fixation interrupted, AI_data.shape = (346121, 6)
-# 603.8013 	EXP 	grid target trial 6, central target fixation start, AI_data.shape = (346125, 6)
-# 603.8153 	EXP 	grid target trial 6, central target fixation interrupted, AI_data.shape = (346133, 6)
-# 603.8223 	EXP 	grid target trial 6, central target fixation start, AI_data.shape = (346137, 6)
-# 603.8431 	EXP 	grid target trial 6, central target fixation interrupted, AI_data.shape = (346149, 6)
-# 603.8570 	EXP 	grid target trial 6, central target fixation start, AI_data.shape = (346157, 6)
-# 603.8640 	EXP 	grid target trial 6, central target fixation interrupted, AI_data.shape = (346161, 6)
-# 604.4478 	EXP 	grid target trial 6, central target end, fixation fail, AI_data.shape = see next entry
+# [...]
 # 604.4686 	EXP 	grid target trial 7, ISI start, AI_data.shape = (346499, 6)
 # 605.4696 	EXP 	grid target trial 7, ISI end, AI_data.shape = see next entry
 # 605.4696 	EXP 	grid target trial 7, central target start, AI_data.shape = (347083, 6)
@@ -963,268 +685,19 @@ else:
 # 606.7560 	EXP 	grid target trial 7, grid target fixation start, grid_target.pos = [5. 0.], AI_data.shape = (347819, 6)
 # 606.7697 	EXP 	grid target trial 7, grid target fixation interrupted, AI_data.shape = (347827, 6)
 # 608.3058 	EXP 	grid target trial 7, grid target end, fixation fail, AI_data.shape = see next entry
-# 608.3058 	EXP 	grid target trial 8, ISI start, AI_data.shape = (348702, 6)
-# 609.2998 	EXP 	grid target trial 8, ISI end, AI_data.shape = see next entry
-# 609.2998 	EXP 	grid target trial 8, central target start, AI_data.shape = (349281, 6)
-# 610.8573 	EXP 	grid target trial 8, central target fixation start, AI_data.shape = (350176, 6)
-# 610.8640 	EXP 	grid target trial 8, central target fixation interrupted, AI_data.shape = (350180, 6)
-# 610.8709 	EXP 	grid target trial 8, central target fixation start, AI_data.shape = (350183, 6)
-# 610.9265 	EXP 	grid target trial 8, central target fixation interrupted, AI_data.shape = (350215, 6)
-# 611.3157 	EXP 	grid target trial 8, central target end, fixation fail, AI_data.shape = see next entry
-# 611.3365 	EXP 	grid target trial 9, ISI start, AI_data.shape = (350443, 6)
-# 612.3305 	EXP 	grid target trial 9, ISI end, AI_data.shape = see next entry
-# 612.3305 	EXP 	grid target trial 9, central target start, AI_data.shape = (351023, 6)
-# 612.3322 	EXP 	grid target trial 9, central target fixation start, AI_data.shape = (351027, 6)
-# 612.4349 	EXP 	grid target trial 9, central target fixation completed, AI_data.shape = (351083, 6)
-# 612.4487 	EXP 	grid target trial 9, central target end, fixation success, AI_data.shape = see next entry
-# 612.4627 	EXP 	grid target trial 9, grid target start, grid_target.pos = [-5. -5.], AI_data.shape = (351097, 6)
-# 612.5115 	EXP 	grid target trial 9, grid target fixation start, grid_target.pos = [-5. -5.], AI_data.shape = (351127, 6)
-# 612.6168 	EXP 	grid target trial 9, grid target fixation completed, grid_target.pos = [-5. -5.], AI_data.shape = (351187, 6)
-# 612.6297 	EXP 	grid target trial 9, grid target end, fixation success, AI_data.shape = see next entry
-# 612.6297 	EXP 	grid target trial 9, face reward start, face.pos = [-5. -5.], AI_data.shape = (351192, 6)
-# 613.1579 	EXP 	grid target trial 9, face reward end, AI_data.shape = see next entry
-# 613.1579 	EXP 	grid target trial 10, ISI start, AI_data.shape = (351488, 6)
-# 614.1586 	EXP 	grid target trial 10, ISI end, AI_data.shape = see next entry
-# 614.1586 	EXP 	grid target trial 10, central target start, AI_data.shape = (352072, 6)
-# 614.5273 	EXP 	grid target trial 10, central target fixation start, AI_data.shape = (352284, 6)
-# 614.6314 	EXP 	grid target trial 10, central target fixation completed, AI_data.shape = (352344, 6)
-# 614.6453 	EXP 	grid target trial 10, central target end, fixation success, AI_data.shape = see next entry
-# 614.6594 	EXP 	grid target trial 10, grid target start, grid_target.pos = [5. 5.], AI_data.shape = (352357, 6)
-# 615.0281 	EXP 	grid target trial 10, grid target fixation start, grid_target.pos = [5. 5.], AI_data.shape = (352570, 6)
-# 615.1324 	EXP 	grid target trial 10, grid target fixation completed, grid_target.pos = [5. 5.], AI_data.shape = (352629, 6)
-# 615.1458 	EXP 	grid target trial 10, grid target end, fixation success, AI_data.shape = see next entry
-# 615.1458 	EXP 	grid target trial 10, face reward start, face.pos = [5. 5.], AI_data.shape = (352633, 6)
-# 615.6672 	EXP 	grid target trial 10, face reward end, AI_data.shape = see next entry
-# 615.6672 	EXP 	grid target trial 11, ISI start, AI_data.shape = (352927, 6)
-# 616.6612 	EXP 	grid target trial 11, ISI end, AI_data.shape = see next entry
-# 616.6612 	EXP 	grid target trial 11, central target start, AI_data.shape = (353508, 6)
-# 617.7596 	EXP 	grid target trial 11, central target fixation start, AI_data.shape = (354136, 6)
-# 617.8639 	EXP 	grid target trial 11, central target fixation completed, AI_data.shape = (354196, 6)
-# 617.8777 	EXP 	grid target trial 11, central target end, fixation success, AI_data.shape = see next entry
-# 617.8916 	EXP 	grid target trial 11, grid target start, grid_target.pos = [0. 0.], AI_data.shape = (354209, 6)
-# 617.8952 	EXP 	grid target trial 11, grid target fixation start, grid_target.pos = [0. 0.], AI_data.shape = (354216, 6)
-# 617.9961 	EXP 	grid target trial 11, grid target fixation completed, grid_target.pos = [0. 0.], AI_data.shape = (354272, 6)
-# 618.0098 	EXP 	grid target trial 11, grid target end, fixation success, AI_data.shape = see next entry
-# 618.0098 	EXP 	grid target trial 11, face reward start, face.pos = [0. 0.], AI_data.shape = (354276, 6)
-# 618.5313 	EXP 	grid target trial 11, face reward end, AI_data.shape = see next entry
-# 618.5313 	EXP 	grid target trial 12, ISI start, AI_data.shape = (354571, 6)
-# 619.5390 	EXP 	grid target trial 12, ISI end, AI_data.shape = see next entry
-# 619.5390 	EXP 	grid target trial 12, central target start, AI_data.shape = (355159, 6)
-# 620.3669 	EXP 	grid target trial 12, central target fixation start, AI_data.shape = (355633, 6)
-# 620.3811 	EXP 	grid target trial 12, central target fixation interrupted, AI_data.shape = (355642, 6)
-# 620.3874 	EXP 	grid target trial 12, central target fixation start, AI_data.shape = (355646, 6)
-# 620.4011 	EXP 	grid target trial 12, central target fixation interrupted, AI_data.shape = (355653, 6)
-# 620.4497 	EXP 	grid target trial 12, central target fixation start, AI_data.shape = (355681, 6)
-# 620.5540 	EXP 	grid target trial 12, central target fixation completed, AI_data.shape = (355741, 6)
-# 620.5678 	EXP 	grid target trial 12, central target end, fixation success, AI_data.shape = see next entry
-# 620.5817 	EXP 	grid target trial 12, grid target start, grid_target.pos = [ 5. -5.], AI_data.shape = (355754, 6)
-# 620.5849 	EXP 	grid target trial 12, grid target fixation start, grid_target.pos = [ 5. -5.], AI_data.shape = (355761, 6)
-# 620.6375 	EXP 	grid target trial 12, grid target fixation interrupted, AI_data.shape = (355788, 6)
-# 622.6047 	EXP 	grid target trial 12, grid target end, fixation fail, AI_data.shape = see next entry
-# 622.6047 	EXP 	grid target trial 13, ISI start, AI_data.shape = (356902, 6)
-# 623.5986 	EXP 	grid target trial 13, ISI end, AI_data.shape = see next entry
-# 623.5986 	EXP 	grid target trial 13, central target start, AI_data.shape = (357481, 6)
-# 623.8072 	EXP 	grid target trial 13, central target fixation start, AI_data.shape = (357601, 6)
-# 623.9115 	EXP 	grid target trial 13, central target fixation completed, AI_data.shape = (357661, 6)
-# 623.9255 	EXP 	grid target trial 13, central target end, fixation success, AI_data.shape = see next entry
-# 623.9393 	EXP 	grid target trial 13, grid target start, grid_target.pos = [-5.  0.], AI_data.shape = (357675, 6)
-# 623.9951 	EXP 	grid target trial 13, grid target fixation start, grid_target.pos = [-5.  0.], AI_data.shape = (357708, 6)
-# 624.0714 	EXP 	grid target trial 13, grid target fixation interrupted, AI_data.shape = (357751, 6)
-# 624.1064 	EXP 	grid target trial 13, grid target fixation start, grid_target.pos = [-5.  0.], AI_data.shape = (357771, 6)
-# 624.1132 	EXP 	grid target trial 13, grid target fixation interrupted, AI_data.shape = (357775, 6)
-# 624.5443 	EXP 	grid target trial 13, grid target fixation start, grid_target.pos = [-5.  0.], AI_data.shape = (358021, 6)
-# 624.6486 	EXP 	grid target trial 13, grid target fixation completed, grid_target.pos = [-5.  0.], AI_data.shape = (358080, 6)
-# 624.6622 	EXP 	grid target trial 13, grid target end, fixation success, AI_data.shape = see next entry
-# 624.6622 	EXP 	grid target trial 13, face reward start, face.pos = [-5.  0.], AI_data.shape = (358084, 6)
-# 625.1837 	EXP 	grid target trial 13, face reward end, AI_data.shape = see next entry
-# 625.1837 	EXP 	grid target trial 14, ISI start, AI_data.shape = (358375, 6)
-# 626.1984 	EXP 	grid target trial 14, ISI end, AI_data.shape = see next entry
-# 626.1984 	EXP 	grid target trial 14, central target start, AI_data.shape = (358968, 6)
-# 626.7337 	EXP 	grid target trial 14, central target fixation start, AI_data.shape = (359272, 6)
-# 626.7476 	EXP 	grid target trial 14, central target fixation interrupted, AI_data.shape = (359280, 6)
-# 627.8947 	EXP 	grid target trial 14, central target fixation start, AI_data.shape = (359937, 6)
-# 627.9017 	EXP 	grid target trial 14, central target fixation interrupted, AI_data.shape = (359941, 6)
-# 628.0266 	EXP 	grid target trial 14, central target fixation start, AI_data.shape = (360013, 6)
-# 628.0335 	EXP 	grid target trial 14, central target fixation interrupted, AI_data.shape = (360017, 6)
-# 628.2141 	EXP 	grid target trial 14, central target end, fixation fail, AI_data.shape = see next entry
-# 628.2350 	EXP 	grid target trial 15, ISI start, AI_data.shape = (360122, 6)
-# 629.2361 	EXP 	grid target trial 15, ISI end, AI_data.shape = see next entry
-# 629.2361 	EXP 	grid target trial 15, central target start, AI_data.shape = (360706, 6)
-# 631.1825 	EXP 	grid target trial 15, central target fixation start, AI_data.shape = (361823, 6)
-# 631.2867 	EXP 	grid target trial 15, central target fixation completed, AI_data.shape = (361883, 6)
-# 631.3005 	EXP 	grid target trial 15, central target end, fixation success, AI_data.shape = see next entry
-# 631.3144 	EXP 	grid target trial 15, grid target start, grid_target.pos = [5. 0.], AI_data.shape = (361896, 6)
-# 631.6832 	EXP 	grid target trial 15, grid target fixation start, grid_target.pos = [5. 0.], AI_data.shape = (362107, 6)
-# 631.7874 	EXP 	grid target trial 15, grid target fixation completed, grid_target.pos = [5. 0.], AI_data.shape = (362166, 6)
-# 631.8010 	EXP 	grid target trial 15, grid target end, fixation success, AI_data.shape = see next entry
-# 631.8010 	EXP 	grid target trial 15, face reward start, face.pos = [5. 0.], AI_data.shape = (362170, 6)
-# 632.3224 	EXP 	grid target trial 15, face reward end, AI_data.shape = see next entry
-# 632.3224 	EXP 	grid target trial 16, ISI start, AI_data.shape = (362465, 6)
-# 633.3166 	EXP 	grid target trial 16, ISI end, AI_data.shape = see next entry
-# 633.3166 	EXP 	grid target trial 16, central target start, AI_data.shape = (363045, 6)
-# 634.8390 	EXP 	grid target trial 16, central target fixation start, AI_data.shape = (363918, 6)
-# 634.9432 	EXP 	grid target trial 16, central target fixation completed, AI_data.shape = (363978, 6)
-# 634.9571 	EXP 	grid target trial 16, central target end, fixation success, AI_data.shape = see next entry
-# 634.9709 	EXP 	grid target trial 16, grid target start, grid_target.pos = [ 5. -5.], AI_data.shape = (363991, 6)
-# 635.1797 	EXP 	grid target trial 16, grid target fixation start, grid_target.pos = [ 5. -5.], AI_data.shape = (364114, 6)
-# 635.2840 	EXP 	grid target trial 16, grid target fixation completed, grid_target.pos = [ 5. -5.], AI_data.shape = (364173, 6)
-# 635.2975 	EXP 	grid target trial 16, grid target end, fixation success, AI_data.shape = see next entry
-# 635.2975 	EXP 	grid target trial 16, face reward start, face.pos = [ 5. -5.], AI_data.shape = (364177, 6)
-# 635.8191 	EXP 	grid target trial 16, face reward end, AI_data.shape = see next entry
-# 635.8191 	EXP 	grid target trial 17, ISI start, AI_data.shape = (364471, 6)
-# 636.8130 	EXP 	grid target trial 17, ISI end, AI_data.shape = see next entry
-# 636.8130 	EXP 	grid target trial 17, central target start, AI_data.shape = (365051, 6)
-# 637.1124 	EXP 	grid target trial 17, central target fixation start, AI_data.shape = (365221, 6)
-# 637.2169 	EXP 	grid target trial 17, central target fixation completed, AI_data.shape = (365280, 6)
-# 637.2302 	EXP 	grid target trial 17, central target end, fixation success, AI_data.shape = see next entry
-# 637.2440 	EXP 	grid target trial 17, grid target start, grid_target.pos = [-5.  0.], AI_data.shape = (365293, 6)
-# 637.2471 	EXP 	grid target trial 17, grid target fixation start, grid_target.pos = [-5.  0.], AI_data.shape = (365299, 6)
-# 637.3415 	EXP 	grid target trial 17, grid target fixation interrupted, AI_data.shape = (365351, 6)
-# 639.2669 	EXP 	grid target trial 17, grid target end, fixation fail, AI_data.shape = see next entry
-# 639.2669 	EXP 	grid target trial 18, ISI start, AI_data.shape = (366443, 6)
-# 640.2608 	EXP 	grid target trial 18, ISI end, AI_data.shape = see next entry
-# 640.2608 	EXP 	grid target trial 18, central target start, AI_data.shape = (367023, 6)
-# 640.2627 	EXP 	grid target trial 18, central target fixation start, AI_data.shape = (367027, 6)
-# 640.2886 	EXP 	grid target trial 18, central target fixation interrupted, AI_data.shape = (367039, 6)
-# 641.1366 	EXP 	grid target trial 18, central target fixation start, AI_data.shape = (367522, 6)
-# 641.1436 	EXP 	grid target trial 18, central target fixation interrupted, AI_data.shape = (367526, 6)
-# 641.1505 	EXP 	grid target trial 18, central target fixation start, AI_data.shape = (367530, 6)
-# 641.1714 	EXP 	grid target trial 18, central target fixation interrupted, AI_data.shape = (367542, 6)
-# 641.1922 	EXP 	grid target trial 18, central target fixation start, AI_data.shape = (367554, 6)
-# 641.2061 	EXP 	grid target trial 18, central target fixation interrupted, AI_data.shape = (367562, 6)
-# 642.1863 	EXP 	grid target trial 18, central target fixation start, AI_data.shape = (368125, 6)
-# 642.2907 	EXP 	grid target trial 18, central target fixation completed, AI_data.shape = (368185, 6)
-# 642.3044 	EXP 	grid target trial 18, central target end, fixation success, AI_data.shape = see next entry
-# 642.3183 	EXP 	grid target trial 18, grid target start, grid_target.pos = [-5.  5.], AI_data.shape = (368198, 6)
-# 642.7012 	EXP 	grid target trial 18, grid target fixation start, grid_target.pos = [-5.  5.], AI_data.shape = (368420, 6)
-# 642.7079 	EXP 	grid target trial 18, grid target fixation interrupted, AI_data.shape = (368424, 6)
-# 643.1947 	EXP 	grid target trial 18, grid target fixation start, grid_target.pos = [-5.  5.], AI_data.shape = (368703, 6)
-# 643.2083 	EXP 	grid target trial 18, grid target fixation interrupted, AI_data.shape = (368710, 6)
-# 644.3412 	EXP 	grid target trial 18, grid target end, fixation fail, AI_data.shape = see next entry
-# 644.3412 	EXP 	grid target trial 19, ISI start, AI_data.shape = (369352, 6)
-# 645.3352 	EXP 	grid target trial 19, ISI end, AI_data.shape = see next entry
-# 645.3352 	EXP 	grid target trial 19, central target start, AI_data.shape = (369932, 6)
-# 647.3511 	EXP 	grid target trial 19, central target end, fixation fail, AI_data.shape = see next entry
-# 647.3719 	EXP 	grid target trial 20, ISI start, AI_data.shape = (371094, 6)
-# 648.3660 	EXP 	grid target trial 20, ISI end, AI_data.shape = see next entry
-# 648.3660 	EXP 	grid target trial 20, central target start, AI_data.shape = (371673, 6)
-# 649.0751 	EXP 	grid target trial 20, central target fixation start, AI_data.shape = (372079, 6)
-# 649.1794 	EXP 	grid target trial 20, central target fixation completed, AI_data.shape = (372139, 6)
-# 649.1933 	EXP 	grid target trial 20, central target end, fixation success, AI_data.shape = see next entry
-# 649.2073 	EXP 	grid target trial 20, grid target start, grid_target.pos = [5. 5.], AI_data.shape = (372152, 6)
-# 651.2299 	EXP 	grid target trial 20, grid target end, fixation fail, AI_data.shape = see next entry
-# 651.2299 	EXP 	grid target trial 21, ISI start, AI_data.shape = (373303, 6)
-# 652.2239 	EXP 	grid target trial 21, ISI end, AI_data.shape = see next entry
-# 652.2239 	EXP 	grid target trial 21, central target start, AI_data.shape = (373883, 6)
-# 652.6064 	EXP 	grid target trial 21, central target fixation start, AI_data.shape = (374101, 6)
-# 652.6133 	EXP 	grid target trial 21, central target fixation interrupted, AI_data.shape = (374105, 6)
-# 653.8506 	EXP 	grid target trial 21, central target fixation start, AI_data.shape = (374815, 6)
-# 653.8576 	EXP 	grid target trial 21, central target fixation interrupted, AI_data.shape = (374819, 6)
-# 654.2398 	EXP 	grid target trial 21, central target end, fixation fail, AI_data.shape = see next entry
-# 654.2606 	EXP 	grid target trial 22, ISI start, AI_data.shape = (375041, 6)
-# 655.2547 	EXP 	grid target trial 22, ISI end, AI_data.shape = see next entry
-# 655.2547 	EXP 	grid target trial 22, central target start, AI_data.shape = (375619, 6)
-# 657.2706 	EXP 	grid target trial 22, central target end, fixation fail, AI_data.shape = see next entry
-# 657.2914 	EXP 	grid target trial 23, ISI start, AI_data.shape = (376777, 6)
-# 658.3063 	EXP 	grid target trial 23, ISI end, AI_data.shape = see next entry
-# 658.3063 	EXP 	grid target trial 23, central target start, AI_data.shape = (377369, 6)
-# 658.7791 	EXP 	grid target trial 23, central target fixation start, AI_data.shape = (377638, 6)
-# 658.8000 	EXP 	grid target trial 23, central target fixation interrupted, AI_data.shape = (377650, 6)
-# 659.0016 	EXP 	grid target trial 23, central target fixation start, AI_data.shape = (377766, 6)
-# 659.0155 	EXP 	grid target trial 23, central target fixation interrupted, AI_data.shape = (377774, 6)
-# 659.0363 	EXP 	grid target trial 23, central target fixation start, AI_data.shape = (377786, 6)
-# 659.0433 	EXP 	grid target trial 23, central target fixation interrupted, AI_data.shape = (377790, 6)
-# 660.3222 	EXP 	grid target trial 23, central target end, fixation fail, AI_data.shape = see next entry
-# 660.3430 	EXP 	grid target trial 24, ISI start, AI_data.shape = (378525, 6)
-# 661.3371 	EXP 	grid target trial 24, ISI end, AI_data.shape = see next entry
-# 661.3371 	EXP 	grid target trial 24, central target start, AI_data.shape = (379105, 6)
-# 663.3530 	EXP 	grid target trial 24, central target end, fixation fail, AI_data.shape = see next entry
-# 663.3738 	EXP 	grid target trial 25, ISI start, AI_data.shape = (380258, 6)
-# 664.3748 	EXP 	grid target trial 25, ISI end, AI_data.shape = see next entry
-# 664.3748 	EXP 	grid target trial 25, central target start, AI_data.shape = (380842, 6)
-# 665.5150 	EXP 	grid target trial 25, central target fixation start, AI_data.shape = (381494, 6)
-# 665.5983 	EXP 	grid target trial 25, central target fixation interrupted, AI_data.shape = (381542, 6)
-# 666.3907 	EXP 	grid target trial 25, central target end, fixation fail, AI_data.shape = see next entry
-# 666.4116 	EXP 	grid target trial 26, ISI start, AI_data.shape = (381999, 6)
-# 667.4055 	EXP 	grid target trial 26, ISI end, AI_data.shape = see next entry
-# 667.4055 	EXP 	grid target trial 26, central target start, AI_data.shape = (382578, 6)
-# 669.4214 	EXP 	grid target trial 26, central target end, fixation fail, AI_data.shape = see next entry
-# 669.4426 	EXP 	grid target trial 27, ISI start, AI_data.shape = (383731, 6)
-# 670.4433 	EXP 	grid target trial 27, ISI end, AI_data.shape = see next entry
-# 670.4433 	EXP 	grid target trial 27, central target start, AI_data.shape = (384314, 6)
-# 672.4664 	EXP 	grid target trial 27, central target end, fixation fail, AI_data.shape = see next entry
-# 672.4870 	EXP 	grid target trial 28, ISI start, AI_data.shape = (385471, 6)
-# 673.4881 	EXP 	grid target trial 28, ISI end, AI_data.shape = see next entry
-# 673.4881 	EXP 	grid target trial 28, central target start, AI_data.shape = (386054, 6)
-# 675.5038 	EXP 	grid target trial 28, central target end, fixation fail, AI_data.shape = see next entry
-# 675.5247 	EXP 	grid target trial 29, ISI start, AI_data.shape = (387208, 6)
-# 676.5186 	EXP 	grid target trial 29, ISI end, AI_data.shape = see next entry
-# 676.5186 	EXP 	grid target trial 29, central target start, AI_data.shape = (387788, 6)
-# 678.5346 	EXP 	grid target trial 29, central target end, fixation fail, AI_data.shape = see next entry
-# 678.5555 	EXP 	grid target trial 30, ISI start, AI_data.shape = (388940, 6)
-# 679.5634 	EXP 	grid target trial 30, ISI end, AI_data.shape = see next entry
-# 679.5634 	EXP 	grid target trial 30, central target start, AI_data.shape = (389528, 6)
-# 681.5793 	EXP 	grid target trial 30, central target end, fixation fail, AI_data.shape = see next entry
-# 681.6001 	EXP 	grid target trial 31, ISI start, AI_data.shape = (390678, 6)
-# 682.5940 	EXP 	grid target trial 31, ISI end, AI_data.shape = see next entry
-# 682.5940 	EXP 	grid target trial 31, central target start, AI_data.shape = (391258, 6)
-# 683.1929 	EXP 	grid target trial 31, central target fixation start, AI_data.shape = (391592, 6)
-# 683.2686 	EXP 	grid target trial 31, central target fixation interrupted, AI_data.shape = (391639, 6)
-# 683.5605 	EXP 	grid target trial 31, central target fixation start, AI_data.shape = (391805, 6)
-# 683.5744 	EXP 	grid target trial 31, central target fixation interrupted, AI_data.shape = (391813, 6)
-# 683.9498 	EXP 	grid target trial 31, central target fixation start, AI_data.shape = (392025, 6)
-# 683.9776 	EXP 	grid target trial 31, central target fixation interrupted, AI_data.shape = (392041, 6)
-# 684.6102 	EXP 	grid target trial 31, central target end, fixation fail, AI_data.shape = see next entry
-# 684.6309 	EXP 	grid target trial 32, ISI start, AI_data.shape = (392404, 6)
-# 685.6458 	EXP 	grid target trial 32, ISI end, AI_data.shape = see next entry
-# 685.6458 	EXP 	grid target trial 32, central target start, AI_data.shape = (392996, 6)
-# 686.9597 	EXP 	grid target trial 32, central target fixation start, AI_data.shape = (393744, 6)
-# 686.9667 	EXP 	grid target trial 32, central target fixation interrupted, AI_data.shape = (393748, 6)
-# 687.4810 	EXP 	grid target trial 32, central target fixation start, AI_data.shape = (394040, 6)
-# 687.4880 	EXP 	grid target trial 32, central target fixation interrupted, AI_data.shape = (394043, 6)
-# 687.6617 	EXP 	grid target trial 32, central target end, fixation fail, AI_data.shape = see next entry
-# 687.6825 	EXP 	grid target trial 33, ISI start, AI_data.shape = (394147, 6)
-# 688.6767 	EXP 	grid target trial 33, ISI end, AI_data.shape = see next entry
-# 688.6767 	EXP 	grid target trial 33, central target start, AI_data.shape = (394726, 6)
-# 689.6647 	EXP 	grid target trial 33, central target fixation start, AI_data.shape = (395291, 6)
-# 689.7680 	EXP 	grid target trial 33, central target fixation completed, AI_data.shape = (395345, 6)
-# 689.7818 	EXP 	grid target trial 33, central target end, fixation success, AI_data.shape = see next entry
-# 689.7957 	EXP 	grid target trial 33, grid target start, grid_target.pos = [-5.  5.], AI_data.shape = (395358, 6)
-# 691.2636 	EXP 	grid target trial 33, grid target fixation start, grid_target.pos = [-5.  5.], AI_data.shape = (396195, 6)
-# 691.3670 	EXP 	grid target trial 33, grid target fixation completed, grid_target.pos = [-5.  5.], AI_data.shape = (396255, 6)
-# 691.3806 	EXP 	grid target trial 33, grid target end, fixation success, AI_data.shape = see next entry
-# 691.3806 	EXP 	grid target trial 33, face reward start, face.pos = [-5.  5.], AI_data.shape = (396259, 6)
-# 691.9020 	EXP 	grid target trial 33, face reward end, AI_data.shape = see next entry
-# 691.9020 	EXP 	grid target trial 34, ISI start, AI_data.shape = (396551, 6)
-# 692.9170 	EXP 	grid target trial 34, ISI end, AI_data.shape = see next entry
-# 692.9170 	EXP 	grid target trial 34, central target start, AI_data.shape = (397143, 6)
-# 693.9180 	EXP 	grid target trial 34, central target fixation start, AI_data.shape = (397707, 6)
-# 694.0223 	EXP 	grid target trial 34, central target fixation completed, AI_data.shape = (397766, 6)
-# 694.0360 	EXP 	grid target trial 34, central target end, fixation success, AI_data.shape = see next entry
-# 694.0499 	EXP 	grid target trial 34, grid target start, grid_target.pos = [ 5. -5.], AI_data.shape = (397778, 6)
-# 694.0521 	EXP 	grid target trial 34, grid target fixation start, grid_target.pos = [ 5. -5.], AI_data.shape = (397785, 6)
-# 694.1545 	EXP 	grid target trial 34, grid target fixation completed, grid_target.pos = [ 5. -5.], AI_data.shape = (397841, 6)
-# 694.1684 	EXP 	grid target trial 34, grid target end, fixation success, AI_data.shape = see next entry
-# 694.1684 	EXP 	grid target trial 34, face reward start, face.pos = [ 5. -5.], AI_data.shape = (397845, 6)
-# 694.6894 	EXP 	grid target trial 34, face reward end, AI_data.shape = see next entry
-# 694.6894 	EXP 	grid target trial 35, ISI start, AI_data.shape = (398134, 6)
-# 695.6836 	EXP 	grid target trial 35, ISI end, AI_data.shape = see next entry
-# 695.6836 	EXP 	grid target trial 35, central target start, AI_data.shape = (398713, 6)
-# 697.2129 	EXP 	grid target trial 35, central target fixation start, AI_data.shape = (399585, 6)
-# 697.2268 	EXP 	grid target trial 35, central target fixation interrupted, AI_data.shape = (399593, 6)
-# 697.6994 	EXP 	grid target trial 35, central target end, fixation fail, AI_data.shape = see next entry
+# [...]
 # 697.7133 	EXP 	grid target eye-tracking calibration end, AI_data.shape = (399857, 6)
 # 697.7146 	EXP 	calibration complete, duration 695.61sec, dropped frames = 40522
 #
 
 
 ecdata = {'zeroing': {},
-          'coarse': {},
-          'circular': {},
-          'facegrid': {},
-          'spotgrid': {}}
+          'coarse': {'data': {}},
+          'circular': {'data': {}},
+          'gridface': {'data': {}},
+          'gridtarg': {'data': {}}}
 
-pattern_AIidx = r'.*AI_data\.shape\ *=\ *\((\d+),\ *([0-9]+)\).*'
+pattern_AIidx = r'.*AI_data\.shape\ *=\ *(\((\d+),\ *([0-9]+)\)|see\ *next\ *entry).*'
 pattern_pos = r'.*face\.pos\ *=\ *\[([^\[\]]*)\].*'
 pattern_cvals = r'.*calib_values_candidate\ *=\ *\[([^\[\]]*)\].*'
 
@@ -1249,6 +722,12 @@ for idx_line, line in enumerate(eclines):
         # '388.5193 \tEXP \tcircular trajectory calibration end, AI_data.shape = (222356, 6)'
         if 'calibration end' in line:
             lmode = ''
+    elif 'EXP \tgrid faces calibration start' in line:
+        # '388.5270 \tEXP \tgrid faces calibration start, AI_data.shape = (222368, 6)'
+        lmode = 'gridface'
+        # '579.5484 \tEXP \tgrid faces calibration end, AI_data.shape = (332223, 6)'
+        if 'calibration end' in line:
+            lmode = ''
     if lmode == '':
         continue
 
@@ -1271,72 +750,163 @@ for idx_line, line in enumerate(eclines):
             pattern_coarse = r'.*coarse\ *trial\ *(\d+),\ *(showing|hiding)\ *face,\ *' + \
                              r'([^\[\]]*values_candidate\ *=\ *\[(.*)\]\ *[^\[\]]*\ *)?' + pattern_pos
             # '304.0263 \tEXP \tcoarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (173761, 6)'
-            # '305.1594 \tEXP \tcoarse trial 20, hiding face, coarse_oculomatic_calib_values_candidate = [-3.3869004   0.05144549] for face.pos = [-5.  5.], AI_data.shape = (174405, 6)'
+            # '305.1594 \tEXP \tcoarse trial 20, hiding face, coarse_oculomatic_calib_values_candidate = ' + \
+            #   '[-3.3869004   0.05144549] for face.pos = [-5.  5.], AI_data.shape = (174405, 6)'
             if re.match(pattern_coarse, line) is not None:
                 g = re.match(pattern_coarse, line).groups()
-                t = int(g[0])
+                trl = int(g[0])
                 if g[1] == 'showing':
                     if 'n_trials' not in ecdata['coarse']:
                         ecdata['coarse']['n_trials'] = -1
-                    if ecdata['coarse']['n_trials'] - 1 < t:
-                        ecdata['coarse']['n_trials'] = t + 1
-                        ecdata['coarse'][t] = {'pos': None,
-                                               'AIrng': [None, None],
-                                               'cvals': None}
-                    ecdata['coarse'][t]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[0])
+                    if ecdata['coarse']['n_trials'] - 1 < trl:
+                        ecdata['coarse']['n_trials'] = trl + 1
+                        ecdata['coarse']['data'][trl] = {'AIrng': [None, None], 'stimpos': None, 'cvals': None}
+                    ecdata['coarse']['data'][trl]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
                     tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float, sep=' ')
-                    ecdata['coarse'][t]['pos'] = tmp_pos
+                    ecdata['coarse']['data'][trl]['stimpos'] = tmp_pos
                 elif g[1] == 'hiding':
-                    ecdata['coarse'][t]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[0])
+                    ecdata['coarse']['data'][trl]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
                     tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float, sep=' ')
-                    if not np.array_equal(ecdata['coarse'][t]['pos'], tmp_pos):
+                    if not np.array_equal(ecdata['coarse']['data'][trl]['stimpos'], tmp_pos):
                         warn('Mismatched stimulus positions in eye-tracking calibration log line {}.'.format(idx_line))
-                    tmp_cvals = np.fromstring(re.match(pattern_cvals, line).groups()[0].strip(),
-                                                 dtype=float, sep=' ')
-                    ecdata['coarse'][t]['cvals'] = tmp_cvals
+                    tmp_cvals = np.fromstring(re.match(pattern_cvals, line).groups()[0].strip(), dtype=float, sep=' ')
+                    ecdata['coarse']['data'][trl]['cvals'] = tmp_cvals
 
-        #
-        # 316.3821 	EXP 	circular trajectory calibration start, AI_data.shape = (180857, 6)
-        # 316.3927 	EXP 	circular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)
-        # 316.3927 	EXP 	circular trajectory trial 0, turn 0 start, AI_data.shape = (180857, 6)
-        # [...]
-        # 328.4045 	EXP 	circular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)
-        # 328.4045 	EXP 	circular trajectory trial 0 end, AI_data.shape = (187767, 6)
-        # 328.4115 	EXP 	circular trajectory trial 1 start, faceID = 12, AI_data.shape = (187775, 6)
-        # [...]
-        # 388.5193 	EXP 	circular trajectory trial 5 end, AI_data.shape = (222356, 6)
-        # 388.5193 	EXP 	circular trajectory calibration end, AI_data.shape = (222356, 6)
         case 'circular':
-            pattern_circ = r'.*circular\ *trajectory\ *trial\ *(\d+),?\ *(start|turn|end),?\ *' + \
-                           r'(faceID\ *=\ *)?(\d+)?\ *(start|end)?,*\ *' + pattern_AIidx
+            pattern_circ = r'.*circular\ *trajectory\ *(calibration|trial)\ *(start|end|\d+),?\ *(start|turn|end)?' + \
+                           r',?\ *(faceID\ *=\ *)?(\d+)?\ *(start|end)?,*.*'
             # '316.3927 \tEXP \tcircular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)'
             # '325.4014 \tEXP \tcircular trajectory trial 0, turn 3 start, AI_data.shape = (186039, 6)'
             # '328.4045 \tEXP \tcircular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)'
             # '328.4045 \tEXP \tcircular trajectory trial 0 end, AI_data.shape = (187767, 6)'
             if re.match(pattern_circ, line) is not None:
                 g = re.match(pattern_circ, line).groups()
-                trl = int(g[0])
-                if g[1] == 'start':
-                    if 'n_trials' not in ecdata['circular']:
-                        ecdata['circular']['n_trials'] = -1
-                    if ecdata['circular']['n_trials'] - 1 < trl:
-                        ecdata['circular']['n_trials'] = trl + 1
-                        ecdata['circular'][trl] = {'stim': None,
-                                                   'AIrng': [None, None],
-                                                   'n_turns': -1}
-                    ecdata['circular'][trl]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[0])
-                    ecdata['circular'][trl]['stim'] = g[2].replace(' ', '').replace('=', '').strip() + g[3]
-                elif g[1] == 'turn':
-                    trn = int(g[3])
-                    if ecdata['circular'][trl]['n_turns'] - 1 < trn:
-                        if g[4] == 'start':
-                            ecdata['circular'][trl][trn] = {'AIrng': [None, None]}
-                            ecdata['circular'][trl][trn]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[0])
-                        elif g[4] == 'end':
-                            ecdata['circular'][trl][trn]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[0])
-                            ecdata['circular'][trl]['n_turns'] = trn + 1
-                elif g[1] == 'end':
-                    ecdata['circular'][trl]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[0])
+                if g[0] == 'calibration':
+                    if g[1] == 'start':
+                        if 'n_trials' not in ecdata['circular']:
+                            ecdata['circular']['n_trials'] = -1
+                            ecdata['circular']['AIrng'] = [None, None]
+                        ecdata['circular']['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
+                    elif g[1] == 'end':
+                        ecdata['circular']['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
+                elif g[0] == 'trial':
+                    trl = int(g[1])
+                    if g[2] == 'start':
+                        if 'n_trials' not in ecdata['circular']:
+                            ecdata['circular']['n_trials'] = -1
+                        if ecdata['circular']['n_trials'] - 1 < trl:
+                            ecdata['circular']['n_trials'] = trl + 1
+                            ecdata['circular']['data'][trl] = {'n_turns': -1, 'AIrng': [None, None], 'stim': None}
+                        ecdata['circular']['data'][trl]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
+                        ecdata['circular']['data'][trl]['stim'] = g[3].replace(' ', '').replace('=', '').strip() + g[4]
+                    elif g[2] == 'turn':
+                        trn = int(g[4])
+                        if ecdata['circular']['data'][trl]['n_turns'] - 1 < trn:
+                            if g[5] == 'start':
+                                ecdata['circular']['data'][trl][trn] = {'AIrng': [None, None]}
+                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
+                                ecdata['circular']['data'][trl][trn]['AIrng'][0] = int(tmp_AIidx)
+                            elif g[5] == 'end':
+                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
+                                ecdata['circular']['data'][trl][trn]['AIrng'][1] = int(tmp_AIidx)
+                                ecdata['circular']['data'][trl]['n_turns'] = trn + 1
+                    elif g[2] == 'end':
+                        ecdata['circular']['data'][trl]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
+
+        case 'gridface':
+            pattern_gridf = r'.*grid\ *faces?\ *(calibration|trial)\ *(start|end|\d+),?\ *(face|ISI)?\ *' + \
+                            r'(start|end)?,?.*'
+            # '389.0546 \tEXP \tgrid face trial 0, face start, face.pos = [ 0. -5.], AI_data.shape = (222662, 6)'
+            # '392.0783 \tEXP \tgrid face trial 0, face end, AI_data.shape = see next entry'
+            # '392.0783 \tEXP \tgrid face trial 1, ISI start, AI_data.shape = (224406, 6)'
+            if re.match(pattern_gridf, line) is not None:
+                # Replace 'sep' character placeholder with AI range value.
+                rngs = [ecdata['gridface']['data'][i]['AIrng'] for i, d in enumerate(ecdata['gridface']['data'])]
+                if np.any(np.array(rngs) == chr(31)):
+                    septs = np.where(np.array(rngs) == chr(31))[0]
+                    for sti in septs:
+                        sepi = np.argwhere(np.array(ecdata['gridface']['data'][sti]['AIrng']) == chr(31))[0][0]
+                        ecdata['gridface']['data'][sti]['AIrng'][sepi] = int(re.match(pattern_AIidx, line).groups()[1])
+
+                g = re.match(pattern_gridf, line).groups()
+                if g[0] == 'calibration':
+                    if g[1] == 'start':
+                        if 'n_trials' not in ecdata['gridface']:
+                            ecdata['gridface']['n_trials'] = -1
+                            ecdata['gridface']['AIrng'] = [None, None]
+                        ecdata['gridface']['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
+                    elif g[1] == 'end':
+                        ecdata['gridface']['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
+                elif g[0] == 'trial':
+                    trl = int(g[1])
+                    if g[2] == 'face':
+                        if g[3] == 'start':
+                            if ecdata['gridface']['n_trials'] - 1 < trl:
+                                ecdata['gridface']['n_trials'] = trl + 1
+                                ecdata['gridface']['data'][trl] = {'AIrng': [None, None], 'stimpos': None}
+                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
+                                ecdata['gridface']['data'][trl]['AIrng'][0] = int(tmp_AIidx)
+                                tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float,
+                                                        sep=' ')
+                                ecdata['gridface']['data'][trl]['stimpos'] = tmp_pos
+                        elif g[3] == 'end':
+                            if re.match(pattern_AIidx, line).groups()[0].replace(' ', '') != 'seenextentry':
+                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
+                                ecdata['gridface']['data'][trl]['AIrng'][1] = int(tmp_AIidx)
+                            else:
+                                # Use 'sep' character as a placeholder for subsequent AI range value.
+                                ecdata['gridface']['data'][trl]['AIrng'][1] = chr(31)
+                    elif g[2] == 'ISI':
+                        continue
+
+        case 'gridtarg':
+            print('gridtarg')
+            # '579.5631 \tEXP \tgrid target eye-tracking calibration start, AI_data.shape = (332239, 6)'
+            # '579.5829 \tEXP \tgrid target trial 0, ISI start, AI_data.shape = (332239, 6)',
+            # '580.5769 \tEXP \tgrid target trial 0, ISI end, AI_data.shape = see next entry',
+            # '580.5769 \tEXP \tgrid target trial 0, central target start, AI_data.shape = (332820, 6)',
+            # '580.9177 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333014, 6)',
+            # '580.9247 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333018, 6)',
+            # '581.5363 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333368, 6)',
+            # '581.5433 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333372, 6)',
+            # '581.5919 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333400, 6)',
+            # '581.6406 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333428, 6)',
+            # '581.9812 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333622, 6)',
+            # '582.0229 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333646, 6)',
+            # '582.5928 \tEXP \tgrid target trial 0, central target end, fixation fail, AI_data.shape = see next entry',
+            # '582.6137 \tEXP \tgrid target trial 1, ISI start, AI_data.shape = (333976, 6)',
+            # '583.6077 \tEXP \tgrid target trial 1, ISI end, AI_data.shape = see next entry',
+            # '583.6077 \tEXP \tgrid target trial 1, central target start, AI_data.shape = (334556, 6)',
+            # '585.2830 \tEXP \tgrid target trial 1, central target fixation start, AI_data.shape = (335516, 6)',
+            # '585.3872 \tEXP \tgrid target trial 1, central target fixation completed, AI_data.shape = (335576, 6)',
+            # '585.4010 \tEXP \tgrid target trial 1, central target end, fixation success, AI_data.shape = see next entry',
+            # '585.4149 \tEXP \tgrid target trial 1, grid target start, grid_target.pos = [5. 0.], AI_data.shape = (335589, 6)',
+            # '585.4177 \tEXP \tgrid target trial 1, grid target fixation start, grid_target.pos = [5. 0.], AI_data.shape = (335596, 6)',
+            # '585.5225 \tEXP \tgrid target trial 1, grid target fixation completed, grid_target.pos = [5. 0.], AI_data.shape = (335652, 6)',
+            # '585.5332 \tEXP \tgrid target trial 1, grid target end, fixation success, AI_data.shape = see next entry',
+            # '585.5332 \tEXP \tgrid target trial 1, face reward start, face.pos = [5. 0.], AI_data.shape = (335657, 6)',
+            # '586.0616 \tEXP \tgrid target trial 1, face reward end, AI_data.shape = see next entry',
+            # '586.0616 \tEXP \tgrid target trial 2, ISI start, AI_data.shape = (335950, 6)',
+            # '587.0556 \tEXP \tgrid target trial 2, ISI end, AI_data.shape = see next entry',
+            # '587.0556 \tEXP \tgrid target trial 2, central target start, AI_data.shape = (336530, 6)',
+            # '588.6545 \tEXP \tgrid target trial 2, central target fixation start, AI_data.shape = (337445, 6)',
+            # '588.7588 \tEXP \tgrid target trial 2, central target fixation completed, AI_data.shape = (337505, 6)',
+            # '588.7726 \tEXP \tgrid target trial 2, central target end, fixation success, AI_data.shape = see next entry',
+            # '588.7865 \tEXP \tgrid target trial 2, grid target start, grid_target.pos = [0. 0.], AI_data.shape = (337518, 6)',
+            # '588.7895 \tEXP \tgrid target trial 2, grid target fixation start, grid_target.pos = [0. 0.], AI_data.shape = (337525, 6)',
+            # '588.8910 \tEXP \tgrid target trial 2, grid target fixation completed, grid_target.pos = [0. 0.], AI_data.shape = (337580, 6)',
+            # '588.9046 \tEXP \tgrid target trial 2, grid target end, fixation success, AI_data.shape = see next entry',
+            # '588.9046 \tEXP \tgrid target trial 2, face reward start, face.pos = [0. 0.], AI_data.shape = (337584, 6)',
+            # '589.4260 \tEXP \tgrid target trial 2, face reward end, AI_data.shape = see next entry',
+            # '589.4260 \tEXP \tgrid target trial 3, ISI start, AI_data.shape = (337877, 6)',
+            # '590.4200 \tEXP \tgrid target trial 3, ISI end, AI_data.shape = see next entry',
+            # '590.4200 \tEXP \tgrid target trial 3, central target start, AI_data.shape = (338457, 6)',
+            # '590.9205 \tEXP \tgrid target trial 3, central target fixation start, AI_data.shape = (338745, 6)',
+            # '591.0248 \tEXP \tgrid target trial 3, central target fixation completed, AI_data.shape = (338805, 6)',
+            # '591.0387 \tEXP \tgrid target trial 3, central target end, fixation success, AI_data.shape = see next entry',
+            # '591.0525 \tEXP \tgrid target trial 3, grid target start, grid_target.pos = [0. 0.], AI_data.shape = (338818, 6)',
+            # '593.0755 \tEXP \tgrid target trial 3, grid target end, fixation fail, AI_data.shape = see next entry',
+
         case _:
             continue
 
