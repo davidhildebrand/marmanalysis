@@ -691,14 +691,14 @@ else:
 #
 
 
-ecdata = {'zeroing': {},
-          'coarse': {'data': {}},
-          'circular': {'data': {}},
-          'gridface': {'data': {}},
-          'gridtarg': {'data': {}}}
+ecdata = {'zero': {},
+          'crse': {'data': {}},
+          'circ': {'data': {}},
+          'grdf': {'data': {}},
+          'grdt': {'data': {}}}
 
 pattern_AIidx = r'.*AI_data\.shape\ *=\ *(\((\d+),\ *([0-9]+)\)|see\ *next\ *entry).*'
-pattern_pos = r'.*face\.pos\ *=\ *\[([^\[\]]*)\].*'
+pattern_pos = r'.*\.pos\ *=\ *\[([^\[\]]*)\],?.*'
 pattern_cvals = r'.*calib_values_candidate\ *=\ *\[([^\[\]]*)\].*'
 
 lmode = ''
@@ -706,35 +706,64 @@ for idx_line, line in enumerate(eclines):
     # First pass through eye-calibration log file
     if 'EXP \toculomatic zeroing start' in line:
         # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
-        lmode = 'zeroing'
+        lmode = 'zero'
         # '234.7010 \tEXP \toculomatic zeroing end, AI_data.shape = (133928, 6)'
         if 'zeroing end' in line:
             lmode = ''
     elif 'EXP \tcoarse eye-tracking calibration start' in line:
         # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
-        lmode = 'coarse'
+        lmode = 'crse'
         # '316.3800 \tEXP \tcoarse eye-tracking calibration end, coarse_stims_pos = [[ 5 -5]'
         if 'calibration end' in line:
             lmode = ''
     elif 'EXP \tcircular trajectory calibration start' in line:
         # '316.3821 \tEXP \tcircular trajectory calibration start, AI_data.shape = (180857, 6)'
-        lmode = 'circular'
+        lmode = 'circ'
         # '388.5193 \tEXP \tcircular trajectory calibration end, AI_data.shape = (222356, 6)'
         if 'calibration end' in line:
             lmode = ''
     elif 'EXP \tgrid faces calibration start' in line:
         # '388.5270 \tEXP \tgrid faces calibration start, AI_data.shape = (222368, 6)'
-        lmode = 'gridface'
+        lmode = 'grdf'
         # '579.5484 \tEXP \tgrid faces calibration end, AI_data.shape = (332223, 6)'
+        if 'calibration end' in line:
+            lmode = ''
+    elif 'EXP \tgrid target eye-tracking calibration start' in line:
+        # '579.5631 \tEXP \tgrid target eye-tracking calibration start, AI_data.shape = (332239, 6)'
+        lmode = 'grdt'
+        # '697.7133 \tEXP \tgrid target eye-tracking calibration end, AI_data.shape = (399857, 6)'
         if 'calibration end' in line:
             lmode = ''
     if lmode == '':
         continue
 
+    if re.match(pattern_AIidx, line) is not None:
+        g_AIidx = re.match(pattern_AIidx, line).groups()
+        if g_AIidx[0].replace(' ', '') != 'seenextentry':
+            tmp_AIidx = int(g_AIidx[1])
+        else:
+            # Use 'sep' character as a placeholder for subsequent AI range value.
+            tmp_AIidx = chr(31)
+    else:
+        g_AIidx = None
+        tmp_AIidx = None
+    if re.match(pattern_pos, line) is not None:
+        g_pos = re.match(pattern_pos, line).groups()
+        tmp_pos = np.fromstring(g_pos[0].strip(), dtype=float, sep=' ')
+    else:
+        g_pos = None
+        tmp_pos = None
+    if re.match(pattern_cvals, line) is not None:
+        g_cvals = re.match(pattern_cvals, line).groups()
+        tmp_cvals = np.fromstring(re.match(pattern_cvals, line).groups()[0].strip(), dtype=float, sep=' ')
+    else:
+        g_cvals = None
+        tmp_cvals = None
+
     match lmode:
-        case 'zeroing':
-            if 'AIrng' not in ecdata['zeroing']:
-                ecdata['zeroing']['AIrng'] = [None, None]
+        case 'zero':
+            if 'AIrng' not in ecdata['zero']:
+                ecdata['zero']['AIrng'] = [None, None]
             pattern_zero = r'.*oculomatic\ *zeroing,\ *(presenting|hiding)\ *face,\ *' + \
                            r'AI_data\.shape\ *=\ *\((\d+),\ *([0-9]+)\).*'
             # '6.3156 \tEXP \toculomatic zeroing, presenting face, AI_data.shape = (2529, 6)'
@@ -742,11 +771,11 @@ for idx_line, line in enumerate(eclines):
             if re.match(pattern_zero, line) is not None:
                 g = re.match(pattern_zero, line).groups()
                 if g[0] == 'presenting':
-                    ecdata['zeroing']['AIrng'][0] = int(g[1])
+                    ecdata['zero']['AIrng'][0] = int(g[1])
                 elif g[0] == 'hiding':
-                    ecdata['zeroing']['AIrng'][1] = int(g[1])
+                    ecdata['zero']['AIrng'][1] = int(g[1])
 
-        case 'coarse':
+        case 'crse':
             pattern_coarse = r'.*coarse\ *trial\ *(\d+),\ *(showing|hiding)\ *face,\ *' + \
                              r'([^\[\]]*values_candidate\ *=\ *\[(.*)\]\ *[^\[\]]*\ *)?' + pattern_pos
             # '304.0263 \tEXP \tcoarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (173761, 6)'
@@ -756,23 +785,20 @@ for idx_line, line in enumerate(eclines):
                 g = re.match(pattern_coarse, line).groups()
                 trl = int(g[0])
                 if g[1] == 'showing':
-                    if 'n_trials' not in ecdata['coarse']:
-                        ecdata['coarse']['n_trials'] = -1
-                    if ecdata['coarse']['n_trials'] - 1 < trl:
-                        ecdata['coarse']['n_trials'] = trl + 1
-                        ecdata['coarse']['data'][trl] = {'AIrng': [None, None], 'stimpos': None, 'cvals': None}
-                    ecdata['coarse']['data'][trl]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
-                    tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float, sep=' ')
-                    ecdata['coarse']['data'][trl]['stimpos'] = tmp_pos
+                    if 'n_trials' not in ecdata['crse']:
+                        ecdata['crse']['n_trials'] = -1
+                    if ecdata['crse']['n_trials'] - 1 < trl:
+                        ecdata['crse']['n_trials'] = trl + 1
+                        ecdata['crse']['data'][trl] = {'AIrng': [None, None], 'pos': None, 'cvals': None}
+                    ecdata['crse']['data'][trl]['AIrng'][0] = tmp_AIidx
+                    ecdata['crse']['data'][trl]['pos'] = tmp_pos
                 elif g[1] == 'hiding':
-                    ecdata['coarse']['data'][trl]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
-                    tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float, sep=' ')
-                    if not np.array_equal(ecdata['coarse']['data'][trl]['stimpos'], tmp_pos):
+                    ecdata['crse']['data'][trl]['AIrng'][1] = tmp_AIidx
+                    if not np.array_equal(ecdata['crse']['data'][trl]['pos'], tmp_pos):
                         warn('Mismatched stimulus positions in eye-tracking calibration log line {}.'.format(idx_line))
-                    tmp_cvals = np.fromstring(re.match(pattern_cvals, line).groups()[0].strip(), dtype=float, sep=' ')
-                    ecdata['coarse']['data'][trl]['cvals'] = tmp_cvals
+                    ecdata['crse']['data'][trl]['cvals'] = tmp_cvals
 
-        case 'circular':
+        case 'circ':
             pattern_circ = r'.*circular\ *trajectory\ *(calibration|trial)\ *(start|end|\d+),?\ *(start|turn|end)?' + \
                            r',?\ *(faceID\ *=\ *)?(\d+)?\ *(start|end)?,*.*'
             # '316.3927 \tEXP \tcircular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)'
@@ -783,102 +809,85 @@ for idx_line, line in enumerate(eclines):
                 g = re.match(pattern_circ, line).groups()
                 if g[0] == 'calibration':
                     if g[1] == 'start':
-                        if 'n_trials' not in ecdata['circular']:
-                            ecdata['circular']['n_trials'] = -1
-                            ecdata['circular']['AIrng'] = [None, None]
-                        ecdata['circular']['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
+                        if 'n_trials' not in ecdata['circ']:
+                            ecdata['circ']['n_trials'] = -1
+                            ecdata['circ']['AIrng'] = [None, None]
+                        ecdata['circ']['AIrng'][0] = tmp_AIidx
                     elif g[1] == 'end':
-                        ecdata['circular']['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
+                        ecdata['circ']['AIrng'][1] = tmp_AIidx
                 elif g[0] == 'trial':
                     trl = int(g[1])
                     if g[2] == 'start':
-                        if 'n_trials' not in ecdata['circular']:
-                            ecdata['circular']['n_trials'] = -1
-                        if ecdata['circular']['n_trials'] - 1 < trl:
-                            ecdata['circular']['n_trials'] = trl + 1
-                            ecdata['circular']['data'][trl] = {'n_turns': -1, 'AIrng': [None, None], 'stim': None}
-                        ecdata['circular']['data'][trl]['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
-                        ecdata['circular']['data'][trl]['stim'] = g[3].replace(' ', '').replace('=', '').strip() + g[4]
+                        if 'n_trials' not in ecdata['circ']:
+                            ecdata['circ']['n_trials'] = -1
+                        if ecdata['circ']['n_trials'] - 1 < trl:
+                            ecdata['circ']['n_trials'] = trl + 1
+                            ecdata['circ']['data'][trl] = {'n_turns': -1, 'AIrng': [None, None], 'stim': None}
+                        ecdata['circ']['data'][trl]['AIrng'][0] = tmp_AIidx
+                        ecdata['circ']['data'][trl]['stim'] = g[3].replace(' ', '').replace('=', '').strip() + g[4]
                     elif g[2] == 'turn':
                         trn = int(g[4])
-                        if ecdata['circular']['data'][trl]['n_turns'] - 1 < trn:
+                        if ecdata['circ']['data'][trl]['n_turns'] - 1 < trn:
                             if g[5] == 'start':
-                                ecdata['circular']['data'][trl][trn] = {'AIrng': [None, None]}
-                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
-                                ecdata['circular']['data'][trl][trn]['AIrng'][0] = int(tmp_AIidx)
+                                ecdata['circ']['data'][trl][trn] = {'AIrng': [None, None]}
+                                ecdata['circ']['data'][trl][trn]['AIrng'][0] = tmp_AIidx
                             elif g[5] == 'end':
-                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
-                                ecdata['circular']['data'][trl][trn]['AIrng'][1] = int(tmp_AIidx)
-                                ecdata['circular']['data'][trl]['n_turns'] = trn + 1
+                                ecdata['circ']['data'][trl][trn]['AIrng'][1] = tmp_AIidx
+                                ecdata['circ']['data'][trl]['n_turns'] = trn + 1
                     elif g[2] == 'end':
-                        ecdata['circular']['data'][trl]['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
+                        ecdata['circ']['data'][trl]['AIrng'][1] = tmp_AIidx
 
-        case 'gridface':
+        case 'grdf':
             pattern_gridf = r'.*grid\ *faces?\ *(calibration|trial)\ *(start|end|\d+),?\ *(face|ISI)?\ *' + \
                             r'(start|end)?,?.*'
             # '389.0546 \tEXP \tgrid face trial 0, face start, face.pos = [ 0. -5.], AI_data.shape = (222662, 6)'
             # '392.0783 \tEXP \tgrid face trial 0, face end, AI_data.shape = see next entry'
             # '392.0783 \tEXP \tgrid face trial 1, ISI start, AI_data.shape = (224406, 6)'
             if re.match(pattern_gridf, line) is not None:
+                g = re.match(pattern_gridf, line).groups()
+
                 # Replace 'sep' character placeholder with AI range value.
-                rngs = [ecdata['gridface']['data'][i]['AIrng'] for i, d in enumerate(ecdata['gridface']['data'])]
+                rngs = [ecdata['grdf']['data'][i]['AIrng'] for i, d in enumerate(ecdata['grdf']['data'])]
                 if np.any(np.array(rngs) == chr(31)):
                     septs = np.where(np.array(rngs) == chr(31))[0]
                     for sti in septs:
-                        sepi = np.argwhere(np.array(ecdata['gridface']['data'][sti]['AIrng']) == chr(31))[0][0]
-                        ecdata['gridface']['data'][sti]['AIrng'][sepi] = int(re.match(pattern_AIidx, line).groups()[1])
+                        sepi = np.argwhere(np.array(ecdata['grdf']['data'][sti]['AIrng']) == chr(31))[0][0]
+                        ecdata['grdf']['data'][sti]['AIrng'][sepi] = tmp_AIidx
 
-                g = re.match(pattern_gridf, line).groups()
                 if g[0] == 'calibration':
                     if g[1] == 'start':
-                        if 'n_trials' not in ecdata['gridface']:
-                            ecdata['gridface']['n_trials'] = -1
-                            ecdata['gridface']['AIrng'] = [None, None]
-                        ecdata['gridface']['AIrng'][0] = int(re.match(pattern_AIidx, line).groups()[1])
+                        if 'n_trials' not in ecdata['grdf']:
+                            ecdata['grdf']['n_trials'] = -1
+                            ecdata['grdf']['AIrng'] = [None, None]
+                        ecdata['grdf']['AIrng'][0] = tmp_AIidx
                     elif g[1] == 'end':
-                        ecdata['gridface']['AIrng'][1] = int(re.match(pattern_AIidx, line).groups()[1])
+                        ecdata['grdf']['AIrng'][1] = tmp_AIidx
+
                 elif g[0] == 'trial':
                     trl = int(g[1])
                     if g[2] == 'face':
                         if g[3] == 'start':
-                            if ecdata['gridface']['n_trials'] - 1 < trl:
-                                ecdata['gridface']['n_trials'] = trl + 1
-                                ecdata['gridface']['data'][trl] = {'AIrng': [None, None], 'stimpos': None}
-                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
-                                ecdata['gridface']['data'][trl]['AIrng'][0] = int(tmp_AIidx)
-                                tmp_pos = np.fromstring(re.match(pattern_pos, line).groups()[0].strip(), dtype=float,
-                                                        sep=' ')
-                                ecdata['gridface']['data'][trl]['stimpos'] = tmp_pos
+                            if ecdata['grdf']['n_trials'] - 1 < trl:
+                                ecdata['grdf']['n_trials'] = trl + 1
+                                ecdata['grdf']['data'][trl] = {'AIrng': [None, None], 'pos': None}
+                                ecdata['grdf']['data'][trl]['AIrng'][0] = tmp_AIidx
+                                ecdata['grdf']['data'][trl]['pos'] = tmp_pos
                         elif g[3] == 'end':
-                            if re.match(pattern_AIidx, line).groups()[0].replace(' ', '') != 'seenextentry':
-                                tmp_AIidx = re.match(pattern_AIidx, line).groups()[1]
-                                ecdata['gridface']['data'][trl]['AIrng'][1] = int(tmp_AIidx)
-                            else:
-                                # Use 'sep' character as a placeholder for subsequent AI range value.
-                                ecdata['gridface']['data'][trl]['AIrng'][1] = chr(31)
+                            ecdata['grdf']['data'][trl]['AIrng'][1] = tmp_AIidx
                     elif g[2] == 'ISI':
                         continue
 
-        case 'gridtarg':
-            print('gridtarg')
+        case 'grdt':
+            pattern_gridt = r'.*grid\ *target\ *(eye-tracking\ *calibration|trial)\ *(start|end|\d+),?\ *' + \
+                            r'(ISI|central\ *target|grid\ *target|face\ *reward)?\ *(start|fixation|end)?,?\ *' + \
+                            r'(start|interrupted|completed|fixation\ *success|fixation\ *fail)?,?.*'
             # '579.5631 \tEXP \tgrid target eye-tracking calibration start, AI_data.shape = (332239, 6)'
             # '579.5829 \tEXP \tgrid target trial 0, ISI start, AI_data.shape = (332239, 6)',
             # '580.5769 \tEXP \tgrid target trial 0, ISI end, AI_data.shape = see next entry',
             # '580.5769 \tEXP \tgrid target trial 0, central target start, AI_data.shape = (332820, 6)',
             # '580.9177 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333014, 6)',
             # '580.9247 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333018, 6)',
-            # '581.5363 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333368, 6)',
-            # '581.5433 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333372, 6)',
-            # '581.5919 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333400, 6)',
-            # '581.6406 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333428, 6)',
-            # '581.9812 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333622, 6)',
-            # '582.0229 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333646, 6)',
-            # '582.5928 \tEXP \tgrid target trial 0, central target end, fixation fail, AI_data.shape = see next entry',
-            # '582.6137 \tEXP \tgrid target trial 1, ISI start, AI_data.shape = (333976, 6)',
-            # '583.6077 \tEXP \tgrid target trial 1, ISI end, AI_data.shape = see next entry',
             # '583.6077 \tEXP \tgrid target trial 1, central target start, AI_data.shape = (334556, 6)',
-            # '585.2830 \tEXP \tgrid target trial 1, central target fixation start, AI_data.shape = (335516, 6)',
-            # '585.3872 \tEXP \tgrid target trial 1, central target fixation completed, AI_data.shape = (335576, 6)',
             # '585.4010 \tEXP \tgrid target trial 1, central target end, fixation success, AI_data.shape = see next entry',
             # '585.4149 \tEXP \tgrid target trial 1, grid target start, grid_target.pos = [5. 0.], AI_data.shape = (335589, 6)',
             # '585.4177 \tEXP \tgrid target trial 1, grid target fixation start, grid_target.pos = [5. 0.], AI_data.shape = (335596, 6)',
@@ -886,29 +895,88 @@ for idx_line, line in enumerate(eclines):
             # '585.5332 \tEXP \tgrid target trial 1, grid target end, fixation success, AI_data.shape = see next entry',
             # '585.5332 \tEXP \tgrid target trial 1, face reward start, face.pos = [5. 0.], AI_data.shape = (335657, 6)',
             # '586.0616 \tEXP \tgrid target trial 1, face reward end, AI_data.shape = see next entry',
-            # '586.0616 \tEXP \tgrid target trial 2, ISI start, AI_data.shape = (335950, 6)',
-            # '587.0556 \tEXP \tgrid target trial 2, ISI end, AI_data.shape = see next entry',
-            # '587.0556 \tEXP \tgrid target trial 2, central target start, AI_data.shape = (336530, 6)',
-            # '588.6545 \tEXP \tgrid target trial 2, central target fixation start, AI_data.shape = (337445, 6)',
-            # '588.7588 \tEXP \tgrid target trial 2, central target fixation completed, AI_data.shape = (337505, 6)',
-            # '588.7726 \tEXP \tgrid target trial 2, central target end, fixation success, AI_data.shape = see next entry',
-            # '588.7865 \tEXP \tgrid target trial 2, grid target start, grid_target.pos = [0. 0.], AI_data.shape = (337518, 6)',
-            # '588.7895 \tEXP \tgrid target trial 2, grid target fixation start, grid_target.pos = [0. 0.], AI_data.shape = (337525, 6)',
-            # '588.8910 \tEXP \tgrid target trial 2, grid target fixation completed, grid_target.pos = [0. 0.], AI_data.shape = (337580, 6)',
-            # '588.9046 \tEXP \tgrid target trial 2, grid target end, fixation success, AI_data.shape = see next entry',
-            # '588.9046 \tEXP \tgrid target trial 2, face reward start, face.pos = [0. 0.], AI_data.shape = (337584, 6)',
-            # '589.4260 \tEXP \tgrid target trial 2, face reward end, AI_data.shape = see next entry',
-            # '589.4260 \tEXP \tgrid target trial 3, ISI start, AI_data.shape = (337877, 6)',
-            # '590.4200 \tEXP \tgrid target trial 3, ISI end, AI_data.shape = see next entry',
-            # '590.4200 \tEXP \tgrid target trial 3, central target start, AI_data.shape = (338457, 6)',
-            # '590.9205 \tEXP \tgrid target trial 3, central target fixation start, AI_data.shape = (338745, 6)',
-            # '591.0248 \tEXP \tgrid target trial 3, central target fixation completed, AI_data.shape = (338805, 6)',
-            # '591.0387 \tEXP \tgrid target trial 3, central target end, fixation success, AI_data.shape = see next entry',
-            # '591.0525 \tEXP \tgrid target trial 3, grid target start, grid_target.pos = [0. 0.], AI_data.shape = (338818, 6)',
-            # '593.0755 \tEXP \tgrid target trial 3, grid target end, fixation fail, AI_data.shape = see next entry',
+            if re.match(pattern_gridt, line) is not None:
+                g = re.match(pattern_gridt, line).groups()
 
+                # Replace 'sep' character placeholder with AI range value.
+                typs = ['ctr', 'targ', 'isi', 'rwrd']
+                for typ in typs:
+                    rngs = [ecdata['grdt']['data'][i][typ]['AIrng'] if ecdata['grdt']['data'][i][typ] else [None, None]
+                            for i, d in enumerate(ecdata['grdt']['data'])]
+                    if np.any(np.array(rngs) == chr(31)):
+                        septs = np.where(np.array(rngs) == chr(31))[0]
+                        for sti in septs:
+                            sepi = np.argwhere(np.array(ecdata['grdt']['data'][sti][typ]['AIrng']) == chr(31))[0][0]
+                            ecdata['grdt']['data'][sti][typ]['AIrng'][sepi] = tmp_AIidx
+
+                if g[0].replace(' ', '') == 'eye-trackingcalibration':
+                    if g[1] == 'start':
+                        if 'n_trials' not in ecdata['grdt']:
+                            ecdata['grdt']['n_trials'] = -1
+                            ecdata['grdt']['AIrng'] = [None, None]
+                        ecdata['grdt']['AIrng'][0] = tmp_AIidx
+                    elif g[1] == 'end':
+                        ecdata['grdt']['AIrng'][1] = tmp_AIidx
+
+                elif g[0] == 'trial':
+                    trl = int(g[1])
+                    if ecdata['grdt']['n_trials'] - 1 < trl:
+                        ecdata['grdt']['n_trials'] = trl + 1
+                        ecdata['grdt']['data'][trl] = {'isi': {'AIrng': [None, None]},
+                                                       'ctr': None,
+                                                       'targ': None,
+                                                       'rwrd': None}
+                    if g[2].replace(' ', '') == 'centraltarget':
+                        if g[3] == 'start':
+                            ecdata['grdt']['data'][trl]['ctr'] = {'AIrng': [None, None], 'success': None}
+                        elif g[3] == 'fixation':
+                            if g[4] == 'start':
+                                ecdata['grdt']['data'][trl]['ctr']['AIrng'][0] = tmp_AIidx
+                            elif g[4] == 'interrupted':
+                                ecdata['grdt']['data'][trl]['ctr']['AIrng'][1] = tmp_AIidx
+                            elif g[4] == 'completed':
+                                ecdata['grdt']['data'][trl]['ctr']['AIrng'][1] = tmp_AIidx
+                        elif g[3] == 'end':
+                            if g[4].replace(' ', '') == 'fixationsuccess':
+                                ecdata['grdt']['data'][trl]['ctr']['success'] = True
+                            elif g[4].replace(' ', '') == 'fixationfail':
+                                ecdata['grdt']['data'][trl]['ctr']['success'] = False
+
+                    elif g[2].replace(' ', '') == 'gridtarget':
+                        if g[3] == 'start':
+                            ecdata['grdt']['data'][trl]['targ'] = {'AIrng': [None, None], 'pos': None, 'success': None}
+                            ecdata['grdt']['data'][trl]['targ']['pos'] = tmp_pos
+                        elif g[3] == 'fixation':
+                            if g[4] == 'start':
+                                ecdata['grdt']['data'][trl]['targ']['AIrng'][0] = tmp_AIidx
+                            elif g[4] == 'interrupted':
+                                ecdata['grdt']['data'][trl]['targ']['AIrng'][1] = tmp_AIidx
+                            elif g[4] == 'completed':
+                                ecdata['grdt']['data'][trl]['targ']['AIrng'][1] = tmp_AIidx
+                        elif g[3] == 'end':
+                            if g[4].replace(' ', '') == 'fixationsuccess':
+                                ecdata['grdt']['data'][trl]['targ']['success'] = True
+                            elif g[4].replace(' ', '') == 'fixationfail':
+                                ecdata['grdt']['data'][trl]['targ']['success'] = False
+
+                    # '588.9046 \tEXP \tgrid target trial 2, face reward start, face.pos = [0. 0.], AI_data.shape = (337584, 6)',
+                    # '589.4260 \tEXP \tgrid target trial 2, face reward end, AI_data.shape = see next entry',
+                    elif g[2].replace(' ', '') == 'facereward':
+                        if g[3] == 'start':
+                            ecdata['grdt']['data'][trl]['rwrd'] = {'AIrng': [None, None], 'pos': None}
+                            ecdata['grdt']['data'][trl]['rwrd']['AIrng'][0] = tmp_AIidx
+                            ecdata['grdt']['data'][trl]['rwrd']['pos'] = tmp_pos
+                        elif g[3] == 'end':
+                            ecdata['grdt']['data'][trl]['rwrd']['AIrng'][1] = tmp_AIidx
+
+                    elif g[2] == 'ISI':
+                        if g[3] == 'start':
+                            ecdata['grdt']['data'][trl]['isi']['AIrng'][0] = tmp_AIidx
+                        elif g[3] == 'end':
+                            ecdata['grdt']['data'][trl]['isi']['AIrng'][1] = tmp_AIidx
         case _:
             continue
+    del g_AIidx, g_pos, g_cvals, tmp_AIidx, tmp_pos, tmp_cvals
 
 
 # % Extract stimulus information from log file
