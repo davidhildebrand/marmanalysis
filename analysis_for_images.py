@@ -840,6 +840,8 @@ for idx_line, line in enumerate(eclines):
         case 'grdf':
             pattern_gridf = r'.*grid\ *faces?\ *(calibration|trial)\ *(start|end|\d+),?\ *(face|ISI)?\ *' + \
                             r'(start|end)?,?.*'
+            # '388.5401 \tEXP \tgrid face trial 0, ISI start, AI_data.shape = (222368, 6)',
+            # '389.0546 \tEXP \tgrid face trial 0, ISI end, AI_data.shape = see next entry',
             # '389.0546 \tEXP \tgrid face trial 0, face start, face.pos = [ 0. -5.], AI_data.shape = (222662, 6)'
             # '392.0783 \tEXP \tgrid face trial 0, face end, AI_data.shape = see next entry'
             # '392.0783 \tEXP \tgrid face trial 1, ISI start, AI_data.shape = (224406, 6)'
@@ -847,12 +849,15 @@ for idx_line, line in enumerate(eclines):
                 g = re.match(pattern_gridf, line).groups()
 
                 # Replace 'sep' character placeholder with AI range value.
-                rngs = [ecdata['grdf']['data'][i]['AIrng'] for i, d in enumerate(ecdata['grdf']['data'])]
-                if np.any(np.array(rngs) == chr(31)):
-                    septs = np.where(np.array(rngs) == chr(31))[0]
-                    for sti in septs:
-                        sepi = np.argwhere(np.array(ecdata['grdf']['data'][sti]['AIrng']) == chr(31))[0][0]
-                        ecdata['grdf']['data'][sti]['AIrng'][sepi] = tmp_AIidx
+                typs = ['isi', 'face']
+                for typ in typs:
+                    rngs = [ecdata['grdf']['data'][i][typ]['AIrng'] if ecdata['grdf']['data'][i][typ] else [None, None]
+                            for i, d in enumerate(ecdata['grdf']['data'])]
+                    if np.any(np.array(rngs) == chr(31)):
+                        septs = np.where(np.array(rngs) == chr(31))[0]
+                        for sti in septs:
+                            sepi = np.argwhere(np.array(ecdata['grdf']['data'][sti][typ]['AIrng']) == chr(31))[0][0]
+                            ecdata['grdf']['data'][sti][typ]['AIrng'][sepi] = tmp_AIidx
 
                 if g[0] == 'calibration':
                     if g[1] == 'start':
@@ -862,20 +867,23 @@ for idx_line, line in enumerate(eclines):
                         ecdata['grdf']['AIrng'][0] = tmp_AIidx
                     elif g[1] == 'end':
                         ecdata['grdf']['AIrng'][1] = tmp_AIidx
-
                 elif g[0] == 'trial':
                     trl = int(g[1])
+                    if ecdata['grdf']['n_trials'] - 1 < trl:
+                        ecdata['grdf']['n_trials'] = trl + 1
+                        ecdata['grdf']['data'][trl] = {'isi': {'AIrng': [None, None]},
+                                                               'face': {'AIrng': [None, None], 'pos': None}}
                     if g[2] == 'face':
                         if g[3] == 'start':
-                            if ecdata['grdf']['n_trials'] - 1 < trl:
-                                ecdata['grdf']['n_trials'] = trl + 1
-                                ecdata['grdf']['data'][trl] = {'AIrng': [None, None], 'pos': None}
-                                ecdata['grdf']['data'][trl]['AIrng'][0] = tmp_AIidx
-                                ecdata['grdf']['data'][trl]['pos'] = tmp_pos
+                            ecdata['grdf']['data'][trl]['face']['AIrng'][0] = tmp_AIidx
+                            ecdata['grdf']['data'][trl]['face']['pos'] = tmp_pos
                         elif g[3] == 'end':
-                            ecdata['grdf']['data'][trl]['AIrng'][1] = tmp_AIidx
+                            ecdata['grdf']['data'][trl]['face']['AIrng'][1] = tmp_AIidx
                     elif g[2] == 'ISI':
-                        continue
+                        if g[3] == 'start':
+                            ecdata['grdf']['data'][trl]['isi']['AIrng'][0] = tmp_AIidx
+                        elif g[3] == 'end':
+                            ecdata['grdf']['data'][trl]['isi']['AIrng'][1] = tmp_AIidx
 
         case 'grdt':
             pattern_gridt = r'.*grid\ *target\ *(eye-tracking\ *calibration|trial)\ *(start|end|\d+),?\ *' + \
@@ -899,7 +907,7 @@ for idx_line, line in enumerate(eclines):
                 g = re.match(pattern_gridt, line).groups()
 
                 # Replace 'sep' character placeholder with AI range value.
-                typs = ['ctr', 'targ', 'isi', 'rwrd']
+                typs = ['isi', 'ctr', 'targ', 'rwrd']
                 for typ in typs:
                     rngs = [ecdata['grdt']['data'][i][typ]['AIrng'] if ecdata['grdt']['data'][i][typ] else [None, None]
                             for i, d in enumerate(ecdata['grdt']['data'])]
@@ -917,7 +925,6 @@ for idx_line, line in enumerate(eclines):
                         ecdata['grdt']['AIrng'][0] = tmp_AIidx
                     elif g[1] == 'end':
                         ecdata['grdt']['AIrng'][1] = tmp_AIidx
-
                 elif g[0] == 'trial':
                     trl = int(g[1])
                     if ecdata['grdt']['n_trials'] - 1 < trl:
@@ -941,7 +948,6 @@ for idx_line, line in enumerate(eclines):
                                 ecdata['grdt']['data'][trl]['ctr']['success'] = True
                             elif g[4].replace(' ', '') == 'fixationfail':
                                 ecdata['grdt']['data'][trl]['ctr']['success'] = False
-
                     elif g[2].replace(' ', '') == 'gridtarget':
                         if g[3] == 'start':
                             ecdata['grdt']['data'][trl]['targ'] = {'AIrng': [None, None], 'pos': None, 'success': None}
@@ -958,7 +964,6 @@ for idx_line, line in enumerate(eclines):
                                 ecdata['grdt']['data'][trl]['targ']['success'] = True
                             elif g[4].replace(' ', '') == 'fixationfail':
                                 ecdata['grdt']['data'][trl]['targ']['success'] = False
-
                     # '588.9046 \tEXP \tgrid target trial 2, face reward start, face.pos = [0. 0.], AI_data.shape = (337584, 6)',
                     # '589.4260 \tEXP \tgrid target trial 2, face reward end, AI_data.shape = see next entry',
                     elif g[2].replace(' ', '') == 'facereward':
@@ -968,7 +973,6 @@ for idx_line, line in enumerate(eclines):
                             ecdata['grdt']['data'][trl]['rwrd']['pos'] = tmp_pos
                         elif g[3] == 'end':
                             ecdata['grdt']['data'][trl]['rwrd']['AIrng'][1] = tmp_AIidx
-
                     elif g[2] == 'ISI':
                         if g[3] == 'start':
                             ecdata['grdt']['data'][trl]['isi']['AIrng'][0] = tmp_AIidx
