@@ -303,10 +303,10 @@ datafile_str = '*_00001.tif'
 logfile_str = '*.log'
 logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
 stimlogfile_str = '*_stimlog.csv'
-eyefile_str = '*_AIdata.p'
-eyecalib_dir_str = '*_EyeTrackingCalibration'
-eyecalib_logfile_str = '*_EyeTrackingCalibration.log'
-eyecalib_datafile_str = '*_EyeTrackingCalibration_AIdata.p'
+eyetrkfile_str = '*_AIdata.p'
+eyecal_dir_str = '*_EyeTrackingCalibration'
+eyecal_logfile_str = '*_EyeTrackingCalibration.log'
+eyecal_datafile_str = '*_EyeTrackingCalibration_AIdata.p'
 if 'suite2p_str' not in locals():
     suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
@@ -343,20 +343,20 @@ datafile_list = [f for f in glob(os.path.join(session_path, datafile_str)) if os
 logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
                 if re.search(logfile_re, f) and os.path.isfile(f)]
 stimlogfile_list = [f for f in glob(os.path.join(session_path, stimlogfile_str)) if os.path.isfile(f)]
-eyefile_list = [f for f in glob(os.path.join(session_path, eyefile_str)) if os.path.isfile(f)]
-eyecalib_dir_list = [d for d in glob(os.path.join(date_path, eyecalib_dir_str)) if os.path.isdir(d)]
-if len(eyecalib_dir_list) > 0:
-    ecd_path = eyecalib_dir_list[0]
-    if len(eyecalib_dir_list) > 1:
+eyetrkfile_list = [f for f in glob(os.path.join(session_path, eyetrkfile_str)) if os.path.isfile(f)]
+eyecal_dir_list = [d for d in glob(os.path.join(date_path, eyecal_dir_str)) if os.path.isdir(d)]
+if len(eyecal_dir_list) > 0:
+    ecd_path = eyecal_dir_list[0]
+    if len(eyecal_dir_list) > 1:
         warn('Found multiple eye tracking calibration directories, using the first one: {}'.format(ecd_path))
-    eyecalib_logfile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_logfile_str))
-                             if os.path.isfile(f)]
-    eyecalib_datafile_list = [f for f in glob(os.path.join(ecd_path, eyecalib_datafile_str))
-                              if os.path.isfile(f)]
+    eyecal_logfile_list = [f for f in glob(os.path.join(ecd_path, eyecal_logfile_str))
+                           if os.path.isfile(f)]
+    eyecal_datafile_list = [f for f in glob(os.path.join(ecd_path, eyecal_datafile_str))
+                            if os.path.isfile(f)]
 else:
     ecd_path = None
-    eyecalib_logfile_list = []
-    eyecalib_datafile_list = []
+    eyecal_logfile_list = []
+    eyecal_datafile_list = []
 
 suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
                 if os.path.isdir(d)]
@@ -409,45 +409,48 @@ if len(stimlogfile_list) > 0:
     else:
         stimlog = None
 
-if len(eyefile_list) > 0:
-    etf_path = eyefile_list[0]
-    if len(eyefile_list) > 1:
+if len(eyetrkfile_list) > 0:
+    etf_path = eyetrkfile_list[0]
+    if len(eyetrkfile_list) > 1:
         warn('Found multiple log files, using the first one: {}'.format(etf_path))
     if os.path.isfile(etf_path):
         with open(etf_path, 'rb') as etf:
-            et = pickle.load(etf)
+            eyetrk_data = pickle.load(etf)
     else:
         raise RuntimeError('Could not find eye tracking data file.')
 else:
     etf_path = None
+del etf
 
-if len(eyecalib_logfile_list) > 0:
-    ec_lf_path = eyecalib_logfile_list[0]
-    if len(eyecalib_logfile_list) > 1:
+if len(eyecal_logfile_list) > 0:
+    ec_lf_path = eyecal_logfile_list[0]
+    if len(eyecal_logfile_list) > 1:
         warn('Found multiple eye tracking calibration log files, using the first one: {}'.format(ec_lf_path))
     if os.path.isfile(ec_lf_path):
         eclf = open(ec_lf_path, 'r')
-        eclog = eclf.read()
+        eyecal_log = eclf.read()
         eclf.close()
     else:
         raise RuntimeError('Could not find eye tracking calibration log file.')
 else:
     ec_lf_path = None
     eclf = None
-    eclog = None
+    eyecal_log = None
+del eclf
 
-if len(eyecalib_datafile_list) > 0:
-    ec_df_path = eyecalib_datafile_list[0]
-    if len(eyecalib_datafile_list) > 1:
+if len(eyecal_datafile_list) > 0:
+    ec_df_path = eyecal_datafile_list[0]
+    if len(eyecal_datafile_list) > 1:
         warn('Found multiple eye tracking calibration data files, using the first one: {}'.format(ec_df_path))
     if os.path.isfile(ec_df_path):
         with open(ec_df_path, 'rb') as ec_df:
-            ecdf = pickle.load(ec_df)
+            eyecal_data = pickle.load(ec_df)
     else:
         raise RuntimeError('Could not find eye tracking calibration data file.')
 else:
     etf_path = None
-    ecdf = None
+    eyecal_data = None
+del ec_df
 
 if len(suite2p_list) > 0:
     if len(suite2p_list) > 1:
@@ -616,10 +619,10 @@ plt.show()
 # Take a look at this for density plotting:
 # https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density
 f = plt.figure()
-etx, ety = np.transpose(et[:, :2])
-plt.scatter(et[:, 0], et[:, 1], s=1)
+etx, ety = np.transpose(eyetrk_data[:, :2])
+plt.scatter(eyetrk_data[:, 0], eyetrk_data[:, 1], s=1)
 plt.show()
-[np.std(et[:, d]) for d in range(0, et.shape[1])]
+# [np.std(eyetrk_data[:, d]) for d in range(0, eyetrk_data.shape[1])]
 
 # from scipy.stats import gaussian_kde
 #
@@ -638,8 +641,8 @@ plt.show()
 
 # % Extract eye tracking calibration information from log file
 
-if eclog is not None:
-    eclines = eclog.splitlines()
+if eyecal_log is not None:
+    eclines = eyecal_log.splitlines()
 else:
     eclines = ''
 
@@ -959,8 +962,6 @@ def populate_eyetrack_data(logdict, targ, eyedata):
                 s, e = val
                 logdict['AIdata'] = eyedata[s:e]
 
-
-ecdf
 
 
 # % Extract stimulus information from log file
