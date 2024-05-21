@@ -502,7 +502,7 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 
 # Estimate SNR
 
-# v_noiselev = np.median(np.abs(np.diff(FdF)), axis=1) / np.sqrt(md['framerate'])
+# v_noiselev = np.median(np.abs(np.diff(FdFF_raw)), axis=1) / np.sqrt(md['framerate'])
 
 # # Deconvolve fluorescence signals.
 # from oasis.oasis_methods import oasisAR1
@@ -642,7 +642,6 @@ if eclog is not None:
     eclines = eclog.splitlines()
 else:
     eclines = ''
-
 
 ecdata = {'zero': None,
           'crse': {'data': {}},
@@ -950,9 +949,23 @@ for idx_line, line in enumerate(eclines):
     del g_AIidx, g_pos, g_cvals, tmp_AIidx, tmp_pos, tmp_cvals
 
 
+# Add analog eye tracking data.
+def populate_eyetrack_data(logdict, targ, eyedata):
+    for key, val in logdict.items():
+        if isinstance(val, dict):
+            populate_eyetrack_data(val, targ, eyedata)
+        elif key == targ:
+            if None not in val:
+                s, e = val
+                logdict['AIdata'] = eyedata[s:e]
+
+
+ecdf
+
+
 # % Extract stimulus information from log file
 
-# *** TODO load from a pickle file or pandas frame instead of a text log
+# *** TODO load from a pandas dataframe instead of a text log
 
 if log is not None:
     lines = log.splitlines()
