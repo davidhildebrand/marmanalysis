@@ -614,32 +614,7 @@ plt.show()
 # c, s, b, g, lam = deconvolve(Fr)  # , penalty=1)
 
 
-
-# % Look at eye tracking data
-# Take a look at this for density plotting:
-# https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density
-f = plt.figure()
-etx, ety = np.transpose(eyetrk_data[:, :2])
-plt.scatter(eyetrk_data[:, 0], eyetrk_data[:, 1], s=1)
-plt.show()
-# [np.std(eyetrk_data[:, d]) for d in range(0, eyetrk_data.shape[1])]
-
-# from scipy.stats import gaussian_kde
-#
-# # Calculate point density
-# etxy = np.vstack([etx, ety])
-# et_ptdensity = gaussian_kde(etxy)(etxy)
-#
-# # Sort the points by density, so that the densest points are plotted last
-# idx = et_ptdensity.argsort()
-# etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
-#
-# fig, ax = plt.subplots()
-# ax.scatter(etx, ety, c=et_ptdensity, s=1)
-# plt.show()
-
-
-# % Extract eye tracking calibration information from log file
+# Extract eye tracking calibration information from log file
 
 if eyecal_log is not None:
     eclines = eyecal_log.splitlines()
@@ -731,7 +706,6 @@ for idx_line, line in enumerate(eclines):
         case 'crse':
             pattern_coarse = r'.*coarse\ *(eye-tracking\ *calibration|trial)\ *(start|end|\d+)?,?\ *' + \
                              r'(showing\ *face|hiding\ *face|candidate)?,?.*'
-                             # r'([^\[\]]*values_candidate\ *=\ *\[(.*)\]\ *[^\[\]]*\ *)?'
             # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
             # '234.8261 \tEXP \tcoarse trial 0, showing face,face.pos = [ 5. -5.], AI_data.shape = (134078, 6)'
             # '243.3274 \tEXP \tcoarse trial 0, hiding face, AI_data.shape = (138942, 6)'
@@ -818,15 +792,15 @@ for idx_line, line in enumerate(eclines):
                 g = re.match(pattern_gridf, line).groups()
 
                 # Replace 'sep' character placeholder with AI range value.
-                typs = ['isi', 'face']
-                for typ in typs:
-                    rngs = [ecdata['grdf']['data'][i][typ]['AIrng'] if ecdata['grdf']['data'][i][typ] else [None, None]
+                ks = ['isi', 'face']
+                for k in ks:
+                    rngs = [ecdata['grdf']['data'][i][k]['AIrng'] if ecdata['grdf']['data'][i][k] else [None, None]
                             for i, d in enumerate(ecdata['grdf']['data'])]
                     if np.any(np.array(rngs) == chr(31)):
                         septs = np.where(np.array(rngs) == chr(31))[0]
                         for sti in septs:
-                            sepi = np.argwhere(np.array(ecdata['grdf']['data'][sti][typ]['AIrng']) == chr(31))[0][0]
-                            ecdata['grdf']['data'][sti][typ]['AIrng'][sepi] = tmp_AIidx
+                            sepi = np.argwhere(np.array(ecdata['grdf']['data'][sti][k]['AIrng']) == chr(31))[0][0]
+                            ecdata['grdf']['data'][sti][k]['AIrng'][sepi] = tmp_AIidx
 
                 if g[0] == 'calibration':
                     if g[1] == 'start':
@@ -876,15 +850,15 @@ for idx_line, line in enumerate(eclines):
                 g = re.match(pattern_gridt, line).groups()
 
                 # Replace 'sep' character placeholder with AI range value.
-                typs = ['isi', 'ctr', 'targ', 'rwrd']
-                for typ in typs:
-                    rngs = [ecdata['grdt']['data'][i][typ]['AIrng'] if ecdata['grdt']['data'][i][typ] else [None, None]
+                ks = ['isi', 'ctr', 'targ', 'rwrd']
+                for k in ks:
+                    rngs = [ecdata['grdt']['data'][i][k]['AIrng'] if ecdata['grdt']['data'][i][k] else [None, None]
                             for i, d in enumerate(ecdata['grdt']['data'])]
                     if np.any(np.array(rngs) == chr(31)):
                         septs = np.where(np.array(rngs) == chr(31))[0]
                         for sti in septs:
-                            sepi = np.argwhere(np.array(ecdata['grdt']['data'][sti][typ]['AIrng']) == chr(31))[0][0]
-                            ecdata['grdt']['data'][sti][typ]['AIrng'][sepi] = tmp_AIidx
+                            sepi = np.argwhere(np.array(ecdata['grdt']['data'][sti][k]['AIrng']) == chr(31))[0][0]
+                            ecdata['grdt']['data'][sti][k]['AIrng'][sepi] = tmp_AIidx
 
                 if g[0].replace(' ', '') == 'eye-trackingcalibration':
                     if g[1] == 'start':
@@ -952,19 +926,155 @@ for idx_line, line in enumerate(eclines):
     del g_AIidx, g_pos, g_cvals, tmp_AIidx, tmp_pos, tmp_cvals
 
 
-# Add analog eye tracking data.
-def populate_eyetrack_data(logdict, targ, eyedata):
-    for key, val in logdict.items():
-        if isinstance(val, dict):
-            populate_eyetrack_data(val, targ, eyedata)
-        elif key == targ:
-            if None not in val:
-                s, e = val
-                logdict['AIdata'] = eyedata[s:e]
+# Add eye-tracking data.
+
+for k in list(ecdata.keys()):
+    match k:
+        case 'zero':
+            AIrng = ecdata[k]['AIrng']
+            if None not in AIrng:
+                ecdata[k]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
+            else:
+                ecdata[k]['AIdata'] = None
+        case 'crse':
+            for trl in range(ecdata[k]['n_trials']):
+                AIrng = ecdata[k]['data'][trl]['AIrng']
+                if None not in AIrng:
+                    ecdata[k]['data'][trl]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
+                else:
+                    ecdata[k]['data'][trl]['AIdata'] = None
+        case 'circ':
+            for trl in range(ecdata[k]['n_trials']):
+                AIrng = ecdata[k]['data'][trl]['AIrng']
+                if None not in AIrng:
+                    ecdata[k]['data'][trl]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
+                else:
+                    ecdata[k]['data'][trl]['AIdata'] = None
+                for trn in range(ecdata[k]['data'][trl]['n_turns']):
+                    AIrng = ecdata[k]['data'][trl][trn]['AIrng']
+                    if None not in AIrng:
+                        ecdata[k]['data'][trl][trn]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
+                    else:
+                        ecdata[k]['data'][trl][trn]['AIdata'] = None
+        case 'grdf':
+            for trl in range(ecdata[k]['n_trials']):
+                for typ in ['isi', 'face']:
+                    AIrng = ecdata[k]['data'][trl][typ]['AIrng']
+                    if None not in AIrng:
+                        ecdata[k]['data'][trl][typ]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
+                    else:
+                        ecdata[k]['data'][trl][typ]['AIdata'] = None
+        case 'grdt':
+            for trl in range(ecdata[k]['n_trials']):
+                for typ in ['isi', 'ctr', 'targ', 'rwrd']:
+                    if ecdata[k]['data'][trl][typ] is not None:
+                        AIrng = ecdata[k]['data'][trl][typ]['AIrng']
+                        if None not in AIrng:
+                            ecdata[k]['data'][trl][typ]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
+                        else:
+                            ecdata[k]['data'][trl][typ]['AIdata'] = None
+del AIrng, trl, trn, typ, k
 
 
+# Plot eye-tracking calibration results
 
-# % Extract stimulus information from log file
+# f = plt.figure()
+# ecx, ecy = ecdata['zero']['AIdata']
+# plt.scatter(ecx, ecy, s=1, c='m')
+# ecx, ecy = ecdata['circ']['data'][0]['AIdata']
+# plt.scatter(ecx, ecy, s=1, c='k')
+# plt.show()
+
+f = plt.figure()
+for trl in range(ecdata['circ']['n_trials']):
+    ecx, ecy = np.transpose(ecdata['circ']['data'][trl]['AIdata'])
+    plt.scatter(ecx, ecy, s=1)
+    if trl == 0:
+        circ = ecdata['circ']['data'][trl]['AIdata']
+    else:
+        circ = np.concatenate((circ, ecdata['circ']['data'][trl]['AIdata']))
+plt.show()
+f = plt.figure()
+plt.scatter(circ.T[0], circ.T[1], s=1)
+plt.scatter(np.median(circ.T[0]), np.median(circ.T[1]), s=5, c='m')
+ax = plt.gca()
+from matplotlib.patches import Ellipse
+c1 = Ellipse((np.median(circ.T[0]), np.median(circ.T[1])), width=np.std(circ.T[0]), height=np.std(circ.T[1]), lw=2, edgecolor='m', fc='None')
+ax.add_patch(c1)
+plt.show()
+
+# # Plot point density
+# from matplotlib.patches import Ellipse
+# from scipy.stats import gaussian_kde
+# etx = circ.T[0]
+# ety = circ.T[1]
+# etxy = np.vstack([etx, ety])
+# et_ptdensity = gaussian_kde(etxy)(etxy)
+# idx = et_ptdensity.argsort() # Sort by density, so that the densest points are plotted last
+# etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+# fig, ax = plt.subplots()
+# ax.scatter(etx, ety, s=1, c=et_ptdensity)
+# ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
+# c1 = Ellipse((np.median(etx), np.median(ety)), width=np.std(etx), height=np.std(ety), lw=2, edgecolor='m', fc='None')
+# ax.add_patch(c1)
+# plt.show()
+
+
+f = plt.figure()
+for trl in range(ecdata['grdf']['n_trials']):
+    ecx, ecy = np.transpose(ecdata['grdf']['data'][trl]['face']['AIdata'])
+    plt.scatter(ecx, ecy, s=1)
+    if trl == 0:
+        grdf = ecdata['grdf']['data'][trl]['face']['AIdata']
+    else:
+        grdf = np.concatenate((grdf, ecdata['grdf']['data'][trl]['face']['AIdata']))
+plt.show()
+f = plt.figure()
+plt.scatter(grdf.T[0], grdf.T[1], s=1)
+plt.scatter(np.median(grdf.T[0]), np.median(grdf.T[1]), s=5, c='m')
+# ax = plt.gca()
+# from matplotlib.patches import Ellipse
+# c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]), height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
+# ax.add_patch(c1)
+plt.show()
+from scipy.stats import gaussian_kde
+etx = grdf.T[0]
+ety = grdf.T[1]
+etxy = np.vstack([etx, ety])
+et_ptdensity = gaussian_kde(etxy)(etxy)
+idx = et_ptdensity.argsort() # Sort by density, so that the densest points are plotted last
+etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+fig, ax = plt.subplots()
+ax.scatter(etx, ety, s=1, c=et_ptdensity)
+ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
+plt.show()
+
+
+# # Plot at eye tracking data
+# # Take a look at this for density plotting:
+# # https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density
+# f = plt.figure()
+# etx, ety = np.transpose(eyetrk_data[:, :2])
+# plt.scatter(eyetrk_data[:, 0], eyetrk_data[:, 1], s=1)
+# plt.show()
+# # [np.std(eyetrk_data[:, d]) for d in range(0, eyetrk_data.shape[1])]
+
+# from scipy.stats import gaussian_kde
+#
+# # Calculate point density
+# etxy = np.vstack([etx, ety])
+# et_ptdensity = gaussian_kde(etxy)(etxy)
+#
+# # Sort the points by density, so that the densest points are plotted last
+# idx = et_ptdensity.argsort()
+# etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+#
+# fig, ax = plt.subplots()
+# ax.scatter(etx, ety, c=et_ptdensity, s=1)
+# plt.show()
+
+
+# Extract stimulus information from log file
 
 # *** TODO load from a pandas dataframe instead of a text log
 
@@ -1734,9 +1844,7 @@ for t in tmpl:
 #                 dpi=dpi, transparent=True)
 
 
-
-
-# %% Plot the data
+# Plot the data
 
 
 # Define a subset of ROIs to plot.
