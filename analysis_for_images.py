@@ -1057,11 +1057,14 @@ for trl in range(ecdata['crse']['n_trials']):
     plt.scatter(ecx, ecy, s=1)
     if trl == 0:
         crse = ecdata['crse']['data'][trl]['AIdata']
+        crsecv = ecdata['crse']['data'][trl]['cvals']
     else:
         crse = np.concatenate((crse, ecdata['crse']['data'][trl]['AIdata']))
+        crsecv = np.vstack((crsecv, ecdata['crse']['data'][trl]['cvals']))
 plt.show()
 f = plt.figure()
 plt.scatter(crse.T[0], crse.T[1], s=1)
+plt.scatter(crsecv.T[0], crsecv.T[1], s=10)
 plt.scatter(np.median(crse.T[0]), np.median(crse.T[1]), s=5, c='m')
 # ax = plt.gca()
 # from matplotlib.patches import Ellipse
