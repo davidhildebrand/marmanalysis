@@ -1034,7 +1034,8 @@ plt.scatter(grdf.T[0], grdf.T[1], s=1)
 plt.scatter(np.median(grdf.T[0]), np.median(grdf.T[1]), s=5, c='m')
 # ax = plt.gca()
 # from matplotlib.patches import Ellipse
-# c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]), height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
+# c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]),
+#              height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
 # ax.add_patch(c1)
 plt.show()
 from scipy.stats import gaussian_kde
@@ -1042,7 +1043,38 @@ etx = grdf.T[0]
 ety = grdf.T[1]
 etxy = np.vstack([etx, ety])
 et_ptdensity = gaussian_kde(etxy)(etxy)
-idx = et_ptdensity.argsort() # Sort by density, so that the densest points are plotted last
+idx = et_ptdensity.argsort()  # Sort by density, so that the densest points are plotted last
+etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+fig, ax = plt.subplots()
+ax.scatter(etx, ety, s=1, c=et_ptdensity)
+ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
+plt.show()
+
+
+f = plt.figure()
+for trl in range(ecdata['crse']['n_trials']):
+    ecx, ecy = np.transpose(ecdata['crse']['data'][trl]['AIdata'])
+    plt.scatter(ecx, ecy, s=1)
+    if trl == 0:
+        crse = ecdata['crse']['data'][trl]['AIdata']
+    else:
+        crse = np.concatenate((crse, ecdata['crse']['data'][trl]['AIdata']))
+plt.show()
+f = plt.figure()
+plt.scatter(crse.T[0], crse.T[1], s=1)
+plt.scatter(np.median(crse.T[0]), np.median(crse.T[1]), s=5, c='m')
+# ax = plt.gca()
+# from matplotlib.patches import Ellipse
+# c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]),
+#              height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
+# ax.add_patch(c1)
+plt.show()
+from scipy.stats import gaussian_kde
+etx = crse.T[0]
+ety = crse.T[1]
+etxy = np.vstack([etx, ety])
+et_ptdensity = gaussian_kde(etxy)(etxy)
+idx = et_ptdensity.argsort()  # Sort by density, so that the densest points are plotted last
 etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
 fig, ax = plt.subplots()
 ax.scatter(etx, ety, s=1, c=et_ptdensity)
