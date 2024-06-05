@@ -19,13 +19,14 @@ from warnings import warn
 import filters
 import plots
 
+
 # TODO: add consistent pyplot theme handling for plots https://github.com/raybuhr/pyplot-themes
-# including colorblind palette options https://personal.sron.nl/~pault/
+#       including colorblind palette options https://personal.sron.nl/~pault/
 # TODO: exclude suite2p badframes
 # TODO: exclude based on eye tracking, at least when eyes are not open
 
 
-# % Settings
+# %% Settings
 
 # FSI threshold based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci (https://doi.org/10.1038/nn.2363):
 # [...] neurons (94%) were face selective (that is, face-selectivity index
@@ -46,15 +47,16 @@ if 'md' in locals():
     md = dict()
     del md
 
-# % Specify data locations
+# %% Specify data locations
 
-# --  GOOD OLD Cadbury PD  20221016d152631tUTC_Cadbury_Images_2pRAMsp_fov0p73x0p73_res1umpx
-# |FSI| threshold: 0.25
-# Tuned ROIs: 894. Total ROIs: 6020.   (note: using threshold_cellprob old = 0.0)
-# Percentage of tuned ROIs: 14.85%
+# # Cadbury 20221016d
 animal_str = 'Cadbury'
 # date_str = '20221016d_olds2p'
 date_str = '20221016d'
+# --  PD GOOD
+# ... |FSI| threshold: 0.25
+# ... Tuned ROIs: 894. Total ROIs: 6020.   (note: using threshold_cellprob old = 0.0)
+# ... Percentage of tuned ROIs: 14.85%
 session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
 md = dict()
 md['framerate'] = 6.364
@@ -66,222 +68,123 @@ md['fov']['h_px'] = 730
 suite2p_str = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 stimset_str = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
 
-# # -- Cadbury UNCLEAR (fluid, z drift across time)
+# # Cadbury 20230510d
 # animal_str = 'Cadbury'
 # date_str = '20230510d'
+# # -- UNCLEAR (fluid, z drift across time)
 # session_str = '155713tUTC_SP_depth200um_fov2190x2000um_res3p00x3p02umpx_fr06p993Hz_pow059p9mW_stimImagesSong230509dSel'
 
-
-# # -- Cadbury OBJ ()
+# # Cadbury 20230809d
 # animal_str = 'Cadbury'
 # date_str = '20230809d'
+# # -- OBJ ()
 # session_str = '173936tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
-
-# # -- Cadbury PD ()
+# # Cadbury 20231001d
 # animal_str = 'Cadbury'
 # date_str = '20231001d'
+# # -- PD ()
 # session_str = '190608tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow060p3mW_stimImagesFOBmany'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmany\Images\20230728d'
-
-# # -- Cadbury PD ()
-# animal_str = 'Cadbury'
-# date_str = '20231001d'
+# # -- PD ()
 # session_str = '200422tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p3mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
-
-# # -- Cadbury PD (200um, )
+# # Cadbury 20231003d
 # animal_str = 'Cadbury'
 # date_str = '20231003d'
+# # -- PD (200um, )
 # session_str = '142836tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury PD (150um, )
-# animal_str = 'Cadbury'
-# date_str = '20231003d'
+# # -- PD (150um, )
 # session_str = '145031tUTC_SP_depth150um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow060p0mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury PD (200um, )
-# animal_str = 'Cadbury'
-# date_str = '20231003d'
+# # -- PD (200um, )
 # session_str = '153340tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury PD (250um, )
-# animal_str = 'Cadbury'
-# date_str = '20231003d'
+# # -- PD (250um, )
 # session_str = '154955tUTC_SP_depth250um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow089p8mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury MD (150um, )
-# animal_str = 'Cadbury'
-# date_str = '20231003d'
+# # -- MD (150um, )
 # session_str = '162025tUTC_SP_depth150um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury MD (200um, )
-# animal_str = 'Cadbury'
-# date_str = '20231003d'
+# # -- MD (200um, )
 # session_str = '163738tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow079p9mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury MD (200um, )
-# animal_str = 'Cadbury'
-# date_str = '20231003d'
+# # -- MD (200um, )
 # session_str = '165634tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow079p9mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury OBJ (200um, )
-# animal_str = 'Cadbury'
-# date_str = '20231003d'
+# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d
+# # -- OBJ (200um, )
 # session_str = '173850tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
-
-# # -- Cadbury OBJ (200um, )
+# # Cadbury 20231007d
 # animal_str = 'Cadbury'
 # date_str = '20231007d'
+# # -- OBJ (200um, )
 # session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmany\Images\20230728d'
-
-# # -- Cadbury OBJ (150um, )
-# animal_str = 'Cadbury'
-# date_str = '20231007d'
+# # -- OBJ (150um, )
 # session_str = '162705tUTC_SP_depth150um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow049p8mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury OBJ (250um, )
-# animal_str = 'Cadbury'
-# date_str = '20231007d'
+# # -- OBJ (250um, )
 # session_str = '164258tUTC_SP_depth250um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow069p8mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury OBJ (300um, )
-# animal_str = 'Cadbury'
-# date_str = '20231007d'
+# # -- OBJ (300um, )
 # session_str = '170046tUTC_SP_depth300um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow099p7mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury PD (200um, )
-# animal_str = 'Cadbury'
-# date_str = '20231007d'
+# # -- PD (200um, )
 # session_str = '174147tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow080p2mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury PD (200um, )
-# animal_str = 'Cadbury'
-# date_str = '20231007d'
+# # -- PD (200um, )
 # session_str = '180407tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p359Hz_pow080p2mW_stimMultimodal'
 # stimimage_path = r'multimodal'
 
-
-# # -- Cadbury OBJ (200um, )
+# # Cadbury 20231018d
 # animal_str = 'Cadbury'
 # date_str = '20231018d'
+# # -- OBJ (200um, )
 # session_str = '185135tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow061p2mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury OBJ ( )
-# animal_str = 'Cadbury'
-# date_str = '20231018d'
+# # -- OBJ ( )
 # session_str = '190745tUTC_SP_depth250um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow075p8mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
-
-# # -- Cadbury OBJ ( )
-# animal_str = 'Cadbury'
-# date_str = '20231018d'
+# # -- OBJ ( )
 # session_str = '192426tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow061p2mW_stimImagesFOBmin'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
-
-# # -- Dali PD (headpost not tight)
+# # Dali 20230511d
 # animal_str = 'Dali'
 # date_str = '20230511d'
+# # -- PD (headpost not tight)
 # session_str = '134800tUTC_SP_depth200um_fov2190x2000um_res3p02x3p02umpx_fr06p993Hz_pow050p0mW_stimImagesSong230509dSel'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
-
-# # -- Dali PD ()
-# animal_str = 'Dali'
-# date_str = '20230511d'
+# # -- PD ()
 # session_str = '150200tUTC_SP_depth300um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow065p0mW_stimImagesSong230509dSel'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 
-
+# # Dali 20230515d
 # # -- Dali ? () CHECK MEANIM
 # animal_str = 'Dali'
 # date_str = '20230515d'
 # session_str = '135100tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
-
 # # -- Dali ? () CHECK MEANIM
-# animal_str = 'Dali'
-# date_str = '20230515d'
 # session_str = '144500tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 
-
-# # -- Dali ? (ANISO) CHECK MEANIM
+# # Dali 20230522d
 # animal_str = 'Dali'
 # date_str = '20230522d'
+# # -- Dali ? (ANISO) CHECK MEANIM
 # session_str = '153415tUTC_SP_depth200um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow051p8mW_stimImagesFOBsel230517dAniso'
 # ????? stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\MarmosetFOB2018\20230517d\Scaled512x512_MaskEroded3_SHINEdLum_RGBA_reorg_subset'
-
 # # -- Dali ? () CHECK MEANIM
-# animal_str = 'Dali'
-# date_str = '20230522d'
 # session_str = '170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel'
 # stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 
-
 # ... Dali .... aniso until 20230804d
-
-
-# 
-# # 
-# # # -- MAYBE Cadbury MD?BOD?
-# # #   - not sure what to make of this, area tuning looks very jumbled now
-# # # animal_str = 'Cadbury'
-# # # date_str = '20231003d'
-# # # session_str = '165634tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow079p9mW_stimImagesFOBmin'
-
-# # # -- DECENT Cadbury OBJ
-# # # animal_str = 'Cadbury'
-# # # date_str = '20231007d'
-# # # session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
-# # # -- OKAY Cadbury OBJ 
-# # # animal_str = 'Cadbury'
-# # # date_str = '20231007d'
-# # # session_str = '164258tUTC_SP_depth250um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow069p8mW_stimImagesFOBmin'
-
-# # # -- OKAY Cadbury OBJ
-# # # animal_str = 'Cadbury'
-# # # date_str = '20231018d'
-# # # session_str = '185135tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow061p2mW_stimImagesFOBmin'
-# # # -- OKAY Cadbury  OBJ
-# # # animal_str = 'Cadbury'
-# # # date_str = '20231018d'
-# # # session_str = '190745tUTC_SP_depth250um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow075p8mW_stimImagesFOBmin'
-# # # -- MAYBE Cadbury OBJ?PV? 
-# # # animal_str = 'Cadbury'
-# # # date_str = '20231018d'
-# # # session_str = '192426tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow061p2mW_stimImagesFOBmin'
-
-# # # -- MAYBE Dali PD mixed with anisoStim
-# # # animal_str = 'Dali'
-# # # date_str = '20230606d'
-# # # session_str = '135543tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow091p0mW_stimImagesFOBsel230517dAniso'
-
-# # # -- MAYBE Dali PD mixed with anisoStim
-# # # animal_str = 'Dali'
-# # # date_str = '20230608d'
-# # # session_str = '124502tUTC_SP_depth350um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow092p7mW_stimImagesFOBsel230517dAniso'
-# # # -- MAYBE Dali PD mixed with anisoStim
-# # # animal_str = 'Dali'
-# # # date_str = '20230608d'
-# # # session_str = '134220tUTC_SP_depth400um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow122p3mW_stimImagesFOBsel230517dAniso'
 
 
 if 'save_path' not in locals():
@@ -311,7 +214,9 @@ if 'suite2p_str' not in locals():
     suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
 
-# Load imaging session information
+
+# %% Load data
+
 system_name = socket.gethostname()
 if 'Galactica' in system_name:
     base_path = r'/Users/davidh/Data/Freiwald/suite2p_results'
@@ -572,7 +477,8 @@ for r in range(n_plot_ROIs):
     # c: calcium concentration
     # s: neural activity / spike train
     # b: baseline
-    # "To produce calcium trace c, spike train s is filtered with the inverse filter of g, an infinite impulse response h, c = s * h."
+    # "To produce calcium trace c, spike train s is filtered with the inverse filter of g, an infinite impulse response
+    # h, c = s * h."
     # decay factor γ, regularization parameter λ, data y, sigma noise
 
     oasisL0_c, oasisL0_s, oasisL0_b, oasisL0_g, oasisL0_lam = oasis.functions.deconvolve(Fr, penalty=0)
