@@ -18,9 +18,9 @@ def parse_log_eyecal(log, data=None):
            'grdf': {'data': {}},
            'grdt': {'data': {}}}
 
-    pattern_ai_idx = r'.*AI_data\.shape\ *=\ *(\((\d+),\ *([0-9]+)\)|see\ *next\ *entry).*'
-    pattern_pos = r'.*\.pos\ *=\ *\[([^\[\]]*)\],?.*'
-    pattern_cvals = r'.*calib_values_candidate\ *=\ *\[([^\[\]]*)\].*'
+    pattern_ai_idx = r'.*AI_data\.shape\s*=\s*(\(([0-9]+),\s*([0-9]+)\)|see\s*next\s*entry).*'
+    pattern_pos = r'.*\.pos\s*=\s*\[([\-0-9\.\s]+)\].*'
+    pattern_cvals = r'.*calib_values_candidate\s*=\s*\[([\-0-9\.\s]+)\].*'
 
     lmode = ''
     for idx_line, line in enumerate(lines):
@@ -79,7 +79,7 @@ def parse_log_eyecal(log, data=None):
 
         match lmode:
             case 'zero':
-                pattern_zero = r'.*oculomatic\ *zeroing,\ *(presenting|hiding)\ *face,?.*'
+                pattern_zero = r'.*oculomatic\s*zeroing,\s*(presenting|hiding)\s*face,?.*'
                 # '6.3156 \tEXP \toculomatic zeroing, presenting face, AI_data.shape = (2529, 6)'
                 # '234.7007 \tEXP \toculomatic zeroing, hiding face, AI_data.shape = (133928, 6)'
                 if re.match(pattern_zero, line) is not None:
@@ -91,8 +91,8 @@ def parse_log_eyecal(log, data=None):
                         out['zero']['AIrng'][1] = tmp_ai_idx
 
             case 'crse':
-                pattern_coarse = r'.*coarse\ *(eye-tracking\ *calibration|trial)\ *(start|end|\d+)?,?\ *' + \
-                                 r'(showing\ *face|hiding\ *face|candidate)?,?.*'
+                pattern_coarse = r'.*coarse\s*(eye-tracking\s*calibration|trial)\s*(start|end|\d+)?,?\s*' + \
+                                 r'(showing\s*face|hiding\s*face|candidate)?,?.*'
                 # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
                 # '234.8261 \tEXP \tcoarse trial 0, showing face,face.pos = [ 5. -5.], AI_data.shape = (134078, 6)'
                 # '243.3274 \tEXP \tcoarse trial 0, hiding face, AI_data.shape = (138942, 6)'
@@ -114,7 +114,7 @@ def parse_log_eyecal(log, data=None):
                         elif g[1] == 'end':
                             if tmp_ai_idx is None:
                                 tmp_ai_idx = max(max([out['crse']['data'][i]['AIrng']
-                                                     for i, d in enumerate(out['crse']['data'])]))
+                                                      for i, d in enumerate(out['crse']['data'])]))
                             out['crse']['AIrng'][1] = tmp_ai_idx
                     elif g[0] == 'trial':
                         trl = int(g[1])
@@ -131,8 +131,8 @@ def parse_log_eyecal(log, data=None):
                             continue
 
             case 'circ':
-                pattern_circ = r'.*circular\ *trajectory\ *(calibration|trial)\ *(start|end|\d+),?\ *' + \
-                               r'(start|turn|end)?,?\ *(faceID\ *=\ *)?(\d+)?\ *(start|end)?,*.*'
+                pattern_circ = r'.*circular\s*trajectory\s*(calibration|trial)\s*(start|end|\d+),?\s*' + \
+                               r'(start|turn|end)?,?\s*(faceID\s*=\s*)?(\d+)?\s*(start|end)?,*.*'
                 # '316.3927 \tEXP \tcircular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)'
                 # '325.4014 \tEXP \tcircular trajectory trial 0, turn 3 start, AI_data.shape = (186039, 6)'
                 # '328.4045 \tEXP \tcircular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)'
@@ -168,7 +168,7 @@ def parse_log_eyecal(log, data=None):
                             out['circ']['data'][trl]['AIrng'][1] = tmp_ai_idx
 
             case 'grdf':
-                pattern_gridf = r'.*grid\ *faces?\ *(calibration|trial)\ *(start|end|\d+),?\ *(face|ISI)?\ *' + \
+                pattern_gridf = r'.*grid\s*faces?\s*(calibration|trial)\s*(start|end|\d+),?\s*(face|ISI)?\s*' + \
                                 r'(start|end)?,?.*'
                 # '388.5401 \tEXP \tgrid face trial 0, ISI start, AI_data.shape = (222368, 6)',
                 # '389.0546 \tEXP \tgrid face trial 0, ISI end, AI_data.shape = see next entry',
@@ -216,9 +216,9 @@ def parse_log_eyecal(log, data=None):
                                 out['grdf']['data'][trl]['isi']['AIrng'][1] = tmp_ai_idx
 
             case 'grdt':
-                pattern_gridt = r'.*grid\ *target\ *(eye-tracking\ *calibration|trial)\ *(start|end|\d+),?\ *' + \
-                                r'(ISI|central\ *target|grid\ *target|face\ *reward)?\ *(start|fixation|end)?,?\ *' + \
-                                r'(start|interrupted|completed|fixation\ *success|fixation\ *fail)?,?.*'
+                pattern_gridt = r'.*grid\s*target\s*(eye-tracking\s*calibration|trial)\s*(start|end|\d+),?\s*' + \
+                                r'(ISI|central\s*target|grid\s*target|face\s*reward)?\s*(start|fixation|end)?,?\s*' + \
+                                r'(start|interrupted|completed|fixation\s*success|fixation\s*fail)?,?.*'
                 # '579.5631 \tEXP \tgrid target eye-tracking calibration start, AI_data.shape = (332239, 6)'
                 # '579.5829 \tEXP \tgrid target trial 0, ISI start, AI_data.shape = (332239, 6)',
                 # '580.5769 \tEXP \tgrid target trial 0, ISI end, AI_data.shape = see next entry',
@@ -464,5 +464,4 @@ def parse_log_stim_image_orig(log):
                                 'category': tmp_category,
                                 'catid': tmp_catid,
                                 'acqfr': tmp_acqfr}
-
     return trialdata
