@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pandas as pd
 import re
 from warnings import warn
 
@@ -465,3 +466,250 @@ def parse_log_stim_image_orig(log):
                                 'catid': tmp_catid,
                                 'acqfr': tmp_acqfr}
     return trialdata
+
+
+def parse_log_stim_image(log):
+    """
+    Parse the log file output of the original stimulus_image.py script more efficiently.
+    """
+
+    lines = log.splitlines()
+    out = {}
+
+    mode = None
+    tmp_stimtimestr = ''
+    tmp_isitimestr = ''
+    for line in lines:
+        if 'EXP \tstim_times:' in line:
+            mode = 'stimtime'
+        if 'EXP \tinterstim_times:' in line:
+            mode = 'isitime'
+        if mode == 'stimtime':
+            tmp_stimtimestr = tmp_stimtimestr + line
+            if ']' in line:
+                mode = None
+        if mode == 'isitime':
+            tmp_isitimestr = tmp_isitimestr + line
+            if ']' in line:
+                mode = None
+
+    if tmp_stimtimestr != '':
+        s_si = tmp_stimtimestr.find('[')
+        s_ei = tmp_stimtimestr.find(']')
+        times_stim = np.fromstring(tmp_stimtimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
+        dur_stim = np.round(np.mean(times_stim), 2)
+    else:
+        warn('Could not automatically detect stimulus duration, assuming 1.0 sec.')
+        times_stim = []
+        dur_stim = 1.0
+
+    if tmp_isitimestr != '':
+        s_si = tmp_isitimestr.find('[')
+        s_ei = tmp_isitimestr.find(']')
+        times_isi = np.fromstring(tmp_isitimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
+        dur_isi = np.round(np.min(times_isi), 2)
+    else:
+        warn('Could not automatically detect interstimulus duration, assuming 1.0 sec.')
+        times_isi = []
+        dur_isi = 1.0
+
+    if len(times_stim) == len(times_isi):
+        n_trials = len(times_stim)
+    else:
+        n_trials = 0
+        warn('Number of stimulus and interstimulus times do not match.  Unknown number of trials.')
+
+    log = pd.DataFrame({'trial_n': np.linspace(0, n_trials-1, n_trials).astype(int),
+                        'dur_isi_pre': np.nan,
+                        'dur_stim': np.nan,
+                        'dur_isi_post': np.nan,
+
+                        't_isi_i': None,
+                        't_isi_f': None,
+                        'acqfr_isi_i': None,
+                        'acqfr_isi_f': None,
+                        'dispfr_isi_i': None,
+                        'dispfr_isi_f': None,
+                        'ai_isi_i': None,
+                        'ai_isi_f': None,
+
+                        't_fix_i': None,
+                        't_fix_f': None,
+                        'acqfr_fix_i': None,
+                        'acqfr_fix_f': None,
+                        'dispfr_fix_i': None,
+                        'dispfr_fix_f': None,
+                        'ai_fix_i': None,
+                        'ai_fix_f': None,
+
+                        't_stim_i': None,
+                        't_stim_f': None,
+                        'acqfr_stim_i': None,
+                        'acqfr_stim_f': None,
+                        'dispfr_stim_i': None,
+                        'dispfr_stim_f': None,
+                        'ai_stim_i': None,
+                        'ai_stim_f': None,
+
+                        'cond': None,
+                        'stim_mode': None,
+                        'stim_class': None,
+                        'stim_subclass': None,
+                        'stim_dur': None,
+
+                        'image': None,
+                        'image_path': None,
+                        'video': None,
+                        'video_path': None,
+                        'video_fps': None,
+                        'units': None,
+                        'pos': None,
+                        'size': None,
+                        'ori': None,
+                        'color': None,
+                        'colorSpace': None,
+                        'contrast': None,
+                        'opacity': None,
+                        'texRes': None,
+
+                        'grating_tex': None,
+                        'grating_contrast': None,
+                        'grating_dir': None,
+                        'grating_ori': None,
+                        'grating_spatial_freq': None,
+                        'grating_temp_freq': None,
+
+                        'dots_translation_dir': None,
+                        'dots_opticflow_dir': None,
+                        'dots_rotation_dir': None,
+
+                        'flash_type': None,
+
+                        'freq': None,
+                        'lev': None,
+                        'ampmod_freq': None,
+                        'voc_path': None})
+
+    for line in lines:
+        pattern_isi = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*trial\s*([0-9]+)\/([0-9]+),\s*ISI\s*(start|end),\s*' + \
+                      r'acqfr=([0-9]+),\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_isi, line) is not None:
+            g = re.match(pattern_isi, line).groups()
+            t = float(g[0])
+            trial = int(g[1])
+            if (n_trials - 1) != int(g[2]):
+                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
+                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
+            acqfr = int(g[4])
+            ai_shape = (int(g[5]), int(g[6]))
+
+            match g[3]:
+                case 'start':
+                    log.at[trial, 'dur_isi_pre'] = times_isi[trial]
+                    if trial > 0:
+                        log.at[trial-1, 'dur_isi_post'] = times_isi[trial]
+                    log.at[trial, 't_isi_i'] = t
+                    log.at[trial, 'acqfr_isi_i'] = acqfr
+                    log.at[trial, 'dispfr_isi_i'] = np.nan
+                    log.at[trial, 'ai_isi_i'] = ai_shape[0]
+                case 'end':
+                    log.at[trial, 't_isi_f'] = t
+                    log.at[trial, 'acqfr_isi_f'] = acqfr
+                    log.at[trial, 'dispfr_isi_f'] = np.nan
+                    log.at[trial, 'ai_isi_f'] = ai_shape[0]
+                case _:
+                    warn('Unknown ISI event in log file.')
+
+        pattern_fix = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*trial\s*([0-9]+)\/([0-9]+),\s*fixation\s*(start|end),\s*' + \
+                      r'acqfr=([0-9]+),\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_fix, line) is not None:
+            g = re.match(pattern_fix, line).groups()
+            t = float(g[0])
+            trial = int(g[1])
+            if (n_trials - 1) != int(g[2]):
+                warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
+                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
+            acqfr = int(g[4])
+            ai_shape = (int(g[5]), int(g[6]))
+
+            match g[3]:
+                case 'start':
+                    log.at[trial, 't_fix_i'] = t
+                    log.at[trial, 'acqfr_fix_i'] = acqfr
+                    log.at[trial, 'dispfr_fix_i'] = np.nan
+                    log.at[trial, 'ai_fix_i'] = ai_shape[0]
+                case 'end':
+                    log.at[trial, 't_fix_f'] = t
+                    log.at[trial, 'acqfr_fix_f'] = acqfr
+                    log.at[trial, 'dispfr_fix_f'] = np.nan
+                    log.at[trial, 'ai_fix_f'] = ai_shape[0]
+                case _:
+                    warn('Unknown ISI event in log file.')
+
+        pattern_stim = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*trial\s*([0-9]+)\/([0-9]+),\s*stim\s*(start|end),\s*' + \
+                       r'(image,\s*cond=([0-9]+),\s*name=[a-zA-Z0-9_]+:([a-zA-Z0-9_]+\.png),\s*path=([^\s]+),\s*' + \
+                       r'units=([a-zA-Z]+),\s*pos=\[([\-0-9\.\s]+)\],\s*size=\[([\-0-9\.\s]+)\],\s*' + \
+                       r'ori=([0-9\.]+),\s*color=\[([\-0-9\.\s]+)\],\s*colorSpace=([a-zA-Z]+),\s*' + \
+                       r'contrast=([0-9\.]+),\s*opacity=([0-9\.]+),\s*texRes=([0-9]+),)?\s*acqfr=([0-9]+),\s*' + \
+                       r'AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_stim, line) is not None:
+            g = re.match(pattern_stim, line).groups()
+            t = float(g[0])
+            trial = int(g[1])
+            if (n_trials - 1) != int(g[2]):
+                warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
+                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
+            acqfr = int(g[17])
+            ai_shape = (int(g[18]), int(g[19]))
+
+            match g[3]:
+                case 'start':
+                    log.at[trial, 'dur_stim'] = times_stim[trial]
+                    log.at[trial, 't_stim_i'] = t
+                    log.at[trial, 'acqfr_stim_i'] = acqfr
+                    log.at[trial, 'dispfr_stim_i'] = np.nan
+                    log.at[trial, 'ai_stim_i'] = ai_shape[0]
+
+                    log.at[trial, 'cond'] = int(g[5])
+                    log.at[trial, 'stim_mode'] = 'visual'
+                    log.at[trial, 'stim_class'] = 'image'
+                    log.at[trial, 'stim_subclass'] = None
+                    log.at[trial, 'image'] = g[6]
+                    log.at[trial, 'image_path'] = g[7]
+                    log.at[trial, 'units'] = g[8]
+                    log.at[trial, 'pos'] = np.fromstring(g[9], sep=' ')
+                    log.at[trial, 'size'] = np.fromstring(g[10], sep=' ')
+                    log.at[trial, 'ori'] = float(g[11])
+                    log.at[trial, 'color'] = np.fromstring(g[12], sep=' ')
+                    log.at[trial, 'colorSpace'] = g[13]
+                    log.at[trial, 'contrast'] = float(g[14])
+                    log.at[trial, 'opacity'] = float(g[15])
+                    log.at[trial, 'texRes'] = int(g[16])
+                case 'end':
+                    log.at[trial, 't_stim_f'] = t
+                    log.at[trial, 'acqfr_stim_f'] = acqfr
+                    log.at[trial, 'dispfr_stim_f'] = np.nan
+                    log.at[trial, 'ai_stim_f'] = ai_shape[0]
+                case _:
+                    warn('Unknown stim event in log file.')
+
+        pattern_conc = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
+                       r'acqfr=([0-9]+),\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_conc, line) is not None:
+            g = re.match(pattern_conc, line).groups()
+            t = float(g[0])
+            acqfr = int(g[2])
+            ai_shape = (int(g[3]), int(g[4]))
+
+            match g[1]:
+                case 'start':
+                    time_conc_i = t
+                case 'end':
+                    if 'time_conc_i' in locals():
+                        log.at[trial, 'dur_isi_post'] = t - time_conc_i
+                    else:
+                        log.at[trial, 'dur_isi_post'] = np.nan
+                case _:
+                    warn('Unknown conclusion event in log file.')
+
+    return out
