@@ -24,7 +24,11 @@ if 'md' in locals():
     del md
 
 
-# %% Read suite2p outputs
+# %% Settings
+# set any relevant thresholds here...
+
+
+# %% Specify data locations
 
 # -- GOOD OLD Cadbury MT 20221016d
 animal_str = 'Cadbury'
@@ -52,20 +56,30 @@ md['fov']['h_px'] = 730
 # date_str = '20230809d'
 # session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
 
-# try Dali 20230511d
+if 'save_path' not in locals():
+    save_path = ''
+if 'stimimage_path' not in locals():
+    stimimage_path = ''
 
-# 20230522d
-# TRY Dali 170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel
+if session_str.find('_') != -1:
+    session_abbrev_str = session_str[0:session_str.find('_')]
+    title_str = animal_str + '_' + date_str + '_' + session_abbrev_str
+else:
+    session_abbrev_str = ''
+    title_str = animal_str + '_' + date_str + '_' + session_str
+save_pfix = animal_str + date_str + session_abbrev_str
+save_ext = '.png'
 
-title_str = animal_str + '_' + date_str + '_' + session_str
 mdfile_str = '*_metadata.pickle'
 datafile_str = '*_00001.tif'
 logfile_str = '*.log'
 logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
-suite2p_str = 'suite2p*'
+if 'suite2p_str' not in locals():
+    suite2p_str = 'suite2p*'
 suite2p_plane_str = 'plane0'
 
-# Load imaging session information
+
+# %% Load data
 system_name = socket.gethostname()
 if 'Galactica' in system_name:
     base_path = r'/Users/davidh/Data/Freiwald/suite2p_results'
@@ -430,50 +444,50 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
     #             '_legend.png'
     #         f1.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
 
-        # # working but slow
-        # # also relevant https://stackoverflow.com/questions/62531754/how-to-draw-a-hsv-color-wheel-using-matplotlib
-        # fig = plt.figure()
-        # ax = fig.add_subplot(projection='polar')
-        # rho = np.linspace(0,1,100) # Radius of 1, distance from center to outer edge
-        # phi = np.linspace(0, np.pi*2., 1000) # in radians, one full circle
-        # RHO, PHI = np.meshgrid(rho,phi) # get every combination of rho and phi
-        # h = (PHI-PHI.min()) / (PHI.max()-PHI.min()) # use angle to determine hue, normalized from 0-1
-        # h = np.flip(h)
-        # s = RHO               # saturation is set as a function of radius
-        # v = np.ones_like(RHO) # value is constant
-        # # convert the np arrays to lists. This actually speeds up the colorsys call
-        # h,s,v = h.flatten().tolist(), s.flatten().tolist(), v.flatten().tolist()
-        # c = [colorsys.hsv_to_rgb(*x) for x in zip(h,s,v)]
-        # c = np.array(c)
-        # ax.scatter(PHI, RHO, c=c)
-        # _ = ax.axis('off')
-        # if save_path != '':
-        #     now = datetime.now()
-        #     dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
-        #     save_name = dt + '_ROIplot_continuous_withsat_' + \
-        #         'legend.png'
-        #     fig.savefig(save_path + os.path.sep + dt, dpi=dpi, transparent=True)
+    # # working but slow
+    # # also relevant https://stackoverflow.com/questions/62531754/how-to-draw-a-hsv-color-wheel-using-matplotlib
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='polar')
+    # rho = np.linspace(0,1,100) # Radius of 1, distance from center to outer edge
+    # phi = np.linspace(0, np.pi*2., 1000) # in radians, one full circle
+    # RHO, PHI = np.meshgrid(rho,phi) # get every combination of rho and phi
+    # h = (PHI-PHI.min()) / (PHI.max()-PHI.min()) # use angle to determine hue, normalized from 0-1
+    # h = np.flip(h)
+    # s = RHO               # saturation is set as a function of radius
+    # v = np.ones_like(RHO) # value is constant
+    # # convert the np arrays to lists. This actually speeds up the colorsys call
+    # h,s,v = h.flatten().tolist(), s.flatten().tolist(), v.flatten().tolist()
+    # c = [colorsys.hsv_to_rgb(*x) for x in zip(h,s,v)]
+    # c = np.array(c)
+    # ax.scatter(PHI, RHO, c=c)
+    # _ = ax.axis('off')
+    # if save_path != '':
+    #     now = datetime.now()
+    #     dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
+    #     save_name = dt + '_ROIplot_continuous_withsat_' + \
+    #         'legend.png'
+    #     fig.savefig(save_path + os.path.sep + dt, dpi=dpi, transparent=True)
 
-        # # working if image creation or saturation alpha is preferred
-        # # also relevant https://rosettacode.org/wiki/Color_wheel
-        # f3 = plt.figure()
-        # imw = 512
-        # imh = 512
-        # radius = 512 / 2.0
-        # cy, cx = imh / 2, imw / 2
-        # pix = np.ones([imh, imw, 3])
-        # for x in range(imw):
-        #     for y in range(imh):
-        #         rx = x - cx
-        #         ry = y - cy
-        #         s = (rx ** 2.0 + ry ** 2.0) ** 0.5 / radius
-        #         if s <= 1.0:
-        #             h = ((np.arctan2(ry, rx) / np.pi) + 1.0) / 2.0
-        #             rgb = colorsys.hsv_to_rgb(h, s, 1.0)
-        #             pix[x,y,:] = [c for c in rgb]
-        #             #pix[x,y,:] = tuple([int(round(c*255.0)) for c in rgb])
-        # plt.imshow(pix)
-        # f3.show()
+    # # working if image creation or saturation alpha is preferred
+    # # also relevant https://rosettacode.org/wiki/Color_wheel
+    # f3 = plt.figure()
+    # imw = 512
+    # imh = 512
+    # radius = 512 / 2.0
+    # cy, cx = imh / 2, imw / 2
+    # pix = np.ones([imh, imw, 3])
+    # for x in range(imw):
+    #     for y in range(imh):
+    #         rx = x - cx
+    #         ry = y - cy
+    #         s = (rx ** 2.0 + ry ** 2.0) ** 0.5 / radius
+    #         if s <= 1.0:
+    #             h = ((np.arctan2(ry, rx) / np.pi) + 1.0) / 2.0
+    #             rgb = colorsys.hsv_to_rgb(h, s, 1.0)
+    #             pix[x,y,:] = [c for c in rgb]
+    #             #pix[x,y,:] = tuple([int(round(c*255.0)) for c in rgb])
+    # plt.imshow(pix)
+    # f3.show()
 
     # Santi original
     # create colormap for reference
