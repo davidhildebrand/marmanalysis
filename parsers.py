@@ -713,3 +713,51 @@ def parse_log_stim_image(log):
                     warn('Unknown conclusion event in log file.')
 
     return out
+
+
+def parse_log_stim_dots_orig(log):
+    """
+    Parse the log file output of the original stimulus_dots.py script.
+    """
+
+    lines = log.splitlines()
+
+    # 41.9371         EXP     trial 0, stim start, grating, full field, drifting, cond=5, ori=225.0, tex=sin,
+    # size=[75.67137421 75.67137421], sf=[1.2 0. ], tf=4, mask=None, contrast=1.0, acqfr=222
+
+    trialdata = {}
+
+    tmp_stimtimestr = ''
+    stimtime_mode = False
+    tmp_isitimestr = ''
+    isitime_mode = False
+    for line in lines:
+        if 'EXP \tstim_times:' in line:
+            stimtime_mode = True
+        if 'EXP \tinterstim_times:' in line:
+            isitime_mode = True
+        if stimtime_mode:
+            tmp_stimtimestr = tmp_stimtimestr + line
+            if ']' in line:
+                stimtime_mode = False
+        if isitime_mode:
+            tmp_isitimestr = tmp_isitimestr + line
+            if ']' in line:
+                isitime_mode = False
+
+        if 'stim start' not in line:
+            continue
+
+        col = line.split('trial')
+        if not col:
+            continue
+        subcol = [sc.strip() for sc in col[1].split(',')]
+        tmp_trial = int(subcol[0].strip())
+        tmp_cond = int(subcol[5].split('=')[1].strip())
+
+        tmp_f = float(subcol[13].split('=')[1].strip())
+        tmp_acqfr = int(subcol[20].split('=')[1].strip())
+        trialdata[tmp_trial] = {'cond': tmp_cond,
+                                'f': tmp_f,
+                                'acqfr': tmp_acqfr}
+    return trialdata
