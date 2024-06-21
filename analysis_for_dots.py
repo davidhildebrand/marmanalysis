@@ -596,10 +596,10 @@ for line in lines:
     tmp_trial = int(subcol[0].strip())
     tmp_cond = int(subcol[5].split('=')[1].strip())
 
-    tmp_f = float(subcol[13].split('=')[1].strip())
+    tmp_dir = float(subcol[13].split('=')[1].strip())
     tmp_acqfr = int(subcol[20].split('=')[1].strip())
     trialdata[tmp_trial] = {'cond': tmp_cond,
-                            'f': tmp_f,
+                            'dir': tmp_dir,
                             'acqfr': tmp_acqfr}
 
 if tmp_stimtimestr != '':
@@ -634,7 +634,7 @@ n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 # trialdataarr = [trial_idx, cond, ori, acqfr]
 trialdataarr = np.full([len(trialdata), 3], np.nan)
 for td in trialdata:
-    trialdataarr[td] = [trialdata[td]['cond'], trialdata[td]['f'], trialdata[td]['acqfr']]
+    trialdataarr[td] = [trialdata[td]['cond'], trialdata[td]['dir'], trialdata[td]['acqfr']]
 trialdataarr = trialdataarr.astype(int)
 all_stim_start_frames = trialdataarr[:, 2]
 
@@ -856,7 +856,6 @@ def dirdist_objective(params, xs, measured_dirdiff):
     predicted_dirdiff = dir_dist_dep_exp_equation(params, xs)
     mse = np.square(np.subtract(predicted_dirdiff, measured_dirdiff)).mean()
     return mse
-
 
 
 # Calculate median values for 25 um distance bins
