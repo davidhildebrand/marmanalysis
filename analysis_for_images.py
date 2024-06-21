@@ -17,6 +17,7 @@ import socket
 from warnings import warn
 
 import filters
+import parsers
 import plots
 
 
@@ -523,363 +524,9 @@ plt.show()
 # Extract eye tracking calibration information from log file
 
 if eyecal_log is not None:
-    eclines = eyecal_log.splitlines()
+    ecdata = parsers.parse_log_eyecal(eyecal_log, eyecal_data)
 else:
-    eclines = ''
-
-ecdata = {'zero': None,
-          'crse': {'data': {}},
-          'circ': {'data': {}},
-          'grdf': {'data': {}},
-          'grdt': {'data': {}}}
-
-pattern_AIidx = r'.*AI_data\.shape\ *=\ *(\((\d+),\ *([0-9]+)\)|see\ *next\ *entry).*'
-pattern_pos = r'.*\.pos\ *=\ *\[([^\[\]]*)\],?.*'
-pattern_cvals = r'.*calib_values_candidate\ *=\ *\[([^\[\]]*)\].*'
-
-lmode = ''
-for idx_line, line in enumerate(eclines):
-    # First pass through eye-calibration log file
-    if 'EXP \toculomatic zeroing start' in line:
-        # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
-        lmode = 'zero'
-        # '234.7010 \tEXP \toculomatic zeroing end, AI_data.shape = (133928, 6)'
-        if 'zeroing end' in line:
-            lmode = ''
-    elif 'EXP \tcoarse eye-tracking calibration start' in line:
-        # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
-        lmode = 'crse'
-        # '316.3800 \tEXP \tcoarse eye-tracking calibration end, coarse_stims_pos = [[ 5 -5]'
-        if 'calibration end' in line:
-            lmode = ''
-    elif 'EXP \tcircular trajectory calibration start' in line:
-        # '316.3821 \tEXP \tcircular trajectory calibration start, AI_data.shape = (180857, 6)'
-        lmode = 'circ'
-        # '388.5193 \tEXP \tcircular trajectory calibration end, AI_data.shape = (222356, 6)'
-        if 'calibration end' in line:
-            lmode = ''
-    elif 'EXP \tgrid faces calibration start' in line:
-        # '388.5270 \tEXP \tgrid faces calibration start, AI_data.shape = (222368, 6)'
-        lmode = 'grdf'
-        # '579.5484 \tEXP \tgrid faces calibration end, AI_data.shape = (332223, 6)'
-        if 'calibration end' in line:
-            lmode = ''
-    elif 'EXP \tgrid target eye-tracking calibration start' in line:
-        # '579.5631 \tEXP \tgrid target eye-tracking calibration start, AI_data.shape = (332239, 6)'
-        lmode = 'grdt'
-        # '697.7133 \tEXP \tgrid target eye-tracking calibration end, AI_data.shape = (399857, 6)'
-        if 'calibration end' in line:
-            lmode = ''
-    if lmode == '':
-        continue
-
-    if re.match(pattern_AIidx, line) is not None:
-        g_AIidx = re.match(pattern_AIidx, line).groups()
-        if g_AIidx[0].replace(' ', '') != 'seenextentry':
-            tmp_AIidx = int(g_AIidx[1])
-        else:
-            # Use 'sep' character as a placeholder for subsequent AI range value.
-            tmp_AIidx = chr(31)
-    else:
-        g_AIidx = None
-        tmp_AIidx = None
-    if re.match(pattern_pos, line) is not None:
-        g_pos = re.match(pattern_pos, line).groups()
-        tmp_pos = np.fromstring(g_pos[0].strip(), dtype=float, sep=' ')
-    else:
-        g_pos = None
-        tmp_pos = None
-    if re.match(pattern_cvals, line) is not None:
-        g_cvals = re.match(pattern_cvals, line).groups()
-        tmp_cvals = np.fromstring(re.match(pattern_cvals, line).groups()[0].strip(), dtype=float, sep=' ')
-    else:
-        g_cvals = None
-        tmp_cvals = None
-
-    match lmode:
-        case 'zero':
-            pattern_zero = r'.*oculomatic\ *zeroing,\ *(presenting|hiding)\ *face,?.*'
-            # '6.3156 \tEXP \toculomatic zeroing, presenting face, AI_data.shape = (2529, 6)'
-            # '234.7007 \tEXP \toculomatic zeroing, hiding face, AI_data.shape = (133928, 6)'
-            if re.match(pattern_zero, line) is not None:
-                g = re.match(pattern_zero, line).groups()
-                if g[0] == 'presenting':
-                    ecdata['zero'] = {'AIrng': [None, None]}
-                    ecdata['zero']['AIrng'][0] = tmp_AIidx
-                elif g[0] == 'hiding':
-                    ecdata['zero']['AIrng'][1] = tmp_AIidx
-
-        case 'crse':
-            pattern_coarse = r'.*coarse\ *(eye-tracking\ *calibration|trial)\ *(start|end|\d+)?,?\ *' + \
-                             r'(showing\ *face|hiding\ *face|candidate)?,?.*'
-            # '234.8201 \tEXP \tcoarse eye-tracking calibration start, AI_data.shape = (134078, 6)'
-            # '234.8261 \tEXP \tcoarse trial 0, showing face,face.pos = [ 5. -5.], AI_data.shape = (134078, 6)'
-            # '243.3274 \tEXP \tcoarse trial 0, hiding face, AI_data.shape = (138942, 6)'
-            # '243.8488 \tEXP \tcoarse trial 0, showing face,face.pos = [ 5. -5.], AI_data.shape = (139240, 6)',
-            # '247.9988 \tEXP \tcoarse trial 0, hiding face, coarse_oculomatic_calib_values_candidate = [ 0.825335  -2.4251535] for face.pos = [ 5. -5.], AI_data.shape = (141609, 6)'
-            # '304.0263 \tEXP \tcoarse trial 20, showing face,face.pos = [-5.  5.], AI_data.shape = (173761, 6)'
-            # '305.1594 \tEXP \tcoarse trial 20, hiding face, coarse_oculomatic_calib_values_candidate = ' + \
-            #   '[-3.3869004   0.05144549] for face.pos = [-5.  5.], AI_data.shape = (174405, 6)'
-            # '316.3800 \tEXP \tcoarse eye-tracking calibration end, coarse_stims_pos = [[ 5 -5]'
-            if re.match(pattern_coarse, line) is not None:
-                g = re.match(pattern_coarse, line).groups()
-
-                if g[0].replace(' ', '') == 'eye-trackingcalibration':
-                    if g[1] == 'start':
-                        if 'n_trials' not in ecdata['crse']:
-                            ecdata['crse']['n_trials'] = -1
-                            ecdata['crse']['AIrng'] = [None, None]
-                        ecdata['crse']['AIrng'][0] = tmp_AIidx
-                    elif g[1] == 'end':
-                        if tmp_AIidx is None:
-                            tmp_AIidx = max(max([ecdata['crse']['data'][i]['AIrng']
-                                                 for i, d in enumerate(ecdata['crse']['data'])]))
-                        ecdata['crse']['AIrng'][1] = tmp_AIidx
-                elif g[0] == 'trial':
-                    trl = int(g[1])
-                    if ecdata['crse']['n_trials'] - 1 < trl:
-                        ecdata['crse']['n_trials'] = trl + 1
-                        ecdata['crse']['data'][trl] = {'AIrng': [None, None], 'pos': None, 'cvals': None}
-                    if g[2].replace(' ', '') == 'showingface':
-                        ecdata['crse']['data'][trl]['AIrng'][0] = tmp_AIidx
-                        ecdata['crse']['data'][trl]['pos'] = tmp_pos
-                    elif g[2].replace(' ', '') == 'hidingface':
-                        ecdata['crse']['data'][trl]['AIrng'][1] = tmp_AIidx
-                        ecdata['crse']['data'][trl]['cvals'] = tmp_cvals
-                    elif g[2] == 'candidate':
-                        continue
-
-        case 'circ':
-            pattern_circ = r'.*circular\ *trajectory\ *(calibration|trial)\ *(start|end|\d+),?\ *(start|turn|end)?' + \
-                           r',?\ *(faceID\ *=\ *)?(\d+)?\ *(start|end)?,*.*'
-            # '316.3927 \tEXP \tcircular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)'
-            # '325.4014 \tEXP \tcircular trajectory trial 0, turn 3 start, AI_data.shape = (186039, 6)'
-            # '328.4045 \tEXP \tcircular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)'
-            # '328.4045 \tEXP \tcircular trajectory trial 0 end, AI_data.shape = (187767, 6)'
-            if re.match(pattern_circ, line) is not None:
-                g = re.match(pattern_circ, line).groups()
-                if g[0] == 'calibration':
-                    if g[1] == 'start':
-                        if 'n_trials' not in ecdata['circ']:
-                            ecdata['circ']['n_trials'] = -1
-                            ecdata['circ']['AIrng'] = [None, None]
-                        ecdata['circ']['AIrng'][0] = tmp_AIidx
-                    elif g[1] == 'end':
-                        ecdata['circ']['AIrng'][1] = tmp_AIidx
-                elif g[0] == 'trial':
-                    trl = int(g[1])
-                    if ecdata['circ']['n_trials'] - 1 < trl:
-                        ecdata['circ']['n_trials'] = trl + 1
-                        ecdata['circ']['data'][trl] = {'n_turns': -1, 'AIrng': [None, None], 'stim': None}
-                    if g[2] == 'start':
-                        ecdata['circ']['data'][trl]['AIrng'][0] = tmp_AIidx
-                        ecdata['circ']['data'][trl]['stim'] = g[3].replace(' ', '').replace('=', '').strip() + g[4]
-                    elif g[2] == 'turn':
-                        trn = int(g[4])
-                        if ecdata['circ']['data'][trl]['n_turns'] - 1 < trn:
-                            if g[5] == 'start':
-                                ecdata['circ']['data'][trl][trn] = {'AIrng': [None, None]}
-                                ecdata['circ']['data'][trl][trn]['AIrng'][0] = tmp_AIidx
-                            elif g[5] == 'end':
-                                ecdata['circ']['data'][trl][trn]['AIrng'][1] = tmp_AIidx
-                                ecdata['circ']['data'][trl]['n_turns'] = trn + 1
-                    elif g[2] == 'end':
-                        ecdata['circ']['data'][trl]['AIrng'][1] = tmp_AIidx
-
-        case 'grdf':
-            pattern_gridf = r'.*grid\ *faces?\ *(calibration|trial)\ *(start|end|\d+),?\ *(face|ISI)?\ *' + \
-                            r'(start|end)?,?.*'
-            # '388.5401 \tEXP \tgrid face trial 0, ISI start, AI_data.shape = (222368, 6)',
-            # '389.0546 \tEXP \tgrid face trial 0, ISI end, AI_data.shape = see next entry',
-            # '389.0546 \tEXP \tgrid face trial 0, face start, face.pos = [ 0. -5.], AI_data.shape = (222662, 6)'
-            # '392.0783 \tEXP \tgrid face trial 0, face end, AI_data.shape = see next entry'
-            # '392.0783 \tEXP \tgrid face trial 1, ISI start, AI_data.shape = (224406, 6)'
-            if re.match(pattern_gridf, line) is not None:
-                g = re.match(pattern_gridf, line).groups()
-
-                # Replace 'sep' character placeholder with AI range value.
-                ks = ['isi', 'face']
-                for k in ks:
-                    rngs = [ecdata['grdf']['data'][i][k]['AIrng'] if ecdata['grdf']['data'][i][k] else [None, None]
-                            for i, d in enumerate(ecdata['grdf']['data'])]
-                    if np.any(np.array(rngs) == chr(31)):
-                        septs = np.where(np.array(rngs) == chr(31))[0]
-                        for sti in septs:
-                            sepi = np.argwhere(np.array(ecdata['grdf']['data'][sti][k]['AIrng']) == chr(31))[0][0]
-                            ecdata['grdf']['data'][sti][k]['AIrng'][sepi] = tmp_AIidx
-
-                if g[0] == 'calibration':
-                    if g[1] == 'start':
-                        if 'n_trials' not in ecdata['grdf']:
-                            ecdata['grdf']['n_trials'] = -1
-                            ecdata['grdf']['AIrng'] = [None, None]
-                        ecdata['grdf']['AIrng'][0] = tmp_AIidx
-                    elif g[1] == 'end':
-                        ecdata['grdf']['AIrng'][1] = tmp_AIidx
-                elif g[0] == 'trial':
-                    trl = int(g[1])
-                    if ecdata['grdf']['n_trials'] - 1 < trl:
-                        ecdata['grdf']['n_trials'] = trl + 1
-                        ecdata['grdf']['data'][trl] = {'isi': {'AIrng': [None, None]},
-                                                       'face': {'AIrng': [None, None], 'pos': None}}
-                    if g[2] == 'face':
-                        if g[3] == 'start':
-                            ecdata['grdf']['data'][trl]['face']['AIrng'][0] = tmp_AIidx
-                            ecdata['grdf']['data'][trl]['face']['pos'] = tmp_pos
-                        elif g[3] == 'end':
-                            ecdata['grdf']['data'][trl]['face']['AIrng'][1] = tmp_AIidx
-                    elif g[2] == 'ISI':
-                        if g[3] == 'start':
-                            ecdata['grdf']['data'][trl]['isi']['AIrng'][0] = tmp_AIidx
-                        elif g[3] == 'end':
-                            ecdata['grdf']['data'][trl]['isi']['AIrng'][1] = tmp_AIidx
-
-        case 'grdt':
-            pattern_gridt = r'.*grid\ *target\ *(eye-tracking\ *calibration|trial)\ *(start|end|\d+),?\ *' + \
-                            r'(ISI|central\ *target|grid\ *target|face\ *reward)?\ *(start|fixation|end)?,?\ *' + \
-                            r'(start|interrupted|completed|fixation\ *success|fixation\ *fail)?,?.*'
-            # '579.5631 \tEXP \tgrid target eye-tracking calibration start, AI_data.shape = (332239, 6)'
-            # '579.5829 \tEXP \tgrid target trial 0, ISI start, AI_data.shape = (332239, 6)',
-            # '580.5769 \tEXP \tgrid target trial 0, ISI end, AI_data.shape = see next entry',
-            # '580.5769 \tEXP \tgrid target trial 0, central target start, AI_data.shape = (332820, 6)',
-            # '580.9177 \tEXP \tgrid target trial 0, central target fixation start, AI_data.shape = (333014, 6)',
-            # '580.9247 \tEXP \tgrid target trial 0, central target fixation interrupted, AI_data.shape = (333018, 6)',
-            # '583.6077 \tEXP \tgrid target trial 1, central target start, AI_data.shape = (334556, 6)',
-            # '585.4010 \tEXP \tgrid target trial 1, central target end, fixation success, AI_data.shape = see next entry',
-            # '585.4149 \tEXP \tgrid target trial 1, grid target start, grid_target.pos = [5. 0.], AI_data.shape = (335589, 6)',
-            # '585.4177 \tEXP \tgrid target trial 1, grid target fixation start, grid_target.pos = [5. 0.], AI_data.shape = (335596, 6)',
-            # '585.5225 \tEXP \tgrid target trial 1, grid target fixation completed, grid_target.pos = [5. 0.], AI_data.shape = (335652, 6)',
-            # '585.5332 \tEXP \tgrid target trial 1, grid target end, fixation success, AI_data.shape = see next entry',
-            # '585.5332 \tEXP \tgrid target trial 1, face reward start, face.pos = [5. 0.], AI_data.shape = (335657, 6)',
-            # '586.0616 \tEXP \tgrid target trial 1, face reward end, AI_data.shape = see next entry',
-            if re.match(pattern_gridt, line) is not None:
-                g = re.match(pattern_gridt, line).groups()
-
-                # Replace 'sep' character placeholder with AI range value.
-                ks = ['isi', 'ctr', 'targ', 'rwrd']
-                for k in ks:
-                    rngs = [ecdata['grdt']['data'][i][k]['AIrng'] if ecdata['grdt']['data'][i][k] else [None, None]
-                            for i, d in enumerate(ecdata['grdt']['data'])]
-                    if np.any(np.array(rngs) == chr(31)):
-                        septs = np.where(np.array(rngs) == chr(31))[0]
-                        for sti in septs:
-                            sepi = np.argwhere(np.array(ecdata['grdt']['data'][sti][k]['AIrng']) == chr(31))[0][0]
-                            ecdata['grdt']['data'][sti][k]['AIrng'][sepi] = tmp_AIidx
-
-                if g[0].replace(' ', '') == 'eye-trackingcalibration':
-                    if g[1] == 'start':
-                        if 'n_trials' not in ecdata['grdt']:
-                            ecdata['grdt']['n_trials'] = -1
-                            ecdata['grdt']['AIrng'] = [None, None]
-                        ecdata['grdt']['AIrng'][0] = tmp_AIidx
-                    elif g[1] == 'end':
-                        ecdata['grdt']['AIrng'][1] = tmp_AIidx
-                elif g[0] == 'trial':
-                    trl = int(g[1])
-                    if ecdata['grdt']['n_trials'] - 1 < trl:
-                        ecdata['grdt']['n_trials'] = trl + 1
-                        ecdata['grdt']['data'][trl] = {'isi': {'AIrng': [None, None]},
-                                                       'ctr': None,
-                                                       'targ': None,
-                                                       'rwrd': None}
-                    if g[2].replace(' ', '') == 'centraltarget':
-                        if g[3] == 'start':
-                            ecdata['grdt']['data'][trl]['ctr'] = {'AIrng': [None, None], 'success': None}
-                        elif g[3] == 'fixation':
-                            if g[4] == 'start':
-                                ecdata['grdt']['data'][trl]['ctr']['AIrng'][0] = tmp_AIidx
-                            elif g[4] == 'interrupted':
-                                ecdata['grdt']['data'][trl]['ctr']['AIrng'][1] = tmp_AIidx
-                            elif g[4] == 'completed':
-                                ecdata['grdt']['data'][trl]['ctr']['AIrng'][1] = tmp_AIidx
-                        elif g[3] == 'end':
-                            if g[4].replace(' ', '') == 'fixationsuccess':
-                                ecdata['grdt']['data'][trl]['ctr']['success'] = True
-                            elif g[4].replace(' ', '') == 'fixationfail':
-                                ecdata['grdt']['data'][trl]['ctr']['success'] = False
-                    elif g[2].replace(' ', '') == 'gridtarget':
-                        if g[3] == 'start':
-                            ecdata['grdt']['data'][trl]['targ'] = {'AIrng': [None, None], 'pos': None, 'success': None}
-                            ecdata['grdt']['data'][trl]['targ']['pos'] = tmp_pos
-                        elif g[3] == 'fixation':
-                            if g[4] == 'start':
-                                ecdata['grdt']['data'][trl]['targ']['AIrng'][0] = tmp_AIidx
-                            elif g[4] == 'interrupted':
-                                ecdata['grdt']['data'][trl]['targ']['AIrng'][1] = tmp_AIidx
-                            elif g[4] == 'completed':
-                                ecdata['grdt']['data'][trl]['targ']['AIrng'][1] = tmp_AIidx
-                        elif g[3] == 'end':
-                            if g[4].replace(' ', '') == 'fixationsuccess':
-                                ecdata['grdt']['data'][trl]['targ']['success'] = True
-                            elif g[4].replace(' ', '') == 'fixationfail':
-                                ecdata['grdt']['data'][trl]['targ']['success'] = False
-                    # '588.9046 \tEXP \tgrid target trial 2, face reward start, face.pos = [0. 0.], AI_data.shape = (337584, 6)',
-                    # '589.4260 \tEXP \tgrid target trial 2, face reward end, AI_data.shape = see next entry',
-                    elif g[2].replace(' ', '') == 'facereward':
-                        if g[3] == 'start':
-                            ecdata['grdt']['data'][trl]['rwrd'] = {'AIrng': [None, None], 'pos': None}
-                            ecdata['grdt']['data'][trl]['rwrd']['AIrng'][0] = tmp_AIidx
-                            ecdata['grdt']['data'][trl]['rwrd']['pos'] = tmp_pos
-                        elif g[3] == 'end':
-                            ecdata['grdt']['data'][trl]['rwrd']['AIrng'][1] = tmp_AIidx
-                    elif g[2] == 'ISI':
-                        if g[3] == 'start':
-                            ecdata['grdt']['data'][trl]['isi']['AIrng'][0] = tmp_AIidx
-                        elif g[3] == 'end':
-                            ecdata['grdt']['data'][trl]['isi']['AIrng'][1] = tmp_AIidx
-        case _:
-            continue
-    del g_AIidx, g_pos, g_cvals, tmp_AIidx, tmp_pos, tmp_cvals
-
-
-# Add eye-tracking data.
-
-for k in list(ecdata.keys()):
-    match k:
-        case 'zero':
-            AIrng = ecdata[k]['AIrng']
-            if None not in AIrng:
-                ecdata[k]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
-            else:
-                ecdata[k]['AIdata'] = None
-        case 'crse':
-            for trl in range(ecdata[k]['n_trials']):
-                AIrng = ecdata[k]['data'][trl]['AIrng']
-                if None not in AIrng:
-                    ecdata[k]['data'][trl]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
-                else:
-                    ecdata[k]['data'][trl]['AIdata'] = None
-        case 'circ':
-            for trl in range(ecdata[k]['n_trials']):
-                AIrng = ecdata[k]['data'][trl]['AIrng']
-                if None not in AIrng:
-                    ecdata[k]['data'][trl]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
-                else:
-                    ecdata[k]['data'][trl]['AIdata'] = None
-                for trn in range(ecdata[k]['data'][trl]['n_turns']):
-                    AIrng = ecdata[k]['data'][trl][trn]['AIrng']
-                    if None not in AIrng:
-                        ecdata[k]['data'][trl][trn]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
-                    else:
-                        ecdata[k]['data'][trl][trn]['AIdata'] = None
-        case 'grdf':
-            for trl in range(ecdata[k]['n_trials']):
-                for typ in ['isi', 'face']:
-                    AIrng = ecdata[k]['data'][trl][typ]['AIrng']
-                    if None not in AIrng:
-                        ecdata[k]['data'][trl][typ]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
-                    else:
-                        ecdata[k]['data'][trl][typ]['AIdata'] = None
-        case 'grdt':
-            for trl in range(ecdata[k]['n_trials']):
-                for typ in ['isi', 'ctr', 'targ', 'rwrd']:
-                    if ecdata[k]['data'][trl][typ] is not None:
-                        AIrng = ecdata[k]['data'][trl][typ]['AIrng']
-                        if None not in AIrng:
-                            ecdata[k]['data'][trl][typ]['AIdata'] = eyecal_data[AIrng[0]:AIrng[1], :2]
-                        else:
-                            ecdata[k]['data'][trl][typ]['AIdata'] = None
-del AIrng, trl, trn, typ, k
+    ecdata = None
 
 
 # Plot eye-tracking calibration results
@@ -1024,100 +671,39 @@ if log is not None:
 else:
     raise RuntimeError('Could not find log file.')
 
-# 37.1533         EXP     trial 0/240, stim start, image, cond=7, name=image7:b16.png,
-# path=/FreiwaldSync/MarmoScope/Stimulus/Images/Song_etal_Wang_2020_NatCommun/480288_equalized_RGBA_FOBonly/b16.png,
-# units=deg, pos=[0. 0.], size=[12.   7.2], ori=0.0, color=[1. 1. 1.], colorSpace=rgb, contrast=1.0,
-# opacity=1.0, texRes=512, acqfr=23, AI_data.shape=(1336, 5)
-trialdata = {}
-ims = {}
-impaths = {}
-lf_categories = {}
-tmp_image = None
-tmp_imagepath = None
-tmp_units = None
-tmp_pos = None
-tmp_size = None
-tmp_ori = None
-tmp_category = None
-tmp_catid = None
-tmp_cond = None
-tmp_acqfr = None
-tmp_stimtimestr = ''
-stimtime_mode = False
-tmp_isitimestr = ''
-isitime_mode = False
-for line in lines:
-    if 'EXP \tstim_times:' in line:
-        stimtime_mode = True
-    if 'EXP \tinterstim_times:' in line:
-        isitime_mode = True
-    if stimtime_mode:
-        tmp_stimtimestr = tmp_stimtimestr + line
-        if ']' in line:
-            stimtime_mode = False
-    if isitime_mode:
-        tmp_isitimestr = tmp_isitimestr + line
-        if ']' in line:
-            isitime_mode = False
+trialdata = parsers.parse_log_stim_image_orig(log)
 
-    if 'stim start' not in line or 'image' not in line:
-        continue
+image_paths = {trialdata[td]['cond']: trialdata[td]['imagepath'] for td in trialdata}
+image_dirpaths = {k: os.path.dirname(v) for k, v in image_paths.items()}
+image_folders = {k: os.path.split(os.path.dirname(v))[-1] for k, v in image_paths.items()}
+image_filenames = {k: os.path.basename(v) for k, v in image_paths.items()}
+image_names = {k: os.path.splitext(os.path.basename(v))[0] for k, v in image_paths.items()}
 
-    col = line.split('trial')
-    if not col:
-        continue
-    subcol = [sc.strip() for sc in col[1].split(',')]
-    tmp_trial = int(subcol[0].split('/')[0].strip())
-    if 'cond' in subcol[3]:
-        tmp_cond = int(subcol[3].split('=')[1].strip())
+same_dirpaths = np.unique(list(image_dirpaths.values())).size == 1
+if same_dirpaths:
+    image_dirpath = image_dirpaths[0]
+    if 'FOBmin_MarmOnly' in image_dirpath or 'MinFOB_MarmOnly' in image_dirpath:
+        image_set = 'FOBmin'
+    elif 'FOBmin' in image_dirpath or 'MinFOB' in image_dirpath:
+        image_set = 'FOBmin'
+    elif 'FOBmany' in image_dirpath:
+        image_set = 'FOBmany'
+    elif 'MarmosetFOB2018' in image_dirpath:
+        image_set = 'FOBmin'
+    elif '480288_equalized_RGBA_FOBonly' in image_dirpath:
+        image_set = 'Song_etal_Wang_2022_FOBonly'
+    elif '480288_equalized_RGBA_selected20230509d' in image_dirpath:
+        image_set = 'Song_etal_Wang_2022_FOBonly'
     else:
-        print('could not get cond from log entry')
-    if 'image' in subcol[4]:
-        tmp_image = subcol[4].split(':')[1].strip()
-        if tmp_image not in ims:
-            ims[tmp_image] = tmp_cond
-        tmp_category = tmp_image[0]
-        if tmp_category not in lf_categories:
-            lf_categories[tmp_category] = len(lf_categories)
-        tmp_catid = lf_categories[tmp_category]
-    else:
-        print('could not get image name from log entry')
-    if 'path' in subcol[5]:
-        tmp_imagepath = subcol[5].split('=')[1].strip()
-        if tmp_imagepath not in impaths:
-            impaths[tmp_imagepath] = tmp_cond
-    else:
-        print('could not get image name from log entry')
-    if 'units' in subcol[6]:
-        tmp_units = subcol[6].split('=')[1].strip()
-    else:
-        print('could not get units from log entry')
-    if 'pos' in subcol[7]:
-        tmp_pos = np.fromstring(subcol[7].split('=')[1].strip('[]'), sep=' ')
-    else:
-        print('could not get pos from log entry')
-    if 'size' in subcol[8]:
-        tmp_size = np.fromstring(subcol[8].split('=')[1].strip('[]'), sep=' ')
-    else:
-        print('could not get size from log entry')
-    if 'ori' in subcol[9]:
-        tmp_ori = float(subcol[9].split('=')[1].strip())
-    else:
-        print('could not get ori from log entry')
-    if 'acqfr' in subcol[15]:
-        tmp_acqfr = int(subcol[15].split('=')[1].strip())
-    else:
-        print('could not get acqfr from log entry')
-    trialdata[tmp_trial] = {'cond': tmp_cond,  # effectively image_id
-                            'image': tmp_image,
-                            'imagepath': tmp_imagepath,
-                            'units': tmp_units,
-                            'pos': tmp_pos,
-                            'size': tmp_size,
-                            'ori': tmp_ori,
-                            'category': tmp_category,
-                            'catid': tmp_catid,
-                            'acqfr': tmp_acqfr}
+        warn('Image set not recognized from image paths. Set to last directory in path.')
+        image_set = image_folders[0]
+else:
+    raise RuntimeError('Images are not all from the same folder. Processing for this not supported yet.')
+
+
+# Add timestamp to trialdata output
+
+# This is going to require another function in parsers....
 
 if tmp_stimtimestr != '':
     s_si = tmp_stimtimestr.find('[')
@@ -1142,33 +728,6 @@ n_samp_stim = int(np.ceil(dur_stim * md['framerate']))
 n_samp_isi = int(np.round(dur_isi * md['framerate']))
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
-lf_categories = {v: k for k, v in lf_categories.items()}
-image_paths = {v: k for k, v in impaths.items()}
-image_dirpaths = {v: os.path.dirname(k) for k, v in impaths.items()}
-image_folders = {v: os.path.split(os.path.dirname(k))[-1] for k, v in impaths.items()}
-same_dirpaths = np.unique(list(image_dirpaths.values())).size == 1
-if same_dirpaths:
-    image_dirpath = image_dirpaths[0]
-    if 'FOBmin_MarmOnly' in image_dirpath or 'MinFOB_MarmOnly' in image_dirpath:
-        image_set = 'FOBmin'
-    elif 'FOBmin' in image_dirpath or 'MinFOB' in image_dirpath:
-        image_set = 'FOBmin'
-    elif 'FOBmany' in image_dirpath:
-        image_set = 'FOBmany'
-    elif 'MarmosetFOB2018' in image_dirpath:
-        image_set = 'FOBmin'
-    elif '480288_equalized_RGBA_FOBonly' in image_dirpath:
-        image_set = 'Song_etal_Wang_2022_FOBonly'
-    elif '480288_equalized_RGBA_selected20230509d' in image_dirpath:
-        image_set = 'Song_etal_Wang_2022_FOBonly'
-    else:
-        warn('Image set not recognized from image paths. Set to last directory in path.')
-        image_set = image_folders[0]
-else:
-    raise RuntimeError('Images are not all from the same folder. Processing for this not supported yet.')
-image_filenames = {v: os.path.basename(k) for k, v in impaths.items()}
-image_names = {v: os.path.splitext(os.path.basename(k))[0] for k, v in impaths.items()}
-lf_conditions = image_names
 
 # trialdata_arr[trial_idx] = [cond/imageid, category_id, acqfr]
 trialdata_arr = np.full([len(trialdata), 3], np.nan)
@@ -1226,7 +785,6 @@ acqfr_by_conds = trialdata_arr[condinds[:], 2]
 fridx = acqfr_by_conds
 
 # Define stimuli
-
 
 class StimulusImage(object):
     """Representation of stimulus images."""
@@ -1436,20 +994,20 @@ for c in range(n_conds):
             tmp_cat = None
     elif image_set == 'Song_etal_Wang_2022_FOBonly':
         pattern_zerocheck = r'^([aobmufps]{1})([0-9]{1})$'
-        if re.match(pattern_zerocheck, lf_conditions[c]) is not None:
-            tg = re.match(pattern_zerocheck, lf_conditions[c]).group(1)
-            ng = re.match(pattern_zerocheck, lf_conditions[c]).group(2)
+        if re.match(pattern_zerocheck, image_names[c]) is not None:
+            tg = re.match(pattern_zerocheck, image_names[c]).group(1)
+            ng = re.match(pattern_zerocheck, image_names[c]).group(2)
             lfc = '{}{}'.format(tg, ng.zfill(2))
         else:
-            lfc = lf_conditions[c]
+            lfc = image_names[c]
         tmp_cond = bytes(lfc, 'ascii')
-        match lf_conditions[c][0]:
+        match image_names[c][0]:
             case 'a':
                 tmp_cat = b'animal'
             case 'o':
                 tmp_cat = b'obj'
             case 'b':
-                if lf_conditions[c] == 'blank':
+                if image_names[c] == 'blank':
                     tmp_cat = b'blank'
                 else:
                     tmp_cat = b'body_mrm'
