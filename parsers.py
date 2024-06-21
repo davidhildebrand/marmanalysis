@@ -470,7 +470,7 @@ def parse_log_stim_image_orig(log):
 
 def parse_log_stim_image(log):
     """
-    Parse the log file output of the original stimulus_image.py script more efficiently.
+    Parse the log file output of the original stimulus_image.py script more completely.
     """
 
     lines = log.splitlines()
