@@ -257,9 +257,6 @@ if 'md' not in locals():
         md_path = mdfile_list[0]
         with open(md_path, 'rb') as mdf:
             md = pickle.load(mdf)
-        # jf = open(md_path, 'r')
-        # md = json.load(jf)
-        # jf.close()
     elif len(datafile_list) > 0:
         warn('Could not find metadata file, loading from image data file.')
         df_path = datafile_list[0]
@@ -374,9 +371,6 @@ s2p_ops = np.load(os.path.join(s2p_plane_path, 'ops.npy'), allow_pickle=True).it
 s2p_badframes = np.where(s2p_ops['badframes'])[0]
 
 cellinds = np.where(s2p_iscell[:, 1] >= threshold_cellprob)[0]
-# cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
-# cellinds = np.logical_and(s2p_iscell[:, 1] >= threshold_cellprob, np.std(s2p_F, axis=1) != 0)
-# cellinds = np.logical_and(s2p_iscell[:, 0] == 1.0, np.std(s2p_F, axis=1) != 0)
 inactives = np.where(np.std(s2p_F, axis=1) == 0)[0]
 if len(inactives) > 0:
     warn('Excluded {} inactive ROIs: {}'.format(len(inactives), inactives))
@@ -658,7 +652,7 @@ plt.show()
 # plt.show()
 
 
-# Extract stimulus information from log file
+# Load stimulus information
 
 # *** TODO load from a pandas dataframe instead of a text log
 
