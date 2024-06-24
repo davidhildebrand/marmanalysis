@@ -370,6 +370,8 @@ s2p_stat = np.load(os.path.join(s2p_plane_path, 'stat.npy'), allow_pickle=True)
 s2p_ops = np.load(os.path.join(s2p_plane_path, 'ops.npy'), allow_pickle=True).item()
 s2p_badframes = np.where(s2p_ops['badframes'])[0]
 
+if 'threshold_cellprob' not in locals():
+    threshold_cellprob = 0.0
 cellinds = np.where(s2p_iscell[:, 1] >= threshold_cellprob)[0]
 inactives = np.where(np.std(s2p_F, axis=1) == 0)[0]
 if len(inactives) > 0:
