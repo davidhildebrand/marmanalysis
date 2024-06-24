@@ -65,9 +65,9 @@ md['fov'] = dict()
 md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
 md['fov']['w_px'] = 730
 md['fov']['h_px'] = 730
-# suite2p_str = 'suite2p_old*'
-suite2p_str = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
-stimset_str = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
+# dirstr_suite2p = 'suite2p_old*'
+dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
+dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
 
 # # Cadbury 20230510d
 # animal_str = 'Cadbury'
@@ -202,18 +202,18 @@ else:
 save_pfix = animal_str + date_str + session_abbrev_str
 save_ext = '.png'
 
-mdfile_str = '*_metadata.pickle'
-datafile_str = '*_00001.tif'
-logfile_str = '*.log'
-logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
-stimlogfile_str = '*_stimlog.*'
-eyetrkfile_str = '*_AIdata.p'
-eyecal_dir_str = '*_EyeTrackingCalibration'
-eyecal_logfile_str = '*_EyeTrackingCalibration.log'
-eyecal_datafile_str = '*_EyeTrackingCalibration_AIdata.p'
-if 'suite2p_str' not in locals():
-    suite2p_str = 'suite2p*'
-suite2p_plane_str = 'plane0'
+filestr_metadata = '*_metadata.pickle'
+filestr_image_data = '*_00001.tif'
+filestr_session_log = '*.log'
+pattern_session_log = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
+filestr_stimulus_log = '*_stimlog.*'
+filestr_eyetrack_data = '*_AIdata.p'
+dirstr_eyecal = '*_EyeTrackingCalibration'
+filestr_eyecal_log = '*_EyeTrackingCalibration.log'
+filestr_eyecal_data = '*_EyeTrackingCalibration_AIdata.p'
+if 'dirstr_suite2p' not in locals():
+    dirstr_suite2p = 'suite2p*'
+dirstr_suite2p_plane = 'plane0'
 
 
 # %% Load data
@@ -237,7 +237,7 @@ if save_path == '':
 else:
     saving = True
 
-stimimage_path = os.path.join(stim_path, stimset_str)
+stimimage_path = os.path.join(stim_path, dirstr_stimset)
 if not os.path.isdir(stimimage_path):
     warn('Could not find stimulus image source path.')
     stimimage_path = None
@@ -245,43 +245,43 @@ if not os.path.isdir(stimimage_path):
 date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
 
-datafile_list = [f for f in glob(os.path.join(session_path, datafile_str)) if os.path.isfile(f)]
-
-mdfile_list = [f for f in glob(os.path.join(session_path, mdfile_str)) if os.path.isfile(f)]
+filelist_metadata = [f for f in glob(os.path.join(session_path, filestr_metadata)) if os.path.isfile(f)]
+filelist_image_data = [f for f in glob(os.path.join(session_path, filestr_image_data)) if os.path.isfile(f)]
 if 'md' not in locals():
-    if not mdfile_list and not datafile_list:
+    if not filelist_metadata and not filelist_image_data:
         raise RuntimeError('Could not find metadata file or image data file.')
-    if len(mdfile_list) > 0:
-        if len(mdfile_list) > 1:
-            warn('Found multiple metadata files, using the first: {}'.format(mdfile_list[0]))
-        md_path = mdfile_list[0]
+    if len(filelist_metadata) > 0:
+        if len(filelist_metadata) > 1:
+            warn('Found multiple metadata files, using the first: {}'.format(filelist_metadata[0]))
+        md_path = filelist_metadata[0]
         with open(md_path, 'rb') as mdf:
             md = pickle.load(mdf)
-    elif len(datafile_list) > 0:
+    elif len(filelist_image_data) > 0:
         warn('Could not find metadata file, loading from image data file.')
-        df_path = datafile_list[0]
+        df_path = filelist_image_data[0]
         import metadata
         simd = metadata.get_metadata(df_path)
         md = metadata.extract_useful_metadata(simd)
 
-logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
-                if re.search(logfile_re, f) and os.path.isfile(f)]
-if len(logfile_list) > 0:
-    lf_path = logfile_list[0]
-    if len(logfile_list) > 1:
+filelist_session_log = [f for f in glob(os.path.join(session_path, filestr_session_log))
+                        if re.search(pattern_session_log, f) and os.path.isfile(f)]
+if len(filelist_session_log) > 0:
+    lf_path = filelist_session_log[0]
+    if len(filelist_session_log) > 1:
         warn('Found multiple log files, using the first: {}'.format(lf_path))
     lf = open(lf_path, 'r')
-    log = lf.read()
+    session_log = lf.read()
     lf.close()
+    del lf
 else:
     lf_path = None
-    log = None
+    session_log = None
 
-stimlogfile_list = [f for f in glob(os.path.join(session_path, stimlogfile_str)) if os.path.isfile(f)]
-if len(stimlogfile_list) > 0:
-    pkls = [f for f in stimlogfile_list if f.endswith('.pickle') or f.endswith('.pkl') or f.endswith('.p')]
-    hdf5s = [f for f in stimlogfile_list if f.endswith('.h5') or f.endswith('.hdf5')]
-    csvs = [f for f in stimlogfile_list if f.endswith('.csv')]
+filelist_stimulus_log = [f for f in glob(os.path.join(session_path, filestr_stimulus_log)) if os.path.isfile(f)]
+if len(filelist_stimulus_log) > 0:
+    pkls = [f for f in filelist_stimulus_log if f.endswith('.pickle') or f.endswith('.pkl') or f.endswith('.p')]
+    hdf5s = [f for f in filelist_stimulus_log if f.endswith('.h5') or f.endswith('.hdf5')]
+    csvs = [f for f in filelist_stimulus_log if f.endswith('.csv')]
     if len(pkls) > 0:
         if len(pkls) > 1:
             warn('Found multiple stimlog pickle files, using the first: {}'.format(pkls[0]))
@@ -299,35 +299,25 @@ if len(stimlogfile_list) > 0:
         stimlog = pd.read_csv(slf_path)
     else:
         stimlog = None
+    del pkls, hdf5s, csvs
 
-eyetrkfile_list = [f for f in glob(os.path.join(session_path, eyetrkfile_str)) if os.path.isfile(f)]
-if len(eyetrkfile_list) > 0:
-    etf_path = eyetrkfile_list[0]
-    if len(eyetrkfile_list) > 1:
-        warn('Found multiple log files, using the first: {}'.format(etf_path))
-    with open(etf_path, 'rb') as etf:
-        eyetrk_data = pickle.load(etf)
-else:
-    etf_path = None
-del etf
-
-eyecal_dir_list = [d for d in glob(os.path.join(date_path, eyecal_dir_str)) if os.path.isdir(d)]
-if len(eyecal_dir_list) > 0:
-    ecd_path = eyecal_dir_list[0]
-    if len(eyecal_dir_list) > 1:
+dirlist_eyecal = [d for d in glob(os.path.join(date_path, dirstr_eyecal)) if os.path.isdir(d)]
+if len(dirlist_eyecal) > 0:
+    ecd_path = dirlist_eyecal[0]
+    if len(dirlist_eyecal) > 1:
         warn('Found multiple eye tracking calibration directories, using the first one: {}'.format(ecd_path))
-    eyecal_logfile_list = [f for f in glob(os.path.join(ecd_path, eyecal_logfile_str))
+    filelist_eyecal_log = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_log))
                            if os.path.isfile(f)]
-    eyecal_datafile_list = [f for f in glob(os.path.join(ecd_path, eyecal_datafile_str))
+    filelist_eyecal_data = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_data))
                             if os.path.isfile(f)]
 else:
     ecd_path = None
-    eyecal_logfile_list = []
-    eyecal_datafile_list = []
+    filelist_eyecal_log = []
+    filelist_eyecal_data = []
 
-if len(eyecal_logfile_list) > 0:
-    ec_lf_path = eyecal_logfile_list[0]
-    if len(eyecal_logfile_list) > 1:
+if len(filelist_eyecal_log) > 0:
+    ec_lf_path = filelist_eyecal_log[0]
+    if len(filelist_eyecal_log) > 1:
         warn('Found multiple eye tracking calibration log files, using the first one: {}'.format(ec_lf_path))
     eclf = open(ec_lf_path, 'r')
     eyecal_log = eclf.read()
@@ -338,9 +328,9 @@ else:
     eyecal_log = None
 del eclf
 
-if len(eyecal_datafile_list) > 0:
-    ec_df_path = eyecal_datafile_list[0]
-    if len(eyecal_datafile_list) > 1:
+if len(filelist_eyecal_data) > 0:
+    ec_df_path = filelist_eyecal_data[0]
+    if len(filelist_eyecal_data) > 1:
         warn('Found multiple eye tracking calibration data files, using the first one: {}'.format(ec_df_path))
     with open(ec_df_path, 'rb') as ec_df:
         eyecal_data = pickle.load(ec_df)
@@ -349,13 +339,23 @@ else:
     eyecal_data = None
 del ec_df
 
-suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
-                if os.path.isdir(d)]
-if len(suite2p_list) > 0:
-    if len(suite2p_list) > 1:
-        warn('Found multiple suite2p folders, using the first one: {}'.format(os.path.basename(suite2p_list[0])))
-    s2p_path = suite2p_list[0]
-    s2p_plane_path = os.path.join(s2p_path, suite2p_plane_str)
+filelist_eyetrack_data = [f for f in glob(os.path.join(session_path, filestr_eyetrack_data)) if os.path.isfile(f)]
+if len(filelist_eyetrack_data) > 0:
+    etf_path = filelist_eyetrack_data[0]
+    if len(filelist_eyetrack_data) > 1:
+        warn('Found multiple log files, using the first: {}'.format(etf_path))
+    with open(etf_path, 'rb') as etf:
+        eyetrk_data = pickle.load(etf)
+else:
+    etf_path = None
+del etf
+
+dirlist_suite2p = [d for d in glob(os.path.join(session_path, dirstr_suite2p)) if os.path.isdir(d)]
+if len(dirlist_suite2p) > 0:
+    if len(dirlist_suite2p) > 1:
+        warn('Found multiple suite2p folders, using the first one: {}'.format(os.path.basename(dirlist_suite2p[0])))
+    s2p_path = dirlist_suite2p[0]
+    s2p_plane_path = os.path.join(s2p_path, dirstr_suite2p_plane)
     if not os.path.isdir(s2p_plane_path):
         raise RuntimeError('Could not load suite2p plane0 folder.')
 else:
