@@ -523,135 +523,137 @@ else:
 
 # Plot eye-tracking calibration results
 
-# f = plt.figure()
-# ecx, ecy = ecdata['zero']['AIdata']
-# plt.scatter(ecx, ecy, s=1, c='m')
-# ecx, ecy = ecdata['circ']['data'][0]['AIdata']
-# plt.scatter(ecx, ecy, s=1, c='k')
-# plt.show()
+if not ecdata is None:
 
-f = plt.figure()
-for trl in range(ecdata['circ']['n_trials']):
-    ecx, ecy = np.transpose(ecdata['circ']['data'][trl]['AIdata'])
-    plt.scatter(ecx, ecy, s=1)
-    if trl == 0:
-        circ = ecdata['circ']['data'][trl]['AIdata']
-    else:
-        circ = np.concatenate((circ, ecdata['circ']['data'][trl]['AIdata']))
-plt.show()
-f = plt.figure()
-plt.scatter(circ.T[0], circ.T[1], s=1)
-plt.scatter(np.median(circ.T[0]), np.median(circ.T[1]), s=5, c='m')
-ax = plt.gca()
-from matplotlib.patches import Ellipse
-c1 = Ellipse((np.median(circ.T[0]), np.median(circ.T[1])), width=np.std(circ.T[0]), height=np.std(circ.T[1]), lw=2, edgecolor='m', fc='None')
-ax.add_patch(c1)
-plt.show()
+    # f = plt.figure()
+    # ecx, ecy = ecdata['zero']['AIdata']
+    # plt.scatter(ecx, ecy, s=1, c='m')
+    # ecx, ecy = ecdata['circ']['data'][0]['AIdata']
+    # plt.scatter(ecx, ecy, s=1, c='k')
+    # plt.show()
 
-# # Plot point density
-# from matplotlib.patches import Ellipse
-# from scipy.stats import gaussian_kde
-# etx = circ.T[0]
-# ety = circ.T[1]
-# etxy = np.vstack([etx, ety])
-# et_ptdensity = gaussian_kde(etxy)(etxy)
-# idx = et_ptdensity.argsort() # Sort by density, so that the densest points are plotted last
-# etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
-# fig, ax = plt.subplots()
-# ax.scatter(etx, ety, s=1, c=et_ptdensity)
-# ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
-# c1 = Ellipse((np.median(etx), np.median(ety)), width=np.std(etx), height=np.std(ety), lw=2, edgecolor='m', fc='None')
-# ax.add_patch(c1)
-# plt.show()
+    f = plt.figure()
+    for trl in range(ecdata['circ']['n_trials']):
+        ecx, ecy = np.transpose(ecdata['circ']['data'][trl]['AIdata'])
+        plt.scatter(ecx, ecy, s=1)
+        if trl == 0:
+            circ = ecdata['circ']['data'][trl]['AIdata']
+        else:
+            circ = np.concatenate((circ, ecdata['circ']['data'][trl]['AIdata']))
+    plt.show()
+    f = plt.figure()
+    plt.scatter(circ.T[0], circ.T[1], s=1)
+    plt.scatter(np.median(circ.T[0]), np.median(circ.T[1]), s=5, c='m')
+    ax = plt.gca()
+    from matplotlib.patches import Ellipse
+    c1 = Ellipse((np.median(circ.T[0]), np.median(circ.T[1])), width=np.std(circ.T[0]), height=np.std(circ.T[1]), lw=2, edgecolor='m', fc='None')
+    ax.add_patch(c1)
+    plt.show()
 
-
-f = plt.figure()
-for trl in range(ecdata['grdf']['n_trials']):
-    ecx, ecy = np.transpose(ecdata['grdf']['data'][trl]['face']['AIdata'])
-    plt.scatter(ecx, ecy, s=1)
-    if trl == 0:
-        grdf = ecdata['grdf']['data'][trl]['face']['AIdata']
-    else:
-        grdf = np.concatenate((grdf, ecdata['grdf']['data'][trl]['face']['AIdata']))
-plt.show()
-f = plt.figure()
-plt.scatter(grdf.T[0], grdf.T[1], s=1)
-plt.scatter(np.median(grdf.T[0]), np.median(grdf.T[1]), s=5, c='m')
-# ax = plt.gca()
-# from matplotlib.patches import Ellipse
-# c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]),
-#              height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
-# ax.add_patch(c1)
-plt.show()
-from scipy.stats import gaussian_kde
-etx = grdf.T[0]
-ety = grdf.T[1]
-etxy = np.vstack([etx, ety])
-et_ptdensity = gaussian_kde(etxy)(etxy)
-idx = et_ptdensity.argsort()  # Sort by density, so that the densest points are plotted last
-etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
-fig, ax = plt.subplots()
-ax.scatter(etx, ety, s=1, c=et_ptdensity)
-ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
-plt.show()
+    # # Plot point density
+    # from matplotlib.patches import Ellipse
+    # from scipy.stats import gaussian_kde
+    # etx = circ.T[0]
+    # ety = circ.T[1]
+    # etxy = np.vstack([etx, ety])
+    # et_ptdensity = gaussian_kde(etxy)(etxy)
+    # idx = et_ptdensity.argsort() # Sort by density, so that the densest points are plotted last
+    # etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+    # fig, ax = plt.subplots()
+    # ax.scatter(etx, ety, s=1, c=et_ptdensity)
+    # ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
+    # c1 = Ellipse((np.median(etx), np.median(ety)), width=np.std(etx), height=np.std(ety), lw=2, edgecolor='m', fc='None')
+    # ax.add_patch(c1)
+    # plt.show()
 
 
-f = plt.figure()
-for trl in range(ecdata['crse']['n_trials']):
-    ecx, ecy = np.transpose(ecdata['crse']['data'][trl]['AIdata'])
-    plt.scatter(ecx, ecy, s=1)
-    if trl == 0:
-        crse = ecdata['crse']['data'][trl]['AIdata']
-        crsecv = ecdata['crse']['data'][trl]['cvals']
-    else:
-        crse = np.concatenate((crse, ecdata['crse']['data'][trl]['AIdata']))
-        crsecv = np.vstack((crsecv, ecdata['crse']['data'][trl]['cvals']))
-plt.show()
-f = plt.figure()
-plt.scatter(crse.T[0], crse.T[1], s=1)
-plt.scatter(crsecv.T[0], crsecv.T[1], s=10)
-plt.scatter(np.median(crse.T[0]), np.median(crse.T[1]), s=5, c='m')
-# ax = plt.gca()
-# from matplotlib.patches import Ellipse
-# c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]),
-#              height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
-# ax.add_patch(c1)
-plt.show()
-from scipy.stats import gaussian_kde
-etx = crse.T[0]
-ety = crse.T[1]
-etxy = np.vstack([etx, ety])
-et_ptdensity = gaussian_kde(etxy)(etxy)
-idx = et_ptdensity.argsort()  # Sort by density, so that the densest points are plotted last
-etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
-fig, ax = plt.subplots()
-ax.scatter(etx, ety, s=1, c=et_ptdensity)
-ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
-plt.show()
+    f = plt.figure()
+    for trl in range(ecdata['grdf']['n_trials']):
+        ecx, ecy = np.transpose(ecdata['grdf']['data'][trl]['face']['AIdata'])
+        plt.scatter(ecx, ecy, s=1)
+        if trl == 0:
+            grdf = ecdata['grdf']['data'][trl]['face']['AIdata']
+        else:
+            grdf = np.concatenate((grdf, ecdata['grdf']['data'][trl]['face']['AIdata']))
+    plt.show()
+    f = plt.figure()
+    plt.scatter(grdf.T[0], grdf.T[1], s=1)
+    plt.scatter(np.median(grdf.T[0]), np.median(grdf.T[1]), s=5, c='m')
+    # ax = plt.gca()
+    # from matplotlib.patches import Ellipse
+    # c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]),
+    #              height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
+    # ax.add_patch(c1)
+    plt.show()
+    from scipy.stats import gaussian_kde
+    etx = grdf.T[0]
+    ety = grdf.T[1]
+    etxy = np.vstack([etx, ety])
+    et_ptdensity = gaussian_kde(etxy)(etxy)
+    idx = et_ptdensity.argsort()  # Sort by density, so that the densest points are plotted last
+    etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+    fig, ax = plt.subplots()
+    ax.scatter(etx, ety, s=1, c=et_ptdensity)
+    ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
+    plt.show()
 
 
-# # Plot at eye tracking data
-# # Take a look at this for density plotting:
-# # https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density
-# f = plt.figure()
-# etx, ety = np.transpose(eyetrk_data[:, :2])
-# plt.scatter(eyetrk_data[:, 0], eyetrk_data[:, 1], s=1)
-# plt.show()
-# # [np.std(eyetrk_data[:, d]) for d in range(0, eyetrk_data.shape[1])]
+    f = plt.figure()
+    for trl in range(ecdata['crse']['n_trials']):
+        ecx, ecy = np.transpose(ecdata['crse']['data'][trl]['AIdata'])
+        plt.scatter(ecx, ecy, s=1)
+        if trl == 0:
+            crse = ecdata['crse']['data'][trl]['AIdata']
+            crsecv = ecdata['crse']['data'][trl]['cvals']
+        else:
+            crse = np.concatenate((crse, ecdata['crse']['data'][trl]['AIdata']))
+            crsecv = np.vstack((crsecv, ecdata['crse']['data'][trl]['cvals']))
+    plt.show()
+    f = plt.figure()
+    plt.scatter(crse.T[0], crse.T[1], s=1)
+    plt.scatter(crsecv.T[0], crsecv.T[1], s=10)
+    plt.scatter(np.median(crse.T[0]), np.median(crse.T[1]), s=5, c='m')
+    # ax = plt.gca()
+    # from matplotlib.patches import Ellipse
+    # c1 = Ellipse((np.median(grdf.T[0]), np.median(grdf.T[1])), width=np.std(grdf.T[0]),
+    #              height=np.std(grdf.T[1]), lw=2, edgecolor='m', fc='None')
+    # ax.add_patch(c1)
+    plt.show()
+    from scipy.stats import gaussian_kde
+    etx = crse.T[0]
+    ety = crse.T[1]
+    etxy = np.vstack([etx, ety])
+    et_ptdensity = gaussian_kde(etxy)(etxy)
+    idx = et_ptdensity.argsort()  # Sort by density, so that the densest points are plotted last
+    etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+    fig, ax = plt.subplots()
+    ax.scatter(etx, ety, s=1, c=et_ptdensity)
+    ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
+    plt.show()
 
-# from scipy.stats import gaussian_kde
-#
-# # Calculate point density
-# etxy = np.vstack([etx, ety])
-# et_ptdensity = gaussian_kde(etxy)(etxy)
-#
-# # Sort the points by density, so that the densest points are plotted last
-# idx = et_ptdensity.argsort()
-# etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
-#
-# fig, ax = plt.subplots()
-# ax.scatter(etx, ety, c=et_ptdensity, s=1)
-# plt.show()
+
+    # # Plot at eye tracking data
+    # # Take a look at this for density plotting:
+    # # https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density
+    # f = plt.figure()
+    # etx, ety = np.transpose(eyetrk_data[:, :2])
+    # plt.scatter(eyetrk_data[:, 0], eyetrk_data[:, 1], s=1)
+    # plt.show()
+    # # [np.std(eyetrk_data[:, d]) for d in range(0, eyetrk_data.shape[1])]
+
+    # from scipy.stats import gaussian_kde
+    #
+    # # Calculate point density
+    # etxy = np.vstack([etx, ety])
+    # et_ptdensity = gaussian_kde(etxy)(etxy)
+    #
+    # # Sort the points by density, so that the densest points are plotted last
+    # idx = et_ptdensity.argsort()
+    # etx, ety, et_ptdensity = etx[idx], ety[idx], et_ptdensity[idx]
+    #
+    # fig, ax = plt.subplots()
+    # ax.scatter(etx, ety, c=et_ptdensity, s=1)
+    # plt.show()
 
 
 # Load stimulus information
