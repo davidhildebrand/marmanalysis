@@ -712,15 +712,15 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                 case _:
                     warn('Unknown conclusion event in log file.')
 
-    return out
+    return log
 
 
-def parse_log_stim_dots_orig(log):
+def parse_log_stim_dots_orig(session_log):
     """
-    Parse the log file output of the original stimulus_dots.py script.
+    Parse the session log file output of the original stimulus_dots.py script.
     """
 
-    lines = log.splitlines()
+    lines = session_log.splitlines()
 
     # 41.9371         EXP     trial 0, stim start, grating, full field, drifting, cond=5, ori=225.0, tex=sin,
     # size=[75.67137421 75.67137421], sf=[1.2 0. ], tf=4, mask=None, contrast=1.0, acqfr=222
