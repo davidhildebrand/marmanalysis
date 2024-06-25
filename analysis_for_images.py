@@ -300,6 +300,8 @@ if len(filelist_stimulus_log) > 0:
     else:
         stimlog = None
     del pkls, hdf5s, csvs
+else:
+    stimlog = None
 
 dirlist_eyecal = [d for d in glob(os.path.join(date_path, dirstr_eyecal)) if os.path.isdir(d)]
 if len(dirlist_eyecal) > 0:
@@ -659,22 +661,15 @@ if ecdata is not None:
 
 # *** TODO load from a pandas dataframe instead of a text log
 
-if session_log is not None:
-    # lines = session_log.splitlines()
-    trialdata = parsers.parse_log_stim_image_orig(session_log)
-    stimlog = parsers.parse_log_stim_image(session_log)
-else:
-    raise RuntimeError('Could not find session log file.')
+if stimlog is None:
+    if session_log is not None:
+        stimlog = parsers.parse_log_stim_image(session_log)
+    else:
+        raise RuntimeError('Could not load stimulus record from session log file.')
 
-image_paths = {trialdata[td]['cond']: trialdata[td]['imagepath'] for td in trialdata}
-image_dirpaths = {k: os.path.dirname(v) for k, v in image_paths.items()}
-image_folders = {k: os.path.split(os.path.dirname(v))[-1] for k, v in image_paths.items()}
-image_filenames = {k: os.path.basename(v) for k, v in image_paths.items()}
-image_names = {k: os.path.splitext(os.path.basename(v))[0] for k, v in image_paths.items()}
-
-same_dirpaths = np.unique(list(image_dirpaths.values())).size == 1
-if same_dirpaths:
-    image_dirpath = image_dirpaths[0]
+# Identify stimulus image set from file paths
+if np.unique([os.path.dirname(p) for p in stimlog['image_path'].values]).size == 1:
+    image_dirpath = os.path.dirname(stimlog.iloc[0]['image_path'])
     if 'FOBmin_MarmOnly' in image_dirpath or 'MinFOB_MarmOnly' in image_dirpath:
         image_set = 'FOBmin'
     elif 'FOBmin' in image_dirpath or 'MinFOB' in image_dirpath:
@@ -689,94 +684,30 @@ if same_dirpaths:
         image_set = 'Song_etal_Wang_2022_FOBonly'
     else:
         warn('Image set not recognized from image paths. Set to last directory in path.')
-        image_set = image_folders[0]
+        image_set = os.path.split(os.path.dirname(stimlog.iloc[0]['image_path']))[-1]
 else:
     # *** TODO: default to images without category separation in this case
-    raise RuntimeError('Images are not all from the same folder. Processing for this is not supported.')
+    warn('Images are not all from the same set.')
+    image_set = None
 
 
-# Add timestamp to trialdata output
-
-if tmp_stimtimestr != '':
-    s_si = tmp_stimtimestr.find('[')
-    s_ei = tmp_stimtimestr.find(']')
-    stimtimes = np.fromstring(tmp_stimtimestr[s_si+1:s_ei].strip(' []'), sep=' ')
-    dur_stim = np.round(np.mean(stimtimes), 2)
-else:
-    warn('Could not automatically detect stimulus duration, assuming default value of 1.0 sec.')
-    dur_stim = 1.0
-
-if tmp_isitimestr != '':
-    s_si = tmp_isitimestr.find('[')
-    s_ei = tmp_isitimestr.find(']')
-    isitimes = np.fromstring(tmp_isitimestr[s_si+1:s_ei].strip(' []'), sep=' ')
-    dur_isi = np.round(np.min(isitimes), 2)
-else:
-    warn('Could not automatically detect interstimulus duration, assuming default value of 1.0 sec.')
-    dur_isi = 1.0
-
+# Estimate stimulus presentation information from stimulus log
+dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
+dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
 dur_trial = dur_isi + dur_stim + dur_isi
 n_samp_stim = int(np.ceil(dur_stim * md['framerate']))
 n_samp_isi = int(np.round(dur_isi * md['framerate']))
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
+n_conds = len(np.unique(stimlog['cond'].values))
+n_trials = int(len(stimlog) / n_conds)
 
-# trialdata_arr[trial_idx] = [cond/imageid, category_id, acqfr]
-trialdata_arr = np.full([len(trialdata), 3], np.nan)
-for td in trialdata:
-    trialdata_arr[td] = [trialdata[td]['cond'], trialdata[td]['catid'], trialdata[td]['acqfr']]
-units_list = [v for k, v in enumerate(np.unique([trialdata[td]['units'] for td in trialdata]))]
-pos_arr = np.array([trialdata[td]['pos'] for td in trialdata])
-size_arr = np.array([trialdata[td]['size'] for td in trialdata])
-ori_arr = np.array([trialdata[td]['ori'] for td in trialdata])
-trialdata_arr = trialdata_arr.astype(int)
-all_stim_start_frames = trialdata_arr[:, 2]
-
-stim = {}
-if len(units_list) == 1:
-    stim['units'] = units_list[0]
-else:
-    print('Not all stimulus units were the same.')
-    stim['units'] = None
-if np.all(np.isclose(pos_arr[0, :], pos_arr[:, :])):
-    stim['pos'] = pos_arr[0]
-else:
-    print('Not all stimulus positions were the same.')
-    stim['pos'] = None
-if np.all(np.isclose(size_arr[0, :], size_arr[:, :])):
-    stim['size'] = size_arr[0]
-    print('All stimuli were the same size: {} {}'.format(stim['size'],
-                                                         stim['units'] if stim['units'] is not None else ''))
-else:
-    print('Not all stimulus sizes were the same.')
-    stim['size'] = None
-if np.all(np.isclose(ori_arr[0], ori_arr[:])):
-    stim['ori'] = ori_arr[0]
-else:
-    print('Not all stimulus orientations were the same.')
-    stim['ori'] = None
-
-
-if len(np.unique(all_stim_start_frames)) != len(all_stim_start_frames):
+if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
     raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
                        'Handling this is not yet implemented.')                                
 
-# condinds = [cond, trial_idx]
-conds = np.unique(trialdata_arr[:, 0])
-n_conds = len(conds)
-n_trials = int(len(trialdata) / n_conds)
-cats = np.unique(trialdata_arr[:, 1])
-n_cats = len(cats)
-conds_per_cat = int(n_conds / n_cats)
-
-condinds = np.full([len(conds), n_trials], np.nan)
-for c in range(n_conds):
-    condinds[c] = np.argwhere(trialdata_arr[:, 0] == c).transpose()[0]
-condinds = condinds.astype(int)
-acqfr_by_conds = trialdata_arr[condinds[:], 2]
-fridx = acqfr_by_conds
-
 # Define stimuli
+
 
 class StimulusImage(object):
     """Representation of stimulus images."""
@@ -835,8 +766,13 @@ for c in range(n_conds):
     tmp_pitch = -32768
     tmp_yaw = -32768
     tmp_roll = -32768
-    imn = image_names[c]
-    tmp_imagename = image_filenames[c]
+    if np.unique(stimlog[stimlog['cond'] == c]['image'].values).size == 1:
+        tmp_imagename = np.unique(stimlog[stimlog['cond'] == c]['image'].values)[0]
+        imn = os.path.splitext(tmp_imagename)[0]
+    else:
+        warn('Not all images were the same for condition {}.'.format(c))
+        tmp_imagename = ''
+        imn = ''
     tmp_ip = os.path.join(stimimage_path, tmp_imagename)
     tmp_imagepath = tmp_ip if os.path.isfile(tmp_ip) else None
     if image_set == 'FOBmin' or image_set == 'FOBmany':
@@ -986,20 +922,20 @@ for c in range(n_conds):
             tmp_cat = None
     elif image_set == 'Song_etal_Wang_2022_FOBonly':
         pattern_zerocheck = r'^([aobmufps]{1})([0-9]{1})$'
-        if re.match(pattern_zerocheck, image_names[c]) is not None:
-            tg = re.match(pattern_zerocheck, image_names[c]).group(1)
-            ng = re.match(pattern_zerocheck, image_names[c]).group(2)
+        if re.match(pattern_zerocheck, imn) is not None:
+            tg = re.match(pattern_zerocheck, imn).group(1)
+            ng = re.match(pattern_zerocheck, imn).group(2)
             lfc = '{}{}'.format(tg, ng.zfill(2))
         else:
-            lfc = image_names[c]
+            lfc = imn
         tmp_cond = bytes(lfc, 'ascii')
-        match image_names[c][0]:
+        match imn[0]:
             case 'a':
                 tmp_cat = b'animal'
             case 'o':
                 tmp_cat = b'obj'
             case 'b':
-                if image_names[c] == 'blank':
+                if imn == 'blank':
                     tmp_cat = b'blank'
                 else:
                     tmp_cat = b'body_mrm'
@@ -1028,8 +964,8 @@ for c in range(n_conds):
     data[c]['stimulus'] = StimulusImage(tmp_cond, tmp_cat, (tmp_pitch, tmp_yaw, tmp_roll),
                                         identity=tmp_id, filename=tmp_imagename, filepath=tmp_imagepath)
     for t in range(n_trials):
-        fr_start = fridx[c, t] - n_samp_isi
-        fr_end = fridx[c, t] + n_samp_stim + n_samp_isi
+        fr_start = stimlog[stimlog['cond'] == c].iloc[t]['acqfr_stim_i'] - n_samp_isi
+        fr_end = stimlog[stimlog['cond'] == c].iloc[t]['acqfr_stim_i'] + n_samp_stim + n_samp_isi
         if fr_start < 0 and t == 0:
             # TODO exclude trials at start of imaging if ISI is too short
             warn('Period before first trial was shorter than inter-stimulus interval. ' +
@@ -1044,8 +980,7 @@ for c in range(n_conds):
             continue
         if fr_end > n_frames:
             # TODO: support throwing away trials after imaging stops
-            raise RuntimeError('Imaging was stopped before stimulus. ' +
-                               'Handling this is not yet implemented.')
+            raise RuntimeError('Imaging was stopped before stimulus. Handling this is not yet implemented.')
         data[c]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
         data[c]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
     if not np.any(np.isnan(data[c]['FdFF'])):
@@ -1060,6 +995,7 @@ for c in range(n_conds):
         data[c]['Fzsc_meant'] = np.nanmean(data[c]['Fzsc'], axis=1)
 
 categories = np.unique(data[:]['cat'])
+n_cats = len(categories)
 conditions = np.unique(data[:]['cond'])
 
 if n_conds != conditions.shape[0]:
