@@ -142,14 +142,6 @@ if 'md' not in locals():
         simd = metadata.get_metadata(df_path)
         md = metadata.extract_useful_metadata(simd)
 
-if len(logfile_list) > 0:
-    if len(logfile_list) > 1:
-        warn('Found multiple log files, using the first one: {}'.format(logfile_list[0]))
-    lf_path = logfile_list[0]
-    if os.path.isfile(lf_path):
-        lf = open(lf_path, 'r')
-        log = lf.read()
-        lf.close()
 filelist_session_log = [f for f in glob(os.path.join(session_path, filestr_session_log))
                         if re.search(pattern_session_log, f) and os.path.isfile(f)]
 if len(filelist_session_log) > 0:
