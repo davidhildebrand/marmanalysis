@@ -660,12 +660,12 @@ if not ecdata is None:
 
 # *** TODO load from a pandas dataframe instead of a text log
 
-if log is not None:
-    lines = log.splitlines()
+if session_log is not None:
+    lines = session_log.splitlines()
 else:
-    raise RuntimeError('Could not find log file.')
+    raise RuntimeError('Could not find session log file.')
 
-trialdata = parsers.parse_log_stim_image_orig(log)
+trialdata = parsers.parse_log_stim_image_orig(session_log)
 
 image_paths = {trialdata[td]['cond']: trialdata[td]['imagepath'] for td in trialdata}
 image_dirpaths = {k: os.path.dirname(v) for k, v in image_paths.items()}
