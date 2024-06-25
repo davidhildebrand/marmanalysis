@@ -700,7 +700,8 @@ n_samp_isi = int(np.round(dur_isi * md['framerate']))
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
 n_conds = len(np.unique(stimlog['cond'].values))
-n_trials = int(len(stimlog) / n_conds)
+n_trials = len(stimlog)
+n_reps = int(len(stimlog) / n_conds)
 
 if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
     raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
@@ -743,10 +744,10 @@ data = np.zeros(n_conds, dtype=[('cond', 'S8'),
                                 ('roll', 'i2'),
                                 ('imagename', np.unicode_, 256),
                                 ('FdFF', 'f4', (n_ROIs,
-                                                n_trials,
+                                                n_reps,
                                                 n_samp_trial)),
                                 ('Fzsc', 'f4', (n_ROIs,
-                                                n_trials,
+                                                n_reps,
                                                 n_samp_trial)),
                                 ('FdFF_meant', 'f4', (n_ROIs,
                                                       n_samp_trial)),
@@ -963,7 +964,7 @@ for c in range(n_conds):
     data[c]['imagename'] = tmp_imagename
     data[c]['stimulus'] = StimulusImage(tmp_cond, tmp_cat, (tmp_pitch, tmp_yaw, tmp_roll),
                                         identity=tmp_id, filename=tmp_imagename, filepath=tmp_imagepath)
-    for t in range(n_trials):
+    for t in range(n_reps):
         fr_start = stimlog[stimlog['cond'] == c].iloc[t]['acqfr_stim_i'] - n_samp_isi
         fr_end = stimlog[stimlog['cond'] == c].iloc[t]['acqfr_stim_i'] + n_samp_stim + n_samp_isi
         if fr_start < 0 and t == 0:
@@ -1398,9 +1399,9 @@ for r in range(n_plot_ROIs):
         ax.axis('off')
         ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
         ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-        for t in range(n_trials):
+        for t in range(n_reps):
             ax.plot(range(n_samp_trial), data[bool_cnd][met][0, ridx, t, :],
-                    color=str(np.linspace(0.4, 0.7, n_trials)[t]),
+                    color=str(np.linspace(0.4, 0.7, n_reps)[t]),
                     linewidth=0.1)
         Fmean = np.mean(data[bool_cnd][met][0, ridx, :, :], axis=0)
         Fsem = np.std(data[bool_cnd][met][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
