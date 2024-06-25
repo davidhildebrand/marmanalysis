@@ -523,8 +523,7 @@ else:
 
 # Plot eye-tracking calibration results
 
-if not ecdata is None:
-
+if ecdata is not None:
     # f = plt.figure()
     # ecx, ecy = ecdata['zero']['AIdata']
     # plt.scatter(ecx, ecy, s=1, c='m')
@@ -661,11 +660,11 @@ if not ecdata is None:
 # *** TODO load from a pandas dataframe instead of a text log
 
 if session_log is not None:
-    lines = session_log.splitlines()
+    # lines = session_log.splitlines()
+    trialdata = parsers.parse_log_stim_image_orig(session_log)
+    stimlog = parsers.parse_log_stim_image(session_log)
 else:
     raise RuntimeError('Could not find session log file.')
-
-trialdata = parsers.parse_log_stim_image_orig(session_log)
 
 image_paths = {trialdata[td]['cond']: trialdata[td]['imagepath'] for td in trialdata}
 image_dirpaths = {k: os.path.dirname(v) for k, v in image_paths.items()}
@@ -692,12 +691,11 @@ if same_dirpaths:
         warn('Image set not recognized from image paths. Set to last directory in path.')
         image_set = image_folders[0]
 else:
-    raise RuntimeError('Images are not all from the same folder. Processing for this not supported yet.')
+    # *** TODO: default to images without category separation in this case
+    raise RuntimeError('Images are not all from the same folder. Processing for this is not supported.')
 
 
 # Add timestamp to trialdata output
-
-# This is going to require another function in parsers....
 
 if tmp_stimtimestr != '':
     s_si = tmp_stimtimestr.find('[')
