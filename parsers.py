@@ -7,12 +7,12 @@ import re
 from warnings import warn
 
 
-def parse_log_eyecal(log, data=None):
+def parse_log_eyecal(eyecal_log, data=None):
     """
     Parse the log file output of Santiago Otero Coronel's eye-tracking calibration.
     """
 
-    lines = log.splitlines()
+    lines = eyecal_log.splitlines()
     out = {'zero': None,
            'crse': {'data': {}},
            'circ': {'data': {}},
@@ -365,11 +365,12 @@ def parse_log_eyecal(log, data=None):
 
 
 def parse_log_stim_image_orig(log):
+def parse_log_stim_image_orig(session_log):
     """
-    Parse the log file output of the original stimulus_image.py script.
+    Parse the session log file output of the original stimulus_image.py script.
     """
 
-    lines = log.splitlines()
+    lines = session_log.splitlines()
 
     # 37.1533         EXP     trial 0/240, stim start, image, cond=7, name=image7:b16.png,
     # path=/FreiwaldSync/MarmoScope/Stimulus/Images/Song_etal_Wang_2020_NatCommun/480288_equalized_RGBA_FOBonly/b16.png,
@@ -468,13 +469,12 @@ def parse_log_stim_image_orig(log):
     return trialdata
 
 
-def parse_log_stim_image(log):
+def parse_log_stim_image(session_log) -> pd.DataFrame:
     """
-    Parse the log file output of the original stimulus_image.py script more completely.
+    Parse the session log file output of the original stimulus_image.py script more completely.
     """
 
-    lines = log.splitlines()
-    out = {}
+    lines = session_log.splitlines()
 
     mode = None
     tmp_stimtimestr = ''
