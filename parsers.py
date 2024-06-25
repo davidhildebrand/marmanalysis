@@ -364,7 +364,82 @@ def parse_log_eyecal(eyecal_log, data=None):
     return out
 
 
-def parse_log_stim_image_orig(log):
+def create_stimulus_record(trials=1) -> pd.DataFrame:
+    log = pd.DataFrame({'trial': np.linspace(0, trials - 1, trials).astype(int),
+                        'dur_isi_pre': None,
+                        'dur_stim': None,
+                        'dur_isi_post': None,
+
+                        't_isi_i': None,
+                        't_isi_f': None,
+                        'acqfr_isi_i': None,
+                        'acqfr_isi_f': None,
+                        'dispfr_isi_i': None,
+                        'dispfr_isi_f': None,
+                        'ai_isi_i': None,
+                        'ai_isi_f': None,
+
+                        't_fix_i': None,
+                        't_fix_f': None,
+                        'acqfr_fix_i': None,
+                        'acqfr_fix_f': None,
+                        'dispfr_fix_i': None,
+                        'dispfr_fix_f': None,
+                        'ai_fix_i': None,
+                        'ai_fix_f': None,
+
+                        't_stim_i': None,
+                        't_stim_f': None,
+                        'acqfr_stim_i': None,
+                        'acqfr_stim_f': None,
+                        'dispfr_stim_i': None,
+                        'dispfr_stim_f': None,
+                        'ai_stim_i': None,
+                        'ai_stim_f': None,
+
+                        'cond': None,
+                        'stim_mode': None,
+                        'stim_class': None,
+                        'stim_subclass': None,
+
+                        'image': None,
+                        'image_path': None,
+
+                        'units': None,
+                        'pos': None,
+                        'size': None,
+                        'ori': None,
+                        'color': None,
+                        'colorSpace': None,
+                        'contrast': None,
+                        'opacity': None,
+                        'texRes': None,
+
+                        'grating_tex': None,
+                        'grating_contrast': None,
+                        'grating_dir': None,
+                        'grating_ori': None,
+                        'grating_sf': None,
+                        'grating_tf': None,
+
+                        'dots_translation_dir': None,
+                        'dots_opticflow_dir': None,
+                        'dots_rotation_dir': None,
+
+                        'flash_type': None,
+
+                        'video': None,
+                        'video_path': None,
+                        'video_fps': None,
+
+                        'freq': None,
+                        'lev': None,
+                        'ampmod_freq': None,
+                        'voc_path': None
+                        }, index=np.linspace(0, trials - 1, trials).astype(int))
+    return log
+
+
 def parse_log_stim_image_orig(session_log):
     """
     Parse the session log file output of the original stimulus_image.py script.
@@ -516,79 +591,10 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
     if len(times_stim) == len(times_isi):
         n_trials = len(times_stim)
     else:
-        n_trials = 0
+        n_trials = None
         warn('Number of stimulus and interstimulus times do not match.  Unknown number of trials.')
 
-    log = pd.DataFrame({'trial_n': np.linspace(0, n_trials-1, n_trials).astype(int),
-                        'dur_isi_pre': np.nan,
-                        'dur_stim': np.nan,
-                        'dur_isi_post': np.nan,
-
-                        't_isi_i': None,
-                        't_isi_f': None,
-                        'acqfr_isi_i': None,
-                        'acqfr_isi_f': None,
-                        'dispfr_isi_i': None,
-                        'dispfr_isi_f': None,
-                        'ai_isi_i': None,
-                        'ai_isi_f': None,
-
-                        't_fix_i': None,
-                        't_fix_f': None,
-                        'acqfr_fix_i': None,
-                        'acqfr_fix_f': None,
-                        'dispfr_fix_i': None,
-                        'dispfr_fix_f': None,
-                        'ai_fix_i': None,
-                        'ai_fix_f': None,
-
-                        't_stim_i': None,
-                        't_stim_f': None,
-                        'acqfr_stim_i': None,
-                        'acqfr_stim_f': None,
-                        'dispfr_stim_i': None,
-                        'dispfr_stim_f': None,
-                        'ai_stim_i': None,
-                        'ai_stim_f': None,
-
-                        'cond': None,
-                        'stim_mode': None,
-                        'stim_class': None,
-                        'stim_subclass': None,
-                        'stim_dur': None,
-
-                        'image': None,
-                        'image_path': None,
-                        'video': None,
-                        'video_path': None,
-                        'video_fps': None,
-                        'units': None,
-                        'pos': None,
-                        'size': None,
-                        'ori': None,
-                        'color': None,
-                        'colorSpace': None,
-                        'contrast': None,
-                        'opacity': None,
-                        'texRes': None,
-
-                        'grating_tex': None,
-                        'grating_contrast': None,
-                        'grating_dir': None,
-                        'grating_ori': None,
-                        'grating_spatial_freq': None,
-                        'grating_temp_freq': None,
-
-                        'dots_translation_dir': None,
-                        'dots_opticflow_dir': None,
-                        'dots_rotation_dir': None,
-
-                        'flash_type': None,
-
-                        'freq': None,
-                        'lev': None,
-                        'ampmod_freq': None,
-                        'voc_path': None})
+    log = create_stimulus_record(trials=n_trials)
 
     for line in lines:
         pattern_isi = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*trial\s*([0-9]+)\/([0-9]+),\s*ISI\s*(start|end),\s*' + \
@@ -664,6 +670,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
 
             match g[3]:
                 case 'start':
+                    log.at[trial, 'trial'] = trial
                     log.at[trial, 'dur_stim'] = times_stim[trial]
                     log.at[trial, 't_stim_i'] = t
                     log.at[trial, 'acqfr_stim_i'] = acqfr
