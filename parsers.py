@@ -312,7 +312,7 @@ def parse_log_eyecal(log, data=None):
                                 out['grdt']['data'][trl]['isi']['AIrng'][1] = tmp_ai_idx
             case _:
                 continue
-        del g_ai_idx, g_pos, g_cvals, tmp_ai_idx, tmp_pos, tmp_cvals
+        # del g_ai_idx, g_pos, g_cvals, tmp_ai_idx, tmp_pos, tmp_cvals
 
     # Add eye-tracking data if available
     if data is not None:
@@ -320,27 +320,27 @@ def parse_log_eyecal(log, data=None):
             match k:
                 case 'zero':
                     ai_rng = out[k]['AIrng']
-                    if None not in AIrng:
+                    if None not in ai_rng:
                         out[k]['AIdata'] = data[ai_rng[0]:ai_rng[1], :2]
                     else:
                         out[k]['AIdata'] = None
                 case 'crse':
                     for trl in range(out[k]['n_trials']):
                         ai_rng = out[k]['data'][trl]['AIrng']
-                        if None not in AIrng:
+                        if None not in ai_rng:
                             out[k]['data'][trl]['AIdata'] = data[ai_rng[0]:ai_rng[1], :2]
                         else:
                             out[k]['data'][trl]['AIdata'] = None
                 case 'circ':
                     for trl in range(out[k]['n_trials']):
                         ai_rng = out[k]['data'][trl]['AIrng']
-                        if None not in AIrng:
+                        if None not in ai_rng:
                             out[k]['data'][trl]['AIdata'] = data[ai_rng[0]:ai_rng[1], :2]
                         else:
                             out[k]['data'][trl]['AIdata'] = None
                         for trn in range(out[k]['data'][trl]['n_turns']):
                             ai_rng = out[k]['data'][trl][trn]['AIrng']
-                            if None not in AIrng:
+                            if None not in ai_rng:
                                 out[k]['data'][trl][trn]['AIdata'] = data[ai_rng[0]:ai_rng[1], :2]
                             else:
                                 out[k]['data'][trl][trn]['AIdata'] = None
@@ -348,7 +348,7 @@ def parse_log_eyecal(log, data=None):
                     for trl in range(out[k]['n_trials']):
                         for typ in ['isi', 'face']:
                             ai_rng = out[k]['data'][trl][typ]['AIrng']
-                            if None not in AIrng:
+                            if None not in ai_rng:
                                 out[k]['data'][trl][typ]['AIdata'] = data[ai_rng[0]:ai_rng[1], :2]
                             else:
                                 out[k]['data'][trl][typ]['AIdata'] = None
@@ -357,7 +357,7 @@ def parse_log_eyecal(log, data=None):
                         for typ in ['isi', 'ctr', 'targ', 'rwrd']:
                             if out[k]['data'][trl][typ] is not None:
                                 ai_rng = out[k]['data'][trl][typ]['AIrng']
-                                if None not in AIrng:
+                                if None not in ai_rng:
                                     out[k]['data'][trl][typ]['AIdata'] = data[ai_rng[0]:ai_rng[1], :2]
                                 else:
                                     out[k]['data'][trl][typ]['AIdata'] = None
