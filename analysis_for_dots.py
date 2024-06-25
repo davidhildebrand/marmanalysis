@@ -18,15 +18,26 @@ from skimage import exposure, util
 import socket
 from warnings import warn
 
+import parsers
+
+
+# %% Settings
+
+# based on Pattadkal etal Priebe 2022 bioRxiv
+#   https://doi.org/10.1101/2022.06.23.497220
+# "All cell pairs with DSI ≥ 0.15 are considered."
+dsi_tuning_thresh = 0.15
+
+threshold_cellprob = 0.0
+
+plt.rcParams['figure.dpi'] = 600
+dpi = plt.rcParams['figure.dpi']
+
+
 # Remove stale metadata
 if 'md' in locals():
     md = dict()
     del md
-
-
-# %% Settings
-# set any relevant thresholds here...
-
 
 # %% Specify data locations
 
@@ -70,58 +81,66 @@ else:
 save_pfix = animal_str + date_str + session_abbrev_str
 save_ext = '.png'
 
-mdfile_str = '*_metadata.pickle'
-datafile_str = '*_00001.tif'
-logfile_str = '*.log'
-logfile_re = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
-if 'suite2p_str' not in locals():
-    suite2p_str = 'suite2p*'
-suite2p_plane_str = 'plane0'
+filestr_metadata = '*_metadata.pickle'
+filestr_image_data = '*_00001.tif'
+filestr_session_log = '*.log'
+pattern_session_log = r'.*^((?!disptimes).)*$'  # Exclude log files whose names contain 'disptimes'
+filestr_stimulus_log = '*_stimlog.*'
+filestr_eyetrack_data = '*_AIdata.p'
+dirstr_eyecal = '*_EyeTrackingCalibration'
+filestr_eyecal_log = '*_EyeTrackingCalibration.log'
+filestr_eyecal_data = '*_EyeTrackingCalibration_AIdata.p'
+if 'dirstr_suite2p' not in locals():
+    dirstr_suite2p = 'suite2p*'
+dirstr_suite2p_plane = 'plane0'
 
 
 # %% Load data
+
 system_name = socket.gethostname()
 if 'Galactica' in system_name:
     base_path = r'/Users/davidh/Data/Freiwald/suite2p_results'
+    stim_path = r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets'
 elif 'Obsidian' in system_name:
     base_path = r'F:\Data'
+    stim_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets'
+elif 'Dobbin' in system_name:
+    base_path = r'D:\Data'
+    stim_path = r'C:\Users\DavidH\Sync\Freiwald\MarmoScope\Stimulus\Sets'
 else:
-    base_path = r'/Data'
-save_path = ''
+    base_path = None
+    stim_path = None
 
+if save_path == '':
+    saving = False
+else:
+    saving = True
+
+stimimage_path = os.path.join(stim_path, dirstr_stimset)
+if not os.path.isdir(stimimage_path):
+    warn('Could not find stimulus image source path.')
+    stimimage_path = None
+
+date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
-mdfile_list = glob(os.path.join(session_path, mdfile_str))
-datafile_list = [f for f in glob(os.path.join(session_path, datafile_str))
-                 if not os.path.isdir(f)]
-logfile_list = [f for f in glob(os.path.join(session_path, logfile_str))
-                if re.search(logfile_re, f) and not os.path.isdir(f)]
-suite2p_list = [d for d in glob(os.path.join(session_path, suite2p_str))
-                if not os.path.isfile(d)]
 
+filelist_metadata = [f for f in glob(os.path.join(session_path, filestr_metadata)) if os.path.isfile(f)]
+filelist_image_data = [f for f in glob(os.path.join(session_path, filestr_image_data)) if os.path.isfile(f)]
 if 'md' not in locals():
-    if not mdfile_list and not datafile_list:
+    if not filelist_metadata and not filelist_image_data:
         raise RuntimeError('Could not find metadata file or image data file.')
-    if len(mdfile_list) > 0:
-        if len(mdfile_list) > 1:
-            warn('Found multiple metadata files, using the first one: {}'.format(mdfile_list[0]))
-        md_path = mdfile_list[0]
-        if os.path.isfile(md_path):
-            with open(md_path, 'rb') as mdf:
-                md = pickle.load(mdf)
-            # jf = open(md_path, 'r')
-            # md = json.load(jf)
-            # jf.close()
-        else:
-            raise RuntimeError('Could not load metadata from file.')
-    elif len(datafile_list) > 0:
-        warn('Could not find metadata file, using image data file.')
-        df_path = datafile_list[0]
-        if os.path.isfile(df_path):
-            import metadata
-            simd = metadata.get_metadata(df_path)
-            md = metadata.extract_useful_metadata(simd)
-    else:
-        raise RuntimeError('Could not load metadata from either file.')
+    if len(filelist_metadata) > 0:
+        if len(filelist_metadata) > 1:
+            warn('Found multiple metadata files, using the first: {}'.format(filelist_metadata[0]))
+        md_path = filelist_metadata[0]
+        with open(md_path, 'rb') as mdf:
+            md = pickle.load(mdf)
+    elif len(filelist_image_data) > 0:
+        warn('Could not find metadata file, loading from image data file.')
+        df_path = filelist_image_data[0]
+        import metadata
+        simd = metadata.get_metadata(df_path)
+        md = metadata.extract_useful_metadata(simd)
 
 if len(logfile_list) > 0:
     if len(logfile_list) > 1:
@@ -131,62 +150,134 @@ if len(logfile_list) > 0:
         lf = open(lf_path, 'r')
         log = lf.read()
         lf.close()
-    else:
-        raise RuntimeError('Could not find log file.')
+filelist_session_log = [f for f in glob(os.path.join(session_path, filestr_session_log))
+                        if re.search(pattern_session_log, f) and os.path.isfile(f)]
+if len(filelist_session_log) > 0:
+    lf_path = filelist_session_log[0]
+    if len(filelist_session_log) > 1:
+        warn('Found multiple log files, using the first: {}'.format(lf_path))
+    lf = open(lf_path, 'r')
+    session_log = lf.read()
+    lf.close()
+    del lf
+else:
+    lf_path = None
+    session_log = None
 
-if len(suite2p_list) > 0:
-    if len(suite2p_list) > 1:
-        warn('Found multiple suite2p folders, using the first one: {}'.format(os.path.basename(suite2p_list[0])))
-    s2p_path = suite2p_list[0]
-    s2p_plane_path = os.path.join(s2p_path, suite2p_plane_str)
+filelist_stimulus_log = [f for f in glob(os.path.join(session_path, filestr_stimulus_log)) if os.path.isfile(f)]
+if len(filelist_stimulus_log) > 0:
+    pkls = [f for f in filelist_stimulus_log if f.endswith('.pickle') or f.endswith('.pkl') or f.endswith('.p')]
+    hdf5s = [f for f in filelist_stimulus_log if f.endswith('.h5') or f.endswith('.hdf5')]
+    csvs = [f for f in filelist_stimulus_log if f.endswith('.csv')]
+    if len(pkls) > 0:
+        if len(pkls) > 1:
+            warn('Found multiple stimlog pickle files, using the first: {}'.format(pkls[0]))
+        slf_path = pkls[0]
+        stimlog = pd.read_pickle(slf_path)
+    elif len(hdf5s) > 0:
+        if len(hdf5s) > 1:
+            warn('Found multiple stimlog hdf5 files, using the first: {}'.format(hdf5s[0]))
+        slf_path = hdf5s[0]
+        stimlog = pd.read_hdf(slf_path)
+    elif len(csvs) > 0:
+        if len(hdf5s) > 1:
+            warn('Found multiple stimlog csv files, using the first: {}'.format(csvs[0]))
+        slf_path = csvs[0]
+        stimlog = pd.read_csv(slf_path)
+    else:
+        stimlog = None
+    del pkls, hdf5s, csvs
+
+dirlist_eyecal = [d for d in glob(os.path.join(date_path, dirstr_eyecal)) if os.path.isdir(d)]
+if len(dirlist_eyecal) > 0:
+    ecd_path = dirlist_eyecal[0]
+    if len(dirlist_eyecal) > 1:
+        warn('Found multiple eye tracking calibration directories, using the first one: {}'.format(ecd_path))
+    filelist_eyecal_log = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_log))
+                           if os.path.isfile(f)]
+    filelist_eyecal_data = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_data))
+                            if os.path.isfile(f)]
+else:
+    ecd_path = None
+    filelist_eyecal_log = []
+    filelist_eyecal_data = []
+
+if len(filelist_eyecal_log) > 0:
+    ec_lf_path = filelist_eyecal_log[0]
+    if len(filelist_eyecal_log) > 1:
+        warn('Found multiple eye tracking calibration log files, using the first one: {}'.format(ec_lf_path))
+    eclf = open(ec_lf_path, 'r')
+    eyecal_log = eclf.read()
+    eclf.close()
+else:
+    ec_lf_path = None
+    eclf = None
+    eyecal_log = None
+del eclf
+
+if len(filelist_eyecal_data) > 0:
+    ec_df_path = filelist_eyecal_data[0]
+    if len(filelist_eyecal_data) > 1:
+        warn('Found multiple eye tracking calibration data files, using the first one: {}'.format(ec_df_path))
+    with open(ec_df_path, 'rb') as ec_df:
+        eyecal_data = pickle.load(ec_df)
+else:
+    etf_path = None
+    eyecal_data = None
+del ec_df
+
+filelist_eyetrack_data = [f for f in glob(os.path.join(session_path, filestr_eyetrack_data)) if os.path.isfile(f)]
+if len(filelist_eyetrack_data) > 0:
+    etf_path = filelist_eyetrack_data[0]
+    if len(filelist_eyetrack_data) > 1:
+        warn('Found multiple log files, using the first: {}'.format(etf_path))
+    with open(etf_path, 'rb') as etf:
+        eyetrk_data = pickle.load(etf)
+else:
+    etf_path = None
+del etf
+
+dirlist_suite2p = [d for d in glob(os.path.join(session_path, dirstr_suite2p)) if os.path.isdir(d)]
+if len(dirlist_suite2p) > 0:
+    if len(dirlist_suite2p) > 1:
+        warn('Found multiple suite2p folders, using the first one: {}'.format(os.path.basename(dirlist_suite2p[0])))
+    s2p_path = dirlist_suite2p[0]
+    s2p_plane_path = os.path.join(s2p_path, dirstr_suite2p_plane)
     if not os.path.isdir(s2p_plane_path):
         raise RuntimeError('Could not load suite2p plane0 folder.')
 else:
     raise RuntimeError('Could not find suite2p folder.')
 
 
-# based on Pattadkal etal Priebe 2022 bioRxiv
-#   https://doi.org/10.1101/2022.06.23.497220
-# "All cell pairs with DSI ≥ 0.15 are considered."
-dsi_tuning_thresh = 0.15
-cell_probability_thresh = 0.0
-
-# plot_random_neurons = False
-# tuning = 'percentile' #average #percentile #t-test
-# normalize = 'dF/F' #'Z-score' #Z-score #dF/F
-# percentile = 90
-# tuning_index_thresh = 0
-# plot_least_tuned_first = False
-
-plt.rcParams['figure.dpi'] = 600
-dpi = plt.rcParams['figure.dpi']
+# % Load suite2p outputs
 
 s2p_iscell = np.load(os.path.join(s2p_plane_path, 'iscell.npy'))
 s2p_F = np.load(os.path.join(s2p_plane_path, 'F.npy'))
 s2p_stat = np.load(os.path.join(s2p_plane_path, 'stat.npy'), allow_pickle=True)
 s2p_ops = np.load(os.path.join(s2p_plane_path, 'ops.npy'), allow_pickle=True).item()
-fov_image = s2p_ops['meanImg']
+s2p_badframes = np.where(s2p_ops['badframes'])[0]
 
-# cellinds = np.where(s2p_iscell[:,0] == 1.0)[0]
-cellinds = np.where(s2p_iscell[:, 1] >= cell_probability_thresh)[0]
+if 'threshold_cellprob' not in locals():
+    threshold_cellprob = 0.0
+cellinds = np.where(s2p_iscell[:, 1] >= threshold_cellprob)[0]
+inactives = np.where(np.std(s2p_F, axis=1) == 0)[0]
+if len(inactives) > 0:
+    warn('Excluded {} inactive ROIs: {}'.format(len(inactives), inactives))
+cellinds = np.setdiff1d(cellinds, inactives)
 ROIs = s2p_stat[cellinds]
 Frois = s2p_F[cellinds]
 fov_h = s2p_ops['Ly']
 fov_w = s2p_ops['Lx']
-fov_size = (fov_h, fov_w) # rows/height/y, columns/width/x
+fov_size = (fov_h, fov_w)  # rows/height/y, columns/width/x
+fov_image = s2p_ops['meanImg']
+n_ROIs, n_frames = Frois.shape
 
 ###
 # Alternative approach to computing FdFF, likely from David Fitzpatrick's lab:
 # Baseline fluorescence (F0) was calculated by applying a rank-order filter to
 # the raw fluorescence trace (10th percentile) with a rolling time window of 60s.
-n_ROIs = Frois.shape[0]
 FdFF = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.mean(Frois, axis=1)[:, np.newaxis]
 Fzsc = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=1)[:, np.newaxis]
-
-if save_path == '':
-    saving = False
-else:
-    saving = True
 
 
 #%% Define functions
@@ -556,12 +647,18 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
         plt.show()
 
 
-# %% Parse log file
+# Load stimulus information
 
-# *** TODO load from a pickle file or pandas frame instead of a text log
-file = open(os.path.join(lf_path), 'r')
-lines = file.read().splitlines()
-file.close()
+# # *** TODO load from a pickle file or pandas frame instead of a text log
+# file = open(os.path.join(lf_path), 'r')
+# lines = file.read().splitlines()
+# file.close()
+
+if session_log is not None:
+    # lines = session_log.splitlines()
+    trialdata = parsers.parse_log_stim_dots_orig(session_log)
+else:
+    raise RuntimeError('Could not find session log file.')
 
 trialdata = {}
 tmp_cond = None
