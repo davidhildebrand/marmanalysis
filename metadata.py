@@ -112,6 +112,12 @@ def get_mode_str(mode):
     return mode_str
 
 
+def default_metadata() -> dict:
+    dmd = dict()
+    dmd['stim_locked_to_acqfr'] = False
+    return dmd
+
+
 def get_metadata(filepath):
     md_dict = dict()
 
@@ -246,6 +252,7 @@ def extract_useful_metadata(scanimage_metadata):
     # NOTE assumes data acquired before 20230505d have strip overlap and after do not
     simd = scanimage_metadata
     date_strip_overlap_fix = datetime(2023, 5, 5, tzinfo=ZoneInfo('America/New_York'))
+    date_stim_lock_acqfr_inc = datetime(2023, 5, 5, tzinfo=ZoneInfo('America/New_York'))
 
     umd = dict()
 
@@ -371,6 +378,11 @@ def extract_useful_metadata(scanimage_metadata):
         umd['mrois']['overlap'] = True
         # TODO calculate overlap between mrois
         umd['mrois']['overlap_px'] = 'unknown'
+
+    if umd['start_datetime'] > date_stim_lock_acqfr_inc:
+        umd['stim_locked_to_acqfr'] = True
+    else:
+        umd['stim_locked_to_acqfr'] = False
 
     # Extract coordinates for MROI positions within long acquisition strip excluding flybacks.
     for i_plane in range(umd['n_planes']):
