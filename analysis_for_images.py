@@ -42,6 +42,27 @@ threshold_cellprob = 0.0
 plt.rcParams['figure.dpi'] = 600
 dpi = plt.rcParams['figure.dpi']
 
+# Template for ordering and labeling plots
+template = np.array([b'blank', b'scram_s', b'scram_p',
+                     b'face_mrm', b'face_rhe', b'face_hum', b'face_ctn',
+                     b'obj', b'food',
+                     b'body_mrm', b'animal'], dtype='|S8')
+template_labels = {b'blank': 'Blank',
+                   b'scram_s': 'Scramble (Spatial)',
+                   b'scram_p': 'Scrambles (Phase)',
+                   b'face_mrm': 'Faces (Marmo)',
+                   b'face_rhe': 'R',  # 'Faces (Rhesus)',
+                   b'face_hum': 'H',  # 'Faces (Human)',
+                   b'face_ctn': 'Ctn',  # 'Faces (Cartoon)',
+                   b'obj': 'Objects',
+                   b'food': 'Foods',
+                   b'body_mrm': 'Bodies (Marmo)',
+                   b'animal': 'Animals'}
+
+# Metrics for plots and calculations
+metrics = ['FdFF', 'Fzsc']
+metric_labels = {'FdFF': 'dF/F',
+                 'Fzsc': 'Z-score'}
 
 # Remove stale metadata
 if 'md' in locals():
@@ -214,6 +235,33 @@ filestr_eyecal_data = '*_EyeTrackingCalibration_AIdata.p'
 if 'dirstr_suite2p' not in locals():
     dirstr_suite2p = 'suite2p*'
 dirstr_suite2p_plane = 'plane0'
+
+
+# Defininitions
+
+
+class StimulusImage(object):
+    """Representation of stimulus images."""
+
+    def __init__(self, condition, category, orientation, identity=None, filename=None, filepath=None):
+        self.condition = condition
+        self.category = category
+        self.identity = identity
+        self.pitch = orientation[0]
+        self.yaw = orientation[1]
+        self.roll = orientation[2]
+        self.orientation = orientation
+        self.filename = filename
+        self.filepath = filepath
+
+    def __repr__(self):
+        return str((self.condition, self.category, self.identity, self.orientation, self.filename))
+
+    def __eq__(self, other):
+        return self.category == other.category and self.condition == other.condition
+
+    def __lt__(self, other):
+        return self.yaw < other.yaw
 
 
 # %% Load data
@@ -699,39 +747,14 @@ n_samp_stim = int(np.ceil(dur_stim * md['framerate']))
 n_samp_isi = int(np.round(dur_isi * md['framerate']))
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
+n_metrics = len(metrics)
 n_conds = len(np.unique(stimlog['cond'].values))
 n_trials = len(stimlog)
 n_reps = int(len(stimlog) / n_conds)
 
 if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
     raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
-                       'Handling this is not yet implemented.')                                
-
-# Define stimuli
-
-
-class StimulusImage(object):
-    """Representation of stimulus images."""
-    def __init__(self, condition, category, orientation, identity=None, filename=None, filepath=None):
-        self.condition = condition
-        self.category = category
-        self.identity = identity
-        self.pitch = orientation[0]
-        self.yaw = orientation[1]
-        self.roll = orientation[2]
-        self.orientation = orientation
-        self.filename = filename
-        self.filepath = filepath
-
-    def __repr__(self):
-        return str((self.condition, self.category, self.identity, self.orientation, self.filename))
-
-    def __eq__(self, other):
-        return self.category == other.category and self.condition == other.condition
-
-    def __lt__(self, other):
-        return self.yaw < other.yaw
-
+                       'Handling this is not yet implemented.')
 
 # % Organize and average fluorescence traces
 
@@ -777,13 +800,6 @@ for c in range(n_conds):
     tmp_ip = os.path.join(stimimage_path, tmp_imagename)
     tmp_imagepath = tmp_ip if os.path.isfile(tmp_ip) else None
     if image_set == 'FOBmin' or image_set == 'FOBmany':
-        # pattern_fn = r'^([0-9]{6}tUTC).*$'
-        # FreiwaldFOB2018_Marm_Body_Spring_7_erode3px
-        # FreiwaldFOB2012_Human_Head_10_erode3px
-        # FreiwaldFOB2018_Marm_Head_Hunter_8_erode3px
-        # FreiwaldFOB2018_Objects_Manmade1_8_erode3px
-        # FreiwaldMarmosetCartoon_0_erode3px
-        # FreiwaldFOB2018_Marm_Head_Lollipop_1_erode3px_inverted
         pattern_imn = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?[^_]*_?(inverted)?$'
         if re.match(pattern_imn, imn) is not None:
             sp = re.match(pattern_imn, imn).group(4)
@@ -1042,15 +1058,14 @@ FdFF_allfaces_meanRstimall = np.nanmean(data[(data['cat'] == b'face_mrm') & (dat
 FdFF_allobjs_meanRstimall = np.nanmean(data[data['cat'] == b'obj']['FdFF_meant'][:, :, idx_stim],
                                        axis=(0, -1)) + FdFF_absmin
 FdFF_allbodies_meanRstimall = np.nanmean(data[data['cat'] == b'body_mrm']['FdFF_meant'][:, :, idx_stim],
-                                       axis=(0, -1)) + FdFF_absmin
-
+                                         axis=(0, -1)) + FdFF_absmin
 
 Fzsc_allfaces_meanRstimall = np.nanmean(data[data['cat'] == b'face_mrm']['Fzsc_meant'][:, :, idx_stim],
                                         axis=(0, -1)) + Fzsc_absmin
 Fzsc_allobjs_meanRstimall = np.nanmean(data[data['cat'] == b'obj']['Fzsc_meant'][:, :, idx_stim],
                                        axis=(0, -1)) + Fzsc_absmin
 Fzsc_allbodies_meanRstimall = np.nanmean(data[data['cat'] == b'body_mrm']['Fzsc_meant'][:, :, idx_stim],
-                                       axis=(0, -1)) + Fzsc_absmin
+                                         axis=(0, -1)) + Fzsc_absmin
 
 # FSIs(_by_roi) = [roi, fsi]
 FSIs_dFF = (FdFF_allfaces_meanRstimall - FdFF_allobjs_meanRstimall) / \
@@ -1167,32 +1182,14 @@ for r in range(n_ROIs):
 
 above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 # TODO THIS SHOULD NOT BE HARD CODED
-at_sortidx = (-np.mean(data[cond_idx[0:19]]['Fzsc_meant'][:, :, idx_stim], axis=(0,-1))[above_threshold]).argsort()
+at_sortidx = (-np.mean(data[cond_idx[0:19]]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1))[above_threshold]).argsort()
 
 
 # Establish ordering for heatmaps
 
-tmpl = np.array([b'blank', b'scram_s', b'scram_p',
-                 b'face_mrm', b'face_rhe', b'face_hum', b'face_ctn',
-                 b'obj', b'food',
-                 b'body_mrm', b'animal'], dtype='|S8')
-
-tmpl_labels = {b'blank': 'Blank',
-               b'scram_s': 'Scramble (Spatial)',
-               b'scram_p': 'Scrambles (Phase)',
-               b'face_mrm': 'Faces (Marmo)',
-               b'face_rhe': 'R',  # 'Faces (Rhesus)',
-               b'face_hum': 'H',  # 'Faces (Human)',
-               b'face_ctn': 'Ctn',  # 'Faces (Cartoon)',
-               b'obj': 'Objects',
-               b'food': 'Foods',
-               b'body_mrm': 'Bodies (Marmo)',
-               b'animal': 'Animals'}
-
-
-lambda_sort = lambda x: (np.where(tmpl == x[1].category)[0][0]
-                         if np.where(tmpl == x[1].category)[0].size > 0
-                         else np.iinfo(np.where(tmpl == x[1].category)[0].dtype).max,
+lambda_sort = lambda x: (np.where(template == x[1].category)[0][0]
+                         if np.where(template == x[1].category)[0].size > 0
+                         else np.iinfo(np.where(template == x[1].category)[0].dtype).max,
                          np.abs(x[1].roll),
                          x[1].roll,
                          x[1].yaw,
@@ -1201,15 +1198,15 @@ stimarr = data[:]['stimulus']
 stimcond = [i for i, x in sorted(enumerate(stimarr), key=lambda_sort)]
 stimsort = stimarr[stimcond]
 
-tickinfo = {t.decode(): {} for t in tmpl}
-for t in tmpl:
+tickinfo = {t.decode(): {} for t in template}
+for t in template:
     ts = t.decode()
     wheret = np.where(data[stimcond]['cat'] == t)[0]
     if wheret.size > 0:
         tickinfo[ts]['start'] = wheret[0]
         tickinfo[ts]['end'] = wheret[-1]
         tickinfo[ts]['labelpos'] = (tickinfo[ts]['start'] + tickinfo[ts]['end']) / 2
-        tickinfo[ts]['label'] = tmpl_labels[t]
+        tickinfo[ts]['label'] = template_labels[t]
     else:
         tickinfo.pop(ts)
 
@@ -1310,16 +1307,16 @@ for r in range(n_plot_ROIs):
         for cat in range(n_cats):
             ax = axes[m, cat]
             if m == 0:
-                ax.set_title(tmpl_labels[categories[cat]])
+                ax.set_title(template_labels[categories[cat]])
             if cat == 0:
                 ax.set_ylabel(metric_labels[met])
                 ax.tick_params(axis='both', which='major', labelsize=8)
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
                 xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
-                xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr) 
+                xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr)
                                else '{}'.format(np.round(xt / fr).astype('int')) for xt in xticks]
-                ax.set_xticks(xticks)            
+                ax.set_xticks(xticks)
                 ax.set_xticklabels(xticklabels)
             else:
                 ax.set_yticklabels([])
@@ -1329,7 +1326,8 @@ for r in range(n_plot_ROIs):
             ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
             n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
-                ax.plot(range(n_samp_trial), np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
+                ax.plot(range(n_samp_trial),
+                        np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
             Fmean = np.mean(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1))
             Fsem = np.std(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
@@ -1368,7 +1366,7 @@ for r in range(n_plot_ROIs):
     ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
     ymax = np.max(np.mean(data[met][:, ridx, :, :], axis=1))
     # if m == 0:
-    #     ax.set_title(tmpl_labels[categories[cat]], fontsize=10)
+    #     ax.set_title(template_labels[categories[cat]], fontsize=10)
     ax = axes[pr, 0]
     ax.axis('off')
     # if r == 0:
@@ -1390,7 +1388,8 @@ for r in range(n_plot_ROIs):
         Fmean = np.mean(data[bool_cat][met][:, ridx, :, :], axis=(0, 1))
         Fsem = np.std(data[bool_cat][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
         ax.plot(range(n_samp_trial), Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
-        ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
+        ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem,
+                        facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
 
     # Plot each cond
     for cnd in range(n_cnd_in_fcat):
@@ -1409,7 +1408,6 @@ for r in range(n_plot_ROIs):
         ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
 del bool_cat, bool_cnd
 plt.show()
-
 
 
 # ... by conditions (selected subset), as a trial-averaged heatmap
@@ -1435,7 +1433,7 @@ for cnd in range(20):
     ax.axis('off')
     img_st = ax.imshow(mpimg.imread(data[bool_cnd]['stimulus'][0].filepath))
     # ax.set_ylim((0, img_st.get_size()[0]))
-        
+
 pr = 1
 ax_dp = axes[pr, 0]
 ax_dp.set_xlabel('Face d′')
@@ -1452,10 +1450,13 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.label2.set_visible(False)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
-        ax_dp.axhline(np.where(dprime[sort_dp] < -threshold_dprime)[0].min(), color='0.2', linestyle='dotted', linewidth=1)
-        ax_dp.axhline(np.where(dprime[sort_dp] > threshold_dprime)[0].max(), color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(dprime[sort_dp] < -threshold_dprime)[0].min(),
+                      color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(dprime[sort_dp] > threshold_dprime)[0].max(),
+                      color='0.2', linestyle='dotted', linewidth=1)
     else:
-        ax_dp.axhline(np.where(np.isclose(dprime[sort_dp], threshold_dprime), atol=0.05), color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(np.isclose(dprime[sort_dp], threshold_dprime), atol=0.05),
+                      color='0.2', linestyle='dotted', linewidth=1)
 
 for cnd in range(n_cnd_in_fcat):
     bool_cnd = data['cond'] == sortedstims[cnd].condition
@@ -1515,7 +1516,7 @@ img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis
 
 cbar = plt.colorbar(img_hm, ax=ax_hm, shrink=0.6)  # , location='bottom', shrink=0.6)
 cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
-cbar.ax.set_yticklabels(['-1.0', '-0.5', '0','0.5','1'])
+cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 
 ax_dp.set_xlabel('Face d′')
@@ -1532,10 +1533,13 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.label2.set_visible(False)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
-        ax_dp.axhline(np.where(dprime[sort_dp] < -threshold_dprime)[0].min(), color='0.2', linestyle='dotted', linewidth=1)
-        ax_dp.axhline(np.where(dprime[sort_dp] > threshold_dprime)[0].max(), color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(dprime[sort_dp] < -threshold_dprime)[0].min(),
+                      color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(dprime[sort_dp] > threshold_dprime)[0].max(),
+                      color='0.2', linestyle='dotted', linewidth=1)
     else:
-        ax_dp.axhline(np.where(np.isclose(dprime[sort_dp], threshold_dprime, atol=0.05)), color='0.2', linestyle='dotted', linewidth=1)
+        ax_dp.axhline(np.where(np.isclose(dprime[sort_dp], threshold_dprime, atol=0.05)),
+                      color='0.2', linestyle='dotted', linewidth=1)
     
 # ax_fsi.set_xlabel('FSI')
 # ax_fsi.set_axisbelow(True)
@@ -1561,7 +1565,7 @@ plt.rc('figure', titlesize=8)
 fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
-                dpi=dpi, transparent=True)
+                   dpi=dpi, transparent=True)
 
 
 
@@ -1640,7 +1644,7 @@ ax.set_xticks([0, 1, 2])
 ax.set_xticklabels(['faces', 'objects', 'bodies'])
 # plt.imshow(mean_by_cat[above_threshold],
 #            vmin=0.1-0.0001, vmax=0.1+0.0001, aspect='auto', cmap='bwr', interpolation='none')
-plt.imshow(mean_by_cat[above_threshold[at_sortidx]], 
+plt.imshow(mean_by_cat[above_threshold[at_sortidx]],
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 # cbar.ax.set_yticks(['0','1','2','>3'])
@@ -1648,7 +1652,7 @@ cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
 plt.show()
 if saving:
-    fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext), 
+    fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
                 dpi=dpi, transparent=True)
 
 
@@ -1765,8 +1769,8 @@ if n_conds % 20 == 0:
 else:
     n_cols = 20
     n_rows = round(n_subconds / 20)
-    
-fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows, 
+
+fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows,
                         figsize=(n_cols * 512 / dpi, n_rows * 512 / dpi),
                         layout='constrained')
 for row in range(n_rows):
@@ -1779,7 +1783,7 @@ for row in range(n_rows):
         imp = os.path.join(stimimage_path, data[cond_idx[i]]['imagename'])
         ax.imshow(mpimg.imread(imp))
 if saving:
-    fig.savefig(os.path.join(save_path, save_pfix + '_StimulusImages' + save_ext), 
+    fig.savefig(os.path.join(save_path, save_pfix + '_StimulusImages' + save_ext),
                 dpi=dpi, transparent=True)
 
 
@@ -1824,9 +1828,7 @@ if saving:
 #                         image=plots.auto_level_s2p_image(fov_image))
 
 
-
-# TODO Plot responses from top, middle, bottom 10 sorted ROIs 
-
+# TODO Plot responses from top, middle, bottom 10 sorted ROIs
 
 
 # %% Other approaches for measuring/approximating tuning
@@ -1991,4 +1993,3 @@ if saving:
 #     plots.plot_roi_overlays(ROIs[above_threshold[rois_sel]],
 #                             Fzsc_for_plot_discrete[above_threshold[rois_sel]],
 #                             image=plots.auto_level_s2p_image(fov_image), save_path=sp)
-
