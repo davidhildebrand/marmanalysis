@@ -39,7 +39,7 @@ threshold_dprime = 0.2
 
 threshold_cellprob = 0.0
 
-plt.rcParams['figure.dpi'] = 600
+plt.rcParams['figure.dpi'] = 300
 dpi = plt.rcParams['figure.dpi']
 
 # Template for ordering and labeling plots
