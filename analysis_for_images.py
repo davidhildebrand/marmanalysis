@@ -751,6 +751,9 @@ n_samp_isi = int(np.min(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']))
 # n_samp_isi = int(np.round(dur_isi * md['framerate']))
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
+# Calculate the timing mismatch (contraction) introduced by rounding stim and/or isi frame samples down
+acqfr_dilation_factor = (dur_trial * md['framerate']) / (n_samp_trial - 1)
+
 n_metrics = len(metrics)
 n_conds = len(np.unique(stimlog['cond'].values))
 n_trials = len(stimlog)
@@ -1031,8 +1034,12 @@ if n_conds != conditions.shape[0]:
 
 fr = md['framerate']
 fig_psth = plt.figure()
-fig_psth.suptitle('mean population response (all ROIs) by category')
+fig_psth.suptitle('mean population response (across all ROIs) by category')
 axes = fig_psth.subplots(nrows=n_metrics, ncols=1)
+if md['stim_locked_to_acqfr'] is True:
+    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + fr * dur_isi
+else:
+    xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for m, met in enumerate(metrics):
     ymin = np.min(np.array([np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)) for cat in range(n_cats)]))
     ymax = np.max(np.array([np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)) for cat in range(n_cats)]))
@@ -1049,15 +1056,24 @@ for m, met in enumerate(metrics):
     ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
     ax.set_xlim((0, np.ceil(dur_trial) * fr))
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
+    ax.plot(xs,
+            np.mean(data[met], axis=(0, 1, 2)), 
+            label='All', 
+            color='0', linestyle='dotted', linewidth=1, zorder=4)
     for cat in range(n_cats):
         n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
-        Fmean = np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2))
-        Fsem = np.std(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)) / np.sqrt(n_ROIs)
-        ax.plot(range(n_samp_trial), Fmean, label=template_labels[categories[cat]], zorder=3)
-        ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, alpha=0.2, zorder=2)
-    ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
+        # Fmean = np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2))
+        # Fsem = np.std(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)) / np.sqrt(n_ROIs)
+        ax.plot(xs,
+                np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)),
+                'o-', markersize=2,
+                label=template_labels[categories[cat]], 
+                color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), zorder=3)
+        # ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, 
+        #                 color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.2, zorder=2)
+    ax.legend(fontsize=4, frameon=False, loc=(.02, .7))
 plt.show()
-del fr, xticks, xticklabels
+del xs, xticks, xticklabels
 
 
 # % Calculate tuning properties for each ROI (i.e. compute face selectivity index)
@@ -1324,12 +1340,7 @@ if len(plot_ROI_subset) > n_plot_ROIs:
                                       range(n_ROIs - n_plot_ROIs_div, n_ROIs)))
 
 # Plot summary of each single ROI's responses ...
-
-metrics = ['FdFF', 'Fzsc']
-metric_labels = {'FdFF': 'dF/F',
-                 'Fzsc': 'Z-score'}
-n_metrics = len(metrics)
-
+            
 # ... by category, including the average for each condition within that category.
 fr = md['framerate']
 for r in range(n_plot_ROIs):
@@ -1360,18 +1371,19 @@ for r in range(n_plot_ROIs):
                 ax.set_xticklabels([])
                 ax.axis('off')
             ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
+            # ax.axvspan(dur_isi * fr + gap_isi, (dur_isi + dur_stim) * fr + gap_isi, color='0.9', zorder=0)
             ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
             n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
-                ax.plot(range(n_samp_trial),
+                ax.plot(acqfr_dilation_factor * range(n_samp_trial),
                         np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
             Fmean = np.mean(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1))
             Fsem = np.std(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
-            ax.plot(range(n_samp_trial), Fmean, color='0.0', zorder=3)
-            ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
+            ax.plot(acqfr_dilation_factor * range(n_samp_trial), Fmean, color='0.0', zorder=3)
+            ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
     plt.show()
-del fr, xticks, xticklabels
+del xticks, xticklabels
 
 
 # ... by conditions (selected subset), including the average for each trial within that condition
@@ -1424,8 +1436,8 @@ for r in range(n_plot_ROIs):
         bool_cat = data['cat'] == categories[cat]
         Fmean = np.mean(data[bool_cat][met][:, ridx, :, :], axis=(0, 1))
         Fsem = np.std(data[bool_cat][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
-        ax.plot(range(n_samp_trial), Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
-        ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem,
+        ax.plot(acqfr_dilation_factor * range(n_samp_trial), Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
+        ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem,
                         facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
 
     # Plot each cond
@@ -1436,13 +1448,13 @@ for r in range(n_plot_ROIs):
         ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
         ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
         for t in range(n_reps):
-            ax.plot(range(n_samp_trial), data[bool_cnd][met][0, ridx, t, :],
+            ax.plot(acqfr_dilation_factor * range(n_samp_trial), data[bool_cnd][met][0, ridx, t, :],
                     color=str(np.linspace(0.4, 0.7, n_reps)[t]),
                     linewidth=0.1)
         Fmean = np.mean(data[bool_cnd][met][0, ridx, :, :], axis=0)
         Fsem = np.std(data[bool_cnd][met][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
-        ax.plot(range(n_samp_trial), Fmean, color='0.0', linewidth=1, zorder=3)
-        ax.fill_between(range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
+        ax.plot(acqfr_dilation_factor * range(n_samp_trial), Fmean, color='0.0', linewidth=1, zorder=3)
+        ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
 del bool_cat, bool_cnd
 plt.show()
 
