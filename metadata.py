@@ -252,7 +252,7 @@ def extract_useful_metadata(scanimage_metadata):
     # NOTE assumes data acquired before 20230505d have strip overlap and after do not
     simd = scanimage_metadata
     date_strip_overlap_fix = datetime(2023, 5, 5, tzinfo=ZoneInfo('America/New_York'))
-    date_stim_lock_acqfr_inc = datetime(2023, 5, 5, tzinfo=ZoneInfo('America/New_York'))
+    date_stim_lock_acqfr_inc = datetime(2023, 9, 7, tzinfo=ZoneInfo('America/New_York'))
 
     umd = dict()
 
