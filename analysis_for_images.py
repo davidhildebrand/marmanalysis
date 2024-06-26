@@ -17,6 +17,7 @@ import socket
 from warnings import warn
 
 import filters
+from metadata import default_metadata
 import parsers
 import plots
 
@@ -310,7 +311,8 @@ if 'md' not in locals():
         import metadata
         simd = metadata.get_metadata(df_path)
         md = metadata.extract_useful_metadata(simd)
-
+md = {**default_metadata(), **md}
+    
 filelist_session_log = [f for f in glob(os.path.join(session_path, filestr_session_log))
                         if re.search(pattern_session_log, f) and os.path.isfile(f)]
 if len(filelist_session_log) > 0:
