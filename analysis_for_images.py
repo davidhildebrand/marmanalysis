@@ -1037,7 +1037,7 @@ fig_psth = plt.figure()
 fig_psth.suptitle('mean population response (across all ROIs) by category')
 axes = fig_psth.subplots(nrows=n_metrics, ncols=1)
 if md['stim_locked_to_acqfr'] is True:
-    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + fr * dur_isi
+    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for m, met in enumerate(metrics):
@@ -1069,7 +1069,7 @@ for m, met in enumerate(metrics):
                 'o-', markersize=2,
                 label=template_labels[categories[cat]], 
                 color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), zorder=3)
-        # ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, 
+        # ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
         #                 color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.2, zorder=2)
     ax.legend(fontsize=4, frameon=False, loc=(.02, .7))
 plt.show()
@@ -1189,6 +1189,8 @@ if all(x in categories for x in [b'face_mrm', b'obj', b'body_mrm']):
         categories = np.concatenate((fob, np.setdiff1d(categories, fob)))
 
 # TODO improve variable naming here for clarity
+
+
 
 ROIinfo = np.zeros(n_ROIs, dtype=[('top_cat', 'S8'),
                                   ('top_cond', 'S8'),
@@ -1343,6 +1345,10 @@ if len(plot_ROI_subset) > n_plot_ROIs:
             
 # ... by category, including the average for each condition within that category.
 fr = md['framerate']
+if md['stim_locked_to_acqfr'] is True:
+    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
+else:
+    xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for r in range(n_plot_ROIs):
     ridx = sort_dp[plot_ROI_subset[r]]
     dp = dprime[ridx]
@@ -1371,19 +1377,18 @@ for r in range(n_plot_ROIs):
                 ax.set_xticklabels([])
                 ax.axis('off')
             ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
-            # ax.axvspan(dur_isi * fr + gap_isi, (dur_isi + dur_stim) * fr + gap_isi, color='0.9', zorder=0)
             ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
             n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
-                ax.plot(acqfr_dilation_factor * range(n_samp_trial),
+                ax.plot(xs,
                         np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
             Fmean = np.mean(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1))
             Fsem = np.std(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
-            ax.plot(acqfr_dilation_factor * range(n_samp_trial), Fmean, color='0.0', zorder=3)
-            ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
+            ax.plot(xs, Fmean, color='0.0', zorder=3)
+            ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
     plt.show()
-del xticks, xticklabels
+del xs, xticks, xticklabels
 
 
 # ... by conditions (selected subset), including the average for each trial within that condition
@@ -1398,6 +1403,10 @@ stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
 sortedstims = stims[stimconds]
 conds_in_fcat = [i for i, x in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
 n_cnd_in_fcat = len(sortedstims)
+if md['stim_locked_to_acqfr'] is True:
+    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
+else:
+    xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1), sharey='row')
 for r in range(n_plot_ROIs):
     ridx = sort_dp[plot_ROI_subset[r]]
@@ -1436,8 +1445,8 @@ for r in range(n_plot_ROIs):
         bool_cat = data['cat'] == categories[cat]
         Fmean = np.mean(data[bool_cat][met][:, ridx, :, :], axis=(0, 1))
         Fsem = np.std(data[bool_cat][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
-        ax.plot(acqfr_dilation_factor * range(n_samp_trial), Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
-        ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem,
+        ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
+        ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
                         facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
 
     # Plot each cond
@@ -1448,14 +1457,14 @@ for r in range(n_plot_ROIs):
         ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
         ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
         for t in range(n_reps):
-            ax.plot(acqfr_dilation_factor * range(n_samp_trial), data[bool_cnd][met][0, ridx, t, :],
-                    color=str(np.linspace(0.4, 0.7, n_reps)[t]),
-                    linewidth=0.1)
+            ax.plot(xs, 
+                    data[bool_cnd][met][0, ridx, t, :],
+                    color=str(np.linspace(0.4, 0.7, n_reps)[t]), linewidth=0.1)
         Fmean = np.mean(data[bool_cnd][met][0, ridx, :, :], axis=0)
         Fsem = np.std(data[bool_cnd][met][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
-        ax.plot(acqfr_dilation_factor * range(n_samp_trial), Fmean, color='0.0', linewidth=1, zorder=3)
-        ax.fill_between(acqfr_dilation_factor * range(n_samp_trial), Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
-del bool_cat, bool_cnd
+        ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
+        ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
+del xs, bool_cat, bool_cnd
 plt.show()
 
 
@@ -1882,7 +1891,6 @@ if saving:
 
 # %% Other approaches for measuring/approximating tuning
 
-# TODO *** Could also calculate d’
 # e.g. from https://www.biorxiv.org/content/10.1101/2022.03.06.483186v1.full.pdf
 # Face selectivity was quantified by computing the d’ sensitivity index
 # comparing trial averaged responses to faces and to non-faces:
