@@ -1024,6 +1024,7 @@ for c in range(n_conds):
 categories = np.unique(data[:]['cat'])
 n_cats = len(categories)
 conditions = np.unique(data[:]['cond'])
+condition_inds = {c: i for i, c in enumerate(data['cond'])}
 
 if n_conds != conditions.shape[0]:
     u, c = np.unique(data[:]['cond'], return_counts=True)
@@ -1096,6 +1097,94 @@ del xs, xticks, xticklabels
 #     raise Exception('NaNs found in preprocessed volume.')
 
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
+
+
+conds_in_cat = {cat: data[data['cat'] == cat]['cond'] for cat in template.tolist()}
+cond_inds_in_cat = {cat: [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()] 
+                    for cat in template.tolist()
+                    if [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()]}
+
+cond_resp_vect_zsc = np.mean(data['Fzsc'][:, :, :, idx_stim], axis=(2,3)).transpose()
+cond_resp_vect_dFF = np.mean(data['FdFF'][:, :, :, idx_stim], axis=(2,3)).transpose()
+cat_resp_vects_zsc = np.array([np.mean(data[cond_inds_in_cat[c]]['Fzsc'][:, :, :, idx_stim], axis=(0, 2, 3)) 
+                               for c in categories]).transpose()
+cat_resp_vects_dFF = np.array([np.mean(data[cond_inds_in_cat[c]]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3)) 
+                               for c in categories]).transpose()
+
+
+ROI_metrics_df = pd.DataFrame({'roi': range(n_ROIs),
+                               'peak_cond': None,
+                               'peak_cond_zsc': None,
+                               'peak_cond_dFF': None,
+                               'cat_of_peak_cond': None,
+                               'peak_cat': None,
+                               'peak_cat_zsc': None,
+                               'peak_cat_dFF': None,
+                               'dprime_f': None,
+                               'fsi': None,
+                               'cond_resp_vect': None,
+                               'cond_resp_vect_dFF': None,
+                               'cat_resp_vect': None,
+                               'cat_resp_vect_dFF': None})
+ROI_metrics_df.set_index(['roi'])
+for roi in range(n_ROIs):
+    ROI_metrics_df.at[roi, 'cond_resp_vect'] = np.mean(data['Fzsc'][:, roi, :, :][:, :, idx_stim], axis=(1, 2))
+    ROI_metrics_df.at[roi, 'cond_resp_vect_dFF'] = np.mean(data['FdFF'][:, roi, :, :][:, :, idx_stim], axis=(1, 2))
+    tmp_peak_cond = ROI_metrics_df.loc[roi]['cond_resp_vect'].argmax()
+    ROI_metrics_df.at[roi, 'peak_cond'] = conditions[tmp_peak_cond]
+    ROI_metrics_df.at[roi, 'peak_cond_zsc'] = ROI_metrics_df.loc[roi]['cond_resp_vect'].max()
+    ROI_metrics_df.at[roi, 'peak_cond_dFF'] = ROI_metrics_df.loc[roi]['cond_resp_vect_dFF'][tmp_peak_cond]
+    ROI_metrics_df.at[roi, 'cat_of_peak_cond'] = data['cat'][data['cond'] == conditions[tmp_peak_cond]]
+    
+    ROI_metrics_df.at[roi, 'cat_resp_vect'] = np.array([np.mean(data[data['cat'] == cat]['Fzsc'][:,roi,:,:][:,:,idx_stim]) 
+                                                     for cat in categories])
+    ROI_metrics_df.at[roi, 'cat_resp_vect_dFF'] = np.array([np.mean(data[data['cat'] == cat]['FdFF'][:,roi,:,:][:,:,idx_stim]) 
+                                                         for cat in categories])    
+    tmp_peak_cat =  ROI_metrics_df.loc[roi]['cat_resp_vect'].argmax()
+    ROI_metrics_df.at[roi, 'peak_cat'] = categories[tmp_peak_cat]
+    ROI_metrics_df.at[roi, 'peak_cat_zsc'] = ROI_metrics_df.loc[roi]['cat_resp_vect'].max()
+    ROI_metrics_df.at[roi, 'peak_cat_dFF'] = ROI_metrics_df.loc[roi]['cat_resp_vect_dFF'][tmp_peak_cat]
+
+    # np.array([np.mean(data['Fzsc'][:, roi, :, :][:, :, idx_stim][conds_in_cat[categories[cat]]], axis=(1, 2))
+    #           for cat in range(categories)])
+    # np.array([np.mean(data[data['cat'] == cat]['Fzsc'][:,:,:,idx_stim], axis=(0,2,3)) 
+    #           for cat in categories])
+
+del tmp_peak_cond, tmp_peak_cat
+
+
+ROI_metrics = {}
+for r in range(n_ROIs):
+    ROI_metrics[r] = {}
+    # ROI_metrics[r]['cond_resp_vect'] = np.mean(data['Fzsc'][:, roi, :, :][:, :, idx_stim], axis=(1, 2))
+    # ROI_metrics[r]['cond_resp_vect_dFF'] = np.mean(data['FdFF'][:, roi, :, :][:, :, idx_stim], axis=(1, 2))
+    ROI_metrics[r]['cond_resp_vect'] = cond_resp_vect_zsc[r]
+    ROI_metrics[r]['cond_resp_vect_dFF'] = cond_resp_vect_dFF[r]
+    ROI_metrics[r]['peak_cond_idx'] = ROI_metrics[r]['cond_resp_vect'].argmax()
+    ROI_metrics[r]['peak_cond'] = conditions[ROI_metrics[r]['peak_cond_idx']]
+    ROI_metrics[r]['peak_cond_zsc'] = ROI_metrics[r]['cond_resp_vect'].max()
+    ROI_metrics[r]['peak_cond_dFF'] = ROI_metrics[r]['cond_resp_vect_dFF'][ROI_metrics[r]['peak_cond_idx']]
+    ROI_metrics[r]['cat_of_peak_cond'] = data['cat'][data['cond'] == ROI_metrics[r]['peak_cond']]
+
+    # ROI_metrics[r]['cat_resp_vect'] = np.array([np.mean(data[cond_inds_in_cat[c]]['Fzsc'][:, r, :, idx_stim]) 
+    #                                             for c in categories])
+    # ROI_metrics[r]['cat_resp_vect_dFF'] = np.array([np.mean(data[cond_inds_in_cat[c]]['FdFF'][:, r, :, idx_stim]) 
+    #                                                 for c in categories])
+
+    # ROI_metrics[r]['cat_resp_vect'] = np.array([np.mean(data[data['cat'] == c]['Fzsc'][:, r, :, idx_stim]) 
+    #                                             for c in categories])
+    # ROI_metrics[r]['cat_resp_vect_dFF'] = np.array([np.mean(data[data['cat'] == c]['FdFF'][:, r, :, idx_stim]) 
+    #                                                 for c in categories])
+    ROI_metrics[r]['cat_resp_vect'] = cat_resp_vects_zsc[r]
+    ROI_metrics[r]['cat_resp_vect_dFF'] = cat_resp_vects_dFF[r]
+    
+    tmp_peak_cat =  ROI_metrics_df.loc[roi]['cat_resp_vect'].argmax()
+    ROI_metrics[r]['peak_cat'] = categories[tmp_peak_cat]
+    ROI_metrics[r]['peak_cat_zsc'] = ROI_metrics_df.loc[roi]['cat_resp_vect'].max()
+    ROI_metrics[r]['peak_cat_dFF'] = ROI_metrics_df.loc[roi]['cat_resp_vect_dFF'][tmp_peak_cat]
+
+del cat_resp_vects_zsc, cat_resp_vects_dFF
+
 
 # Non-zero hack
 FdFF_absmin = -np.inf
@@ -1192,8 +1281,6 @@ if all(x in categories for x in [b'face_mrm', b'obj', b'body_mrm']):
         categories = np.concatenate((fob, np.setdiff1d(categories, fob)))
 
 # TODO improve variable naming here for clarity
-
-
 
 ROIinfo = np.zeros(n_ROIs, dtype=[('top_cat', 'S8'),
                                   ('top_cond', 'S8'),
