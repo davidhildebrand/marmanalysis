@@ -40,6 +40,9 @@ threshold_dprime = 0.2
 
 threshold_cellprob = 0.0
 
+plot_eyecal = False
+
+
 plt.rcParams['figure.dpi'] = 300
 dpi = plt.rcParams['figure.dpi']
 
@@ -238,7 +241,7 @@ if 'dirstr_suite2p' not in locals():
 dirstr_suite2p_plane = 'plane0'
 
 
-# Defininitions
+# Object defininitions
 
 
 class StimulusImage(object):
@@ -487,76 +490,76 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 # though more structured responses (e.g. multiple decay time constants) can also be modeled with higher values for
 # the order p."
 
-n_plot_ROIs = 1
-n_samp_inspect = 1000
-plot_ROIs = np.random.choice(n_ROIs, n_plot_ROIs)
-frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
-frame_end = frame_start + n_samp_inspect
+# n_plot_ROIs = 1
+# n_samp_inspect = 1000
+# plot_ROIs = np.random.choice(n_ROIs, n_plot_ROIs)
+# frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
+# frame_end = frame_start + n_samp_inspect
 
-fig = plt.figure()
-# fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
-axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
-for r in range(n_plot_ROIs):
-    ridx = plot_ROIs[r]
-    # frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
-    # frame_end = frame_start + n_samp_inspect
-    Fr = Frois[ridx, frame_start:frame_end]
+# fig = plt.figure()
+# # fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
+# axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
+# for r in range(n_plot_ROIs):
+#     ridx = plot_ROIs[r]
+#     # frame_start = np.random.choice(n_frames - n_samp_inspect, 1)[0]
+#     # frame_end = frame_start + n_samp_inspect
+#     Fr = Frois[ridx, frame_start:frame_end]
 
-    # Fr = Frois[ridx, frame_start:frame_end]
-    Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
-    # F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
-    # Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
-    # F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
-    # Fr_dFF_pct = (Fr - F0_pct) / F0_pct
-    # F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
-    # Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
-    # F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
-    # Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
-    # # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * fr),)), axis=1)
-    # # Fr_dFF_med = (Fr - F0_med) / F0_med
-    # F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
-    # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(
-    #     filter_window * fr)
+#     # Fr = Frois[ridx, frame_start:frame_end]
+#     Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
+#     # F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
+#     # Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
+#     # F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
+#     # Fr_dFF_pct = (Fr - F0_pct) / F0_pct
+#     # F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
+#     # Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
+#     # F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
+#     # Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
+#     # # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * fr),)), axis=1)
+#     # # Fr_dFF_med = (Fr - F0_med) / F0_med
+#     # F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
+#     # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(
+#     #     filter_window * fr)
 
-    # y: observed fluorescence
-    # c: calcium concentration
-    # s: neural activity / spike train
-    # b: baseline
-    # "To produce calcium trace c, spike train s is filtered with the inverse filter of g, an infinite impulse response
-    # h, c = s * h."
-    # decay factor γ, regularization parameter λ, data y, sigma noise
+#     # y: observed fluorescence
+#     # c: calcium concentration
+#     # s: neural activity / spike train
+#     # b: baseline
+#     # "To produce calcium trace c, spike train s is filtered with the inverse filter of g, an infinite impulse response
+#     # h, c = s * h."
+#     # decay factor γ, regularization parameter λ, data y, sigma noise
 
-    oasisL0_c, oasisL0_s, oasisL0_b, oasisL0_g, oasisL0_lam = oasis.functions.deconvolve(Fr, penalty=0)
-    Fr_oasisL0 = oasisL0_c + oasisL0_b
-    Fr_dFF_oasisL0 = (Fr_oasisL0 - oasisL0_b) / oasisL0_b
+#     oasisL0_c, oasisL0_s, oasisL0_b, oasisL0_g, oasisL0_lam = oasis.functions.deconvolve(Fr, penalty=0)
+#     Fr_oasisL0 = oasisL0_c + oasisL0_b
+#     Fr_dFF_oasisL0 = (Fr_oasisL0 - oasisL0_b) / oasisL0_b
 
-    ymin = np.min(Fr_dFF)
-    ymax = np.max(Fr_dFF)
-    xs = range(n_samp_inspect)
+#     ymin = np.min(Fr_dFF)
+#     ymax = np.max(Fr_dFF)
+#     xs = range(n_samp_inspect)
 
-    if n_plot_ROIs > 1:
-        ax = axes[r]
-    else:
-        ax = axes
-    ax.set_ylabel('dF/F', fontsize=6)
-    ax.set_xlabel('Frames', fontsize=6)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
+#     if n_plot_ROIs > 1:
+#         ax = axes[r]
+#     else:
+#         ax = axes
+#     ax.set_ylabel('dF/F', fontsize=6)
+#     ax.set_xlabel('Frames', fontsize=6)
+#     ax.spines['top'].set_visible(False)
+#     ax.spines['right'].set_visible(False)
 
-    ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-    ax.set_xticks([0, n_samp_inspect])
-    ax.set_xticklabels([frame_start, frame_end])
-    ax.plot(xs, Fr_dFF, label='FdFF', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(xs, Fr_dFF_rnk, label='FdFF_rnk', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(xs, Fr_dFF_pct, label='FdFF_pct', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(xs, Fr_dFF_rnkbw, label='FdFF_rnkbw', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(xs, Fr_dFF_pctbw, label='FdFF_pctbw', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(xs, Fr_dFF_ma, label='Fr_dFF_med', linewidth=0.5, alpha=0.5, zorder=3)
-    # ax.plot(xs, Fr_dFF_ma, label='FdFF_ma', linewidth=0.5, alpha=0.5, zorder=3)
-    ax.plot(xs, Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
+#     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
+#     ax.set_xticks([0, n_samp_inspect])
+#     ax.set_xticklabels([frame_start, frame_end])
+#     ax.plot(xs, Fr_dFF, label='FdFF', linewidth=0.5, alpha=0.5, zorder=3)
+#     # ax.plot(xs, Fr_dFF_rnk, label='FdFF_rnk', linewidth=0.5, alpha=0.5, zorder=3)
+#     # ax.plot(xs, Fr_dFF_pct, label='FdFF_pct', linewidth=0.5, alpha=0.5, zorder=3)
+#     # ax.plot(xs, Fr_dFF_rnkbw, label='FdFF_rnkbw', linewidth=0.5, alpha=0.5, zorder=3)
+#     # ax.plot(xs, Fr_dFF_pctbw, label='FdFF_pctbw', linewidth=0.5, alpha=0.5, zorder=3)
+#     # ax.plot(xs, Fr_dFF_ma, label='Fr_dFF_med', linewidth=0.5, alpha=0.5, zorder=3)
+#     # ax.plot(xs, Fr_dFF_ma, label='FdFF_ma', linewidth=0.5, alpha=0.5, zorder=3)
+#     ax.plot(xs, Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
 
-    ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
-plt.show()
+#     ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
+# plt.show()
 
 # from oasis.functions import gen_data, gen_sinusoidal_data, deconvolve, estimate_parameters
 # from oasis.plotting import simpleaxis
@@ -575,7 +578,7 @@ else:
 
 # Plot eye-tracking calibration results
 
-if ecdata is not None:
+if plot_eyecal and ecdata is not None:
     # f = plt.figure()
     # ecx, ecy = ecdata['zero']['AIdata']
     # plt.scatter(ecx, ecy, s=1, c='m')
