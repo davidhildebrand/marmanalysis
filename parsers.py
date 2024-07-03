@@ -365,7 +365,7 @@ def parse_log_eyecal(eyecal_log, data=None):
 
 
 def create_stimulus_record(trials=1) -> pd.DataFrame:
-    log = pd.DataFrame({'trial': np.linspace(0, trials - 1, trials).astype(int),
+    log = pd.DataFrame({'trial': range(trials),
                         'dur_isi_pre': None,
                         'dur_stim': None,
                         'dur_isi_post': None,
@@ -436,7 +436,9 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
                         'lev': None,
                         'ampmod_freq': None,
                         'voc_path': None
-                        }, index=np.linspace(0, trials - 1, trials).astype(int))
+                        })
+    log.set_index(['trial'])
+
     return log
 
 
@@ -616,12 +618,12 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                         log.at[trial-1, 'dur_isi_post'] = times_isi[trial]
                     log.at[trial, 't_isi_i'] = t
                     log.at[trial, 'acqfr_isi_i'] = acqfr
-                    log.at[trial, 'dispfr_isi_i'] = np.nan
+                    # log.at[trial, 'dispfr_isi_i'] = np.nan
                     log.at[trial, 'ai_isi_i'] = ai_shape[0]
                 case 'end':
                     log.at[trial, 't_isi_f'] = t
                     log.at[trial, 'acqfr_isi_f'] = acqfr
-                    log.at[trial, 'dispfr_isi_f'] = np.nan
+                    # log.at[trial, 'dispfr_isi_f'] = np.nan
                     log.at[trial, 'ai_isi_f'] = ai_shape[0]
                 case _:
                     warn('Unknown ISI event in log file.')
@@ -642,12 +644,12 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                 case 'start':
                     log.at[trial, 't_fix_i'] = t
                     log.at[trial, 'acqfr_fix_i'] = acqfr
-                    log.at[trial, 'dispfr_fix_i'] = np.nan
+                    # log.at[trial, 'dispfr_fix_i'] = np.nan
                     log.at[trial, 'ai_fix_i'] = ai_shape[0]
                 case 'end':
                     log.at[trial, 't_fix_f'] = t
                     log.at[trial, 'acqfr_fix_f'] = acqfr
-                    log.at[trial, 'dispfr_fix_f'] = np.nan
+                    # log.at[trial, 'dispfr_fix_f'] = np.nan
                     log.at[trial, 'ai_fix_f'] = ai_shape[0]
                 case _:
                     warn('Unknown ISI event in log file.')
@@ -674,7 +676,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                     log.at[trial, 'dur_stim'] = times_stim[trial]
                     log.at[trial, 't_stim_i'] = t
                     log.at[trial, 'acqfr_stim_i'] = acqfr
-                    log.at[trial, 'dispfr_stim_i'] = np.nan
+                    # log.at[trial, 'dispfr_stim_i'] = np.nan
                     log.at[trial, 'ai_stim_i'] = ai_shape[0]
 
                     log.at[trial, 'cond'] = int(g[5])
@@ -695,7 +697,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                 case 'end':
                     log.at[trial, 't_stim_f'] = t
                     log.at[trial, 'acqfr_stim_f'] = acqfr
-                    log.at[trial, 'dispfr_stim_f'] = np.nan
+                    # log.at[trial, 'dispfr_stim_f'] = np.nan
                     log.at[trial, 'ai_stim_f'] = ai_shape[0]
                 case _:
                     warn('Unknown stim event in log file.')
