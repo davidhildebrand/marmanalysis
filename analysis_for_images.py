@@ -1362,52 +1362,54 @@ if all(x in categories for x in [b'face_mrm', b'obj', b'body_mrm']):
     else:
         categories = np.concatenate((fob, np.setdiff1d(categories, fob)))
 
-# TODO improve variable naming here for clarity
-
-ROIinfo = np.zeros(n_ROIs, dtype=[('top_cat', 'S8'),
-                                  ('top_cond', 'S8'),
-                                  ('top_cond_FdFF', 'f4'),
-                                  ('top_cond_Fzsc', 'f4'),
-                                  ('FSI_byFdFF', 'f4'),
-                                  ('FSI_byFzsc', 'f4')
-                                  ])
-
-ROIinfo[:]['top_cond_FdFF'] = np.nan
-ROIinfo[:]['top_cond_Fzsc'] = np.nan
-ROIinfo[:]['FSI_byFdFF'] = np.nan
-ROIinfo[:]['FSI_byFzsc'] = np.nan
-
-# ONLY CONSIDER FOB MARM IMAGES
+# # ONLY CONSIDER FOB MARM IMAGES
 cat_subset = fob
 cond_subset = np.where((data['cat'] == b'face_mrm') | (data['cat'] == b'obj') | (data['cat'] == b'body_mrm'))[0]
 cond_names = np.hstack([np.sort(data[data['cat'] == cat]['cond']) for cat in cat_subset])
 cond_idx = np.array([np.where(data['cond'] == cond)[0][0] for cond in cond_names])
 
-top_cond_byFdFF = np.argmax(np.mean(data[cond_idx]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-top_meantstim_FdFF = np.max(np.mean(data[cond_idx]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-top_cond_byFzsc = np.argmax(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
-top_meantstim_Fzsc = np.max(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
-# top_cond_byFdFF = np.argmax(np.mean(data[:]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-# top_meantstim_FdFF = np.max(np.mean(data[:]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-# top_cond_byFzsc = np.argmax(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
-# top_meantstim_Fzsc = np.max(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
+# TODO improve variable naming here for clarity
 
-if np.any(top_cond_byFdFF != top_cond_byFzsc):
-    print('top_cond mismatch from FdFF and Fzsc for ROIs: {}'.format(np.where(top_cond_byFdFF != top_cond_byFzsc)[0]))
+# ROIinfo = np.zeros(n_ROIs, dtype=[('top_cat', 'S8'),
+#                                   ('top_cond', 'S8'),
+#                                   ('top_cond_FdFF', 'f4'),
+#                                   ('top_cond_Fzsc', 'f4'),
+#                                   ('FSI_byFdFF', 'f4'),
+#                                   ('FSI_byFzsc', 'f4')
+#                                   ])
 
-for r in range(n_ROIs):
-    # ROIinfo[r]['top_cat'] = data[top_cond_byFzsc[r]]['cat']
-    # ROIinfo[r]['top_cond'] = data[top_cond_byFzsc[r]]['cond']
-    ROIinfo[r]['top_cat'] = data[cond_idx[top_cond_byFzsc[r]]]['cat']
-    ROIinfo[r]['top_cond'] = data[cond_idx[top_cond_byFzsc[r]]]['cond']
-    ROIinfo[r]['top_cond_FdFF'] = top_meantstim_FdFF[r]
-    ROIinfo[r]['top_cond_Fzsc'] = top_meantstim_Fzsc[r]
-    ROIinfo[r]['FSI_dFF'] = FSI['FdFF'][r]
-    ROIinfo[r]['FSI_zsc'] = FSI['Fzsc'][r]
+# ROIinfo[:]['top_cond_FdFF'] = np.nan
+# ROIinfo[:]['top_cond_Fzsc'] = np.nan
+# ROIinfo[:]['FSI_byFdFF'] = np.nan
+# ROIinfo[:]['FSI_byFzsc'] = np.nan
+
+
+# top_cond_byFdFF = np.argmax(np.mean(data[cond_idx]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
+# top_meantstim_FdFF = np.max(np.mean(data[cond_idx]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
+# top_cond_byFzsc = np.argmax(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
+# top_meantstim_Fzsc = np.max(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
+# # top_cond_byFdFF = np.argmax(np.mean(data[:]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
+# # top_meantstim_FdFF = np.max(np.mean(data[:]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
+# # top_cond_byFzsc = np.argmax(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
+# # top_meantstim_Fzsc = np.max(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
+
+# if np.any(top_cond_byFdFF != top_cond_byFzsc):
+#     print('top_cond mismatch from FdFF and Fzsc for ROIs: {}'.format(np.where(top_cond_byFdFF != top_cond_byFzsc)[0]))
+
+# for r in range(n_ROIs):
+#     # ROIinfo[r]['top_cat'] = data[top_cond_byFzsc[r]]['cat']
+#     # ROIinfo[r]['top_cond'] = data[top_cond_byFzsc[r]]['cond']
+#     ROIinfo[r]['top_cat'] = data[cond_idx[top_cond_byFzsc[r]]]['cat']
+#     ROIinfo[r]['top_cond'] = data[cond_idx[top_cond_byFzsc[r]]]['cond']
+#     ROIinfo[r]['top_cond_FdFF'] = top_meantstim_FdFF[r]
+#     ROIinfo[r]['top_cond_Fzsc'] = top_meantstim_Fzsc[r]
+#     ROIinfo[r]['FSI_byFdFF'] = FSI['FdFF'][r]
+#     ROIinfo[r]['FSI_byFzsc'] = FSI['Fzsc'][r]
 
 # Determine for each ROI which condition (image) elicited the largest response
-
-above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+m = 'Fzsc'
+# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 # TODO THIS SHOULD NOT BE HARD CODED
 at_sortidx = (-np.mean(data[cond_idx[0:19]]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1))[above_threshold]).argsort()
 
@@ -1822,13 +1824,14 @@ del m
 # plt.show()
 
 # Determine for each ROI the category of the condition (image) that elicited the largest response
-# top_cat_id = [np.argwhere(categories == ROIinfo[rat]['top_cat'])[0][0] for rat in above_threshold]
-top_cat_id = [np.argwhere(categories == ROIinfo[r]['top_cat'])[0][0] for r in range(n_ROIs)]
-# top_cat_idn = np.divide(top_cat_id, len(categories))
+# top_cat_id = [np.argwhere(categories == ROIinfo[r]['top_cat'])[0][0] for r in range(n_ROIs)]
+m = 'Fzsc'
+top_cat_id = [np.argwhere(categories == ROI_stats_df[m]['peak_cat'][r])[0][0] for r in range(n_ROIs)]
 top_cat_idn = np.divide(top_cat_id, len(cat_subset))
 
 # Plot for each ROI the category of the condition (image) eliciting the largest response
-above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -1837,7 +1840,7 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
                         title='category of the condition (image) eliciting the largest response, z > 0.5', save_path=sp)
 
 # Plot for each ROI the category of the condition (image) eliciting the largest response
-above_threshold = np.where(np.abs(FSI['Fzsc']) > threshold_fsi)[0]
+above_threshold = np.where(np.abs(FSI[m]) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -1864,7 +1867,8 @@ top_cat_mean_idn = np.divide(top_cat_mean_id, len(cat_subset))
 
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs 
 # with at least one stimulus period z-score > 0.5
-above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 fhm = plt.figure()
 plt.xlabel('Image Category')
 plt.ylabel('ROI')
@@ -1886,7 +1890,8 @@ if saving:
 
 
 # Plot for each ROI the category eliciting the largest average response
-above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -1896,7 +1901,7 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
 
 # Plot for each ROI the category eliciting the largest average response
 # for only ROIs with FSI > threshold
-above_threshold = np.where(np.abs(FSI['Fzsc']) > threshold_fsi)[0]
+above_threshold = np.where(np.abs(FSI[m]) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -1910,9 +1915,9 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
 
 # TODO make this more dynamic
 
-Fzsc_fob = np.array([muR_F['Fzsc'],
-                     muR_NFobj['Fzsc'],
-                     muR_B['Fzsc']]).swapaxes(0, 1)
+Fzsc_fob = np.array([muR_F[m],
+                     muR_NFobj[m],
+                     muR_B[m]]).swapaxes(0, 1)
 
 # Subtract the response to the least-tuned category to make it relative
 # (otherwise, an ROI that responds to all categories would show up as white)
@@ -1924,14 +1929,15 @@ max_Fzsc = 0.5
 Fzsc_fob_norm = Fzsc_fob / max_Fzsc
 Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
 
-above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
+above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], Fzsc_fob_norm[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, z > 0.5', save_path=sp)
 
-above_threshold = np.where(FSI['Fzsc'] > threshold_fsi)[0]
+above_threshold = np.where(FSI[m] > threshold_fsi)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], Fzsc_fob_norm[above_threshold],
