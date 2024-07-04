@@ -1353,66 +1353,7 @@ for t in template:
         tickinfo.pop(ts)
 
 
-# # Plot heatmap of mean responses to all presented conditions (images) for ROIs
-# # with at least one stimulus period z-score > 0.5
-# fig_hm = plt.figure()
-# plt.xlabel('Image')
-# plt.ylabel('ROI')
-# ax = plt.gca()
-# xtick_majors = []
-# xtick_majorlabels = []
-# xtick_minors = []
-# xtick_minorlabels = []
-# for i, t in enumerate(tickinfo):
-#     ti = tickinfo[t]
-#     if ti['start'] == ti['end']:
-#         xtick_majors.append(ti['start'] + 0.5)
-#         xtick_majorlabels.append(ti['label'])
-#     elif ti['end'] > ti['start']:
-#         # https://stackoverflow.com/questions/13576805/matplotlib-hiding-specific-ticks-on-x-axis
-#         # if ti['end'] - ti['start'] > 10:
-#         #     # some logic here to create a tick and hide it 
-#         #     xtmn = ax.xaxis.get_minor_ticks()
-#         #     xtmn[3].label1.set_visible(False)
-#         xtick_majors.append(ti['start'] + 0.5)
-#         xtick_majorlabels.append(None)
-#         xtick_minors.append(ti['labelpos'] + 0.5)
-#         xtick_minorlabels.append(ti['label'])
-#         if i == len(tickinfo) - 1:
-#             xtick_majors.append(ti['end'] + 0.5)
-#             xtick_majorlabels.append(None)
-#     else:
-#         warn('Heatmap plot tick issue for category {}'.format(ti))
-# ax.set_xticks(xtick_majors)
-# ax.set_xticklabels(xtick_majorlabels)
-# ax.set_xticks(xtick_minors, minor=True)
-# ax.set_xticklabels(xtick_minorlabels, minor=True)
-# plt.setp(ax.xaxis.get_majorticklabels(), rotation=90)
-# ax.tick_params(which='minor', length=0)
-# # plt.imshow(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold],
-# #            vmin=0.5-0.0001, vmax=0.5+0.0001, aspect='auto', cmap='gray', interpolation='none')
-# # plt.imshow(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold[at_sortidx]],
-# #            vmin=-1.0, vmax=1.0,
-# #            aspect='auto', cmap='bwr', interpolation='none')
-# plt.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[above_threshold],
-#            vmin=-1.0, vmax=1.0,
-#            aspect='auto', cmap='bwr', interpolation='none')
-# ax.invert_yaxis()
-# # ax = plt.gca()
-# # ax.axvline(x=20)
-# cbar = plt.colorbar()
-# # cbar.ax.set_yticks(['0','1','2','>3'])
-# # cbar.ax.set_yticklabels(['0','1','2','>3'])
-# cbar.set_label('mean Zscore across stimulus period')
-# fig_hm.tight_layout()
-# fig_hm.show()
-# if saving:
-#     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace_threshZgt0p5' + save_ext),
-#                 dpi=dpi, transparent=True)
-
-
 # Plot the data
-
 
 # Define a subset of ROIs to plot.
 n_plot_ROIs = 9
@@ -1830,55 +1771,6 @@ plots.plot_roi_overlays(ROIs[above_threshold], Fzsc_fob_norm[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, FSI > {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
-
-#
-# OLD VERSION OF CONTINUOUS PLOT
-# Fzsc_for_plot_bfo = np.array([Fzsc_allbodies_meanRstimall,
-#                               Fzsc_allfaces_meanRstimall,
-#                               Fzsc_allobjs_meanRstimall]).swapaxes(0, 1)
-
-
-# # % Plot tuned cells with continuous tuning-wheel
-
-# # parameters
-# RGB_multiplier = 2.5
-# plotting_threshold_continuous = 0 # 0.25
-
-# # Fzsc_for_plot_continuous = copy.deepcopy(Fzsc_by_cat_meanRstimallnorm)
-# Fzsc_for_plot_continuous = copy.deepcopy(Fzsc_for_plot_bfo)
-
-# # Subtract the response to the least-tuned category to make it relative
-# # (otherwise, an ROI that responds to all categories would show up as white)
-# Fzsc_least_tuned = np.min(Fzsc_for_plot_continuous, axis=1)
-# for col_i in range(3):
-#     Fzsc_for_plot_continuous[:, col_i] = Fzsc_for_plot_continuous[:, col_i] - Fzsc_least_tuned
-
-# Fzsc_for_plot_continuous[Fzsc_for_plot_continuous > 1] = 1  # Cap the RGB values to 1
-# Fzsc_for_plot_continuous = Fzsc_for_plot_continuous * RGB_multiplier  # This highlights ROIs with less tuning, at the expense of dynamic range
-# # Fzsc_for_plot_continuous[:, [0, 1, 2]] = Fzsc_for_plot_continuous[:, [key_bodies,
-# #                                                                       key_faces,
-# #                                                                       key_objs]]  # Swap orders to change colors.
-
-# # TODO : fix this because it gives more than the number stated as 
-# thresholding_logical_vector_continuous = np.max(Fzsc_for_plot_continuous,
-#                                                 axis=1) > plotting_threshold_continuous  # Threshold so we don't plot un-tuned neurons (particularly important if using RGB_multiplier > 1)
-# # thresholding_logical_vector_continuous = ROIs_tuned_idx
-
-# ROIs_for_plot_continuous = ROIs[thresholding_logical_vector_continuous]
-# Fzsc_for_plot_continuous = Fzsc_for_plot_continuous[thresholding_logical_vector_continuous]
-
-
-# plots.plot_roi_overlays(ROIs_for_plot_continuous, 
-#                         Fzsc_for_plot_continuous,
-#                         size=fov_size, 
-#                         image=fov_image, 
-#                         save_path=save_path)
-
-# # plot_ROIs_RGB(ROIs_for_plot_continuous, Fzsc_for_plot_continuous,
-# #               size=fov_size, image=fov_image, title=title_str, save_path=save_path)
-
-# # plot_ROIs_RGB(ROIs_for_plot_continuous, Fzsc_for_plot_continuous,
-# #               size=fov_size, image=fov_image, save_path=r'F:\Sync\Transient\Science\Conferences\20231111d-20231115d_SocietyForNeuroscience_AnnualMeeting_WashingtonDC\media')
 
 
 # % Plot stimulus images
