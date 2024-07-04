@@ -30,11 +30,18 @@ import plots
 
 # %% Settings
 
-# FSI threshold based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci (https://doi.org/10.1038/nn.2363):
-# [...] neurons (94%) were face selective (that is, face-selectivity index
-# larger than 1/3 or smaller than -1/3, dotted lines).
+# FSI threshold 
+# based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci (https://doi.org/10.1038/nn.2363):
+# """
+# For |face-selectivity index| = 1/3, that is, if the response to faces was at least twice (or 
+# at most half) that of nonface objects, a cell was classed as being face selective.
+# [...] neurons (94%) were face selective (that is, face-selectivity index larger than 1/3 or 
+# smaller than -1/3).
+# """
 threshold_fsi = 1 / 3
-# dprime_F threshold based on Shi et al Tsao bioRxiv (Fig 1g, https://doi.org/10.1101/2023.12.06.570341):
+
+# dprime_F threshold 
+# based on Shi et al Tsao bioRxiv (Fig 1g, https://doi.org/10.1101/2023.12.06.570341):
 # "The dotted vertical line marks d’ = 0.2, which we used as our threshold for identifying face-selective units."
 threshold_dprime = 0.2
 
@@ -1024,7 +1031,7 @@ for c in range(n_conds):
 categories = np.unique(data[:]['cat'])
 n_cats = len(categories)
 conditions = np.unique(data[:]['cond'])
-condition_inds = {c: i for i, c in enumerate(data['cond'])}
+# condition_inds = {c: i for i, c in enumerate(data['cond'])}
 
 if n_conds != conditions.shape[0]:
     u, c = np.unique(data[:]['cond'], return_counts=True)
@@ -1080,16 +1087,6 @@ plt.show()
 del xs, xticks, xticklabels
 
 
-# % Calculate tuning properties for each ROI (i.e. compute face selectivity index)
-# ? ? ? and find preferred face(s)?
-#
-# # FSI = (meanR_faces – meanR_nonfaceobj) / (meanR_faces + meanR_nonfaceobj)
-# based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci https://doi.org/10.1038/nn.2363
-# A face selectivity index was then computed as the ratio between difference
-# and sum of face- and object-related responses. For
-# |face-selectivity index| = 1/3, that is, if the response to faces was at
-# least twice (or at most half) that of nonface objects, a cell was classed
-# as being face selective [45–47].
 
 
 # TODO: check for NaN values rather than using nanmean?
