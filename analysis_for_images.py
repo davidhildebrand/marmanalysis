@@ -1324,8 +1324,6 @@ cond_idx = np.array([np.where(data['cond'] == cond)[0][0] for cond in cond_names
 # Determine for each ROI which condition (image) elicited the largest response
 m = 'Fzsc'
 above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
-# TODO THIS SHOULD NOT BE HARD CODED
-# at_sortidx = (-np.mean(data[cond_idx[0:19]]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1))[above_threshold]).argsort()
 at_sortidx = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)[above_threshold]).argsort()
 
 
