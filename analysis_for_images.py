@@ -1716,27 +1716,6 @@ if saving:
 del m
 
 
-# # Plot sorted heatmap of mean responses to all presented conditions (images) for ROIs 
-# # with at least one stimulus period z-score > 0.5
-# sortidx = np.argsort(Fzsc_allfaces_meanRstimall - Fzsc_allobjs_meanRstimall - Fzsc_allbodies_meanRstimall)
-# plt.xlabel('Image')
-# plt.ylabel('ROI')
-# ax = plt.gca()
-# ax.set_xticks([20, 40])
-# ax.set_xticklabels([None, None])
-# ax.set_xticks([10, 30, 50], minor=True)
-# ax.set_xticklabels(['faces', 'objects', 'bodies'], minor=True)
-# xticks = ax.xaxis.get_major_ticks()
-# ax.tick_params(which='minor', length=0)
-# plt.imshow(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[sortidx][above_threshold], 
-#            vmin=-1.0, vmax=1.0, 
-#            aspect='auto', cmap='bwr', interpolation='none')
-# cbar = plt.colorbar()
-# # cbar.ax.set_yticks(['0','1','2','>3'])
-# # cbar.ax.set_yticklabels(['0','1','2','>3'])
-# cbar.set_label('mean Zscore across stimulus period')
-# plt.show()
-
 # Determine for each ROI the category of the condition (image) that elicited the largest response
 m = 'Fzsc'
 top_cat_id = [np.argwhere(categories == ROI_stats_df[m]['peak_cat'][r])[0][0] for r in range(n_ROIs)]
