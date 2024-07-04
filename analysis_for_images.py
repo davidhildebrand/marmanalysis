@@ -1485,7 +1485,7 @@ fig = plt.figure()
 fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 m = 'Fzsc'
 focus_cat = b'face_mrm'
-bool_focuscat = data['cat'] == focus_cat
+bool_focuscat = (data['cat'] == focus_cat)
 stims = data[bool_focuscat]['stimulus']
 stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
 sortedstims = stims[stimconds]
@@ -1502,7 +1502,7 @@ for r in range(n_plot_ROIs):
         ax = axes[0, 0]
         ax.axis('off')
         for cnd in range(20):
-            bool_cnd = data['cond'] == sortedstims[cnd].condition
+            bool_cnd = (data['cond'] == sortedstims[cnd].condition)
             ax = axes[0, cnd + 1]
             ax.axis('off')
             ax.imshow(mpimg.imread(data[bool_cnd]['stimulus'][0].filepath))
@@ -1530,7 +1530,7 @@ for r in range(n_plot_ROIs):
     ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cat in range(n_cats):
-        bool_cat = data['cat'] == categories[cat]
+        bool_cat = (data['cat'] == categories[cat])
         Fmean = np.mean(data[bool_cat][m][:, ridx, :, :], axis=(0, 1))
         Fsem = np.std(data[bool_cat][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
@@ -1539,7 +1539,7 @@ for r in range(n_plot_ROIs):
 
     # Plot each cond
     for cnd in range(n_cnd_in_fcat):
-        bool_cnd = data['cond'] == sortedstims[cnd].condition
+        bool_cnd = (data['cond'] == sortedstims[cnd].condition)
         ax = axes[pr, cnd + 1]
         ax.axis('off')
         ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
@@ -1562,7 +1562,7 @@ fig = plt.figure()
 fig.suptitle('trial-averaged heat maps by condition', fontsize=8)
 m = 'Fzsc'
 focus_cat = b'face_mrm'
-bool_focuscat = data['cat'] == focus_cat
+bool_focuscat = (data['cat'] == focus_cat)
 stims = data[bool_focuscat]['stimulus']
 stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
 sortedstims = stims[stimconds]
@@ -1574,7 +1574,7 @@ pr = 0
 ax = axes[pr, 0]
 ax.axis('off')
 for cnd in range(20):
-    bool_cnd = data['cond'] == sortedstims[cnd].condition
+    bool_cnd = (data['cond'] == sortedstims[cnd].condition)
     ax = axes[pr, cnd + 1]
     ax.axis('off')
     img_st = ax.imshow(mpimg.imread(data[bool_cnd]['stimulus'][0].filepath))
@@ -1605,7 +1605,7 @@ if threshold_dprime is not None:
                       color='0.2', linestyle='dotted', linewidth=1)
 
 for cnd in range(n_cnd_in_fcat):
-    bool_cnd = data['cond'] == sortedstims[cnd].condition
+    bool_cnd = (data['cond'] == sortedstims[cnd].condition)
     ax = axes[pr, cnd + 1]
     ax.axis('off')
     img_hm = ax.imshow(np.mean(data[bool_cnd][m][0, :, :, :], axis=1)[sort_idx_dprime[m]],
