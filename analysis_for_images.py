@@ -1608,7 +1608,7 @@ for cnd in range(n_cnd_in_fcat):
     bool_cnd = (data['cond'] == sortedstims[cnd].condition)
     ax = axes[pr, cnd + 1]
     ax.axis('off')
-    img_hm = ax.imshow(np.mean(data[bool_cnd][m][0, :, :, :], axis=1)[sort_idx_dprime[m]],
+    img_hm = ax.imshow(np.mean(data[bool_cnd][m].squeeze(), axis=1)[sort_idx_dprime[m]],
                        vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
     xlines = [dur_isi * fr, (dur_isi + dur_stim) * fr]
     for xl in xlines:
