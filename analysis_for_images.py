@@ -1181,9 +1181,8 @@ del met
 
 FSI = {}
 for met in metrics:
-    FSI[met] = np.full(n_ROIs, np.nan)
-    
-    # FSI[met] = (mu_F - mu_NFobj) / (mu_F + mu_NFobj)
+    FSI[met] = []
+
     bool_same = (np.sign(muR_F[met]) == np.sign(muR_NFobj[met]))
     FSI[met][bool_same] = (muR_F[met][bool_same] - muR_NFobj[met][bool_same]) / \
         (muR_F[met][bool_same] + muR_NFobj[met][bool_same])
@@ -1584,7 +1583,7 @@ for r in range(n_plot_ROIs):
         Fsem = np.std(data[bool_cnd][met][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
-del xs, bool_cat, bool_cnd
+del met, xs, bool_cat, bool_cnd
 plt.show()
 
 
@@ -1646,12 +1645,13 @@ for cnd in range(n_cnd_in_fcat):
     for xl in xlines:
         ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.6')
 
-del bool_cnd
+del met, bool_cnd
 plt.show()
 
 
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs
 # with at least one stimulus period z-score > 0.5
+met = 'Fzsc'
 # fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
 fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
 plt.subplots_adjust(wspace=0.05)
@@ -1744,9 +1744,7 @@ fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
                    dpi=dpi, transparent=True)
-
-
-
+del met
 
 
 # # Plot sorted heatmap of mean responses to all presented conditions (images) for ROIs 
@@ -1858,10 +1856,10 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
 # Plot relative response strength
 
 # TODO make this more dynamic
-met = 'Fzsc'
-Fzsc_fob = np.array([muR_F[met],
-                     muR_NFobj[met],
-                     muR_B[met]]).swapaxes(0, 1)
+
+Fzsc_fob = np.array([muR_F['Fzsc'],
+                     muR_NFobj['Fzsc'],
+                     muR_B['Fzsc']]).swapaxes(0, 1)
 
 # Subtract the response to the least-tuned category to make it relative
 # (otherwise, an ROI that responds to all categories would show up as white)
