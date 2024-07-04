@@ -494,6 +494,8 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 # though more structured responses (e.g. multiple decay time constants) can also be modeled with higher values for
 # the order p."
 
+# import oasis
+
 # n_plot_ROIs = 1
 # n_samp_inspect = 1000
 # plot_ROIs = np.random.choice(n_ROIs, n_plot_ROIs)
