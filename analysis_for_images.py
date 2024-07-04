@@ -1087,8 +1087,6 @@ plt.show()
 del xs, xticks, xticklabels
 
 
-
-
 # TODO: check for NaN values rather than using nanmean?
 # if np.any(np.isnan(volume)):
 #     raise Exception('NaNs found in preprocessed volume.')
@@ -1110,6 +1108,7 @@ bool_NFobj = np.logical_or.reduce([data['cat'] == fc for fc in categories
 bool_B = np.logical_or.reduce([data['cat'] == fc for fc in categories 
                                if 'body' in fc.decode() 
                                and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
+
 
 # Calculate R across-stimulus, trial-averaged mean responses
 muR_F = {}
@@ -1133,10 +1132,6 @@ for met in metrics:
     # Calculate across-stimulus mean responses.
     #   Note that the ordering of mean calculations matters here because the mean of a set is only the
     #   same as the mean of the mean of subsets if the subsets share the same sample size.
-    # muR_F[met] = np.mean(data[bool_F][met][:, :, :, idx_stim], axis=(0, 2, 3))
-    # muR_NF[met] = np.mean(data[bool_NF][met][:, :, :, idx_stim], axis=(0, 2, 3))
-    # muR_NFobj[met] = np.mean(data[bool_NFobj][met][:, :, :, idx_stim], axis=(0, 2, 3))
-    # muR_B[met] = np.mean(data[bool_B][met][:, :, :, idx_stim], axis=(0, 2, 3))
     muR_F[met] = np.mean(np.mean(data[bool_F][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_NF[met] = np.mean(np.mean(data[bool_NF][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_NFobj[met] = np.mean(np.mean(data[bool_NFobj][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
@@ -1150,6 +1145,7 @@ for met in metrics:
     sigma_NFobj[met] = np.std(np.mean(data[bool_NFobj][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     sigma_B[met] = np.std(np.mean(data[bool_B][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 del met
+
 
 # Calculate face discriminability index d′
 # based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
@@ -1170,6 +1166,7 @@ for met in metrics:
     dprime[met] = (muR_F[met] - muR_NF[met]) / np.sqrt((sigma_F[met]**2 + sigma_NF[met]**2) / 2)
     sort_idx_dprime[met] = np.argsort(dprime[met])[::-1]
 del met
+
 
 # Calculate face selectivity index (FSI)
 # based on Freiwald and Tsao 2010 Science https://doi.org/10.1126/science.1194908
@@ -1196,24 +1193,21 @@ for met in metrics:
     FSI[met][bool_FnegNFpos] = -1.0
 del met, bool_same, bool_FposNFneg, bool_FnegNFpos
 
-    
+
+# Calculate stimulus response vectors for each ROI
 # conds_in_cat = {cat: data[data['cat'] == cat]['cond'] for cat in template.tolist()}
 # cond_inds_in_cat = {cat: [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()] 
 #                     for cat in template.tolist()
 #                     if [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()]}
-
 cond_resp_vect_zsc = np.mean(data['Fzsc'][:, :, :, idx_stim], axis=(2,3)).transpose()
 cond_resp_vect_dFF = np.mean(data['FdFF'][:, :, :, idx_stim], axis=(2,3)).transpose()
-# cat_resp_vects_zsc = np.array([np.mean(data[cond_inds_in_cat[c]]['Fzsc'][:, :, :, idx_stim], axis=(0, 2, 3)) 
-#                                for c in categories]).transpose()
-# cat_resp_vects_dFF = np.array([np.mean(data[cond_inds_in_cat[c]]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3)) 
-#                                for c in categories]).transpose()
 cat_resp_vects_zsc = np.array([np.mean(data[data['cat'] == c]['Fzsc'][:, :, :, idx_stim], axis=(0, 2, 3)) 
                                for c in categories]).transpose()
 cat_resp_vects_dFF = np.array([np.mean(data[data['cat'] == c]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3)) 
                                for c in categories]).transpose()
 
 
+# Store response values and tuning metrics for each ROI
 ROI_metrics = {}
 for r in range(n_ROIs):
     ROI_metrics[r] = {}
@@ -1239,8 +1233,6 @@ for r in range(n_ROIs):
     ROI_metrics[r]['fsi_dFF'] = FSI['FdFF'][r]
 del r
 
-
-
 ROI_metrics_df = pd.DataFrame({'roi': range(n_ROIs),
                                'peak_cond': None,
                                'peak_cond_zsc': None,
@@ -1258,6 +1250,7 @@ ROI_metrics_df = pd.DataFrame({'roi': range(n_ROIs),
                                'cat_resp_vect': None,
                                'cat_resp_vect_dFF': None})
 ROI_metrics_df.set_index(['roi'])
+
 for r in range(n_ROIs):
     ROI_metrics_df.at[r, 'cond_resp_vect'] = np.mean(data['Fzsc'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
     ROI_metrics_df.at[r, 'cond_resp_vect_dFF'] = np.mean(data['FdFF'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
@@ -1283,15 +1276,7 @@ del r, tmp_peak_cond, tmp_peak_cat
 del cond_resp_vect_zsc, cond_resp_vect_dFF, cat_resp_vects_zsc, cat_resp_vects_dFF
 
 
-# % Define ROIs as tuned or untuned using the FSI
-
-# based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci https://doi.org/10.1038/nn.2363
-# A face selectivity index was then computed as the ratio between difference
-# and sum of face- and object-related responses. For
-# |face-selectivity index| = 1/3, that is, if the response to faces was at
-# least twice (or at most half) that of nonface objects, a cell was classed
-# as being face selective45–47.
-
+# Output information about ROI tuning based on defined thresholds
 print('|FSI| threshold: {}'.format(threshold_fsi))
 tunidx_fsi = FSI['Fzsc']
 tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
@@ -1303,12 +1288,11 @@ del ROIs_tuned_idx, n_ROIs_tuned
 
 # TODO regorganize
 
-# Plot histograms
+# Plot ROI tuning histograms
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromFdFF' + save_ext) if saving else ''
 plots.plot_hist_fsi(FSI['FdFF'], threshold=threshold_fsi, title='FSIs calculated from FdFF values', save_path=sp)
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromZscr' + save_ext) if saving else ''
 plots.plot_hist_fsi(FSI['Fzsc'], threshold=threshold_fsi, title='FSIs calculated from z-scored values', save_path=sp)
-
 
 sp = os.path.join(save_path, save_pfix + '_Histogram_dprimes_fromFzsc' + save_ext) if saving else ''
 plots.plot_hist_dprime(dprime['Fzsc'], threshold=threshold_dprime, title='dprimes calculated from Fzsc values', save_path=sp)
