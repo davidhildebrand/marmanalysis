@@ -1040,8 +1040,7 @@ if n_conds != conditions.shape[0]:
     del u, c, mult
 
 
-# % Plot population mean response (similar to PSTH)
-
+# Plot population mean response (similar to PSTH)
 fr = md['framerate']
 fig_psth = plt.figure()
 fig_psth.suptitle('mean population response (across all ROIs) by category')
@@ -1050,11 +1049,11 @@ if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
-for m, met in enumerate(metrics):
-    ymin = np.min(np.array([np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)) for cat in range(n_cats)]))
-    ymax = np.max(np.array([np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)) for cat in range(n_cats)]))
-    ax = axes[m]
-    ax.set_ylabel(metric_labels[met])
+for mi, m in enumerate(metrics):
+    ymin = np.min(np.array([np.mean(data[data['cat'] == categories[c]][m], axis=(0, 1, 2)) for c in range(n_cats)]))
+    ymax = np.max(np.array([np.mean(data[data['cat'] == categories[c]][m], axis=(0, 1, 2)) for c in range(n_cats)]))
+    ax = axes[mi]
+    ax.set_ylabel(metric_labels[m])
     ax.tick_params(axis='both', which='major', labelsize=8)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -1067,23 +1066,24 @@ for m, met in enumerate(metrics):
     ax.set_xlim((0, np.ceil(dur_trial) * fr))
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.plot(xs,
-            np.mean(data[met], axis=(0, 1, 2)), 
+            np.mean(data[m], axis=(0, 1, 2)), 
             label='All', 
             color='0', linestyle='dotted', linewidth=1, zorder=4)
     for cat in range(n_cats):
         n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
-        # Fmean = np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2))
-        # Fsem = np.std(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)) / np.sqrt(n_ROIs)
+        # Fmean = np.mean(data[data['cat'] == categories[cat]][m], axis=(0, 1, 2))
+        # Fsem = np.std(data[data['cat'] == categories[cat]][m], axis=(0, 1, 2)) / np.sqrt(n_ROIs)
         ax.plot(xs,
-                np.mean(data[data['cat'] == categories[cat]][met], axis=(0, 1, 2)),
+                np.mean(data[data['cat'] == categories[cat]][m], axis=(0, 1, 2)),
                 'o-', markersize=2,
                 label=template_labels[categories[cat]], 
                 color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), zorder=3)
         # ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
         #                 color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.2, zorder=2)
+    del cat
     ax.legend(fontsize=4, frameon=False, loc=(.02, .7))
 plt.show()
-del xs, xticks, xticklabels
+del mi, m, xs, xticks, xticklabels
 
 
 # TODO: check for NaN values rather than using nanmean?
@@ -1118,32 +1118,32 @@ sigma_F = {}
 sigma_NF = {}
 sigma_NFobj = {}
 sigma_B = {}
-for met in metrics:
-    muR_F[met] = np.full(n_ROIs, np.nan)
-    muR_NF[met] = np.full(n_ROIs, np.nan)
-    muR_NFobj[met] = np.full(n_ROIs, np.nan)
-    muR_B[met] = np.full(n_ROIs, np.nan)
-    sigma_F[met] = np.full(n_ROIs, np.nan)
-    sigma_NF[met] = np.full(n_ROIs, np.nan)
-    sigma_NFobj[met] = np.full(n_ROIs, np.nan)
-    sigma_B[met] = np.full(n_ROIs, np.nan)
+for m in metrics:
+    muR_F[m] = np.full(n_ROIs, np.nan)
+    muR_NF[m] = np.full(n_ROIs, np.nan)
+    muR_NFobj[m] = np.full(n_ROIs, np.nan)
+    muR_B[m] = np.full(n_ROIs, np.nan)
+    sigma_F[m] = np.full(n_ROIs, np.nan)
+    sigma_NF[m] = np.full(n_ROIs, np.nan)
+    sigma_NFobj[m] = np.full(n_ROIs, np.nan)
+    sigma_B[m] = np.full(n_ROIs, np.nan)
 
     # Calculate across-stimulus mean responses.
     #   Note that the ordering of mean calculations matters here because the mean of a set is only the
     #   same as the mean of the mean of subsets if the subsets share the same sample size.
-    muR_F[met] = np.mean(np.mean(data[bool_F][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    muR_NF[met] = np.mean(np.mean(data[bool_NF][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    muR_NFobj[met] = np.mean(np.mean(data[bool_NFobj][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    muR_B[met] = np.mean(np.mean(data[bool_B][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_F[m] = np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_NF[m] = np.mean(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_NFobj[m] = np.mean(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_B[m] = np.mean(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 
     # Calculate across-stimulus standard deviation.
     #   Take the mean across trials and frames (okay because same n_samp_stim in each), 
     #   then take std across stimulus conditions.
-    sigma_F[met] = np.std(np.mean(data[bool_F][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    sigma_NF[met] = np.std(np.mean(data[bool_NF][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    sigma_NFobj[met] = np.std(np.mean(data[bool_NFobj][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    sigma_B[met] = np.std(np.mean(data[bool_B][met][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-del met
+    sigma_F[m] = np.std(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_NF[m] = np.std(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_NFobj[m] = np.std(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_B[m] = np.std(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+del m
 
 
 # Calculate face discriminability index d′
@@ -1159,12 +1159,12 @@ del met
 
 dprime = {}
 sort_idx_dprime = {}
-for met in metrics:
-    dprime[met] = []
-    sort_idx_dprime[met] = []
-    dprime[met] = (muR_F[met] - muR_NF[met]) / np.sqrt((sigma_F[met]**2 + sigma_NF[met]**2) / 2)
-    sort_idx_dprime[met] = np.argsort(dprime[met])[::-1]
-del met
+for m in metrics:
+    dprime[m] = []
+    sort_idx_dprime[m] = []
+    dprime[m] = (muR_F[m] - muR_NF[m]) / np.sqrt((sigma_F[m]**2 + sigma_NF[m]**2) / 2)
+    sort_idx_dprime[m] = np.argsort(dprime[m])[::-1]
+del m
 
 
 # Calculate face selectivity index (FSI)
@@ -1179,17 +1179,18 @@ del met
 # """
 
 FSI = {}
-for met in metrics:
-    FSI[met] = []
+for m in metrics:
+    FSI[m] = np.full(n_ROIs, np.nan)
 
-    bool_same = (np.sign(muR_F[met]) == np.sign(muR_NFobj[met]))
-    FSI[met][bool_same] = (muR_F[met][bool_same] - muR_NFobj[met][bool_same]) / \
-        (muR_F[met][bool_same] + muR_NFobj[met][bool_same])
-    bool_FposNFneg = (np.sign(muR_F[met]) > np.sign(muR_NFobj[met]))
-    FSI[met][bool_FposNFneg] = 1.0
-    bool_FnegNFpos = (np.sign(muR_F[met]) < np.sign(muR_NFobj[met]))
-    FSI[met][bool_FnegNFpos] = -1.0
-del met, bool_same, bool_FposNFneg, bool_FnegNFpos
+    bool_same = (np.sign(muR_F[m]) == np.sign(muR_NFobj[m]))
+    bool_FposNFneg = (np.sign(muR_F[m]) > np.sign(muR_NFobj[m]))
+    bool_FnegNFpos = (np.sign(muR_F[m]) < np.sign(muR_NFobj[m]))
+    
+    FSI[m][bool_same] = (muR_F[m][bool_same] - muR_NFobj[m][bool_same]) / \
+        (muR_F[m][bool_same] + muR_NFobj[m][bool_same])
+    FSI[m][bool_FposNFneg] = 1.0
+    FSI[m][bool_FnegNFpos] = -1.0
+del m, bool_same, bool_FposNFneg, bool_FnegNFpos
 
 
 # Calculate stimulus response vectors for each ROI
@@ -1197,81 +1198,134 @@ del met, bool_same, bool_FposNFneg, bool_FnegNFpos
 # cond_inds_in_cat = {cat: [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()] 
 #                     for cat in template.tolist()
 #                     if [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()]}
-cond_resp_vect_zsc = np.mean(data['Fzsc'][:, :, :, idx_stim], axis=(2,3)).transpose()
-cond_resp_vect_dFF = np.mean(data['FdFF'][:, :, :, idx_stim], axis=(2,3)).transpose()
-cat_resp_vects_zsc = np.array([np.mean(data[data['cat'] == c]['Fzsc'][:, :, :, idx_stim], axis=(0, 2, 3)) 
-                               for c in categories]).transpose()
-cat_resp_vects_dFF = np.array([np.mean(data[data['cat'] == c]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3)) 
-                               for c in categories]).transpose()
+cond_resp_vect = {}
+cat_resp_vect = {}
+for m in metrics:
+    cond_resp_vect[m] = np.mean(data[m][:, :, :, idx_stim], axis=(2,3)).transpose()
+    cat_resp_vect[m] = np.array([np.mean(data[data['cat'] == c][m][:, :, :, idx_stim], axis=(0, 2, 3)) 
+                                 for c in categories]).transpose()
+del m
+
+# cond_resp_vect_zsc = np.mean(data['Fzsc'][:, :, :, idx_stim], axis=(2,3)).transpose()
+# cond_resp_vect_dFF = np.mean(data['FdFF'][:, :, :, idx_stim], axis=(2,3)).transpose()
+# cat_resp_vects_zsc = np.array([np.mean(data[data['cat'] == c]['Fzsc'][:, :, :, idx_stim], axis=(0, 2, 3)) 
+#                                for c in categories]).transpose()
+# cat_resp_vects_dFF = np.array([np.mean(data[data['cat'] == c]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3)) 
+#                                for c in categories]).transpose()
 
 
 # Store response values and tuning metrics for each ROI
-ROI_metrics = {}
-for r in range(n_ROIs):
-    ROI_metrics[r] = {}
-
-    ROI_metrics[r]['cond_resp_vect'] = cond_resp_vect_zsc[r]
-    ROI_metrics[r]['cond_resp_vect_dFF'] = cond_resp_vect_dFF[r]
-    ROI_metrics[r]['peak_cond_idx'] = ROI_metrics[r]['cond_resp_vect'].argmax()
-    ROI_metrics[r]['peak_cond'] = conditions[ROI_metrics[r]['peak_cond_idx']]
-    ROI_metrics[r]['peak_cond_zsc'] = ROI_metrics[r]['cond_resp_vect'].max()
-    ROI_metrics[r]['peak_cond_dFF'] = ROI_metrics[r]['cond_resp_vect_dFF'][ROI_metrics[r]['peak_cond_idx']]
-    ROI_metrics[r]['cat_of_peak_cond'] = data[data['cond'] == ROI_metrics[r]['peak_cond']]['cat']
-
-    ROI_metrics[r]['cat_resp_vect'] = cat_resp_vects_zsc[r]
-    ROI_metrics[r]['cat_resp_vect_dFF'] = cat_resp_vects_dFF[r]
-    ROI_metrics[r]['peak_cat_idx'] = ROI_metrics[r]['cat_resp_vect'].argmax()
-    ROI_metrics[r]['peak_cat'] = categories[ROI_metrics[r]['peak_cat_idx']]
-    ROI_metrics[r]['peak_cat_zsc'] = ROI_metrics[r]['cat_resp_vect'].max()
-    ROI_metrics[r]['peak_cat_dFF'] = ROI_metrics[r]['cat_resp_vect_dFF'][ROI_metrics[r]['peak_cat_idx']]
+ROI_stats = {}
+for m in metrics:
+    ROI_stats[m] = {}
+    for r in range(n_ROIs):
+        ROI_stats[m][r] = {}
     
-    ROI_metrics[r]['dprime_f'] = dprime['Fzsc'][r]
-    ROI_metrics[r]['dprime_f_dFF'] = dprime['FdFF'][r]
-    ROI_metrics[r]['fsi'] = FSI['Fzsc'][r]
-    ROI_metrics[r]['fsi_dFF'] = FSI['FdFF'][r]
-del r
-
-ROI_metrics_df = pd.DataFrame({'roi': range(n_ROIs),
-                               'peak_cond': None,
-                               'peak_cond_zsc': None,
-                               'peak_cond_dFF': None,
-                               'cat_of_peak_cond': None,
-                               'peak_cat': None,
-                               'peak_cat_zsc': None,
-                               'peak_cat_dFF': None,
-                               'dprime_f': None,
-                               'dprime_f_dFF': None,
-                               'fsi': None,
-                               'fsi_dFF': None,
-                               'cond_resp_vect': None,
-                               'cond_resp_vect_dFF': None,
-                               'cat_resp_vect': None,
-                               'cat_resp_vect_dFF': None})
-ROI_metrics_df.set_index(['roi'])
-
-for r in range(n_ROIs):
-    ROI_metrics_df.at[r, 'cond_resp_vect'] = np.mean(data['Fzsc'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
-    ROI_metrics_df.at[r, 'cond_resp_vect_dFF'] = np.mean(data['FdFF'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
-    tmp_peak_cond = ROI_metrics_df.loc[r]['cond_resp_vect'].argmax()
-    ROI_metrics_df.at[r, 'peak_cond'] = conditions[tmp_peak_cond]
-    ROI_metrics_df.at[r, 'peak_cond_zsc'] = ROI_metrics_df.loc[r]['cond_resp_vect'].max()
-    ROI_metrics_df.at[r, 'peak_cond_dFF'] = ROI_metrics_df.loc[r]['cond_resp_vect_dFF'][tmp_peak_cond]
-    ROI_metrics_df.at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[tmp_peak_cond]]['cat']
-
-    ROI_metrics_df.at[r, 'cat_resp_vect'] = cat_resp_vects_zsc[r]
-    ROI_metrics_df.at[r, 'cat_resp_vect_dFF'] = cat_resp_vects_dFF[r]   
-    tmp_peak_cat = ROI_metrics_df.loc[r]['cat_resp_vect'].argmax()
-    ROI_metrics_df.at[r, 'peak_cat'] = categories[tmp_peak_cat]
-    ROI_metrics_df.at[r, 'peak_cat_zsc'] = ROI_metrics_df.loc[r]['cat_resp_vect'].max()
-    ROI_metrics_df.at[r, 'peak_cat_dFF'] = ROI_metrics_df.loc[r]['cat_resp_vect_dFF'][tmp_peak_cat]
+        ROI_stats[m][r]['cond_resp_vect'] = cond_resp_vect[m][r]
+        ROI_stats[m][r]['peak_cond_idx'] = ROI_stats[m][r]['cond_resp_vect'].argmax()
+        ROI_stats[m][r]['peak_cond'] = conditions[ROI_stats[m][r]['peak_cond_idx']]
+        ROI_stats[m][r]['peak_cond_val'] = ROI_stats[m][r]['cond_resp_vect'].max()
+        ROI_stats[m][r]['cat_of_peak_cond'] = data[data['cond'] == ROI_stats[m][r]['peak_cond']]['cat']
     
-    ROI_metrics_df.at[r, 'dprime_f'] = dprime['Fzsc'][r]
-    ROI_metrics_df.at[r, 'dprime_f_dFF'] = dprime['FdFF'][r]
-    ROI_metrics_df.at[r, 'fsi'] = FSI['Fzsc'][r]
-    ROI_metrics_df.at[r, 'fsi_dFF'] = FSI['FdFF'][r]
-del r, tmp_peak_cond, tmp_peak_cat
+        ROI_stats[m][r]['cat_resp_vect'] = cat_resp_vect[m][r]
+        ROI_stats[m][r]['peak_cat_idx'] = ROI_stats[m][r]['cat_resp_vect'].argmax()
+        ROI_stats[m][r]['peak_cat'] = categories[ROI_stats[m][r]['peak_cat_idx']]
+        ROI_stats[m][r]['peak_cat_val'] = ROI_stats[m][r]['cat_resp_vect'].max()
+        
+        ROI_stats[m][r]['dprime_f'] = dprime[m][r]
+        ROI_stats[m][r]['fsi'] = FSI[m][r]
+    del r
+del m
 
-del cond_resp_vect_zsc, cond_resp_vect_dFF, cat_resp_vects_zsc, cat_resp_vects_dFF
+ROI_stats_df = {}
+for m in metrics:
+    ROI_stats_df[m] = {}
+    
+    ROI_stats_df[m] = pd.DataFrame({'roi': range(n_ROIs),
+                                    'peak_cond': None,
+                                    'peak_cond_idx': None,
+                                    'peak_cond_val': None,
+                                    'cat_of_peak_cond': None,
+                                    'peak_cat': None,
+                                    'peak_cat_idx': None,
+                                    'peak_cat_val': None,
+                                    'dprime_f': None,
+                                    'fsi': None,
+                                    'cond_resp_vect': None,
+                                    'cat_resp_vect': None})
+    ROI_stats_df[m].set_index(['roi'])
+
+    for r in range(n_ROIs):
+        ROI_stats_df[m].at[r, 'cond_resp_vect'] = np.mean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
+        ROI_stats_df[m].at[r, 'peak_cond_idx'] = ROI_stats_df[m].loc[r]['cond_resp_vect'].argmax()
+        ROI_stats_df[m].at[r, 'peak_cond'] = conditions[ROI_stats_df[m].at[r, 'peak_cond_idx']]
+        ROI_stats_df[m].at[r, 'peak_cond_val'] = ROI_stats_df[m].loc[r]['cond_resp_vect'].max()
+        ROI_stats_df[m].at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[ROI_stats_df[m].at[r, 'peak_cond_idx']]]['cat']
+
+        ROI_stats_df[m].at[r, 'cat_resp_vect'] = cat_resp_vect[m][r]
+        ROI_stats_df[m].at[r, 'peak_cat_idx'] = ROI_stats_df[m].loc[r]['cat_resp_vect'].argmax()
+        ROI_stats_df[m].at[r, 'peak_cat'] = categories[ROI_stats_df[m].at[r, 'peak_cat_idx']]
+        ROI_stats_df[m].at[r, 'peak_cat_val'] = ROI_stats_df[m].loc[r]['cat_resp_vect'].max()
+        
+        ROI_stats_df[m].at[r, 'dprime_f'] = dprime[m][r]
+        ROI_stats_df[m].at[r, 'fsi'] = FSI[m][r]
+    del r
+del m
+    
+# ROI_stats_df = pd.DataFrame({'roi': range(n_ROIs),
+#                                'peak_cond': None,
+#                                'peak_cond_zsc': None,
+#                                'peak_cond_dFF': None,
+#                                'cat_of_peak_cond': None,
+#                                'peak_cat': None,
+#                                'peak_cat_zsc': None,
+#                                'peak_cat_dFF': None,
+#                                'dprime_f': None,
+#                                'dprime_f_dFF': None,
+#                                'fsi': None,
+#                                'fsi_dFF': None,
+#                                'cond_resp_vect': None,
+#                                'cond_resp_vect_dFF': None,
+#                                'cat_resp_vect': None,
+#                                'cat_resp_vect_dFF': None})
+# ROI_stats_df.set_index(['roi'])
+
+# for r in range(n_ROIs):
+#     ROI_stats_df.at[r, 'cond_resp_vect'] = np.mean(data['Fzsc'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
+#     ROI_stats_df.at[r, 'cond_resp_vect_dFF'] = np.mean(data['FdFF'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
+#     tmp_peak_cond = ROI_stats_df.loc[r]['cond_resp_vect'].argmax()
+#     ROI_stats_df.at[r, 'peak_cond'] = conditions[tmp_peak_cond]
+#     ROI_stats_df.at[r, 'peak_cond_zsc'] = ROI_stats_df.loc[r]['cond_resp_vect'].max()
+#     ROI_stats_df.at[r, 'peak_cond_dFF'] = ROI_stats_df.loc[r]['cond_resp_vect_dFF'][tmp_peak_cond]
+#     ROI_stats_df.at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[tmp_peak_cond]]['cat']
+#
+#     ROI_stats_df.at[r, 'cat_resp_vect'] = cat_resp_vects_zsc[r]
+#     ROI_stats_df.at[r, 'cat_resp_vect_dFF'] = cat_resp_vects_dFF[r]   
+#     tmp_peak_cat = ROI_stats_df.loc[r]['cat_resp_vect'].argmax()
+#     ROI_stats_df.at[r, 'peak_cat'] = categories[tmp_peak_cat]
+#     ROI_stats_df.at[r, 'peak_cat_zsc'] = ROI_stats_df.loc[r]['cat_resp_vect'].max()
+#     ROI_stats_df.at[r, 'peak_cat_dFF'] = ROI_stats_df.loc[r]['cat_resp_vect_dFF'][tmp_peak_cat]
+#
+#     ROI_stats_df.at[r, 'dprime_f'] = dprime['Fzsc'][r]
+#     ROI_stats_df.at[r, 'dprime_f_dFF'] = dprime['FdFF'][r]
+#     ROI_stats_df.at[r, 'fsi'] = FSI['Fzsc'][r]
+#     ROI_stats_df.at[r, 'fsi_dFF'] = FSI['FdFF'][r]
+# del r, tmp_peak_cond, tmp_peak_cat
+
+del cond_resp_vect, cat_resp_vect
+
+if n_metrics > 1:
+    for mi, m in enumerate(metrics):
+        if mi + 1 < n_metrics:
+            bool_cnd = (ROI_stats_df[m]['peak_cond'].values != ROI_stats_df[metrics[mi+1]]['peak_cond'].values)
+            ROIs_diff_peak_cnd = np.where(bool_cnd)[0]
+            if ROIs_diff_peak_cnd.size > 0:
+                warn('peak_cond mismatch ({} vs {}) for ROIs: {}'.format(m, metrics[mi+1], ROIs_diff_peak_cnd))
+            bool_cat = (ROI_stats_df[m]['peak_cat'].values != ROI_stats_df[metrics[mi+1]]['peak_cat'].values)
+            ROIs_diff_peak_cat = np.where(bool_cat)[0]
+            if ROIs_diff_peak_cat.size > 0:
+                warn('peak_cat mismatch ({} vs {}) for ROIs: {}'.format(m, metrics[mi+1], ROIs_diff_peak_cat))
+    del mi, m, bool_cnd, ROIs_diff_peak_cnd, bool_cat, ROIs_diff_peak_cat
 
 
 # Output information about ROI tuning based on defined thresholds
@@ -1473,15 +1527,15 @@ for r in range(n_plot_ROIs):
     fig = plt.figure()
     fig.suptitle('ROI {} dprime={:0.2f}: mean response by category (each cond mean plotted)'.format(ridx, dp))
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
-    for m, met in enumerate(metrics):
-        ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
-        ymax = np.max(np.mean(data[met][:, ridx, :, :], axis=1))
+    for mi, m in enumerate(metrics):
+        ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
+        ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
         for cat in range(n_cats):
-            ax = axes[m, cat]
-            if m == 0:
+            ax = axes[mi, cat]
+            if mi == 0:
                 ax.set_title(template_labels[categories[cat]])
             if cat == 0:
-                ax.set_ylabel(metric_labels[met])
+                ax.set_ylabel(metric_labels[m])
                 ax.tick_params(axis='both', which='major', labelsize=8)
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
@@ -1499,21 +1553,21 @@ for r in range(n_plot_ROIs):
             n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
                 ax.plot(xs,
-                        np.mean(data[data['cat'] == categories[cat]][met][cnd, ridx, :, :], axis=0),
+                        np.mean(data[data['cat'] == categories[cat]][m][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
-            Fmean = np.mean(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1))
-            Fsem = np.std(data[data['cat'] == categories[cat]][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
+            Fmean = np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1))
+            Fsem = np.std(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
     plt.show()
-del xs, xticks, xticklabels
+del mi, m, xs, xticks, xticklabels
 
 
 # ... by conditions (selected subset), including the average for each trial within that condition
 fr = md['framerate']
 fig = plt.figure()
 fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
-met = 'Fzsc'
+m = 'Fzsc'
 focus_cat = b'face_mrm'
 bool_focuscat = data['cat'] == focus_cat
 stims = data[bool_focuscat]['stimulus']
@@ -1527,7 +1581,7 @@ else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1), sharey='row')
 for r in range(n_plot_ROIs):
-    ridx = sort_idx_dprime[met][plot_ROI_subset[r]]
+    ridx = sort_idx_dprime[m][plot_ROI_subset[r]]
     if r == 0:
         ax = axes[0, 0]
         ax.axis('off')
@@ -1539,14 +1593,14 @@ for r in range(n_plot_ROIs):
     pr = r + 1
     
     # Leftmost summary plot of category averages.
-    ymin = np.min(np.mean(data[met][:, ridx, :, :], axis=1))
-    ymax = np.max(np.mean(data[met][:, ridx, :, :], axis=1))
+    ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
+    ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
     # if m == 0:
     #     ax.set_title(template_labels[categories[cat]], fontsize=10)
     ax = axes[pr, 0]
     ax.axis('off')
     # if r == 0:
-    #     ax.set_ylabel(metric_labels[met], fontsize=8)
+    #     ax.set_ylabel(metric_labels[m], fontsize=8)
     # elif r == n_plot_ROIs - 1:
     #     ax.set_xlabel('Time (sec)', fontsize=6)
     # ax.tick_params(axis='both', which='major', length=2, labelsize=6)
@@ -1561,8 +1615,8 @@ for r in range(n_plot_ROIs):
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cat in range(n_cats):
         bool_cat = data['cat'] == categories[cat]
-        Fmean = np.mean(data[bool_cat][met][:, ridx, :, :], axis=(0, 1))
-        Fsem = np.std(data[bool_cat][met][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
+        Fmean = np.mean(data[bool_cat][m][:, ridx, :, :], axis=(0, 1))
+        Fsem = np.std(data[bool_cat][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
                         facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
@@ -1576,13 +1630,13 @@ for r in range(n_plot_ROIs):
         ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
         for t in range(n_reps):
             ax.plot(xs, 
-                    data[bool_cnd][met][0, ridx, t, :],
+                    data[bool_cnd][m][0, ridx, t, :],
                     color=str(np.linspace(0.4, 0.7, n_reps)[t]), linewidth=0.1)
-        Fmean = np.mean(data[bool_cnd][met][0, ridx, :, :], axis=0)
-        Fsem = np.std(data[bool_cnd][met][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
+        Fmean = np.mean(data[bool_cnd][m][0, ridx, :, :], axis=0)
+        Fsem = np.std(data[bool_cnd][m][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
-del met, xs, bool_cat, bool_cnd
+del m, xs, bool_cat, bool_cnd
 plt.show()
 
 
@@ -1590,7 +1644,7 @@ plt.show()
 fr = md['framerate']
 fig = plt.figure()
 fig.suptitle('trial-averaged heat maps by condition', fontsize=8)
-met = 'Fzsc'
+m = 'Fzsc'
 focus_cat = b'face_mrm'
 bool_focuscat = data['cat'] == focus_cat
 stims = data[bool_focuscat]['stimulus']
@@ -1614,7 +1668,7 @@ pr = 1
 ax_dp = axes[pr, 0]
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
-ax_dp.barh(range(0, n_ROIs), dprime[sort_idx_dprime[met]], height=1.0, color='0.5')
+ax_dp.barh(range(0, n_ROIs), dprime[sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
 ax_dp.spines['right'].set_visible(False)
 ax_dp.spines['left'].set_visible(False)
@@ -1626,31 +1680,31 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.label2.set_visible(False)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[met]] < -threshold_dprime)[0].min(),
+        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
                       color='0.2', linestyle='dotted', linewidth=1)
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[met]] > threshold_dprime)[0].max(),
+        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] > threshold_dprime)[0].max(),
                       color='0.2', linestyle='dotted', linewidth=1)
     else:
-        ax_dp.axhline(np.where(np.isclose(dprime[sort_idx_dprime[met]], threshold_dprime), atol=0.05),
+        ax_dp.axhline(np.where(np.isclose(dprime[sort_idx_dprime[m]], threshold_dprime), atol=0.05),
                       color='0.2', linestyle='dotted', linewidth=1)
 
 for cnd in range(n_cnd_in_fcat):
     bool_cnd = data['cond'] == sortedstims[cnd].condition
     ax = axes[pr, cnd + 1]
     ax.axis('off')
-    img_hm = ax.imshow(np.mean(data[bool_cnd][met][0, :, :, :], axis=1)[sort_idx_dprime[met]],
+    img_hm = ax.imshow(np.mean(data[bool_cnd][m][0, :, :, :], axis=1)[sort_idx_dprime[m]],
                        vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
     xlines = [dur_isi * fr, (dur_isi + dur_stim) * fr]
     for xl in xlines:
         ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.6')
 
-del met, bool_cnd
+del m, bool_cnd
 plt.show()
 
 
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs
 # with at least one stimulus period z-score > 0.5
-met = 'Fzsc'
+m = 'Fzsc'
 # fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
 fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
 plt.subplots_adjust(wspace=0.05)
@@ -1686,7 +1740,7 @@ ax_hm.set_xticks(xtick_minors, minor=True)
 ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
 plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
-img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[sort_idx_dprime[met]],
+img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[sort_idx_dprime[m]],
                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 # ax_hm.invert_yaxis()
 # ax_hm.axvline(x=20)
@@ -1698,7 +1752,7 @@ cbar.set_label('mean Zscore during stimulus')
 
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
-ax_dp.barh(range(0, n_ROIs), dprime[sort_idx_dprime[met]], height=1.0, color='0.5')
+ax_dp.barh(range(0, n_ROIs), dprime[sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
 ax_dp.spines['right'].set_visible(False)
 ax_dp.spines['left'].set_visible(False)
@@ -1710,18 +1764,18 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.label2.set_visible(False)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[met]] < -threshold_dprime)[0].min(),
+        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
                       color='0.2', linestyle='dotted', linewidth=1)
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[met]] > threshold_dprime)[0].max(),
+        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] > threshold_dprime)[0].max(),
                       color='0.2', linestyle='dotted', linewidth=1)
     else:
-        ax_dp.axhline(np.where(np.isclose(dprime[sort_idx_dprime[met]], threshold_dprime, atol=0.05)),
+        ax_dp.axhline(np.where(np.isclose(dprime[sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                       color='0.2', linestyle='dotted', linewidth=1)
     
 # ax_fsi.set_xlabel('FSI')
 # ax_fsi.set_axisbelow(True)
 # ax_fsi.set_xlim([-1, 1])
-# ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_idx_dprime[met]], height=1.0, color='0.5')
+# ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_idx_dprime[m]], height=1.0, color='0.5')
 # ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
 # ax_fsi.spines['right'].set_visible(False)
 # ax_fsi.spines['left'].set_visible(False)
@@ -1743,7 +1797,7 @@ fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
                    dpi=dpi, transparent=True)
-del met
+del m
 
 
 # # Plot sorted heatmap of mean responses to all presented conditions (images) for ROIs 
