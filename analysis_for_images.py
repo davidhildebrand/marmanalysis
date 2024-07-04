@@ -1932,8 +1932,7 @@ if saving:
 
 
 
-
-# %% Plot tuned cells with discreete tuning-wheel
+# %% Plot tuned cells with discrete tuning-wheel
 
 # # parameters
 # plotting_threshold_discrete = 0.15
@@ -2030,108 +2029,3 @@ if saving:
 #     tuning_index_cat = fsi
 #     tuning_index_cond = fsi
 
-
-# %% Define ROIs as tuned or untuned using the FSI
-
-# based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci https://doi.org/10.1038/nn.2363
-# A face selectivity index was then computed as the ratio between difference
-# and sum of face- and object-related responses. For
-# |face-selectivity index| = 1/3, that is, if the response to faces was at
-# least twice (or at most half) that of nonface objects, a cell was classed
-# as being face selective45–47.
-
-# print('|FSI| threshold: {}'.format(threshold_fsi))
-# tunidx_fsi = FSIs_zsc
-# tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
-# ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).squeeze()
-# n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).shape[0]
-# pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
-# print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
-# print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
-
-# tuning_index_cond = tunidx_fsi
-# tuning_index_cat = tunidx_fsi
-
-
-# %% 
-
-# # Non-zero hack
-# FdFF_absmin = -np.inf
-# for cd in np.unique(data['cond']):
-#     absmintmp = np.abs(np.min(np.nanmean(data[data['cond'] == cd]['FdFF_meant'][:, :, idx_stim], axis=(0, -1))))
-#     if absmintmp > FdFF_absmin:
-#         FdFF_absmin = absmintmp
-# Fzsc_absmin = -np.inf
-# for cd in np.unique(data['cond']):
-#     absmintmp = np.abs(np.min(np.nanmean(data[data['cond'] == cd]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1))))
-#     if absmintmp > Fzsc_absmin:
-#         Fzsc_absmin = absmintmp
-
-# ImM_zsc = np.empty([n_ROIs_tuned, len(data['cond'][(data['cat'] == b'face_mrm')])])
-# ImSIs_zsc = np.empty([n_ROIs_tuned, len(data['cond'][(data['cat'] == b'face_mrm')])])
-# for cid, cim in enumerate(data['cond'][(data['cat'] == b'face_mrm')]):
-#     Fzsc_nowface_meanRstimall = np.nanmean(data[data['cond'] == cim]['Fzsc_meant'][:, :, idx_stim],
-#                                            axis=(0, -1)) + Fzsc_absmin
-#     Fzsc_otherfaces_meanRstimall = np.nanmean(data[data['cond'] != cim]['Fzsc_meant'][:, :, idx_stim],
-#                                               axis=(0, -1)) + Fzsc_absmin
-#     for r in range(n_ROIs_tuned):
-#         rti = ROIs_tuned_idx[r]
-#         ImM_zsc[r, cid] = Fzsc_nowface_meanRstimall[rti]
-#         ImSIs_zsc[r, cid] = (Fzsc_nowface_meanRstimall[rti] - Fzsc_otherfaces_meanRstimall[rti]) / \
-#                             (Fzsc_nowface_meanRstimall[rti] + Fzsc_otherfaces_meanRstimall[rti])
-
-# # idx_trial = range(n_samp_trial)
-# # Fzsc_allfaces_meanRstim = np.nanmean(data[(data['cat'] == b'face_mrm') & (data['yaw'] == 0) & (data['roll'] == 0)]['Fzsc_meant'][:, :, idx_trial],
-# #                                      axis=0) + Fzsc_absmin
-# # sorting_ind = ROIs_tuned_idx
-# # Fzsc_allfaces_meanRstim_sorted = Fzsc_allfaces_meanRstim[sorting_ind]
-# # # cats = categories_sorted
-
-# # plt.figure(dpi=1000)
-# # plt.imshow(Fzsc_allfaces_meanRstim_sorted, cmap='bwr')
-
-# # plt.clim(-1,1)
-# # #plt.title('2-D Heat Map in Matplotlib')
-# # #plt.colorbar()
-# # plt.tick_params(left=False)
-# # ax = plt.gca()
-# # ax.tick_params(left=False, right=False, labelleft=False)
-# # ax.set_xticks([c for c in range(0,60+1,20)])#, categories_sorted)
-# # ax.set_xticklabels([], fontsize=3, rotation=90)
-# # plt.show()
-
-
-# plt.figure()
-# plt.imshow(ImM_zsc[range(20)], cmap='bwr')
-# #plt.clim(-1,1)
-# #plt.title('2-D Heat Map in Matplotlib')
-# plt.colorbar()
-# plt.tick_params(left=False, bottom=False)
-# ax = plt.gca()
-# ax.tick_params(left=False, right=False, bottom=False, labelleft=False)
-# ax.set_xticks([])  # c for c in range(0,20,20)])#, categories_sorted)
-# ax.set_xticklabels([], fontsize=3, rotation=90)
-# plt.xlabel('Face Image')
-# plt.ylabel('ROI')
-# plt.show()
-
-
-# # tunidx_fsi = ImSIs_zsc
-# # tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
-# # ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).squeeze()
-# # n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).shape[0]
-# # pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
-# # print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
-# # print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
-
-# maxim = np.unravel_index(ImSIs_zsc[:,:].argmax(), ImSIs_zsc.shape)[1]
-
-# for it in range(20):
-#     ImSIs_zsc_argsort_imt = ImSIs_zsc[:, it].argsort()
-#     rois_sel = np.argwhere(np.abs(ImSIs_zsc[ImSIs_zsc_argsort_imt, it]) > threshold_fsi).squeeze()
-#     cn = data['cond'][(data['cat'] == b'face_mrm')][it].decode()
-#     sn = save_pfix + '_ROIplot_ColorByDiscrete_' + cn + '_inclFSIthrs' + save_ext
-#     sp = os.path.join(save_path, sn) if saving else ''
-#     plots.plot_roi_overlays(ROIs[above_threshold[rois_sel]],
-#                             Fzsc_for_plot_discrete[above_threshold[rois_sel]],
-#                             image=plots.auto_level_s2p_image(fov_image), save_path=sp)
