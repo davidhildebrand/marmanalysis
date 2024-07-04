@@ -52,7 +52,7 @@ def plot_hist_dprime(dprimes, threshold=0.2, bins=41, title: str = '', save_path
     dpi = plt.rcParams['figure.dpi']
 
     f, ax1 = plt.subplots()
-    plt.hist(dprimes, bins=bins, range=(-1, 1), color='0.5')
+    plt.hist(dprimes, bins=bins, color='0.5')
     # plt.xlim([-1, 1])
     # ax1.set_xticks([-1.0, -0.5, 0, 0.5, 1.0])
     # ax1.set_xticks([-0.75, -0.25, 0.25, 0.75], minor=True)
@@ -65,7 +65,7 @@ def plot_hist_dprime(dprimes, threshold=0.2, bins=41, title: str = '', save_path
     ax2 = ax1.twinx()
     n_rois = len(dprimes)
     weights = np.ones(n_rois) / n_rois
-    plt.hist(dprimes, weights=weights, bins=bins, range=(-1, 1), edgecolor='none', facecolor='none')
+    plt.hist(dprimes, weights=weights, bins=bins, edgecolor='none', facecolor='none')
     plt.ylabel('Fraction of ROIs')
 
     if threshold is not None:
