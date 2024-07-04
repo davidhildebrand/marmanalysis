@@ -1597,7 +1597,7 @@ ax_hm.set_xticks(xtick_minors, minor=True)
 ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
 plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
-img_hm = ax_hm.imshow(np.mean(data[stimcond]['Fzsc_meant'][:, :, idx_stim], axis=-1).swapaxes(0, 1)[sort_idx_dprime[m]],
+img_hm = ax_hm.imshow(np.mean(data[stimcond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 # ax_hm.invert_yaxis()
 # ax_hm.axvline(x=20)
@@ -1685,7 +1685,7 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
 # Determine for each ROI which category elicited the largest average response
 # TODO improve variable naming here for clarity
 
-mean_by_cat = np.array([np.nanmean(data[data['cat'] == cat]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1)) for cat in cat_subset]).swapaxes(0, 1)
+mean_by_cat = np.array([np.mean(np.mean(data[data['cat'] == cat][m][:, :, :, idx_stim], axis=(2, 3)), axis=0) for cat in cat_subset]).swapaxes(0, 1)
 top_cat_mean = categories[np.argmax(mean_by_cat, axis=-1)]
 
 # top_cat_mean_id = [np.argwhere(categories == top_cat_mean[r])[0][0] for r in range(n_ROIs)]
