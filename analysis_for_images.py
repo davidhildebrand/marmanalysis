@@ -1206,13 +1206,6 @@ for m in metrics:
                                  for c in categories]).transpose()
 del m
 
-# cond_resp_vect_zsc = np.mean(data['Fzsc'][:, :, :, idx_stim], axis=(2,3)).transpose()
-# cond_resp_vect_dFF = np.mean(data['FdFF'][:, :, :, idx_stim], axis=(2,3)).transpose()
-# cat_resp_vects_zsc = np.array([np.mean(data[data['cat'] == c]['Fzsc'][:, :, :, idx_stim], axis=(0, 2, 3)) 
-#                                for c in categories]).transpose()
-# cat_resp_vects_dFF = np.array([np.mean(data[data['cat'] == c]['FdFF'][:, :, :, idx_stim], axis=(0, 2, 3)) 
-#                                for c in categories]).transpose()
-
 
 # Store response values and tuning metrics for each ROI
 ROI_stats = {}
@@ -1271,46 +1264,6 @@ for m in metrics:
         ROI_stats_df[m].at[r, 'fsi'] = FSI[m][r]
     del r
 del m
-    
-# ROI_stats_df = pd.DataFrame({'roi': range(n_ROIs),
-#                                'peak_cond': None,
-#                                'peak_cond_zsc': None,
-#                                'peak_cond_dFF': None,
-#                                'cat_of_peak_cond': None,
-#                                'peak_cat': None,
-#                                'peak_cat_zsc': None,
-#                                'peak_cat_dFF': None,
-#                                'dprime_f': None,
-#                                'dprime_f_dFF': None,
-#                                'fsi': None,
-#                                'fsi_dFF': None,
-#                                'cond_resp_vect': None,
-#                                'cond_resp_vect_dFF': None,
-#                                'cat_resp_vect': None,
-#                                'cat_resp_vect_dFF': None})
-# ROI_stats_df.set_index(['roi'])
-
-# for r in range(n_ROIs):
-#     ROI_stats_df.at[r, 'cond_resp_vect'] = np.mean(data['Fzsc'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
-#     ROI_stats_df.at[r, 'cond_resp_vect_dFF'] = np.mean(data['FdFF'][:, r, :, :][:, :, idx_stim], axis=(1, 2))
-#     tmp_peak_cond = ROI_stats_df.loc[r]['cond_resp_vect'].argmax()
-#     ROI_stats_df.at[r, 'peak_cond'] = conditions[tmp_peak_cond]
-#     ROI_stats_df.at[r, 'peak_cond_zsc'] = ROI_stats_df.loc[r]['cond_resp_vect'].max()
-#     ROI_stats_df.at[r, 'peak_cond_dFF'] = ROI_stats_df.loc[r]['cond_resp_vect_dFF'][tmp_peak_cond]
-#     ROI_stats_df.at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[tmp_peak_cond]]['cat']
-#
-#     ROI_stats_df.at[r, 'cat_resp_vect'] = cat_resp_vects_zsc[r]
-#     ROI_stats_df.at[r, 'cat_resp_vect_dFF'] = cat_resp_vects_dFF[r]   
-#     tmp_peak_cat = ROI_stats_df.loc[r]['cat_resp_vect'].argmax()
-#     ROI_stats_df.at[r, 'peak_cat'] = categories[tmp_peak_cat]
-#     ROI_stats_df.at[r, 'peak_cat_zsc'] = ROI_stats_df.loc[r]['cat_resp_vect'].max()
-#     ROI_stats_df.at[r, 'peak_cat_dFF'] = ROI_stats_df.loc[r]['cat_resp_vect_dFF'][tmp_peak_cat]
-#
-#     ROI_stats_df.at[r, 'dprime_f'] = dprime['Fzsc'][r]
-#     ROI_stats_df.at[r, 'dprime_f_dFF'] = dprime['FdFF'][r]
-#     ROI_stats_df.at[r, 'fsi'] = FSI['Fzsc'][r]
-#     ROI_stats_df.at[r, 'fsi_dFF'] = FSI['FdFF'][r]
-# del r, tmp_peak_cond, tmp_peak_cat
 
 del cond_resp_vect, cat_resp_vect
 
