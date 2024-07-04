@@ -1432,13 +1432,14 @@ if len(plot_ROI_subset) > n_plot_ROIs:
             
 # ... by category, including the average for each condition within that category.
 fr = md['framerate']
+dpm = 'Fzsc'
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for r in range(n_plot_ROIs):
-    ridx = sort_idx_dprime['zsc'][plot_ROI_subset[r]]
-    dp = dprime[ridx]
+    ridx = sort_idx_dprime[dpm][plot_ROI_subset[r]]
+    dp = dprime[dpm][ridx]
     fig = plt.figure()
     fig.suptitle('ROI {} dprime={:0.2f}: mean response by category (each cond mean plotted)'.format(ridx, dp))
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
@@ -1476,7 +1477,7 @@ for r in range(n_plot_ROIs):
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
     plt.show()
 del mi, m, xs, xticks, xticklabels
-
+del dpm
 
 # ... by conditions (selected subset), including the average for each trial within that condition
 fr = md['framerate']
@@ -1583,7 +1584,7 @@ pr = 1
 ax_dp = axes[pr, 0]
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
-ax_dp.barh(range(0, n_ROIs), dprime[sort_idx_dprime[m]], height=1.0, color='0.5')
+ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
 ax_dp.spines['right'].set_visible(False)
 ax_dp.spines['left'].set_visible(False)
@@ -1595,12 +1596,12 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.label2.set_visible(False)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
+        ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
                       color='0.2', linestyle='dotted', linewidth=1)
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] > threshold_dprime)[0].max(),
+        ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
                       color='0.2', linestyle='dotted', linewidth=1)
     else:
-        ax_dp.axhline(np.where(np.isclose(dprime[sort_idx_dprime[m]], threshold_dprime), atol=0.05),
+        ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime), atol=0.05),
                       color='0.2', linestyle='dotted', linewidth=1)
 
 for cnd in range(n_cnd_in_fcat):
@@ -1667,7 +1668,7 @@ cbar.set_label('mean Zscore during stimulus')
 
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
-ax_dp.barh(range(0, n_ROIs), dprime[sort_idx_dprime[m]], height=1.0, color='0.5')
+ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
 ax_dp.spines['right'].set_visible(False)
 ax_dp.spines['left'].set_visible(False)
@@ -1679,12 +1680,12 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.label2.set_visible(False)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
+        ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
                       color='0.2', linestyle='dotted', linewidth=1)
-        ax_dp.axhline(np.where(dprime[sort_idx_dprime[m]] > threshold_dprime)[0].max(),
+        ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
                       color='0.2', linestyle='dotted', linewidth=1)
     else:
-        ax_dp.axhline(np.where(np.isclose(dprime[sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
+        ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                       color='0.2', linestyle='dotted', linewidth=1)
     
 # ax_fsi.set_xlabel('FSI')
