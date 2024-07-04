@@ -1232,8 +1232,6 @@ del m
 
 ROI_stats_df = {}
 for m in metrics:
-    ROI_stats_df[m] = {}
-    
     ROI_stats_df[m] = pd.DataFrame({'roi': range(n_ROIs),
                                     'peak_cond': None,
                                     'peak_cond_idx': None,
