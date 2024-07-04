@@ -787,15 +787,9 @@ data = np.zeros(n_conds, dtype=[('cond', 'S8'),
                                                 n_samp_trial)),
                                 ('Fzsc', 'f4', (n_ROIs,
                                                 n_reps,
-                                                n_samp_trial)),
-                                ('FdFF_meant', 'f4', (n_ROIs,
-                                                      n_samp_trial)),
-                                ('Fzsc_meant', 'f4', (n_ROIs,
-                                                      n_samp_trial))])
+                                                n_samp_trial))])
 data[:]['FdFF'] = np.nan
 data[:]['Fzsc'] = np.nan
-data[:]['FdFF_meant'] = np.nan
-data[:]['Fzsc_meant'] = np.nan
 
 # Currently supported image sets:
 # 'FOBmin_MarmOnly', 'FOBmin', 'FOBmany', 'Song_etal_Wang_2022_FOBonly'
@@ -1016,16 +1010,10 @@ for c in range(n_conds):
             raise RuntimeError('Imaging was stopped before stimulus. Handling this is not yet implemented.')
         data[c]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
         data[c]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
-    if not np.any(np.isnan(data[c]['FdFF'])):
-        data[c]['FdFF_meant'] = np.mean(data[c]['FdFF'], axis=1)
-    else:
-        warn('Cond {} had FdFF values that are NaNs'.format(c))
-        data[c]['FdFF_meant'] = np.nanmean(data[c]['FdFF'], axis=1)
-    if not np.any(np.isnan(data[c]['Fzsc'])):
-        data[c]['Fzsc_meant'] = np.mean(data[c]['Fzsc'], axis=1)
-    else:
-        warn('Cond {} had Fzsc values that are NaNs'.format(c))
-        data[c]['Fzsc_meant'] = np.nanmean(data[c]['Fzsc'], axis=1)
+    if np.any(np.isnan(data[c]['FdFF'])):
+        warn('cond {} had FdFF values that are NaNs'.format(c))
+    if np.any(np.isnan(data[c]['Fzsc'])):
+        warn('cond {} had Fzsc values that are NaNs'.format(c))
 
 categories = np.unique(data[:]['cat'])
 n_cats = len(categories)
