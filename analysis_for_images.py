@@ -1370,45 +1370,8 @@ cond_idx = np.array([np.where(data['cond'] == cond)[0][0] for cond in cond_names
 
 # TODO improve variable naming here for clarity
 
-# ROIinfo = np.zeros(n_ROIs, dtype=[('top_cat', 'S8'),
-#                                   ('top_cond', 'S8'),
-#                                   ('top_cond_FdFF', 'f4'),
-#                                   ('top_cond_Fzsc', 'f4'),
-#                                   ('FSI_byFdFF', 'f4'),
-#                                   ('FSI_byFzsc', 'f4')
-#                                   ])
-
-# ROIinfo[:]['top_cond_FdFF'] = np.nan
-# ROIinfo[:]['top_cond_Fzsc'] = np.nan
-# ROIinfo[:]['FSI_byFdFF'] = np.nan
-# ROIinfo[:]['FSI_byFzsc'] = np.nan
-
-
-# top_cond_byFdFF = np.argmax(np.mean(data[cond_idx]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-# top_meantstim_FdFF = np.max(np.mean(data[cond_idx]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-# top_cond_byFzsc = np.argmax(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
-# top_meantstim_Fzsc = np.max(np.mean(data[cond_idx]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
-# # top_cond_byFdFF = np.argmax(np.mean(data[:]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-# # top_meantstim_FdFF = np.max(np.mean(data[:]['FdFF_meant'][:, :, idx_stim], axis=-1), axis=0)
-# # top_cond_byFzsc = np.argmax(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
-# # top_meantstim_Fzsc = np.max(np.mean(data[:]['Fzsc_meant'][:, :, idx_stim], axis=-1), axis=0)
-
-# if np.any(top_cond_byFdFF != top_cond_byFzsc):
-#     print('top_cond mismatch from FdFF and Fzsc for ROIs: {}'.format(np.where(top_cond_byFdFF != top_cond_byFzsc)[0]))
-
-# for r in range(n_ROIs):
-#     # ROIinfo[r]['top_cat'] = data[top_cond_byFzsc[r]]['cat']
-#     # ROIinfo[r]['top_cond'] = data[top_cond_byFzsc[r]]['cond']
-#     ROIinfo[r]['top_cat'] = data[cond_idx[top_cond_byFzsc[r]]]['cat']
-#     ROIinfo[r]['top_cond'] = data[cond_idx[top_cond_byFzsc[r]]]['cond']
-#     ROIinfo[r]['top_cond_FdFF'] = top_meantstim_FdFF[r]
-#     ROIinfo[r]['top_cond_Fzsc'] = top_meantstim_Fzsc[r]
-#     ROIinfo[r]['FSI_byFdFF'] = FSI['FdFF'][r]
-#     ROIinfo[r]['FSI_byFzsc'] = FSI['Fzsc'][r]
-
 # Determine for each ROI which condition (image) elicited the largest response
 m = 'Fzsc'
-# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 # TODO THIS SHOULD NOT BE HARD CODED
 at_sortidx = (-np.mean(data[cond_idx[0:19]]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1))[above_threshold]).argsort()
@@ -1824,13 +1787,11 @@ del m
 # plt.show()
 
 # Determine for each ROI the category of the condition (image) that elicited the largest response
-# top_cat_id = [np.argwhere(categories == ROIinfo[r]['top_cat'])[0][0] for r in range(n_ROIs)]
 m = 'Fzsc'
 top_cat_id = [np.argwhere(categories == ROI_stats_df[m]['peak_cat'][r])[0][0] for r in range(n_ROIs)]
 top_cat_idn = np.divide(top_cat_id, len(cat_subset))
 
 # Plot for each ROI the category of the condition (image) eliciting the largest response
-# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclZgt0p5' + save_ext
@@ -1853,8 +1814,6 @@ plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
 # Determine for each ROI which category elicited the largest average response
 # TODO improve variable naming here for clarity
 
-# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
-
 mean_by_cat = np.array([np.nanmean(data[data['cat'] == cat]['Fzsc_meant'][:, :, idx_stim], axis=(0, -1)) for cat in cat_subset]).swapaxes(0, 1)
 top_cat_mean = categories[np.argmax(mean_by_cat, axis=-1)]
 
@@ -1867,7 +1826,6 @@ top_cat_mean_idn = np.divide(top_cat_mean_id, len(cat_subset))
 
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs 
 # with at least one stimulus period z-score > 0.5
-# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 fhm = plt.figure()
 plt.xlabel('Image Category')
@@ -1890,7 +1848,6 @@ if saving:
 
 
 # Plot for each ROI the category eliciting the largest average response
-# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclZgt0p5' + save_ext
@@ -1929,7 +1886,6 @@ max_Fzsc = 0.5
 Fzsc_fob_norm = Fzsc_fob / max_Fzsc
 Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
 
-# above_threshold = np.where(ROIinfo[:]['top_cond_Fzsc'] > 0.5)[0]
 above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
