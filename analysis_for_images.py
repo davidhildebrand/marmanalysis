@@ -1846,8 +1846,8 @@ sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclFSI
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='category of the condition (image) eliciting the largest response, '
-                              + 'FSI > {:0.2f}'.format(threshold_fsi),
+                        title='category of the condition (image) eliciting the largest response, ' +
+                              'FSI > {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
 
 # Determine for each ROI which category elicited the largest average response
@@ -1907,8 +1907,8 @@ sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_incl
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='category eliciting the largest average response, '
-                              + 'FSI > {:0.2f}'.format(threshold_fsi),
+                        title='category eliciting the largest average response, ' +
+                              'FSI > {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
 
 # Plot relative response strength
