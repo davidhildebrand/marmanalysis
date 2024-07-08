@@ -1232,6 +1232,10 @@ for m in metrics:
                                     'fsi': None,
                                     'cond_resp_vect': None,
                                     'cat_resp_vect': None})
+    # reliability?
+    # breadth of tuning?
+    # dynamic range?
+    
     ROI_stats_df[m].set_index(['roi'])
 
     for r in range(n_ROIs):
@@ -1358,7 +1362,7 @@ if len(plot_ROI_subset) > n_plot_ROIs:
                                       range(n_ROIs - n_plot_ROIs_div, n_ROIs)))
 
 # Plot summary of each single ROI's responses ...
-            
+
 # ... by category, including the average for each condition within that category.
 fr = md['framerate']
 dpm = 'Fzsc'
