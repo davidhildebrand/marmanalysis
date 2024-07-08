@@ -1554,8 +1554,8 @@ plt.show()
 # Plot heatmap of mean responses to all presented conditions (images) for ROIs
 # with at least one stimulus period z-score > 0.5
 m = 'Fzsc'
-# fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
-fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
+fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
+# fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
 plt.subplots_adjust(wspace=0.05)
 ax_hm.set_xlabel('Stimulus Image')
 ax_hm.set_ylabel('ROI')
@@ -1621,19 +1621,19 @@ if threshold_dprime is not None:
         ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                       color='0.2', linestyle='dotted', linewidth=1)
     
-# ax_fsi.set_xlabel('FSI')
-# ax_fsi.set_axisbelow(True)
-# ax_fsi.set_xlim([-1, 1])
-# ax_fsi.barh(range(0, n_ROIs), FSIs_zsc[sort_idx_dprime[m]], height=1.0, color='0.5')
-# ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
-# ax_fsi.spines['right'].set_visible(False)
-# ax_fsi.spines['left'].set_visible(False)
-# ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
-# for tick in ax_fsi.yaxis.get_major_ticks():
-#     tick.tick1line.set_visible(False)
-#     tick.tick2line.set_visible(False)
-#     tick.label1.set_visible(False)
-#     tick.label2.set_visible(False)
+ax_fsi.set_xlabel('FSI')
+ax_fsi.set_axisbelow(True)
+ax_fsi.set_xlim([-1, 1])
+ax_fsi.barh(range(0, n_ROIs), FSI[m][sort_idx_dprime[m]], height=1.0, color='0.5')
+ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
+ax_fsi.spines['right'].set_visible(False)
+ax_fsi.spines['left'].set_visible(False)
+ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
+for tick in ax_fsi.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(False)
+    tick.tick2line.set_visible(False)
+    tick.label1.set_visible(False)
+    tick.label2.set_visible(False)
 
 plt.rc('axes', titlesize=8)
 plt.rc('axes', labelsize=8)
