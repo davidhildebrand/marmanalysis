@@ -96,7 +96,6 @@ md['fov']['w_px'] = 730
 md['fov']['h_px'] = 730
 # dirstr_suite2p = 'suite2p_old*'
 dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
-dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
 
 # # Cadbury 20230510d
 # animal_str = 'Cadbury'
@@ -109,64 +108,48 @@ dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.r
 # date_str = '20230809d'
 # # -- OBJ ()
 # session_str = '173936tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
 # # Cadbury 20231001d
 # animal_str = 'Cadbury'
 # date_str = '20231001d'
 # # -- PD ()
 # session_str = '190608tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow060p3mW_stimImagesFOBmany'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmany\Images\20230728d'
 # # -- PD ()
 # session_str = '200422tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p3mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
 # # Cadbury 20231003d
 # animal_str = 'Cadbury'
 # date_str = '20231003d'
 # # -- PD (200um, )
 # session_str = '142836tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- PD (150um, )
 # session_str = '145031tUTC_SP_depth150um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow060p0mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- PD (200um, )
 # session_str = '153340tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- PD (250um, )
 # session_str = '154955tUTC_SP_depth250um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow089p8mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- MD (150um, )
 # session_str = '162025tUTC_SP_depth150um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- MD (200um, )
 # session_str = '163738tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow079p9mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- MD (200um, )
 # session_str = '165634tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow079p9mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d
 # # -- OBJ (200um, )
 # session_str = '173850tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
 # # Cadbury 20231007d
 # animal_str = 'Cadbury'
 # date_str = '20231007d'
 # # -- OBJ (200um, )
 # session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmany\Images\20230728d'
 # # -- OBJ (150um, )
 # session_str = '162705tUTC_SP_depth150um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow049p8mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- OBJ (250um, )
 # session_str = '164258tUTC_SP_depth250um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow069p8mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- OBJ (300um, )
 # session_str = '170046tUTC_SP_depth300um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow099p7mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- PD (200um, )
 # session_str = '174147tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow080p2mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- PD (200um, )
 # session_str = '180407tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p359Hz_pow080p2mW_stimMultimodal'
 # stimimage_path = r'multimodal'
@@ -176,43 +159,34 @@ dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.r
 # date_str = '20231018d'
 # # -- OBJ (200um, )
 # session_str = '185135tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow061p2mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- OBJ ( )
 # session_str = '190745tUTC_SP_depth250um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow075p8mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 # # -- OBJ ( )
 # session_str = '192426tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow061p2mW_stimImagesFOBmin'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\FOBmin\Images\20230728d'
 
 # # Dali 20230511d
 # animal_str = 'Dali'
 # date_str = '20230511d'
 # # -- PD (headpost not tight)
 # session_str = '134800tUTC_SP_depth200um_fov2190x2000um_res3p02x3p02umpx_fr06p993Hz_pow050p0mW_stimImagesSong230509dSel'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 # # -- PD ()
 # session_str = '150200tUTC_SP_depth300um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow065p0mW_stimImagesSong230509dSel'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 
 # # Dali 20230515d
 # # -- Dali ? () CHECK MEANIM
 # animal_str = 'Dali'
 # date_str = '20230515d'
 # session_str = '135100tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 # # -- Dali ? () CHECK MEANIM
 # session_str = '144500tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 
 # # Dali 20230522d
 # animal_str = 'Dali'
 # date_str = '20230522d'
 # # -- Dali ? (ANISO) CHECK MEANIM
 # session_str = '153415tUTC_SP_depth200um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow051p8mW_stimImagesFOBsel230517dAniso'
-# ????? stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\MarmosetFOB2018\20230517d\Scaled512x512_MaskEroded3_SHINEdLum_RGBA_reorg_subset'
 # # -- Dali ? () CHECK MEANIM
 # session_str = '170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel'
-# stimimage_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets\Song_etal_Wang_2022_NatCommun\480288_equalized_RGBA_selected20230509d'
 
 # ... Dali .... aniso until 20230804d
 
@@ -292,6 +266,25 @@ if save_path == '':
     saving = False
 else:
     saving = True
+
+if 'stimImagesSongFOBonly' in session_str:
+    dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
+elif 'stimImagesSong230509dSel' in session_str:
+    dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_selected20230509d'.replace('|', os.path.sep)
+elif 'stimImagesFOBmin' in session_str:
+    dirstr_stimset = 'FOBmin|Images|20230728d'.replace('|', os.path.sep)
+elif 'stimImagesFOBmany' in session_str:
+    dirstr_stimset = 'FOBmany|Images|20230728d'.replace('|', os.path.sep)
+elif 'stimImagesFOBsel230517dAniso' in session_str:
+    dirstr_stimset = 'MarmosetFOB2018|20230517d|Scaled512x512_MaskEroded3_SHINEdLum_RGBA_reorg_subset_aniso'.replace('|', os.path.sep)
+elif 'stimImagesFOBsel230517d' in session_str:
+    dirstr_stimset = 'MarmosetFOB2018|20230517d|Scaled512x512_MaskEroded3_SHINEdLum_RGBA_reorg_subset'.replace('|', os.path.sep)
+elif 'stimMultimodal' in session_str:
+    warn('Displaying multimodal stimulus images not supported yet.')
+    dirstr_stimset = None
+else:
+    warn('Could not determine stimulus set from session name.')
+    dirstr_stimset = None
 
 stimimage_path = os.path.join(stim_path, dirstr_stimset)
 if not os.path.isdir(stimimage_path):
