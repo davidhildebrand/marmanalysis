@@ -391,6 +391,14 @@ else:
     eyecal_aidata = None
 del ec_df
 
+if eyecal_log is not None:
+    if eyecal_aidata is not None:
+        eyecal_data = parsers.parse_log_eyecal(eyecal_log, eyecal_aidata)
+    else:
+        eyecal_data = parsers.parse_log_eyecal(eyecal_log)
+else:
+    ecdata = None
+
 filelist_eyetrack_data = [f for f in glob(os.path.join(session_path, filestr_eyetrack_data)) if os.path.isfile(f)]
 if len(filelist_eyetrack_data) > 0:
     etf_path = filelist_eyetrack_data[0]
