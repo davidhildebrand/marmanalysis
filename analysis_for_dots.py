@@ -8,6 +8,7 @@ from glob import glob
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
 import pickle
 import re
 from scipy.optimize import minimize as scipy_minimize
