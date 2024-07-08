@@ -1015,10 +1015,27 @@ for c in range(n_conds):
     if np.any(np.isnan(data[c]['Fzsc'])):
         warn('cond {} had Fzsc values that are NaNs'.format(c))
 
+# Establish sorting functions for ordering based on stimulus details
+sort_by_cond = lambda x: (np.where(template == x[1].category)[0][0]
+                          if np.where(template == x[1].category)[0].size > 0
+                          else np.iinfo(np.where(template == x[1].category)[0].dtype).max,
+                          np.abs(x[1].roll),
+                          x[1].roll,
+                          x[1].yaw,
+                          x[1].condition.decode().lower())
+sort_by_cat = lambda x: (np.where(template == x[1])[0][0]
+                         if np.where(template == x[1])[0].size > 0
+                         else np.iinfo(np.where(template == x[1])[0].dtype).max)
+
 categories = np.unique(data[:]['cat'])
+categories = categories[[i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]]
 n_cats = len(categories)
 conditions = np.unique(data[:]['cond'])
 # condition_inds = {c: i for i, c in enumerate(data['cond'])}
+
+stimarr = data[:]['stimulus']
+stimcond = [i for i, _ in sorted(enumerate(stimarr), key=sort_by_cond)]
+stimsort = stimarr[stimcond]
 
 if n_conds != conditions.shape[0]:
     u, c = np.unique(data[:]['cond'], return_counts=True)
@@ -1319,19 +1336,7 @@ above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 at_sortidx = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)[above_threshold]).argsort()
 
 
-# Establish ordering for heatmaps
-
-lambda_sort = lambda x: (np.where(template == x[1].category)[0][0]
-                         if np.where(template == x[1].category)[0].size > 0
-                         else np.iinfo(np.where(template == x[1].category)[0].dtype).max,
-                         np.abs(x[1].roll),
-                         x[1].roll,
-                         x[1].yaw,
-                         x[1].condition.decode().lower())
-stimarr = data[:]['stimulus']
-stimcond = [i for i, x in sorted(enumerate(stimarr), key=lambda_sort)]
-stimsort = stimarr[stimcond]
-
+# Generate category-dividing ticks for heatmaps
 tickinfo = {t.decode(): {} for t in template}
 for t in template:
     ts = t.decode()
@@ -1418,9 +1423,9 @@ m = 'Fzsc'
 focus_cat = b'face_mrm'
 bool_focuscat = (data['cat'] == focus_cat)
 stims = data[bool_focuscat]['stimulus']
-stimconds = [i for i, _ in sorted(enumerate(stims), key=lambda_sort)]
+stimconds = [i for i, _ in sorted(enumerate(stims), key=sort_by_cond)]
 sortedstims = stims[stimconds]
-conds_in_fcat = [i for i, _ in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
+conds_in_fcat = [i for i, _ in sorted(enumerate(data[bool_focuscat]['stimulus']), key=sort_by_cond)]
 n_cnd_in_fcat = len(sortedstims)
 fig = plt.figure()
 fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
@@ -1497,9 +1502,9 @@ m = 'Fzsc'
 focus_cat = b'face_mrm'
 bool_focuscat = (data['cat'] == focus_cat)
 stims = data[bool_focuscat]['stimulus']
-stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
+stimconds = [i for i, _ in sorted(enumerate(stims), key=sort_by_cond)]
 sortedstims = stims[stimconds]
-conds_in_fcat = [i for i, x in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
+conds_in_fcat = [i for i, _ in sorted(enumerate(data[bool_focuscat]['stimulus']), key=sort_by_cond)]
 n_cnd_in_fcat = len(sortedstims)
 axes = fig.subplots(nrows=2, ncols=(n_cnd_in_fcat + 1), height_ratios=[0.25, 2.75], sharey='row')
 
