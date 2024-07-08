@@ -1217,6 +1217,10 @@ for m in metrics:
     for r in range(n_ROIs):
         ROI_stats[m][r] = {}
     
+        ROI_stats[m][r]['mask'] = np.concatenate((ROIs[r]['xpix'][:, np.newaxis], ROIs[r]['ypix'][:, np.newaxis]), axis=1)
+        ROI_stats[m][r]['centroid_px'] = np.average(ROI_stats[m][r]['mask'], axis=0)
+        ROI_stats[m][r]['centroid_um'] = md['fov']['resolution_umpx'] * ROI_stats[m][r]['centroid_px']
+        
         ROI_stats[m][r]['cond_resp_vect'] = cond_resp_vect[m][r]
         ROI_stats[m][r]['peak_cond_idx'] = ROI_stats[m][r]['cond_resp_vect'].argmax()
         ROI_stats[m][r]['peak_cond'] = conditions[ROI_stats[m][r]['peak_cond_idx']]
@@ -1236,6 +1240,9 @@ del m
 ROI_stats_df = {}
 for m in metrics:
     ROI_stats_df[m] = pd.DataFrame({'roi': range(n_ROIs),
+                                    'mask': None,
+                                    'centroid_px': None,
+                                    'centroid_um': None,
                                     'peak_cond': None,
                                     'peak_cond_idx': None,
                                     'peak_cond_val': None,
@@ -1247,13 +1254,16 @@ for m in metrics:
                                     'fsi': None,
                                     'cond_resp_vect': None,
                                     'cat_resp_vect': None})
+    ROI_stats_df[m].set_index(['roi'])
     # reliability?
     # breadth of tuning?
     # dynamic range?
-    
-    ROI_stats_df[m].set_index(['roi'])
 
     for r in range(n_ROIs):
+        ROI_stats_df[m].at[r, 'mask'] = np.concatenate((ROIs[r]['xpix'][:, np.newaxis], ROIs[r]['ypix'][:, np.newaxis]), axis=1)
+        ROI_stats_df[m].at[r, 'centroid_px'] = np.average(ROI_stats_df[m].at[r, 'mask'], axis=0)
+        ROI_stats_df[m].at[r, 'centroid_um'] = md['fov']['resolution_umpx'] * ROI_stats_df[m].at[r, 'centroid_px']
+        
         ROI_stats_df[m].at[r, 'cond_resp_vect'] = np.mean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
         ROI_stats_df[m].at[r, 'peak_cond_idx'] = ROI_stats_df[m].loc[r]['cond_resp_vect'].argmax()
         ROI_stats_df[m].at[r, 'peak_cond'] = conditions[ROI_stats_df[m].at[r, 'peak_cond_idx']]
