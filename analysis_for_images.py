@@ -47,8 +47,8 @@ threshold_cellprob = 0.0
 plot_eyecal = False
 
 
+# Plotting parameters
 plt.rcParams['figure.dpi'] = 300
-dpi = plt.rcParams['figure.dpi']
 
 # Metrics to consider for plots and calculations
 metrics = ['FdFF', 'Fzsc']
@@ -1097,7 +1097,7 @@ bool_B = np.logical_or.reduce([data['cat'] == fc for fc in categories
                                and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
 
 
-# Calculate R across-stimulus, trial-averaged mean responses
+# Calculate across-stimulus, trial-averaged mean responses
 muR_F = {}
 muR_NF = {}
 muR_NFobj = {}
@@ -1311,7 +1311,7 @@ cond_subset = np.where((data['cat'] == b'face_mrm') | (data['cat'] == b'obj') | 
 cond_names = np.hstack([np.sort(data[data['cat'] == cat]['cond']) for cat in cat_subset])
 cond_idx = np.array([np.where(data['cond'] == cond)[0][0] for cond in cond_names])
 
-# TODO improve variable naming here for clarity
+# * * * TODO improve variable naming here for clarity
 
 # Determine for each ROI which condition (image) elicited the largest response
 m = 'Fzsc'
@@ -1645,7 +1645,7 @@ plt.rc('figure', titlesize=8)
 fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
-                   dpi=dpi, transparent=True)
+                   dpi=plt.rcParams['figure.dpi'], transparent=True)
 del m
 
 
@@ -1707,7 +1707,7 @@ cbar.set_label('mean Zscore across stim period and images')
 plt.show()
 if saving:
     fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
-                dpi=dpi, transparent=True)
+                dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 # Plot for each ROI the category eliciting the largest average response
@@ -1778,7 +1778,7 @@ else:
     n_rows = round(n_subconds / 20)
 
 fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows,
-                        figsize=(n_cols * 512 / dpi, n_rows * 512 / dpi),
+                        figsize=(n_cols * 512 / plt.rcParams['figure.dpi'], n_rows * 512 / plt.rcParams['figure.dpi']),
                         layout='constrained')
 for row in range(n_rows):
     for col in range(n_cols):
@@ -1791,7 +1791,7 @@ for row in range(n_rows):
         ax.imshow(mpimg.imread(imp))
 if saving:
     fig.savefig(os.path.join(save_path, save_pfix + '_StimulusImages' + save_ext),
-                dpi=dpi, transparent=True)
+                dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 # Compare correlation between stimulus response vectors with distance between ROIs
