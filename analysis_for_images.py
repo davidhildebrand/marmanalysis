@@ -772,8 +772,8 @@ if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
     raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
                        'Handling this is not yet implemented.')
 
-# % Organize and average fluorescence traces
 
+# % Organize fluorescence signals into a data table
 data = np.zeros(n_conds, dtype=[('cond', 'S8'),
                                 ('stimulus', object),
                                 ('cat', 'S8'),
