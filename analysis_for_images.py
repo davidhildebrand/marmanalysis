@@ -1862,7 +1862,6 @@ ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
 # ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
 #             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
 #             fmt='o', elinewidth=1, ecolor='k')
-# # TODO investigate whether it is an issue that direction difference is only accurate to 1º
 
 # ax.plot(ddxs, ddys)
 
