@@ -1794,6 +1794,26 @@ if saving:
                 dpi=dpi, transparent=True)
 
 
+# Compare correlation between stimulus response vectors with distance between ROIs
+
+roi_centers_px = np.empty([n_ROIs, 2])
+roi_centers_um = np.empty([n_ROIs, 2])
+roi_colors = np.empty([n_ROIs, 3])
+for r in range(n_ROIs):
+    region = ROIs[r]
+    rxs = ROIs[r]['xpix']
+    rys = ROIs[r]['ypix']
+    rxys = np.array(list(zip(rxs, rys)))
+    roi_centers_px[r] = np.average(rxys, axis=0)
+    roi_centers_um[r] = md['fov']['resolution_umpx'] * roi_centers_px[r]
+    
+[np.corrcoef(ROI_stats_df[m].loc[r]['cond_resp_vect'], ROI_stats_df[m].loc[r+1]['cond_resp_vect'])[0, 1] for r in range(n_ROIs - 1)]
+scipy.stats.pearsonr(ROI_stats_df[m].loc[r]['cond_resp_vect'], ROI_stats_df[m].loc[r+1]['cond_resp_vect'])
+
+# check equivalent
+np.linalg.norm()
+np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
+
 
 
 # %% Plot tuned cells with discrete tuning-wheel
