@@ -342,22 +342,29 @@ if len(filelist_stimulus_log) > 0:
         if len(pkls) > 1:
             warn('Found multiple stimlog pickle files, using the first: {}'.format(pkls[0]))
         slf_path = pkls[0]
-        stimlog = pd.read_pickle(slf_path)
+        sl = pd.read_pickle(slf_path)
     elif len(hdf5s) > 0:
         if len(hdf5s) > 1:
             warn('Found multiple stimlog hdf5 files, using the first: {}'.format(hdf5s[0]))
         slf_path = hdf5s[0]
-        stimlog = pd.read_hdf(slf_path)
+        sl = pd.read_hdf(slf_path)
     elif len(csvs) > 0:
         if len(hdf5s) > 1:
             warn('Found multiple stimlog csv files, using the first: {}'.format(csvs[0]))
         slf_path = csvs[0]
-        stimlog = pd.read_csv(slf_path)
+        sl = pd.read_csv(slf_path)
+    else:
+        sl = None
+    if sl is not None:
+        stimlog = parsers.create_stimulus_record(trials=len(sl))
+        stimlog.update(sl)
+    del pkls, hdf5s, csvs, sl
+else:
+    if session_log is not None:
+        stimlog = parsers.parse_log_stim_image(session_log)
     else:
         stimlog = None
-    del pkls, hdf5s, csvs
-else:
-    stimlog = None
+        raise RuntimeError('Could not load stimulus record from session log file.')
 
 dirlist_eyecal = [d for d in glob(os.path.join(date_path, dirstr_eyecal)) if os.path.isdir(d)]
 if len(dirlist_eyecal) > 0:
@@ -715,15 +722,7 @@ if plot_eyecal and eyecal_data is not None:
     # plt.show()
 
 
-# Load stimulus information
-
-# *** TODO load from a pandas dataframe instead of a text log
-
-if stimlog is None:
-    if session_log is not None:
-        stimlog = parsers.parse_log_stim_image(session_log)
-    else:
-        raise RuntimeError('Could not load stimulus record from session log file.')
+# Process stimulus information
 
 # Identify stimulus image set from file paths
 if np.unique([os.path.dirname(p) for p in stimlog['image_path'].values]).size == 1:
