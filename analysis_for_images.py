@@ -1711,7 +1711,8 @@ if saving:
 
 
 # Plot for each ROI the category eliciting the largest average response
-above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
+# TODO * * * is this correct logic?
+above_threshold = np.where(ROI_stats_df[m]['peak_cat_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(tci, 1.0, 1.0) for tci in top_cat_mean_idn])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
