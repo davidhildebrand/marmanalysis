@@ -117,11 +117,6 @@ if save_path == '':
 else:
     saving = True
 
-stimimage_path = os.path.join(stim_path, dirstr_stimset)
-if not os.path.isdir(stimimage_path):
-    warn('Could not find stimulus image source path.')
-    stimimage_path = None
-
 date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
 
