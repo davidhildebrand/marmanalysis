@@ -1859,9 +1859,6 @@ np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
 #                         image=plots.auto_level_s2p_image(fov_image))
 
 
-# TODO Plot responses from top, middle, bottom 10 sorted ROIs
-
-
 # %% Other approaches for measuring/approximating tuning
 
 # e.g. from https://www.biorxiv.org/content/10.1101/2022.03.06.483186v1.full.pdf
