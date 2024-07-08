@@ -312,7 +312,13 @@ if 'md' not in locals():
         simd = metadata.get_metadata(df_path)
         md = metadata.extract_useful_metadata(simd)
 md = {**default_metadata(), **md}
-    
+
+if 'fov' in md:
+    if 'w_um' not in md['fov'] and 'resolution_umpx' in md['fov'] and 'w_px' in md['fov']:
+        md['fov']['w_um'] = md['fov']['resolution_umpx'][0] * md['fov']['w_px']
+    if 'h_um' not in md['fov'] and 'resolution_umpx' in md['fov'] and 'h_px' in md['fov']:
+        md['fov']['h_um'] = md['fov']['resolution_umpx'][1] * md['fov']['h_px']
+
 filelist_session_log = [f for f in glob(os.path.join(session_path, filestr_session_log))
                         if re.search(pattern_session_log, f) and os.path.isfile(f)]
 if len(filelist_session_log) > 0:
