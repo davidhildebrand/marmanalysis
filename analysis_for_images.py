@@ -50,7 +50,12 @@ plot_eyecal = False
 plt.rcParams['figure.dpi'] = 300
 dpi = plt.rcParams['figure.dpi']
 
-# Template for ordering and labeling plots
+# Metrics to consider for plots and calculations
+metrics = ['FdFF', 'Fzsc']
+metric_labels = {'FdFF': 'dF/F',
+                 'Fzsc': 'Z-score'}
+
+# Template establishing the ordering and labeling for plots
 template = np.array([b'blank', b'scram_s', b'scram_p',
                      b'face_mrm', b'face_rhe', b'face_hum', b'face_ctn',
                      b'obj', b'food',
@@ -66,11 +71,6 @@ template_labels = {b'blank': 'Blank',
                    b'food': 'Foods',
                    b'body_mrm': 'Bodies (Marmo)',
                    b'animal': 'Animals'}
-
-# Metrics for plots and calculations
-metrics = ['FdFF', 'Fzsc']
-metric_labels = {'FdFF': 'dF/F',
-                 'Fzsc': 'Z-score'}
 
 # Remove stale metadata
 if 'md' in locals():
