@@ -213,7 +213,7 @@ filestr_stimulus_log = '*_stimlog.*'
 filestr_eyetrack_data = '*_AIdata.p'
 dirstr_eyecal = '*_EyeTrackingCalibration'
 filestr_eyecal_log = '*_EyeTrackingCalibration.log'
-filestr_eyecal_data = '*_EyeTrackingCalibration_AIdata.p'
+filestr_eyecal_aidata = '*_EyeTrackingCalibration_AIdata.p'
 if 'dirstr_suite2p' not in locals():
     dirstr_suite2p = 'suite2p*'
 dirstr_suite2p_plane = 'plane0'
@@ -360,12 +360,12 @@ if len(dirlist_eyecal) > 0:
         warn('Found multiple eye tracking calibration directories, using the first one: {}'.format(ecd_path))
     filelist_eyecal_log = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_log))
                            if os.path.isfile(f)]
-    filelist_eyecal_data = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_data))
-                            if os.path.isfile(f)]
+    filelist_eyecal_aidata = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_aidata))
+                              if os.path.isfile(f)]
 else:
     ecd_path = None
     filelist_eyecal_log = []
-    filelist_eyecal_data = []
+    filelist_eyecal_aidata = []
 
 if len(filelist_eyecal_log) > 0:
     ec_lf_path = filelist_eyecal_log[0]
@@ -380,15 +380,15 @@ else:
     eyecal_log = None
 del eclf
 
-if len(filelist_eyecal_data) > 0:
-    ec_df_path = filelist_eyecal_data[0]
-    if len(filelist_eyecal_data) > 1:
+if len(filelist_eyecal_aidata) > 0:
+    ec_df_path = filelist_eyecal_aidata[0]
+    if len(filelist_eyecal_aidata) > 1:
         warn('Found multiple eye tracking calibration data files, using the first one: {}'.format(ec_df_path))
     with open(ec_df_path, 'rb') as ec_df:
-        eyecal_data = pickle.load(ec_df)
+        eyecal_aidata = pickle.load(ec_df)
 else:
     etf_path = None
-    eyecal_data = None
+    eyecal_aidata = None
 del ec_df
 
 filelist_eyetrack_data = [f for f in glob(os.path.join(session_path, filestr_eyetrack_data)) if os.path.isfile(f)]
@@ -567,32 +567,24 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 # c, s, b, g, lam = deconvolve(Fr)  # , penalty=1)
 
 
-# Extract eye tracking calibration information from log file
-
-if eyecal_log is not None:
-    ecdata = parsers.parse_log_eyecal(eyecal_log, eyecal_data)
-else:
-    ecdata = None
-
-
 # Plot eye-tracking calibration results
 
-if plot_eyecal and ecdata is not None:
+if plot_eyecal and eyecal_data is not None:
     # f = plt.figure()
-    # ecx, ecy = ecdata['zero']['AIdata']
+    # ecx, ecy = eyecal_data['zero']['AIdata']
     # plt.scatter(ecx, ecy, s=1, c='m')
-    # ecx, ecy = ecdata['circ']['data'][0]['AIdata']
+    # ecx, ecy = eyecal_data['circ']['data'][0]['AIdata']
     # plt.scatter(ecx, ecy, s=1, c='k')
     # plt.show()
 
     f = plt.figure()
-    for trl in range(ecdata['circ']['n_trials']):
-        ecx, ecy = np.transpose(ecdata['circ']['data'][trl]['AIdata'])
+    for trl in range(eyecal_data['circ']['n_trials']):
+        ecx, ecy = np.transpose(eyecal_data['circ']['data'][trl]['AIdata'])
         plt.scatter(ecx, ecy, s=1)
         if trl == 0:
-            circ = ecdata['circ']['data'][trl]['AIdata']
+            circ = eyecal_data['circ']['data'][trl]['AIdata']
         else:
-            circ = np.concatenate((circ, ecdata['circ']['data'][trl]['AIdata']))
+            circ = np.concatenate((circ, eyecal_data['circ']['data'][trl]['AIdata']))
     plt.show()
     f = plt.figure()
     plt.scatter(circ.T[0], circ.T[1], s=1)
@@ -621,13 +613,13 @@ if plot_eyecal and ecdata is not None:
 
 
     f = plt.figure()
-    for trl in range(ecdata['grdf']['n_trials']):
-        ecx, ecy = np.transpose(ecdata['grdf']['data'][trl]['face']['AIdata'])
+    for trl in range(eyecal_data['grdf']['n_trials']):
+        ecx, ecy = np.transpose(eyecal_data['grdf']['data'][trl]['face']['AIdata'])
         plt.scatter(ecx, ecy, s=1)
         if trl == 0:
-            grdf = ecdata['grdf']['data'][trl]['face']['AIdata']
+            grdf = eyecal_data['grdf']['data'][trl]['face']['AIdata']
         else:
-            grdf = np.concatenate((grdf, ecdata['grdf']['data'][trl]['face']['AIdata']))
+            grdf = np.concatenate((grdf, eyecal_data['grdf']['data'][trl]['face']['AIdata']))
     plt.show()
     f = plt.figure()
     plt.scatter(grdf.T[0], grdf.T[1], s=1)
@@ -652,15 +644,15 @@ if plot_eyecal and ecdata is not None:
 
 
     f = plt.figure()
-    for trl in range(ecdata['crse']['n_trials']):
-        ecx, ecy = np.transpose(ecdata['crse']['data'][trl]['AIdata'])
+    for trl in range(eyecal_data['crse']['n_trials']):
+        ecx, ecy = np.transpose(eyecal_data['crse']['data'][trl]['AIdata'])
         plt.scatter(ecx, ecy, s=1)
         if trl == 0:
-            crse = ecdata['crse']['data'][trl]['AIdata']
-            crsecv = ecdata['crse']['data'][trl]['cvals']
+            crse = eyecal_data['crse']['data'][trl]['AIdata']
+            crsecv = eyecal_data['crse']['data'][trl]['cvals']
         else:
-            crse = np.concatenate((crse, ecdata['crse']['data'][trl]['AIdata']))
-            crsecv = np.vstack((crsecv, ecdata['crse']['data'][trl]['cvals']))
+            crse = np.concatenate((crse, eyecal_data['crse']['data'][trl]['AIdata']))
+            crsecv = np.vstack((crsecv, eyecal_data['crse']['data'][trl]['cvals']))
     plt.show()
     f = plt.figure()
     plt.scatter(crse.T[0], crse.T[1], s=1)
