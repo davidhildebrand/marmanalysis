@@ -1298,10 +1298,15 @@ if n_metrics > 1:
 
 # Output information about ROI tuning based on defined thresholds
 print('|FSI| threshold: {}'.format(threshold_fsi))
-tunidx_fsi = FSI['Fzsc']
-tunidx_fsi_argsrt = np.argsort(tunidx_fsi)[::-1]
-ROIs_tuned_idx = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).squeeze()
-n_ROIs_tuned = np.argwhere(np.abs(tunidx_fsi[tunidx_fsi_argsrt]) > threshold_fsi).shape[0]
+ROIs_tuned_idx = np.argwhere(np.abs(FSI['Fzsc'][np.argsort(FSI['Fzsc'])[::-1]]) > threshold_fsi).squeeze()
+n_ROIs_tuned = np.argwhere(np.abs(FSI['Fzsc'][np.argsort(FSI['Fzsc'])[::-1]]) > threshold_fsi).shape[0]
+print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
+print('Percentage of tuned ROIs: {}%'.format(round(((100 * n_ROIs_tuned) / n_ROIs), 2)))
+del ROIs_tuned_idx, n_ROIs_tuned
+
+print('|dprime| threshold: {}'.format(threshold_dprime))
+ROIs_tuned_idx = np.argwhere(np.abs(dprime['Fzsc'][np.argsort(dprime['Fzsc'])[::-1]]) > threshold_fsi).squeeze()
+n_ROIs_tuned = np.argwhere(np.abs(dprime['Fzsc'][np.argsort(dprime['Fzsc'])[::-1]]) > threshold_fsi).shape[0]
 print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
 print('Percentage of tuned ROIs: {}%'.format(round(((100 * n_ROIs_tuned) / n_ROIs), 2)))
 del ROIs_tuned_idx, n_ROIs_tuned
