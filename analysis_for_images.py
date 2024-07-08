@@ -1414,16 +1414,16 @@ del dpm
 
 # ... by conditions (selected subset), including the average for each trial within that condition
 fr = md['framerate']
-fig = plt.figure()
-fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 m = 'Fzsc'
 focus_cat = b'face_mrm'
 bool_focuscat = (data['cat'] == focus_cat)
 stims = data[bool_focuscat]['stimulus']
-stimconds = [i for i, x in sorted(enumerate(stims), key=lambda_sort)]
+stimconds = [i for i, _ in sorted(enumerate(stims), key=lambda_sort)]
 sortedstims = stims[stimconds]
-conds_in_fcat = [i for i, x in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
+conds_in_fcat = [i for i, _ in sorted(enumerate(data[bool_focuscat]['stimulus']), key=lambda_sort)]
 n_cnd_in_fcat = len(sortedstims)
+fig = plt.figure()
+fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
 else:
