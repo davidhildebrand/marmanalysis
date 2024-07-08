@@ -1814,25 +1814,59 @@ if saving:
 
 # Compare correlation between stimulus response vectors with distance between ROIs
 
-roi_centers_px = np.empty([n_ROIs, 2])
-roi_centers_um = np.empty([n_ROIs, 2])
-roi_colors = np.empty([n_ROIs, 3])
-for r in range(n_ROIs):
-    region = ROIs[r]
-    rxs = ROIs[r]['xpix']
-    rys = ROIs[r]['ypix']
-    rxys = np.array(list(zip(rxs, rys)))
-    roi_centers_px[r] = np.average(rxys, axis=0)
-    roi_centers_um[r] = md['fov']['resolution_umpx'] * roi_centers_px[r]
-    
-[np.corrcoef(ROI_stats_df[m].loc[r]['cond_resp_vect'], ROI_stats_df[m].loc[r+1]['cond_resp_vect'])[0, 1] for r in range(n_ROIs - 1)]
-scipy.stats.pearsonr(ROI_stats_df[m].loc[r]['cond_resp_vect'], ROI_stats_df[m].loc[r+1]['cond_resp_vect'])
+m = 'Fzsc'
 
-# check equivalent
-np.linalg.norm()
-np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
+response_corr = np.array([np.corrcoef(ROI_stats_df[m].loc[r]['cond_resp_vect'],
+                                      ROI_stats_df[m].loc[r + 1]['cond_resp_vect'])[0, 1]
+                          for r in range(n_ROIs - 1)])
+# response_corr = [scipy.stats.pearsonr(ROI_stats_df[m].loc[r]['cond_resp_vect'], 
+#                                       ROI_stats_df[m].loc[r+1]['cond_resp_vect']).statistic 
+#                  for r in range(n_ROIs - 1)]
+
+# # check equivalent
+# np.linalg.norm()
+# np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
+
+roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI_stats_df[m].loc[r + 1]['centroid_um'])
+                      for r in range(n_ROIs - 1)])
+# roi_dists = [np.sqrt((ROI_stats_df[m].loc[r]['centroid_um'][0] - ROI_stats_df[m].loc[r + 1]['centroid_um'][0])**2 +
+#                      (ROI_stats_df[m].loc[r]['centroid_um'][1] - ROI_stats_df[m].loc[r + 1]['centroid_um'][1])**2) 
+#               for r in range(n_ROIs - 1)]
 
 
+if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
+    warn('Distance between some ROIs exceeds expected FOV diagonal.')
+
+# # Calculate median values for 25 um distance bins
+# w_bin_um = 25
+# n_bins = int(np.ceil(distprefs[:, 0].max() / w_bin_um))
+# bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+# bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+# bin_medians, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
+# bin_stds, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
+
+f1 = plt.figure()
+ax = f1.subplots(1, 1)
+ax.set_ylabel('Stimulus response correlation ($\it{r}$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major', labelsize=10)
+ax.set_xlim((0, roi_dists.max() + 1))
+ax.set_ylim((0, 1))
+
+# Plot all pairs of direction difference and distance difference
+ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
+
+# # Plot median values for 25um distance bins
+# # ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
+# ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+#             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
+#             fmt='o', elinewidth=1, ecolor='k')
+# # TODO investigate whether it is an issue that direction difference is only accurate to 1º
+
+# ax.plot(ddxs, ddys)
+
+plt.show()
 
 # %% Plot tuned cells with discrete tuning-wheel
 
