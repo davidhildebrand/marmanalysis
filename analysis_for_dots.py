@@ -647,7 +647,7 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
 # file.close()
 
 if session_log is not None:
-    # lines = session_log.splitlines()
+    lines = session_log.splitlines()
     trialdata = parsers.parse_log_stim_dots_orig(session_log)
 else:
     raise RuntimeError('Could not find session log file.')
@@ -931,7 +931,7 @@ if np.any(distprefs > fov_diagonal):
 
 
 def dir_dist_dep_exp_equation(params, x):
-    # Based on Pattadkal et al Priebe 2022 bioRxiv
+    # based on Pattadkal et al Priebe 2022 bioRxiv
     #     https://doi.org/10.1101/2022.06.23.497220
     # y: fitted direction difference
     # x: distance between cells
