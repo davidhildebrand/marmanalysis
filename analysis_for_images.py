@@ -771,23 +771,27 @@ if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
                        'Handling this is not yet implemented.')
 
 
-# % Organize fluorescence signals into a data table
-data = np.zeros(n_conds, dtype=[('cond', 'S8'),
-                                ('stimulus', object),
-                                ('cat', 'S8'),
-                                ('id', 'S8'),
-                                ('pitch', 'i2'),
-                                ('yaw', 'i2'),
-                                ('roll', 'i2'),
-                                ('imagename', np.unicode_, 256),
-                                ('FdFF', 'f4', (n_ROIs,
-                                                n_reps,
-                                                n_samp_trial)),
-                                ('Fzsc', 'f4', (n_ROIs,
-                                                n_reps,
-                                                n_samp_trial))])
-data[:]['FdFF'] = np.nan
-data[:]['Fzsc'] = np.nan
+# % Organize fluorescence signals into a structured array data table
+
+dlist = [('cond', 'S8'),
+         ('stimulus', object),
+         ('cat', 'S8'),
+         ('id', 'S8'),
+         ('pitch', 'i2'),
+         ('yaw', 'i2'),
+         ('roll', 'i2'),
+         ('imagename', np.unicode_, 256)]
+
+for m in metrics:
+    dlist.append((m, 'f4', (n_ROIs, n_reps, n_samp_trial)))
+del m
+
+data = np.zeros(n_conds, dtype=dlist)
+del dlist
+
+for m in metrics:
+    data[:][m] = np.nan
+del m
 
 # Currently supported image sets:
 # 'FOBmin_MarmOnly', 'FOBmin', 'FOBmany', 'Song_etal_Wang_2022_FOBonly'
@@ -805,8 +809,8 @@ for c in range(n_conds):
         warn('Not all images were the same for condition {}.'.format(c))
         tmp_imagename = ''
         imn = ''
-    tmp_ip = os.path.join(stimimage_path, tmp_imagename)
-    tmp_imagepath = tmp_ip if os.path.isfile(tmp_ip) else None
+    tmp_imagepath = os.path.join(stimimage_path, tmp_imagename) \
+        if os.path.isfile(os.path.join(stimimage_path, tmp_imagename)) else None
     if image_set == 'FOBmin' or image_set == 'FOBmany':
         pattern_imn = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?[^_]*_?(inverted)?$'
         if re.match(pattern_imn, imn) is not None:
@@ -996,22 +1000,30 @@ for c in range(n_conds):
             warn('Period before first trial was shorter than inter-stimulus interval. ' +
                  'Copied first present value to prevent error. ' +
                  'But this trial could instead be excluded.')
-            n_missing = abs(fr_start)
-            data[c]['FdFF'][:, t, 0:n_missing] = np.array([FdFF_raw[:, 0],] * n_missing).transpose()
-            data[c]['Fzsc'][:, t, 0:n_missing] = np.array([Fzsc_raw[:, 0],] * n_missing).transpose()
+            n_samp_miss = abs(fr_start)
+            if 'FdFF' in metrics:
+                data[c]['FdFF'][:, t, 0:n_samp_miss] = np.array([FdFF_raw[:, 0],] * n_samp_miss).T
+            if 'Fzsc' in metrics:
+                data[c]['Fzsc'][:, t, 0:n_samp_miss] = np.array([Fzsc_raw[:, 0],] * n_samp_miss).T
             fr_start = 0
-            data[c]['FdFF'][:, t, n_missing:n_samp_trial] = FdFF_raw[:, fr_start:fr_end]
-            data[c]['Fzsc'][:, t, n_missing:n_samp_trial] = Fzsc_raw[:, fr_start:fr_end]
+            if 'FdFF' in metrics:
+                data[c]['FdFF'][:, t, n_samp_miss:n_samp_trial] = FdFF_raw[:, fr_start:fr_end]
+            if 'Fzsc' in metrics:
+                data[c]['Fzsc'][:, t, n_samp_miss:n_samp_trial] = Fzsc_raw[:, fr_start:fr_end]
+            del n_samp_miss
             continue
         if fr_end > n_frames:
             # TODO: support throwing away trials after imaging stops
             raise RuntimeError('Imaging was stopped before stimulus. Handling this is not yet implemented.')
-        data[c]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
-        data[c]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
-    if np.any(np.isnan(data[c]['FdFF'])):
-        warn('cond {} had FdFF values that are NaNs'.format(c))
-    if np.any(np.isnan(data[c]['Fzsc'])):
-        warn('cond {} had Fzsc values that are NaNs'.format(c))
+        if 'FdFF' in metrics:
+            data[c]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
+        if 'Fzsc' in metrics:
+            data[c]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
+    for m in metrics:
+        if np.any(np.isnan(data[c][m])):
+            warn('Some {} values in cond {} are NaNs'.format(m, c))
+del tmp_cond, tmp_cat, tmp_id, tmp_pitch, tmp_yaw, tmp_roll, tmp_imagename, tmp_imagepath
+
 
 # Establish sorting functions for ordering based on stimulus details
 sort_by_cond = lambda x: (np.where(template == x[1].category)[0][0]
@@ -1204,9 +1216,9 @@ del m, bool_same, bool_FposNFneg, bool_FnegNFpos
 cond_resp_vect = {}
 cat_resp_vect = {}
 for m in metrics:
-    cond_resp_vect[m] = np.mean(data[m][:, :, :, idx_stim], axis=(2,3)).transpose()
+    cond_resp_vect[m] = np.mean(data[m][:, :, :, idx_stim], axis=(2, 3)).T
     cat_resp_vect[m] = np.array([np.mean(data[data['cat'] == c][m][:, :, :, idx_stim], axis=(0, 2, 3)) 
-                                 for c in categories]).transpose()
+                                 for c in categories]).T
 del m
 
 
