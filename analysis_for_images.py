@@ -1076,6 +1076,13 @@ if n_conds != conditions.shape[0]:
     del u, c, mult
 
 
+# Check for NaN values after loading data
+for m in metrics:
+    if np.any(np.isnan(data[m])):
+        raise Exception('Found NaNs after loading {} data.'.format(m))
+del m
+
+
 # Plot population mean response (similar to PSTH)
 fr = md['framerate']
 fig_psth = plt.figure()
@@ -1122,14 +1129,9 @@ plt.show()
 del mi, m, xs, xticks, xticklabels
 
 
-# TODO: check for NaN values rather than using nanmean?
-# if np.any(np.isnan(volume)):
-#     raise Exception('NaNs found in preprocessed volume.')
-
-idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
-
 # Define booleans for face and non-face conditions
 #   *** TODO: Also consider yaw and roll... and perhaps excluding cartoons?
+idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 bool_F = np.logical_or.reduce([data['cat'] == fc for fc in categories 
                                if 'face' in fc.decode() 
                                and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
@@ -1343,6 +1345,7 @@ n_ROIs_tuned = np.argwhere(np.abs(dprime['Fzsc'][np.argsort(dprime['Fzsc'])[::-1
 print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
 print('Percentage of tuned ROIs: {}%'.format(round(((100 * n_ROIs_tuned) / n_ROIs), 2)))
 del ROIs_tuned_idx, n_ROIs_tuned
+
 
 # TODO regorganize
 
