@@ -1859,10 +1859,6 @@ response_corr = np.array([np.corrcoef(ROI_stats_df[m].loc[r]['cond_resp_vect'],
 #                                       ROI_stats_df[m].loc[r+1]['cond_resp_vect']).statistic 
 #                  for r in range(n_ROIs - 1)]
 
-# # check equivalent
-# np.linalg.norm()
-# np.sqrt((r1_c[0] - r2_c[0])**2 + (r1_c[1] - r2_c[1])**2)
-
 roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI_stats_df[m].loc[r + 1]['centroid_um'])
                       for r in range(n_ROIs - 1)])
 # roi_dists = [np.sqrt((ROI_stats_df[m].loc[r]['centroid_um'][0] - ROI_stats_df[m].loc[r + 1]['centroid_um'][0])**2 +
@@ -1873,13 +1869,14 @@ roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI
 if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
     warn('Distance between some ROIs exceeds expected FOV diagonal.')
 
-# # Calculate median values for 25 um distance bins
-# w_bin_um = 25
-# n_bins = int(np.ceil(distprefs[:, 0].max() / w_bin_um))
-# bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
-# bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
-# bin_medians, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
-# bin_stds, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
+# Calculate median values for 25 um distance bins
+w_bin_um = 25
+n_bins = int(np.ceil(roi_dists.max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+from scipy.stats import binned_statistic
+bin_medians, _, _ = binned_statistic(roi_dists, response_corr, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roi_dists, response_corr, statistic='std', bins=bin_edges)
 
 f1 = plt.figure()
 ax = f1.subplots(1, 1)
@@ -1893,11 +1890,11 @@ ax.set_ylim((0, 1))
 # Plot all pairs of direction difference and distance difference
 ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
 
-# # Plot median values for 25um distance bins
-# # ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
-# ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-#             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
-#             fmt='o', elinewidth=1, ecolor='k')
+# Plot median values for 25um distance bins
+# ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
+            fmt='o', elinewidth=1, ecolor='k')
 
 # ax.plot(ddxs, ddys)
 
