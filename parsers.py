@@ -615,7 +615,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                 case 'start':
                     log.at[trial, 'dur_isi_pre'] = times_isi[trial]
                     if trial > 0:
-                        log.at[trial-1, 'dur_isi_post'] = times_isi[trial]
+                        log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
                     log.at[trial, 't_isi_i'] = t
                     log.at[trial, 'acqfr_isi_i'] = acqfr
                     # log.at[trial, 'dispfr_isi_i'] = np.nan
