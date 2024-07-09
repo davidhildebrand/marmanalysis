@@ -77,6 +77,7 @@ if 'md' in locals():
     md = dict()
     del md
 
+
 # %% Specify data locations
 
 # # Cadbury 20221016d
@@ -358,6 +359,8 @@ if len(filelist_stimulus_log) > 0:
     if sl is not None:
         stimlog = parsers.create_stimulus_record(trials=len(sl))
         stimlog.update(sl)
+    else:
+        stimlog = None
     del pkls, hdf5s, csvs, sl
 else:
     if session_log is not None:
@@ -365,6 +368,24 @@ else:
     else:
         stimlog = None
         raise RuntimeError('Could not load stimulus record from session log file.')
+
+# Fill in missing stimulus log values by calculation or from the session log
+if stimlog is not None:
+    if stimlog['dur_isi_pre'].isnull().values.any():
+        if not stimlog['t_isi_i'].isnull().values.any() and not stimlog['t_isi_f'].isnull().values.any():
+            stimlog['dur_isi_pre'] = stimlog['t_isi_f'] - stimlog['t_isi_i']
+    if stimlog['dur_stim'].isnull().values.any():
+        if not stimlog['t_stim_i'].isnull().values.any() and not stimlog['t_stim_f'].isnull().values.any():
+            stimlog['dur_stim'] = stimlog['t_stim_f'] - stimlog['t_stim_i']
+    if stimlog['dur_isi_post'].isnull().values.any():
+        if not stimlog['t_isi_i'].isnull().values.any() and not stimlog['t_isi_f'].isnull().values.any():
+            for t in range(len(stimlog['dur_isi_post']) - 1):
+                stimlog.at[t, 'dur_isi_post'] = stimlog['t_isi_f'].loc[t + 1] - stimlog['t_isi_i'].loc[t + 1]
+            del t
+    if stimlog.isnull().values.any() and session_log is not None:
+        sl = parsers.parse_log_stim_image(session_log)
+        stimlog.update(sl, overwrite=False)
+        del sl
 
 dirlist_eyecal = [d for d in glob(os.path.join(date_path, dirstr_eyecal)) if os.path.isdir(d)]
 if len(dirlist_eyecal) > 0:
