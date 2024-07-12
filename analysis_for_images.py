@@ -1074,11 +1074,13 @@ sort_by_cat = lambda x: (np.where(template == x[1])[0][0]
 
 data = data[[i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]]
 
-categories = np.unique(data['cat'])
-categories = categories[[i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]]
+# Note that numpy.unique() sorts, but pandas.unique() does not
+categories = pd.unique(data['cat'])
+# categories = categories[[i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]]
 cat_to_catidx = {k: i for i, k in enumerate(categories)}
 n_cats = len(categories)
-conditions = np.unique(data['cond'])
+conditions = pd.unique(data['cond'])
+# conditions = conditions[[i for i, _ in sorted(enumerate(conditions), key=sort_by_cond)]]
 cond_to_condidx = {k: i for i, k in enumerate(conditions)}
 
 
