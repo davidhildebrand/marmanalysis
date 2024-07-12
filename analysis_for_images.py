@@ -1051,6 +1051,12 @@ for c in range(n_conds):
             warn('Some {} values in cond {} are NaNs'.format(m, c))
 del tmp_cond, tmp_cat, tmp_id, tmp_pitch, tmp_yaw, tmp_roll, tmp_imagename, tmp_imagepath
 
+# Sanity check for NaN values after loading data
+for m in metrics:
+    if np.any(np.isnan(data[m])):
+        raise Exception('Found NaNs after loading {} data.'.format(m))
+del m
+
 
 # %% Sort data table according to template, then define categories and conditions
 
