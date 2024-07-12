@@ -1100,7 +1100,8 @@ for mi, m in enumerate(metrics):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
-    xticklabels = ['' if not np.isclose(xt, dur_isi * md['framerate']) and not np.isclose(xt, (dur_isi + dur_stim) * md['framerate'])
+    xticklabels = ['' if not np.isclose(xt, dur_isi * md['framerate']) 
+                   and not np.isclose(xt, (dur_isi + dur_stim) * md['framerate'])
                    else '{}'.format(np.round(xt / md['framerate']).astype('int')) for xt in xticks]
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
@@ -1774,8 +1775,9 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 
 
 
-# Plot heatmap of mean responses to all presented conditions (images) for ROIs 
-# with at least one stimulus period z-score > 0.5
+
+# Plot heatmap of across-trial, across-cond mean responses by category...
+# ...only for ROIs with an across-trial mean response above a z-score threshold
 above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
 fhm = plt.figure()
 plt.xlabel('Image Category')
@@ -1793,8 +1795,8 @@ if saving:
                 dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
-# Plot for each ROI the category eliciting the largest average response
-# TODO * * * is this correct logic?
+# Plot overlays for each ROI the category eliciting the peak response...
+# ...only for ROIs with an across-trial, across-cond mean response above a z-score threshold
 above_threshold = np.where(ROI_stats_df[m]['peak_cat_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
                        for c in np.divide(ROI_stats_df[m]['peak_cat_idx'].values.astype(int), len(categories))])
@@ -1819,7 +1821,11 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                               'FSI > {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
 
-# Plot relative response strength
+# ...only for ROIs with |dprime_F| >= threshold
+# TODO * * * * PLOT THIS
+
+
+# % Plot relative response strength
 
 # TODO make this more dynamic
 
