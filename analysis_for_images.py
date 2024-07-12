@@ -1082,7 +1082,8 @@ n_cats = len(categories)
 conditions = pd.unique(data['cond'])
 # conditions = conditions[[i for i, _ in sorted(enumerate(conditions), key=sort_by_cond)]]
 cond_to_condidx = {k: i for i, k in enumerate(conditions)}
-
+cat_to_condidx = {cat: [cond_to_condidx[cnd] for cnd in data[data['cat'] == cat]['cond']] 
+                  for cat in categories}
 
 if n_conds != conditions.shape[0]:
     u, c = np.unique(data['cond'], return_counts=True)
@@ -1103,12 +1104,14 @@ if md['stim_locked_to_acqfr'] is True:
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for mi, m in enumerate(metrics):
-    # ymin = np.min(np.array([np.mean(data[data['cat'] == categories[c]][m], axis=(0, 1, 2)) for c in range(n_cats)]))
-    # ymax = np.max(np.array([np.mean(data[data['cat'] == categories[c]][m], axis=(0, 1, 2)) for c in range(n_cats)]))
-    ymin = np.min(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
-                            for c in range(n_cats)]))
-    ymax = np.max(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
-                            for c in range(n_cats)]))
+    # ymin = np.min(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
+    #                         for c in range(n_cats)]))
+    ymin = np.min(np.array([np.mean(np.mean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
+                            for c in categories]))
+    # ymax = np.max(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
+    #                         for c in range(n_cats)]))
+    ymax = np.max(np.array([np.mean(np.mean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
+                            for c in categories]))
     ax = axes[mi]
     ax.set_ylabel(metric_labels[m])
     ax.tick_params(axis='both', which='major', labelsize=8)
@@ -1127,19 +1130,17 @@ for mi, m in enumerate(metrics):
             np.mean(data[m], axis=(0, 1, 2)), 
             label='All', 
             color='0', linestyle='dotted', linewidth=1, zorder=4)
-    for cat in range(n_cats):
-        n_cnd_in_cat = (data[data['cat'] == categories[cat]]['cond'].shape[0])
-        # Fmean = np.mean(data[data['cat'] == categories[cat]][m], axis=(0, 1, 2))
-        # Fsem = np.std(data[data['cat'] == categories[cat]][m], axis=(0, 1, 2)) / np.sqrt(n_ROIs)
-        ax.plot(xs,
-                # np.mean(data[data['cat'] == categories[cat]][m], axis=(0, 1, 2)),
-                np.mean(np.mean(data[data['cat'] == categories[cat]][m], axis=(1, 2)), axis=0),
-                'o-', markersize=2,
-                label=template_labels[categories[cat]], 
-                color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), zorder=3)
-        # ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
-        #                 color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.2, zorder=2)
-    del cat
+    for cati, cat in enumerate(categories):
+        n_cnd_in_cat = (data[cat_to_condidx[cat]]['cond'].shape[0])
+        Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
+        Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
+        ax.plot(xs, 
+                Fmean,  # 'o-', markersize=2,
+                label=template_labels[cat], 
+                color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), zorder=3)
+        ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
+                        color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.1, zorder=2)
+    del cati, cat
     ax.legend(fontsize=4, frameon=False, loc=(.02, .7))
 plt.show()
 del mi, m, xs, xticks, xticklabels
@@ -1471,14 +1472,14 @@ for r in range(n_plot_ROIs):
                 ax.axis('off')
             ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
             ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-            n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
+            n_cnd_in_cat = data[cat_to_condidx[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
                 ax.plot(xs,
-                        np.mean(data[data['cat'] == categories[cat]][m][cnd, ridx, :, :], axis=0),
+                        np.mean(data[cat_to_condidx[cat]][m][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5,
                         color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
-            Fmean = np.mean(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0)
-            Fsem = np.std(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
+            Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
+            Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
     plt.show()
@@ -1536,9 +1537,9 @@ for r in range(n_plot_ROIs):
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cat in range(n_cats):
-        n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
-        Fmean = np.mean(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0)
-        Fsem = np.std(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
+        n_cnd_in_cat = data[cat_to_condidx[cat]]['cond'].shape[0]
+        Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
+        Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
                         facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
