@@ -1284,35 +1284,35 @@ del m
 
 
 # Store response values and tuning metrics for each ROI
-ROI_stats = {}
+stats = {}
 for m in metrics:
-    ROI_stats[m] = {}
+    stats[m] = {}
     for r in range(n_ROIs):
-        ROI_stats[m][r] = {}
+        stats[m][r] = {}
     
-        ROI_stats[m][r]['mask'] = np.concatenate((ROIs[r]['xpix'][:, np.newaxis], ROIs[r]['ypix'][:, np.newaxis]), axis=1)
-        ROI_stats[m][r]['centroid_px'] = np.average(ROI_stats[m][r]['mask'], axis=0)
-        ROI_stats[m][r]['centroid_um'] = md['fov']['resolution_umpx'] * ROI_stats[m][r]['centroid_px']
+        stats[m][r]['mask'] = np.concatenate((ROIs[r]['xpix'][:, np.newaxis], ROIs[r]['ypix'][:, np.newaxis]), axis=1)
+        stats[m][r]['centroid_px'] = np.average(stats[m][r]['mask'], axis=0)
+        stats[m][r]['centroid_um'] = md['fov']['resolution_umpx'] * stats[m][r]['centroid_px']
         
-        ROI_stats[m][r]['resp_vect_cond'] = resp_vect_cond[m][r]
-        ROI_stats[m][r]['peak_cond_idx'] = ROI_stats[m][r]['resp_vect_cond'].argmax()
-        ROI_stats[m][r]['peak_cond'] = conditions[ROI_stats[m][r]['peak_cond_idx']]
-        ROI_stats[m][r]['peak_cond_val'] = ROI_stats[m][r]['resp_vect_cond'].max()
-        ROI_stats[m][r]['cat_of_peak_cond'] = data[data['cond'] == ROI_stats[m][r]['peak_cond']]['cat']
+        stats[m][r]['resp_vect_cond'] = resp_vect_cond[m][r]
+        stats[m][r]['peak_cond_idx'] = stats[m][r]['resp_vect_cond'].argmax()
+        stats[m][r]['peak_cond'] = conditions[stats[m][r]['peak_cond_idx']]
+        stats[m][r]['peak_cond_val'] = stats[m][r]['resp_vect_cond'].max()
+        stats[m][r]['cat_of_peak_cond'] = data[data['cond'] == stats[m][r]['peak_cond']]['cat']
     
-        ROI_stats[m][r]['resp_vect_cat'] = resp_vect_cat[m][r]
-        ROI_stats[m][r]['peak_cat_idx'] = ROI_stats[m][r]['resp_vect_cat'].argmax()
-        ROI_stats[m][r]['peak_cat'] = categories[ROI_stats[m][r]['peak_cat_idx']]
-        ROI_stats[m][r]['peak_cat_val'] = ROI_stats[m][r]['resp_vect_cat'].max()
+        stats[m][r]['resp_vect_cat'] = resp_vect_cat[m][r]
+        stats[m][r]['peak_cat_idx'] = stats[m][r]['resp_vect_cat'].argmax()
+        stats[m][r]['peak_cat'] = categories[stats[m][r]['peak_cat_idx']]
+        stats[m][r]['peak_cat_val'] = stats[m][r]['resp_vect_cat'].max()
         
-        ROI_stats[m][r]['dprime_f'] = dprime[m][r]
-        ROI_stats[m][r]['fsi'] = FSI[m][r]
+        stats[m][r]['dprime_f'] = dprime[m][r]
+        stats[m][r]['fsi'] = FSI[m][r]
     del r
 del m
 
-ROI_stats_df = {}
+stats_df = {}
 for m in metrics:
-    ROI_stats_df[m] = pd.DataFrame({'roi': range(n_ROIs),
+    stats_df[m] = pd.DataFrame({'roi': range(n_ROIs),
                                     'mask': None,
                                     'centroid_px': None,
                                     'centroid_um': None,
@@ -1327,37 +1327,37 @@ for m in metrics:
                                     'fsi': None,
                                     'resp_vect_cond': None,
                                     'resp_vect_cat': None})
-    ROI_stats_df[m].set_index(['roi'])
+    stats_df[m].set_index(['roi'])
 
     for r in range(n_ROIs):
-        ROI_stats_df[m].at[r, 'mask'] = np.concatenate((ROIs[r]['xpix'][:, np.newaxis], ROIs[r]['ypix'][:, np.newaxis]), axis=1)
-        ROI_stats_df[m].at[r, 'centroid_px'] = np.average(ROI_stats_df[m].at[r, 'mask'], axis=0)
-        ROI_stats_df[m].at[r, 'centroid_um'] = md['fov']['resolution_umpx'] * ROI_stats_df[m].at[r, 'centroid_px']
+        stats_df[m].at[r, 'mask'] = np.concatenate((ROIs[r]['xpix'][:, np.newaxis], ROIs[r]['ypix'][:, np.newaxis]), axis=1)
+        stats_df[m].at[r, 'centroid_px'] = np.average(stats_df[m].at[r, 'mask'], axis=0)
+        stats_df[m].at[r, 'centroid_um'] = md['fov']['resolution_umpx'] * stats_df[m].at[r, 'centroid_px']
         
-        ROI_stats_df[m].at[r, 'resp_vect_cond'] = np.mean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
-        ROI_stats_df[m].at[r, 'peak_cond_idx'] = ROI_stats_df[m].loc[r]['resp_vect_cond'].argmax()
-        ROI_stats_df[m].at[r, 'peak_cond'] = conditions[ROI_stats_df[m].at[r, 'peak_cond_idx']]
-        ROI_stats_df[m].at[r, 'peak_cond_val'] = ROI_stats_df[m].loc[r]['resp_vect_cond'].max()
-        ROI_stats_df[m].at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[ROI_stats_df[m].at[r, 'peak_cond_idx']]]['cat']
+        stats_df[m].at[r, 'resp_vect_cond'] = np.mean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
+        stats_df[m].at[r, 'peak_cond_idx'] = stats_df[m].loc[r]['resp_vect_cond'].argmax()
+        stats_df[m].at[r, 'peak_cond'] = conditions[stats_df[m].at[r, 'peak_cond_idx']]
+        stats_df[m].at[r, 'peak_cond_val'] = stats_df[m].loc[r]['resp_vect_cond'].max()
+        stats_df[m].at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[stats_df[m].at[r, 'peak_cond_idx']]]['cat']
 
-        ROI_stats_df[m].at[r, 'resp_vect_cat'] = resp_vect_cat[m][r]
-        ROI_stats_df[m].at[r, 'peak_cat_idx'] = ROI_stats_df[m].loc[r]['resp_vect_cat'].argmax()
-        ROI_stats_df[m].at[r, 'peak_cat'] = categories[ROI_stats_df[m].at[r, 'peak_cat_idx']]
-        ROI_stats_df[m].at[r, 'peak_cat_val'] = ROI_stats_df[m].loc[r]['resp_vect_cat'].max()
+        stats_df[m].at[r, 'resp_vect_cat'] = resp_vect_cat[m][r]
+        stats_df[m].at[r, 'peak_cat_idx'] = stats_df[m].loc[r]['resp_vect_cat'].argmax()
+        stats_df[m].at[r, 'peak_cat'] = categories[stats_df[m].at[r, 'peak_cat_idx']]
+        stats_df[m].at[r, 'peak_cat_val'] = stats_df[m].loc[r]['resp_vect_cat'].max()
         
-        ROI_stats_df[m].at[r, 'dprime_f'] = dprime[m][r]
-        ROI_stats_df[m].at[r, 'fsi'] = FSI[m][r]
+        stats_df[m].at[r, 'dprime_f'] = dprime[m][r]
+        stats_df[m].at[r, 'fsi'] = FSI[m][r]
     del r
 del m
 
 if n_metrics > 1:
     for mi, m in enumerate(metrics):
         if mi + 1 < n_metrics:
-            bool_cnd = (ROI_stats_df[m]['peak_cond'].values != ROI_stats_df[metrics[mi+1]]['peak_cond'].values)
+            bool_cnd = (stats_df[m]['peak_cond'].values != stats_df[metrics[mi+1]]['peak_cond'].values)
             ROIs_diff_peak_cnd = np.where(bool_cnd)[0]
             if ROIs_diff_peak_cnd.size > 0:
                 warn('peak_cond mismatch ({} vs {}) for ROIs: {}'.format(m, metrics[mi+1], ROIs_diff_peak_cnd))
-            bool_cat = (ROI_stats_df[m]['peak_cat'].values != ROI_stats_df[metrics[mi+1]]['peak_cat'].values)
+            bool_cat = (stats_df[m]['peak_cat'].values != stats_df[metrics[mi+1]]['peak_cat'].values)
             ROIs_diff_peak_cat = np.where(bool_cat)[0]
             if ROIs_diff_peak_cat.size > 0:
                 warn('peak_cat mismatch ({} vs {}) for ROIs: {}'.format(m, metrics[mi+1], ROIs_diff_peak_cat))
@@ -1402,7 +1402,7 @@ plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
 
 # Determine for each ROI which condition (image) elicited the largest response
 m = 'Fzsc'
-above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
+above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
 at_sortidx = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)[above_threshold]).argsort()
 
 
@@ -1754,10 +1754,10 @@ del m
 m = 'Fzsc'
 
 # Plot for each ROI the category of the condition (image) eliciting the largest response
-above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
+above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
                        for c in np.divide([cat_to_catidx[c] 
-                                           for c in data[ROI_stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
+                                           for c in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
                                           len(categories))])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -1771,7 +1771,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 above_threshold = np.where(np.abs(FSI[m]) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
                        for c in np.divide([cat_to_catidx[c] 
-                                           for c in data[ROI_stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
+                                           for c in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
                                           len(categories))])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
@@ -1839,7 +1839,7 @@ plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
 # img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
 #                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
-img_hm = ax_hm.imshow(np.vstack(ROI_stats_df[m]['resp_vect_cat'].values)[sort_idx_dprime[m]],
+img_hm = ax_hm.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_dprime[m]],
                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 if threshold_dprime is not None:
     if threshold_dprime != 0:
@@ -1924,7 +1924,7 @@ plt.ylabel('ROI')
 ax = plt.gca()
 ax.set_xticks([0, 1, 2])
 ax.set_xticklabels(['faces', 'objects', 'bodies'])
-plt.imshow(np.vstack(ROI_stats_df[m]['resp_vect_cat'].values)[sort_idx_cat_F],
+plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_cat_F],
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
@@ -1937,7 +1937,7 @@ del sort_idx_cat_F
 
 # Plot heatmap of across-trial, across-cond mean responses by category...
 # ...only for ROIs with an across-trial mean response above a z-score threshold
-above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
+above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
 fhm = plt.figure()
 fhm.suptitle('heatmap of across-trial, across-cond mean responses by category, z peak_cond_val > 0.5', fontsize=8)
 plt.xlabel('Image Category')
@@ -1945,7 +1945,7 @@ plt.ylabel('ROI')
 ax = plt.gca()
 ax.set_xticks([0, 1, 2])
 ax.set_xticklabels(['faces', 'objects', 'bodies'])
-plt.imshow(np.vstack(ROI_stats_df[m]['resp_vect_cat'].values)[above_threshold[at_sortidx]],
+plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[above_threshold[at_sortidx]],
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
@@ -1957,9 +1957,9 @@ if saving:
 
 # Plot overlays for each ROI the category eliciting the peak response...
 # ...only for ROIs with an across-trial, across-cond mean response above a z-score threshold
-above_threshold = np.where(ROI_stats_df[m]['peak_cat_val'] > 0.5)[0]
+above_threshold = np.where(stats_df[m]['peak_cat_val'] > 0.5)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
-                       for c in np.divide(ROI_stats_df[m]['peak_cat_idx'].values.astype(int), len(categories))])
+                       for c in np.divide(stats_df[m]['peak_cat_idx'].values.astype(int), len(categories))])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], 
@@ -1971,7 +1971,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) > threshold_fsi)[0]
 ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
-                       for c in np.divide(ROI_stats_df[m]['peak_cat_idx'].values.astype(int), len(categories))])
+                       for c in np.divide(stats_df[m]['peak_cat_idx'].values.astype(int), len(categories))])
 sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingCategoryOnAverage_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], 
@@ -1993,14 +1993,14 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 #                      muR_NFobj[m],
 #                      muR_B[m]]).swapaxes(0, 1)
 
-Fzsc_fob = np.vstack(ROI_stats_df[m]['resp_vect_cat'].values)
+Fzsc_fob = np.vstack(stats_df[m]['resp_vect_cat'].values)
 
 Fzsc_mean_min_cat = np.min(Fzsc_fob, axis=1)
 for col_i in range(3):
     Fzsc_fob[:, col_i] = Fzsc_fob[:, col_i] - Fzsc_mean_min_cat
 
 
-resp_vect_cat_rel = np.vstack(ROI_stats_df[m]['resp_vect_cat'].values)
+resp_vect_cat_rel = np.vstack(stats_df[m]['resp_vect_cat'].values)
 
 # Subtract the value corresponding to least responsive category to make it relative
 # (otherwise, an ROI that responds to all categories would show up as white)
@@ -2011,7 +2011,7 @@ max_Fzsc = 0.5
 Fzsc_fob_norm = Fzsc_fob / max_Fzsc
 Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
 
-above_threshold = np.where(ROI_stats_df[m]['peak_cond_val'] > 0.5)[0]
+above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_roi_overlays(ROIs[above_threshold], 
@@ -2061,14 +2061,14 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 
 m = 'Fzsc'
 
-response_corr = np.array([np.corrcoef(ROI_stats_df[m].loc[r]['resp_vect_cond'],
-                                      ROI_stats_df[m].loc[r+1]['resp_vect_cond'])[0, 1]
+response_corr = np.array([np.corrcoef(stats_df[m].loc[r]['resp_vect_cond'],
+                                      stats_df[m].loc[r+1]['resp_vect_cond'])[0, 1]
                           for r in range(n_ROIs - 1)])
-# response_corr = [scipy.stats.pearsonr(ROI_stats_df[m].loc[r]['resp_vect_cond'], 
-#                                       ROI_stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
+# response_corr = [scipy.stats.pearsonr(stats_df[m].loc[r]['resp_vect_cond'], 
+#                                       stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
 #                  for r in range(n_ROIs - 1)]
 
-roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI_stats_df[m].loc[r+1]['centroid_um'])
+roi_dists = np.array([np.linalg.norm(stats_df[m].loc[r]['centroid_um'] - stats_df[m].loc[r+1]['centroid_um'])
                       for r in range(n_ROIs - 1)])
 
 if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
@@ -2111,13 +2111,13 @@ plt.show()
 m = 'Fzsc'
 
 from scipy.stats import binned_statistic, kendalltau, spearmanr
-response_rank_rho = np.array([spearmanr(ROI_stats_df[m].loc[r]['resp_vect_cond'], 
-                                        ROI_stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
+response_rank_rho = np.array([spearmanr(stats_df[m].loc[r]['resp_vect_cond'], 
+                                        stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
                               for r in range(n_ROIs - 1)])
-response_rank_tau = np.array([kendalltau(ROI_stats_df[m].loc[r]['resp_vect_cond'], 
-                                         ROI_stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
+response_rank_tau = np.array([kendalltau(stats_df[m].loc[r]['resp_vect_cond'], 
+                                         stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
                               for r in range(n_ROIs - 1)])
-roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI_stats_df[m].loc[r+1]['centroid_um'])
+roi_dists = np.array([np.linalg.norm(stats_df[m].loc[r]['centroid_um'] - stats_df[m].loc[r+1]['centroid_um'])
                       for r in range(n_ROIs - 1)])
 
 if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
