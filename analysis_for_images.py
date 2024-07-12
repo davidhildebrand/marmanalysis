@@ -2090,7 +2090,7 @@ ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major', labelsize=10)
 ax.set_xlim((0, roi_dists.max() + 1))
-ax.set_ylim((0, 1))
+ax.set_ylim((response_corr.min() - np.abs(0.1 * response_corr.min()), 1))
 
 # Plot all pairs of direction difference and distance difference
 ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
