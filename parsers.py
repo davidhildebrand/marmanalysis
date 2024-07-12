@@ -80,7 +80,7 @@ def parse_log_eyecal(eyecal_log, data=None):
 
         match lmode:
             case 'zero':
-                pattern_zero = r'.*oculomatic\s*zeroing,\s*(presenting|hiding)\s*face,?.*'
+                pattern_zero = r'.*oculomatic\s*zeroing,?\s*(presenting|hiding)\s*face,?.*'
                 # '6.3156 \tEXP \toculomatic zeroing, presenting face, AI_data.shape = (2529, 6)'
                 # '234.7007 \tEXP \toculomatic zeroing, hiding face, AI_data.shape = (133928, 6)'
                 if re.match(pattern_zero, line) is not None:
@@ -133,7 +133,7 @@ def parse_log_eyecal(eyecal_log, data=None):
 
             case 'circ':
                 pattern_circ = r'.*circular\s*trajectory\s*(calibration|trial)\s*(start|end|\d+),?\s*' + \
-                               r'(start|turn|end)?,?\s*(faceID\s*=\s*)?(\d+)?\s*(start|end)?,*.*'
+                               r'(start|turn|end)?,?\s*(faceID\s*=\s*)?(\d+)?\s*(start|end)?,?.*'
                 # '316.3927 \tEXP \tcircular trajectory trial 0 start, faceID = 9, AI_data.shape = (180857, 6)'
                 # '325.4014 \tEXP \tcircular trajectory trial 0, turn 3 start, AI_data.shape = (186039, 6)'
                 # '328.4045 \tEXP \tcircular trajectory trial 0, turn 3 end, AI_data.shape = (187767, 6)'
@@ -599,8 +599,8 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
     log = create_stimulus_record(trials=n_trials)
 
     for line in lines:
-        pattern_isi = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*trial\s*([0-9]+)\/([0-9]+),\s*ISI\s*(start|end),\s*' + \
-                      r'acqfr=([0-9]+),\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        pattern_isi = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*ISI\s*(start|end),?\s*' + \
+                      r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_isi, line) is not None:
             g = re.match(pattern_isi, line).groups()
             t = float(g[0])
@@ -628,8 +628,8 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                 case _:
                     warn('Unknown ISI event in log file.')
 
-        pattern_fix = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*trial\s*([0-9]+)\/([0-9]+),\s*fixation\s*(start|end),\s*' + \
-                      r'acqfr=([0-9]+),\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        pattern_fix = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,\s*fixation\s*(start|end),\s*' + \
+                      r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_fix, line) is not None:
             g = re.match(pattern_fix, line).groups()
             t = float(g[0])
@@ -654,12 +654,12 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                 case _:
                     warn('Unknown ISI event in log file.')
 
-        pattern_stim = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*trial\s*([0-9]+)\/([0-9]+),\s*stim\s*(start|end),\s*' + \
-                       r'(image,\s*cond=([0-9]+),\s*name=[a-zA-Z0-9_]+:([a-zA-Z0-9_]+\.png),\s*path=([^\s]+),\s*' + \
-                       r'units=([a-zA-Z]+),\s*pos=\[([\-0-9\.\s]+)\],\s*size=\[([\-0-9\.\s]+)\],\s*' + \
-                       r'ori=([0-9\.]+),\s*color=\[([\-0-9\.\s]+)\],\s*colorSpace=([a-zA-Z]+),\s*' + \
-                       r'contrast=([0-9\.]+),\s*opacity=([0-9\.]+),\s*texRes=([0-9]+),)?\s*acqfr=([0-9]+),\s*' + \
-                       r'AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        pattern_stim = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*stim\s*(start|end),?\s*' + \
+                       r'((image),?\s*cond=([0-9]+),?\s*name=[a-zA-Z0-9_]+:([a-zA-Z0-9_]+\.png),?\s*path=([^\s]+),?\s*' + \
+                       r'units=([a-zA-Z]+),?\s*pos=\[([\-0-9\.\s]+)\],?\s*size=\[([\-0-9\.\s]+)\],?\s*' + \
+                       r'ori=([0-9\.]+),?\s*color=\[([\-0-9\.\s]+)\],?\s*colorSpace=([a-zA-Z]+),?\s*' + \
+                       r'contrast=([0-9\.]+),?\s*opacity=([0-9\.]+),?\s*texRes=([0-9]+),?)?\s*' + \
+                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_stim, line) is not None:
             g = re.match(pattern_stim, line).groups()
             t = float(g[0])
@@ -667,8 +667,8 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             if (n_trials - 1) != int(g[2]):
                 warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
-            acqfr = int(g[17])
-            ai_shape = (int(g[18]), int(g[19]))
+            acqfr = int(g[18])
+            ai_shape = (int(g[19]), int(g[20]))
 
             match g[3]:
                 case 'start':
@@ -679,21 +679,21 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                     # log.at[trial, 'dispfr_stim_i'] = np.nan
                     log.at[trial, 'ai_stim_i'] = ai_shape[0]
 
-                    log.at[trial, 'cond'] = int(g[5])
+                    log.at[trial, 'cond'] = int(g[6])
                     log.at[trial, 'stim_mode'] = 'visual'
-                    log.at[trial, 'stim_class'] = 'image'
+                    log.at[trial, 'stim_class'] = g[5]
                     log.at[trial, 'stim_subclass'] = None
-                    log.at[trial, 'image'] = g[6]
-                    log.at[trial, 'image_path'] = g[7]
-                    log.at[trial, 'units'] = g[8]
-                    log.at[trial, 'pos'] = np.fromstring(g[9], sep=' ')
-                    log.at[trial, 'size'] = np.fromstring(g[10], sep=' ')
-                    log.at[trial, 'ori'] = float(g[11])
-                    log.at[trial, 'color'] = np.fromstring(g[12], sep=' ')
-                    log.at[trial, 'colorSpace'] = g[13]
-                    log.at[trial, 'contrast'] = float(g[14])
-                    log.at[trial, 'opacity'] = float(g[15])
-                    log.at[trial, 'texRes'] = int(g[16])
+                    log.at[trial, 'image'] = g[7]
+                    log.at[trial, 'image_path'] = g[8]
+                    log.at[trial, 'units'] = g[9]
+                    log.at[trial, 'pos'] = np.fromstring(g[10], sep=' ')
+                    log.at[trial, 'size'] = np.fromstring(g[11], sep=' ')
+                    log.at[trial, 'ori'] = float(g[12])
+                    log.at[trial, 'color'] = np.fromstring(g[13], sep=' ')
+                    log.at[trial, 'colorSpace'] = g[14]
+                    log.at[trial, 'contrast'] = float(g[15])
+                    log.at[trial, 'opacity'] = float(g[16])
+                    log.at[trial, 'texRes'] = int(g[17])
                 case 'end':
                     log.at[trial, 't_stim_f'] = t
                     log.at[trial, 'acqfr_stim_f'] = acqfr
@@ -702,8 +702,8 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                 case _:
                     warn('Unknown stim event in log file.')
 
-        pattern_conc = r'^\s*([0-9]+\.?[0-9]*)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
-                       r'acqfr=([0-9]+),\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
+                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_conc, line) is not None:
             g = re.match(pattern_conc, line).groups()
             t = float(g[0])
