@@ -1129,9 +1129,8 @@ del mi, m, xs, xticks, xticklabels
 
 
 # Define booleans for face and non-face conditions
-#   *** TODO: Also consider yaw and roll... and perhaps excluding cartoons?
-idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
-bool_F = np.logical_or.reduce([data['cat'] == fc for fc in categories 
+#   *** TODO: Also consider yaw and roll...
+bool_F = np.logical_or.reduce([data['cat'] == fc for fc in categories
                                if 'face' in fc.decode() 
                                and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
 bool_NF = np.logical_or.reduce([data['cat'] == fc for fc in categories 
@@ -1147,6 +1146,7 @@ bool_B = np.logical_or.reduce([data['cat'] == fc for fc in categories
 
 
 # Calculate across-stimulus, trial-averaged mean responses
+idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 muR_F = {}
 muR_NF = {}
 muR_NFobj = {}
@@ -1455,33 +1455,32 @@ del dpm
 
 # ... by conditions (selected subset), including the average for each trial within that condition
 m = 'Fzsc'
-focus_cat = b'face_mrm'
-bool_focuscat = (data['cat'] == focus_cat)
-stims = data[bool_focuscat]['stimulus']
-stimconds = [i for i, _ in sorted(enumerate(stims), key=sort_by_cond)]
-sortedstims = stims[stimconds]
-conds_in_fcat = [i for i, _ in sorted(enumerate(data[bool_focuscat]['stimulus']), key=sort_by_cond)]
-n_cnd_in_fcat = len(sortedstims)
+# focus_cat = b'face_mrm'
+# bool_focus = (data['cat'] == focus_cat)
+bool_focus = bool_F
+conds_focus = np.where(bool_focus)[0]
+conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stimulus']), key=sort_by_cond)]]
+n_conds_focus = len(conds_focus)
+
 fig = plt.figure()
 fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
-axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1), sharey='row')
+axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_conds_focus + 1), sharey='row')
 for r in range(n_plot_ROIs):
     ridx = sort_idx_dprime[m][plot_ROI_subset[r]]
     if r == 0:
         ax = axes[0, 0]
         ax.axis('off')
-        for cnd in range(20):
-            bool_cnd = (data['cond'] == sortedstims[cnd].condition)
-            ax = axes[0, cnd + 1]
+        for cndi, cnd in enumerate(conds_focus):
+            ax = axes[0, cndi + 1]
             ax.axis('off')
-            ax.imshow(mpimg.imread(data[bool_cnd]['stimulus'][0].filepath))
+            ax.imshow(mpimg.imread(data[cnd]['stimulus'].filepath))
     pr = r + 1
     
-    # Leftmost summary plot of category averages.
+    # Summary plots of category averages
     ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
     ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
     # if m == 0:
@@ -1504,55 +1503,51 @@ for r in range(n_plot_ROIs):
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cat in range(n_cats):
-        bool_cat = (data['cat'] == categories[cat])
-        Fmean = np.mean(data[bool_cat][m][:, ridx, :, :], axis=(0, 1))
-        Fsem = np.std(data[bool_cat][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
+        Fmean = np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1))
+        Fsem = np.std(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
                         facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
 
-    # Plot each cond
-    for cnd in range(n_cnd_in_fcat):
-        bool_cnd = (data['cond'] == sortedstims[cnd].condition)
-        ax = axes[pr, cnd + 1]
+    # Plots for each cond
+    for cndi, cnd in enumerate(conds_focus):
+        ax = axes[pr, cndi + 1]
         ax.axis('off')
         ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
         ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
         for t in range(n_reps):
             ax.plot(xs, 
-                    data[bool_cnd][m][0, ridx, t, :],
+                    data[cnd][m][ridx, t, :],
                     color=str(np.linspace(0.4, 0.7, n_reps)[t]), linewidth=0.1)
-        Fmean = np.mean(data[bool_cnd][m][0, ridx, :, :], axis=0)
-        Fsem = np.std(data[bool_cnd][m][0, ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
+        Fmean = np.mean(data[cnd][m][ridx, :, :], axis=0)
+        Fsem = np.std(data[cnd][m][ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
-del m, xs, bool_cat, bool_cnd
+del m, xs, r, pr, cat, cnd, cndi, t 
+del bool_focus, conds_focus, n_conds_focus
 plt.show()
 
 
 # ... by conditions (selected subset), as a trial-averaged heatmap
-fr = md['framerate']
+m = 'Fzsc'
+# focus_cat = b'face_mrm'
+# bool_focus = (data['cat'] == focus_cat)
+bool_focus = bool_F
+conds_focus = np.where(bool_focus)[0]
+conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stimulus']), key=sort_by_cond)]]
+n_conds_focus = len(conds_focus)
+
 fig = plt.figure()
 fig.suptitle('trial-averaged heat maps by condition', fontsize=8)
-m = 'Fzsc'
-focus_cat = b'face_mrm'
-bool_focuscat = (data['cat'] == focus_cat)
-stims = data[bool_focuscat]['stimulus']
-stimconds = [i for i, _ in sorted(enumerate(stims), key=sort_by_cond)]
-sortedstims = stims[stimconds]
-conds_in_fcat = [i for i, _ in sorted(enumerate(data[bool_focuscat]['stimulus']), key=sort_by_cond)]
-n_cnd_in_fcat = len(sortedstims)
-axes = fig.subplots(nrows=2, ncols=(n_cnd_in_fcat + 1), height_ratios=[0.25, 2.75], sharey='row')
+axes = fig.subplots(nrows=2, ncols=(n_conds_focus + 1), height_ratios=[0.25, 2.75], sharey='row')
 
 pr = 0
 ax = axes[pr, 0]
 ax.axis('off')
-for cnd in range(20):
-    bool_cnd = (data['cond'] == sortedstims[cnd].condition)
-    ax = axes[pr, cnd + 1]
+for cndi, cnd in enumerate(conds_focus):
+    ax = axes[pr, cndi + 1]
     ax.axis('off')
-    img_st = ax.imshow(mpimg.imread(data[bool_cnd]['stimulus'][0].filepath))
-    # ax.set_ylim((0, img_st.get_size()[0]))
+    img_st = ax.imshow(mpimg.imread(data[cnd]['stimulus'].filepath))
 
 pr = 1
 ax_dp = axes[pr, 0]
@@ -1578,23 +1573,23 @@ if threshold_dprime is not None:
         ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime), atol=0.05),
                       color='0.2', linestyle='dotted', linewidth=1)
 
-for cnd in range(n_cnd_in_fcat):
-    bool_cnd = (data['cond'] == sortedstims[cnd].condition)
-    ax = axes[pr, cnd + 1]
+for cndi, cnd in enumerate(conds_focus):
+    ax = axes[pr, cndi + 1]
     ax.axis('off')
-    img_hm = ax.imshow(np.mean(data[bool_cnd][m].squeeze(), axis=1)[sort_idx_dprime[m]],
+    img_hm = ax.imshow(np.mean(data[cnd][m], axis=1)[sort_idx_dprime[m]],
                        vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
     xlines = [dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate']]
     for xl in xlines:
         ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.6')
-
-del m, bool_cnd
 plt.show()
 
+del m, pr, cndi, cnd
+del ax, xl, xlines
 
-# Plot heatmap of mean responses to all presented conditions (images) for ROIs
-# with at least one stimulus period z-score > 0.5
+
+# Plot heatmap of across-trial mean responses to all presented conditions (images) for all ROIs
 m = 'Fzsc'
+sort_idx_cond = [i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]
 fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
 # fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
 plt.subplots_adjust(wspace=0.05)
@@ -1630,7 +1625,7 @@ ax_hm.set_xticks(xtick_minors, minor=True)
 ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
 plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
-img_hm = ax_hm.imshow(np.mean(data[stimcond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
+img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 # ax_hm.invert_yaxis()
 # ax_hm.axvline(x=20)
@@ -1682,7 +1677,7 @@ plt.rc('xtick', labelsize=8)
 plt.rc('ytick', labelsize=8)
 plt.rc('legend', fontsize=16)
 plt.rc('figure', titlesize=8)
-# fig_hm.tight_layout()
+
 fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
