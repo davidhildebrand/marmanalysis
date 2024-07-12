@@ -2068,12 +2068,8 @@ response_corr = np.array([np.corrcoef(ROI_stats_df[m].loc[r]['resp_vect_cond'],
 #                                       ROI_stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
 #                  for r in range(n_ROIs - 1)]
 
-roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI_stats_df[m].loc[r + 1]['centroid_um'])
+roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI_stats_df[m].loc[r+1]['centroid_um'])
                       for r in range(n_ROIs - 1)])
-# roi_dists = [np.sqrt((ROI_stats_df[m].loc[r]['centroid_um'][0] - ROI_stats_df[m].loc[r + 1]['centroid_um'][0])**2 +
-#                      (ROI_stats_df[m].loc[r]['centroid_um'][1] - ROI_stats_df[m].loc[r + 1]['centroid_um'][1])**2) 
-#               for r in range(n_ROIs - 1)]
-
 
 if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
     warn('Distance between some ROIs exceeds expected FOV diagonal.')
