@@ -1290,7 +1290,7 @@ resp_vect_cond = {}
 resp_vect_cat = {}
 for m in metrics:
     resp_vect_cond[m] = np.mean(data[m][:, :, :, idx_stim], axis=(2, 3)).T
-    resp_vect_cat[m] = np.array([np.mean(data[data['cat'] == c][m][:, :, :, idx_stim], axis=(0, 2, 3)) 
+    resp_vect_cat[m] = np.array([np.mean(np.mean(data[cat_to_condidx[c]][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
                                  for c in categories]).T
 del m
 
