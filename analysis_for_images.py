@@ -2057,7 +2057,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 #                 dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
-# Compare correlation between stimulus response vectors with distance between ROIs
+# Compare value-based correlation between stimulus response vectors with distance between ROIs
 
 m = 'Fzsc'
 
@@ -2078,7 +2078,7 @@ roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI
 if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
     warn('Distance between some ROIs exceeds expected FOV diagonal.')
 
-# Calculate median values for 25 um distance bins
+# Calculate median values across ROI distance bins
 w_bin_um = 25
 n_bins = int(np.ceil(roi_dists.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
