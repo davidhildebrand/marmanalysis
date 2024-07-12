@@ -1565,7 +1565,7 @@ n_conds_focus = len(conds_focus)
 
 fig = plt.figure()
 fig.suptitle('trial-averaged heat maps by condition', fontsize=8)
-axes = fig.subplots(nrows=2, ncols=(n_conds_focus + 1), height_ratios=[0.25, 2.75], sharey='row')
+axes = fig.subplots(nrows=2, ncols=(n_conds_focus + 1), height_ratios=[30, 790], sharey='row')
 
 pr = 0
 ax = axes[pr, 0]
@@ -1577,7 +1577,7 @@ for cndi, cnd in enumerate(conds_focus):
 
 pr = 1
 ax_dp = axes[pr, 0]
-ax_dp.set_xlabel('Face d′')
+ax_dp.set_xlabel('Face d′', fontsize=6)
 ax_dp.set_axisbelow(True)
 ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
