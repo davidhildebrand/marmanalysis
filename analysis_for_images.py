@@ -415,10 +415,10 @@ if len(filelist_eyecal_aidata) > 0:
         warn('Found multiple eye tracking calibration data files, using the first one: {}'.format(ec_df_path))
     with open(ec_df_path, 'rb') as ec_df:
         eyecal_aidata = pickle.load(ec_df)
+    del ec_df
 else:
     etf_path = None
     eyecal_aidata = None
-del ec_df
 
 if eyecal_log is not None:
     if eyecal_aidata is not None:
