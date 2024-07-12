@@ -2021,32 +2021,32 @@ plots.plot_roi_overlays(ROIs[above_threshold],
                         save_path=sp)
 
 
-# % Plot stimulus images
+# # % Plot stimulus images
 
-n_subconds = len(cond_subset)
+# n_subconds = len(cond_subset)
 
-if n_conds % 20 == 0:
-    n_cols = 20
-    n_rows = int(n_subconds / 20)
-else:
-    n_cols = 20
-    n_rows = round(n_subconds / 20)
+# if n_conds % 20 == 0:
+#     n_cols = 20
+#     n_rows = int(n_subconds / 20)
+# else:
+#     n_cols = 20
+#     n_rows = round(n_subconds / 20)
 
-fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows,
-                        figsize=(n_cols * 512 / plt.rcParams['figure.dpi'], n_rows * 512 / plt.rcParams['figure.dpi']),
-                        layout='constrained')
-for row in range(n_rows):
-    for col in range(n_cols):
-        i = col + (row * n_cols)
-        ax = axs[row, col]
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        ax.axis('off')
-        imp = os.path.join(stimimage_path, data[cond_idx[i]]['imagename'])
-        ax.imshow(mpimg.imread(imp))
-if saving:
-    fig.savefig(os.path.join(save_path, save_pfix + '_StimulusImages' + save_ext),
-                dpi=plt.rcParams['figure.dpi'], transparent=True)
+# fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows,
+#                         figsize=(n_cols * 512 / plt.rcParams['figure.dpi'], n_rows * 512 / plt.rcParams['figure.dpi']),
+#                         layout='constrained')
+# for row in range(n_rows):
+#     for col in range(n_cols):
+#         i = col + (row * n_cols)
+#         ax = axs[row, col]
+#         ax.set_yticklabels([])
+#         ax.set_xticklabels([])
+#         ax.axis('off')
+#         imp = os.path.join(stimimage_path, data[cond_idx[i]]['imagename'])
+#         ax.imshow(mpimg.imread(imp))
+# if saving:
+#     fig.savefig(os.path.join(save_path, save_pfix + '_StimulusImages' + save_ext),
+#                 dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 # Compare correlation between stimulus response vectors with distance between ROIs
