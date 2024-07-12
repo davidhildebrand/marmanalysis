@@ -1149,20 +1149,20 @@ del mi, m, xs, xticks, xticklabels
 # %% Define booleans for face and non-face 'super categories'
 
 #   *** TODO: Also consider yaw and roll...
-bool_F = np.logical_or.reduce([data['cat'] == fc for fc in categories
-                               if 'face' in fc.decode() 
-                               and 'blank' not in fc.decode() and 'scram' not in fc.decode()
-                               and 'ctn' not in fc.decode()])  # Exclude cartoon faces
-bool_NF = np.logical_or.reduce([data['cat'] == fc for fc in categories 
-                                if 'face' not in fc.decode() 
-                                and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
-bool_NFobj = np.logical_or.reduce([data['cat'] == fc for fc in categories 
-                                   if 'face' not in fc.decode() 
-                                   and 'blank' not in fc.decode() and 'scram' not in fc.decode()
-                                   and 'body' not in fc.decode()])
-bool_B = np.logical_or.reduce([data['cat'] == fc for fc in categories 
-                               if 'body' in fc.decode() 
-                               and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
+bool_F = np.logical_or.reduce([data['cat'] == c for c in categories
+                               if 'face' in c.decode() 
+                               and 'blank' not in c.decode() and 'scram' not in c.decode()
+                               and 'ctn' not in c.decode()])  # Exclude cartoon faces
+bool_NF = np.logical_or.reduce([data['cat'] == c for c in categories 
+                                if 'face' not in c.decode() 
+                                and 'blank' not in c.decode() and 'scram' not in c.decode()])
+bool_NFobj = np.logical_or.reduce([data['cat'] == c for c in categories 
+                                   if 'face' not in c.decode() 
+                                   and 'blank' not in c.decode() and 'scram' not in c.decode()
+                                   and 'body' not in c.decode()])
+bool_B = np.logical_or.reduce([data['cat'] == c for c in categories 
+                               if 'body' in c.decode() 
+                               and 'blank' not in c.decode() and 'scram' not in c.decode()])
 
 
 # %% Compute a variety of statistics for each ROI
