@@ -1066,8 +1066,6 @@ sort_by_cat = lambda x: (np.where(template == x[1])[0][0]
                          else np.iinfo(np.where(template == x[1])[0].dtype).max)
 
 
-# Sort data, categories, and conditions
-
 data = data[[i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]]
 
 categories = np.unique(data['cat'])
