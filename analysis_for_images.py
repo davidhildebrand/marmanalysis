@@ -616,6 +616,7 @@ if plot_eyecal and eyecal_data is not None:
     # plt.show()
 
     f = plt.figure()
+    circ = np.array([])
     for trl in range(eyecal_data['circ']['n_trials']):
         ecx, ecy = np.transpose(eyecal_data['circ']['data'][trl]['AIdata'])
         plt.scatter(ecx, ecy, s=1)
@@ -623,8 +624,10 @@ if plot_eyecal and eyecal_data is not None:
             circ = eyecal_data['circ']['data'][trl]['AIdata']
         else:
             circ = np.concatenate((circ, eyecal_data['circ']['data'][trl]['AIdata']))
-    plt.show()
+    f.show()
+
     f = plt.figure()
+    circ = np.array([])
     plt.scatter(circ.T[0], circ.T[1], s=1)
     plt.scatter(np.median(circ.T[0]), np.median(circ.T[1]), s=5, c='m')
     ax = plt.gca()
@@ -632,7 +635,7 @@ if plot_eyecal and eyecal_data is not None:
     c1 = Ellipse((np.median(circ.T[0]), np.median(circ.T[1])),
                  width=np.std(circ.T[0]), height=np.std(circ.T[1]), lw=2, edgecolor='m', fc='None')
     ax.add_patch(c1)
-    plt.show()
+    f.show()
 
     # # Plot point density
     # from matplotlib.patches import Ellipse
@@ -651,8 +654,8 @@ if plot_eyecal and eyecal_data is not None:
     # ax.add_patch(c1)
     # plt.show()
 
-
     f = plt.figure()
+    grdf = np.array([])
     for trl in range(eyecal_data['grdf']['n_trials']):
         ecx, ecy = np.transpose(eyecal_data['grdf']['data'][trl]['face']['AIdata'])
         plt.scatter(ecx, ecy, s=1)
@@ -680,10 +683,11 @@ if plot_eyecal and eyecal_data is not None:
     fig, ax = plt.subplots()
     ax.scatter(etx, ety, s=1, c=et_ptdensity)
     ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
-    plt.show()
-
+    f.show()
 
     f = plt.figure()
+    crse = np.array([])
+    crsecv = np.array([])
     for trl in range(eyecal_data['crse']['n_trials']):
         ecx, ecy = np.transpose(eyecal_data['crse']['data'][trl]['AIdata'])
         plt.scatter(ecx, ecy, s=1)
@@ -714,7 +718,7 @@ if plot_eyecal and eyecal_data is not None:
     fig, ax = plt.subplots()
     ax.scatter(etx, ety, s=1, c=et_ptdensity)
     ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
-    plt.show()
+    f.show()
 
     # # Plot at eye tracking data
     # # Take a look at this for density plotting:
