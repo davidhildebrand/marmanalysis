@@ -1268,11 +1268,11 @@ del m, bool_same, bool_FposNFneg, bool_FnegNFpos
 # cond_inds_in_cat = {cat: [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()] 
 #                     for cat in template.tolist()
 #                     if [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()]}
-cond_resp_vect = {}
-cat_resp_vect = {}
+resp_vect_cond = {}
+resp_vect_cat = {}
 for m in metrics:
-    cond_resp_vect[m] = np.mean(data[m][:, :, :, idx_stim], axis=(2, 3)).T
-    cat_resp_vect[m] = np.array([np.mean(data[data['cat'] == c][m][:, :, :, idx_stim], axis=(0, 2, 3)) 
+    resp_vect_cond[m] = np.mean(data[m][:, :, :, idx_stim], axis=(2, 3)).T
+    resp_vect_cat[m] = np.array([np.mean(data[data['cat'] == c][m][:, :, :, idx_stim], axis=(0, 2, 3)) 
                                  for c in categories]).T
 del m
 
@@ -1288,16 +1288,16 @@ for m in metrics:
         ROI_stats[m][r]['centroid_px'] = np.average(ROI_stats[m][r]['mask'], axis=0)
         ROI_stats[m][r]['centroid_um'] = md['fov']['resolution_umpx'] * ROI_stats[m][r]['centroid_px']
         
-        ROI_stats[m][r]['cond_resp_vect'] = cond_resp_vect[m][r]
-        ROI_stats[m][r]['peak_cond_idx'] = ROI_stats[m][r]['cond_resp_vect'].argmax()
+        ROI_stats[m][r]['resp_vect_cond'] = resp_vect_cond[m][r]
+        ROI_stats[m][r]['peak_cond_idx'] = ROI_stats[m][r]['resp_vect_cond'].argmax()
         ROI_stats[m][r]['peak_cond'] = conditions[ROI_stats[m][r]['peak_cond_idx']]
-        ROI_stats[m][r]['peak_cond_val'] = ROI_stats[m][r]['cond_resp_vect'].max()
+        ROI_stats[m][r]['peak_cond_val'] = ROI_stats[m][r]['resp_vect_cond'].max()
         ROI_stats[m][r]['cat_of_peak_cond'] = data[data['cond'] == ROI_stats[m][r]['peak_cond']]['cat']
     
-        ROI_stats[m][r]['cat_resp_vect'] = cat_resp_vect[m][r]
-        ROI_stats[m][r]['peak_cat_idx'] = ROI_stats[m][r]['cat_resp_vect'].argmax()
+        ROI_stats[m][r]['resp_vect_cat'] = resp_vect_cat[m][r]
+        ROI_stats[m][r]['peak_cat_idx'] = ROI_stats[m][r]['resp_vect_cat'].argmax()
         ROI_stats[m][r]['peak_cat'] = categories[ROI_stats[m][r]['peak_cat_idx']]
-        ROI_stats[m][r]['peak_cat_val'] = ROI_stats[m][r]['cat_resp_vect'].max()
+        ROI_stats[m][r]['peak_cat_val'] = ROI_stats[m][r]['resp_vect_cat'].max()
         
         ROI_stats[m][r]['dprime_f'] = dprime[m][r]
         ROI_stats[m][r]['fsi'] = FSI[m][r]
@@ -1319,35 +1319,31 @@ for m in metrics:
                                     'peak_cat_val': None,
                                     'dprime_f': None,
                                     'fsi': None,
-                                    'cond_resp_vect': None,
-                                    'cat_resp_vect': None})
+                                    'resp_vect_cond': None,
+                                    'resp_vect_cat': None})
     ROI_stats_df[m].set_index(['roi'])
-    # reliability?
-    # breadth of tuning?
-    # dynamic range?
 
     for r in range(n_ROIs):
         ROI_stats_df[m].at[r, 'mask'] = np.concatenate((ROIs[r]['xpix'][:, np.newaxis], ROIs[r]['ypix'][:, np.newaxis]), axis=1)
         ROI_stats_df[m].at[r, 'centroid_px'] = np.average(ROI_stats_df[m].at[r, 'mask'], axis=0)
         ROI_stats_df[m].at[r, 'centroid_um'] = md['fov']['resolution_umpx'] * ROI_stats_df[m].at[r, 'centroid_px']
         
-        ROI_stats_df[m].at[r, 'cond_resp_vect'] = np.mean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
-        ROI_stats_df[m].at[r, 'peak_cond_idx'] = ROI_stats_df[m].loc[r]['cond_resp_vect'].argmax()
+        ROI_stats_df[m].at[r, 'resp_vect_cond'] = np.mean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
+        ROI_stats_df[m].at[r, 'peak_cond_idx'] = ROI_stats_df[m].loc[r]['resp_vect_cond'].argmax()
         ROI_stats_df[m].at[r, 'peak_cond'] = conditions[ROI_stats_df[m].at[r, 'peak_cond_idx']]
-        ROI_stats_df[m].at[r, 'peak_cond_val'] = ROI_stats_df[m].loc[r]['cond_resp_vect'].max()
+        ROI_stats_df[m].at[r, 'peak_cond_val'] = ROI_stats_df[m].loc[r]['resp_vect_cond'].max()
         ROI_stats_df[m].at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[ROI_stats_df[m].at[r, 'peak_cond_idx']]]['cat']
 
-        ROI_stats_df[m].at[r, 'cat_resp_vect'] = cat_resp_vect[m][r]
-        ROI_stats_df[m].at[r, 'peak_cat_idx'] = ROI_stats_df[m].loc[r]['cat_resp_vect'].argmax()
+        ROI_stats_df[m].at[r, 'resp_vect_cat'] = resp_vect_cat[m][r]
+        ROI_stats_df[m].at[r, 'peak_cat_idx'] = ROI_stats_df[m].loc[r]['resp_vect_cat'].argmax()
         ROI_stats_df[m].at[r, 'peak_cat'] = categories[ROI_stats_df[m].at[r, 'peak_cat_idx']]
-        ROI_stats_df[m].at[r, 'peak_cat_val'] = ROI_stats_df[m].loc[r]['cat_resp_vect'].max()
+        ROI_stats_df[m].at[r, 'peak_cat_val'] = ROI_stats_df[m].loc[r]['resp_vect_cat'].max()
         
         ROI_stats_df[m].at[r, 'dprime_f'] = dprime[m][r]
         ROI_stats_df[m].at[r, 'fsi'] = FSI[m][r]
     del r
 del m
 
-del cond_resp_vect, cat_resp_vect
 
 if n_metrics > 1:
     for mi, m in enumerate(metrics):
