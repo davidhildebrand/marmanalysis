@@ -1132,7 +1132,8 @@ del mi, m, xs, xticks, xticklabels
 #   *** TODO: Also consider yaw and roll...
 bool_F = np.logical_or.reduce([data['cat'] == fc for fc in categories
                                if 'face' in fc.decode() 
-                               and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
+                               and 'blank' not in fc.decode() and 'scram' not in fc.decode()
+                               and 'ctn' not in fc.decode()])  # Exclude cartoon faces
 bool_NF = np.logical_or.reduce([data['cat'] == fc for fc in categories 
                                 if 'face' not in fc.decode() 
                                 and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
@@ -1589,6 +1590,21 @@ del ax, xl, xlines
 
 # Plot heatmap of across-trial mean responses to all presented conditions (images) for all ROIs
 m = 'Fzsc'
+
+# Define category-dividing ticks
+tickinfo = {t.decode(): {} for t in template}
+for t in template:
+    ts = t.decode()
+    wheret = np.where(data[[i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]]['cat'] == t)[0]
+    if wheret.size > 0:
+        tickinfo[ts]['start'] = wheret[0]
+        tickinfo[ts]['end'] = wheret[-1]
+        tickinfo[ts]['labelpos'] = (tickinfo[ts]['start'] + tickinfo[ts]['end']) / 2
+        tickinfo[ts]['label'] = template_labels[t]
+    else:
+        tickinfo.pop(ts)
+del t, ts, wheret
+
 sort_idx_cond = [i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]
 fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
 # fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
