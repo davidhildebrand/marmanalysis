@@ -2095,7 +2095,82 @@ ax.set_ylim((response_corr.min() - np.abs(0.1 * response_corr.min()), 1))
 # Plot all pairs of direction difference and distance difference
 ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
 
-# Plot median values for 25um distance bins
+# Plot median values for distance bins
+# ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
+            fmt='o', elinewidth=1, ecolor='k')
+
+# ax.plot(ddxs, ddys)
+
+plt.show()
+
+
+# Compare rank-based correlation between stimulus response vectors with distance between ROIs
+
+m = 'Fzsc'
+
+from scipy.stats import binned_statistic, kendalltau, spearmanr
+response_rank_rho = np.array([spearmanr(ROI_stats_df[m].loc[r]['resp_vect_cond'], 
+                                        ROI_stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
+                              for r in range(n_ROIs - 1)])
+response_rank_tau = np.array([kendalltau(ROI_stats_df[m].loc[r]['resp_vect_cond'], 
+                                         ROI_stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
+                              for r in range(n_ROIs - 1)])
+roi_dists = np.array([np.linalg.norm(ROI_stats_df[m].loc[r]['centroid_um'] - ROI_stats_df[m].loc[r+1]['centroid_um'])
+                      for r in range(n_ROIs - 1)])
+
+if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
+    warn('Distance between some ROIs exceeds expected FOV diagonal.')
+
+# Calculate median values across ROI distance bins
+w_bin_um = 25
+n_bins = int(np.ceil(roi_dists.max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+
+bin_medians, _, _ = binned_statistic(roi_dists, response_rank_rho, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roi_dists, response_rank_rho, statistic='std', bins=bin_edges)
+
+f1 = plt.figure()
+ax = f1.subplots(1, 1)
+ax.set_ylabel(r'Stimulus response rank correlation ($\rho$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major', labelsize=10)
+ax.set_xlim((0, roi_dists.max() + 1))
+ax.set_ylim((response_rank_rho.min() - np.abs(0.1 * response_rank_rho.min()), 1))
+
+# Plot all pairs of direction difference and distance difference
+ax.scatter(roi_dists, response_rank_rho, marker='.', s=1, edgecolor='k')
+
+# Plot median values for distance bins
+# ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
+            fmt='o', elinewidth=1, ecolor='k')
+
+# ax.plot(ddxs, ddys)
+
+plt.show()
+
+
+bin_medians, _, _ = binned_statistic(roi_dists, response_rank_tau, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roi_dists, response_rank_tau, statistic='std', bins=bin_edges)
+
+f1 = plt.figure()
+ax = f1.subplots(1, 1)
+ax.set_ylabel(r'Stimulus response rank correlation ($\tau$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major', labelsize=10)
+ax.set_xlim((0, roi_dists.max() + 1))
+ax.set_ylim((response_rank_tau.min() - np.abs(0.1 * response_rank_tau.min()), 1))
+
+# Plot all pairs of direction difference and distance difference
+ax.scatter(roi_dists, response_rank_tau, marker='.', s=1, edgecolor='k')
+
+# Plot median values for distance bins
 # ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
