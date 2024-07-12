@@ -553,9 +553,6 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 #     # Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
 #     # # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * md['framerate']),)), axis=1)
 #     # # Fr_dFF_med = (Fr - F0_med) / F0_med
-#     # F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
-#     # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(
-#     #     filter_window * fr)
 #     # F0_ma = np.convolve(Fr, np.ones(round(filter_window * md['framerate'])), mode='same') / round(filter_window * md['framerate'])
 #     # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * md['framerate'])), mode='same') / round(
 #     #     filter_window * md['framerate'])
@@ -1084,7 +1081,6 @@ del m
 
 
 # Plot population mean response (similar to PSTH)
-fr = md['framerate']
 fig_psth = plt.figure()
 fig_psth.suptitle('mean population response (across all ROIs) by category')
 axes = fig_psth.subplots(nrows=n_metrics, ncols=1)
@@ -1469,7 +1465,6 @@ del dpm
 
 
 # ... by conditions (selected subset), including the average for each trial within that condition
-fr = md['framerate']
 m = 'Fzsc'
 focus_cat = b'face_mrm'
 bool_focuscat = (data['cat'] == focus_cat)
