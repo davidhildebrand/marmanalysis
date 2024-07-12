@@ -1375,18 +1375,20 @@ print('Percentage of tuned ROIs: {}%'.format(round(((100 * n_ROIs_tuned) / n_ROI
 del ROIs_tuned_idx, n_ROIs_tuned
 
 
-# TODO regorganize
-
-# Plot ROI tuning histograms
+# Plot histograms of ROI tuning
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromFdFF' + save_ext) if saving else ''
-plots.plot_hist_fsi(FSI['FdFF'], threshold=threshold_fsi, title='FSIs calculated from FdFF values', save_path=sp)
+plots.plot_hist_fsi(FSI['FdFF'], threshold=threshold_fsi,
+                    title='FSIs calculated from FdFF values', save_path=sp)
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromZscr' + save_ext) if saving else ''
-plots.plot_hist_fsi(FSI['Fzsc'], threshold=threshold_fsi, title='FSIs calculated from z-scored values', save_path=sp)
+plots.plot_hist_fsi(FSI['Fzsc'], threshold=threshold_fsi,
+                    title='FSIs calculated from z-scored values', save_path=sp)
 
 sp = os.path.join(save_path, save_pfix + '_Histogram_dprimes_fromFzsc' + save_ext) if saving else ''
-plots.plot_hist_dprime(dprime['Fzsc'], threshold=threshold_dprime, title='dprimes calculated from Fzsc values', save_path=sp)
+plots.plot_hist_dprime(dprime['Fzsc'], threshold=threshold_dprime,
+                       title='dprimes calculated from Fzsc values', save_path=sp)
 sp = os.path.join(save_path, save_pfix + '_Histogram_dprimes_fromFdFF' + save_ext) if saving else ''
-plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime, title='dprimes calculated from FdFF values', save_path=sp)
+plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
+                       title='dprimes calculated from FdFF values', save_path=sp)
 
 
 # Summarize responsiveness of each ROI
