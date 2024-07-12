@@ -1470,9 +1470,7 @@ for r in range(n_plot_ROIs):
                         np.mean(data[data['cat'] == categories[cat]][m][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5,
                         color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
-            # Fmean = np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1))
             Fmean = np.mean(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0)
-            # Fsem = np.std(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
             Fsem = np.std(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
@@ -1531,8 +1529,7 @@ for r in range(n_plot_ROIs):
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cat in range(n_cats):
-        # Fmean = np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1))
-        # Fsem = np.std(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
+        n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
         Fmean = np.mean(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0)
         Fsem = np.std(np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
@@ -1550,7 +1547,7 @@ for r in range(n_plot_ROIs):
                     data[cnd][m][ridx, t, :],
                     color=str(np.linspace(0.4, 0.7, n_reps)[t]), linewidth=0.1)
         Fmean = np.mean(data[cnd][m][ridx, :, :], axis=0)
-        Fsem = np.std(data[cnd][m][ridx, :, :], axis=0) / np.sqrt(n_cnd_in_cat)
+        Fsem = np.std(data[cnd][m][ridx, :, :], axis=0) / np.sqrt(n_reps)
         ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
 del m, xs, r, pr, cat, cnd, cndi, t 
