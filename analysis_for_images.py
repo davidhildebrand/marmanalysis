@@ -1231,6 +1231,38 @@ for m in metrics:
 del m, bool_same, bool_FposNFneg, bool_FnegNFpos
 
 
+# Response reliability
+# based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
+# """
+# The firing-rate reliability was determined per neural site. First, for each image, the number of repeated
+# presentations (trials) was randomly split in half. Next, the responses were trial averaged to create two response
+# vectors, one per half of the trials. These two split-half response vectors were then correlated, and the procedure
+# was repeated for 100 random splits to compute an average correlation r. The reliability ρ was computed by applying
+# the Spearman-Brown correction as follows:
+# ρ = 2r / (1 + r)
+# """
+
+
+# Dynamic range
+# based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
+# """
+# The dynamic range for faces was quantified by first identifying the “best” and “worst” face (highest and lowest
+# response, respectively) using even trials, and then computing the normalized difference in response using the
+# held-out odd trials:
+# DR_F = (R_bestF - R_worstF) / (Rmax - Rmin)
+# where Rbest F and Rworst F are the odd-trial–averaged responses to the best and worst face,
+# and Rmax and Rmin are the maximum and minimum odd-trial–averaged responses. The dynamic range for non-faces was
+# computed analogously.
+# """
+
+
+# Breadth of tuning
+# based on Baylis et al Leonard 1985 Brain Res https://doi.org/10.1016/0006-8993(85)91356-3
+# H = -k Σ_i=1_to_n p_i * log(p_i)
+# k = scaling constant (set so that H = 1.0 when neuron responds equally well to all stimuli in the set of size n)
+# p_i = the response to stimulus i expressed as a proportion of the total response to all stimuli in the set
+
+
 # Calculate stimulus response vectors for each ROI
 # conds_in_cat = {cat: data[data['cat'] == cat]['cond'] for cat in template.tolist()}
 # cond_inds_in_cat = {cat: [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()] 
