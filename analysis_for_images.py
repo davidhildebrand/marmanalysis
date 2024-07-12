@@ -543,25 +543,29 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 
 #     # Fr = Frois[ridx, frame_start:frame_end]
 #     Fr_dFF = (Fr - np.mean(Fr)) / np.mean(Fr)
-#     # F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * fr))
+#     # F0_rnk = filters.rank_order_filter(Fr, p=filter_percentile, n=round(filter_window * md['framerate']))
 #     # Fr_dFF_rnk = (Fr - F0_rnk) / F0_rnk
-#     # F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * fr))
+#     # F0_pct = filters.percentile_filter_1d(Fr, p=filter_percentile, n=round(filter_window * md['framerate']))
 #     # Fr_dFF_pct = (Fr - F0_pct) / F0_pct
-#     # F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=fr, p=filter_percentile)
+#     # F0_rnkbw = filters.butterworth_filter(F0_rnk, fs=md['framerate'], p=filter_percentile)
 #     # Fr_dFF_rnkbw = (Fr - F0_rnkbw) / F0_rnkbw
-#     # F0_pctbw = filters.butterworth_filter(Fr, fs=fr, p=filter_percentile)
+#     # F0_pctbw = filters.butterworth_filter(Fr, fs=md['framerate'], p=filter_percentile)
 #     # Fr_dFF_pctbw = (Fr - F0_pctbw) / F0_pctbw
-#     # # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * fr),)), axis=1)
+#     # # F0_med = np.median(np.lib.stride_tricks.sliding_window_view(Fr, (round(filter_window * md['framerate']),)), axis=1)
 #     # # Fr_dFF_med = (Fr - F0_med) / F0_med
 #     # F0_ma = np.convolve(Fr, np.ones(round(filter_window * fr)), mode='same') / round(filter_window * fr)
 #     # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * fr)), mode='same') / round(
 #     #     filter_window * fr)
+#     # F0_ma = np.convolve(Fr, np.ones(round(filter_window * md['framerate'])), mode='same') / round(filter_window * md['framerate'])
+#     # Fr_dFF_ma = Fr_dFF - np.convolve(Fr_dFF, np.ones(round(filter_window * md['framerate'])), mode='same') / round(
+#     #     filter_window * md['framerate'])
 
 #     # y: observed fluorescence
 #     # c: calcium concentration
 #     # s: neural activity / spike train
 #     # b: baseline
-#     # "To produce calcium trace c, spike train s is filtered with the inverse filter of g, an infinite impulse response
+#     # "To produce calcium trace c, spike train s is filtered with the inverse filter
+#     # of g, an infinite impulse response
 #     # h, c = s * h."
 #     # decay factor γ, regularization parameter λ, data y, sigma noise
 
@@ -628,7 +632,8 @@ if plot_eyecal and eyecal_data is not None:
     plt.scatter(np.median(circ.T[0]), np.median(circ.T[1]), s=5, c='m')
     ax = plt.gca()
     from matplotlib.patches import Ellipse
-    c1 = Ellipse((np.median(circ.T[0]), np.median(circ.T[1])), width=np.std(circ.T[0]), height=np.std(circ.T[1]), lw=2, edgecolor='m', fc='None')
+    c1 = Ellipse((np.median(circ.T[0]), np.median(circ.T[1])),
+                 width=np.std(circ.T[0]), height=np.std(circ.T[1]), lw=2, edgecolor='m', fc='None')
     ax.add_patch(c1)
     plt.show()
 
@@ -644,7 +649,8 @@ if plot_eyecal and eyecal_data is not None:
     # fig, ax = plt.subplots()
     # ax.scatter(etx, ety, s=1, c=et_ptdensity)
     # ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
-    # c1 = Ellipse((np.median(etx), np.median(ety)), width=np.std(etx), height=np.std(ety), lw=2, edgecolor='m', fc='None')
+    # c1 = Ellipse((np.median(etx), np.median(ety)), width=np.std(etx),
+    #              height=np.std(ety), lw=2, edgecolor='m', fc='None')
     # ax.add_patch(c1)
     # plt.show()
 
@@ -712,7 +718,6 @@ if plot_eyecal and eyecal_data is not None:
     ax.scatter(etx, ety, s=1, c=et_ptdensity)
     ax.scatter(np.median(etx), np.median(ety), s=5, c='m')
     plt.show()
-
 
     # # Plot at eye tracking data
     # # Take a look at this for density plotting:
@@ -806,7 +811,7 @@ data = np.zeros(n_conds, dtype=dlist)
 del dlist
 
 for m in metrics:
-    data[:][m] = np.nan
+    data[m] = np.nan
 del m
 
 # Currently supported image sets:
@@ -1084,7 +1089,7 @@ fig_psth = plt.figure()
 fig_psth.suptitle('mean population response (across all ROIs) by category')
 axes = fig_psth.subplots(nrows=n_metrics, ncols=1)
 if md['stim_locked_to_acqfr'] is True:
-    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
+    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for mi, m in enumerate(metrics):
@@ -1095,13 +1100,13 @@ for mi, m in enumerate(metrics):
     ax.tick_params(axis='both', which='major', labelsize=8)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
-    xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr)
-                   else '{}'.format(np.round(xt / fr).astype('int')) for xt in xticks]
+    xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
+    xticklabels = ['' if not np.isclose(xt, dur_isi * md['framerate']) and not np.isclose(xt, (dur_isi + dur_stim) * md['framerate'])
+                   else '{}'.format(np.round(xt / md['framerate']).astype('int')) for xt in xticks]
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
-    ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
-    ax.set_xlim((0, np.ceil(dur_trial) * fr))
+    ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
+    ax.set_xlim((0, np.ceil(dur_trial) * md['framerate']))
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.plot(xs,
             np.mean(data[m], axis=(0, 1, 2)), 
@@ -1413,10 +1418,9 @@ if len(plot_ROI_subset) > n_plot_ROIs:
 # Plot summary of each single ROI's responses ...
 
 # ... by category, including the average for each condition within that category.
-fr = md['framerate']
 dpm = 'Fzsc'
 if md['stim_locked_to_acqfr'] is True:
-    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
+    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for r in range(n_plot_ROIs):
@@ -1437,22 +1441,24 @@ for r in range(n_plot_ROIs):
                 ax.tick_params(axis='both', which='major', labelsize=8)
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
-                xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
-                xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr)
-                               else '{}'.format(np.round(xt / fr).astype('int')) for xt in xticks]
+                xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
+                xticklabels = ['' if not np.isclose(xt, dur_isi * md['framerate'])
+                               and not np.isclose(xt, (dur_isi + dur_stim) * md['framerate'])
+                               else '{}'.format(np.round(xt / md['framerate']).astype('int')) for xt in xticks]
                 ax.set_xticks(xticks)
                 ax.set_xticklabels(xticklabels)
             else:
                 ax.set_yticklabels([])
                 ax.set_xticklabels([])
                 ax.axis('off')
-            ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
+            ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
             ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
             n_cnd_in_cat = data[data['cat'] == categories[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
                 ax.plot(xs,
                         np.mean(data[data['cat'] == categories[cat]][m][cnd, ridx, :, :], axis=0),
-                        linewidth=0.5, markersize=0.5, color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
+                        linewidth=0.5, markersize=0.5,
+                        color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
             Fmean = np.mean(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1))
             Fsem = np.std(data[data['cat'] == categories[cat]][m][:, ridx, :, :], axis=(0, 1)) / np.sqrt(n_cnd_in_cat)
             ax.plot(xs, Fmean, color='0.0', zorder=3)
@@ -1460,6 +1466,7 @@ for r in range(n_plot_ROIs):
     plt.show()
 del mi, m, xs, xticks, xticklabels
 del dpm
+
 
 # ... by conditions (selected subset), including the average for each trial within that condition
 fr = md['framerate']
@@ -1474,7 +1481,7 @@ n_cnd_in_fcat = len(sortedstims)
 fig = plt.figure()
 fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 if md['stim_locked_to_acqfr'] is True:
-    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * fr)
+    xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 axes = fig.subplots(nrows=(n_plot_ROIs + 1), ncols=(n_cnd_in_fcat + 1), sharey='row')
@@ -1504,12 +1511,13 @@ for r in range(n_plot_ROIs):
     # ax.tick_params(axis='both', which='major', length=2, labelsize=6)
     # ax.spines['top'].set_visible(False)
     # ax.spines['right'].set_visible(False)
-    # xticks = [x * fr for x in range(np.ceil(dur_trial).astype('int') + 1)]
-    # xticklabels = ['' if not np.isclose(xt, dur_isi * fr) and not np.isclose(xt, (dur_isi + dur_stim) * fr) 
-    #                else '{}'.format(np.round(xt / fr).astype('int')) for xt in xticks]
+    # xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
+    # xticklabels = ['' if not np.isclose(xt, dur_isi * md['framerate'])
+    #                and not np.isclose(xt, (dur_isi + dur_stim) * md['framerate'])
+    #                else '{}'.format(np.round(xt / md['framerate']).astype('int')) for xt in xticks]
     # ax.set_xticks(xticks)            
     # ax.set_xticklabels(xticklabels)
-    ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
+    ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cat in range(n_cats):
         bool_cat = (data['cat'] == categories[cat])
@@ -1524,7 +1532,7 @@ for r in range(n_plot_ROIs):
         bool_cnd = (data['cond'] == sortedstims[cnd].condition)
         ax = axes[pr, cnd + 1]
         ax.axis('off')
-        ax.axvspan(dur_isi * fr, (dur_isi + dur_stim) * fr, color='0.9', zorder=0)
+        ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
         ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
         for t in range(n_reps):
             ax.plot(xs, 
@@ -1592,7 +1600,7 @@ for cnd in range(n_cnd_in_fcat):
     ax.axis('off')
     img_hm = ax.imshow(np.mean(data[bool_cnd][m].squeeze(), axis=1)[sort_idx_dprime[m]],
                        vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
-    xlines = [dur_isi * fr, (dur_isi + dur_stim) * fr]
+    xlines = [dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate']]
     for xl in xlines:
         ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.6')
 
@@ -1895,12 +1903,16 @@ ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
 
 plt.show()
 
+
+
 # %% Plot tuned cells with discrete tuning-wheel
 
 # # parameters
 # plotting_threshold_discrete = 0.15
 # subtract_responses_to_other_stim = True
-# subtract_least_or_secondLeast_preferred_stim_responses = 0  # If set to 0, will subtract the responses to the least-preferred stim. If set to 1, will subtract the responses to the second-least (in this case, second-most) preferred stim
+# subtract_least_or_secondLeast_preferred_stim_responses = 0  # If set to 0, will subtract the responses to the
+# least-preferred stim. If set to 1, will subtract the responses to the second-least (in this case, second-most)
+# preferred stim
 
 
 # Fzsc_for_plot_discrete = Fzsc_fob_norm  # Fzsc_for_plot_bfo
@@ -1910,7 +1922,8 @@ plt.show()
 #     for row_i in range(len(Fzsc_for_plot_discrete)):
 #         this_row = Fzsc_for_plot_discrete[row_i]
 #         response_to_non_preferred_stim = sorted(set(this_row))[
-#             subtract_least_or_secondLeast_preferred_stim_responses]  # This sorts the responses and selects the lowest(0) or second-lowest(1) response
+#             subtract_least_or_secondLeast_preferred_stim_responses]  # This sorts the responses and selects the
+#             lowest(0) or second-lowest(1) response
 #         Fzsc_for_plot_discrete[row_i] = this_row - response_to_non_preferred_stim
 
 
@@ -1922,8 +1935,10 @@ plt.show()
 #     Fzsc_for_plot_discrete[roi_i, Fzsc_for_plot_preferredKey[roi_i]] = 1
 
 # # Fzsc_for_plot_discrete[:, [0, 1, 2]] = Fzsc_for_plot_discrete[:, [key_bodies, key_faces,
-# #                                                                   key_objs]]  # Swap face indexes to be on the first column, making face-cells be red
-# # Fzsc_for_plot_discrete[:,[1,2]] = Fzsc_for_plot_discrete[:,[2,1]] #Swap face indexes to be on the first column, making face-cells be red
+# #                                                                   key_objs]]  # Swap face indexes to be on the
+# # first column, making face-cells be red
+# # Fzsc_for_plot_discrete[:,[1,2]] = Fzsc_for_plot_discrete[:,[2,1]] #Swap face indexes to be on the first column,
+# # making face-cells be red
 
 # # plots.plot_ROIs_RGB(ROIs_for_plot_discrete, Fzsc_for_plot_discrete,
 # #                     size=fov_size, image=fov_image, save_path=save_path)
@@ -1988,4 +2003,3 @@ plt.show()
 #     fsi = (Rfaces - Robjs) / (Rfaces + Robjs)
 #     tuning_index_cat = fsi
 #     tuning_index_cond = fsi
-
