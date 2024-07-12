@@ -1597,7 +1597,7 @@ if threshold_dprime is not None:
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
                       color='0.2', linestyle='dotted', linewidth=0.5)
     else:
-        ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime), atol=0.05),
+        ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                       color='0.2', linestyle='dotted', linewidth=0.5)
 
 for cndi, cnd in enumerate(conds_focus):
@@ -1615,7 +1615,7 @@ for cndi, cnd in enumerate(conds_focus):
             ax.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
                        color='0.2', linestyle='dotted', linewidth=0.5)
         else:
-            ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime), atol=0.05),
+            ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
 plt.show()
 
