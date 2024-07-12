@@ -27,6 +27,7 @@ import plots
 
 # %% Settings
 
+
 # FSI threshold 
 # based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci (https://doi.org/10.1038/nn.2363):
 # """
@@ -242,7 +243,7 @@ class StimulusImage(object):
         return self.yaw < other.yaw
 
 
-# %% Load data
+# %% Find files and load data
 
 system_name = socket.gethostname()
 if 'Galactica' in system_name:
@@ -451,7 +452,7 @@ else:
     raise RuntimeError('Could not find suite2p folder.')
 
 
-# % Load suite2p outputs
+# Load suite2p data
 
 s2p_iscell = np.load(os.path.join(s2p_plane_path, 'iscell.npy'))
 s2p_F = np.load(os.path.join(s2p_plane_path, 'F.npy'))
@@ -475,6 +476,8 @@ fov_image = s2p_ops['meanImg']
 n_ROIs, n_frames = Frois.shape
 
 
+# %% Process fluorescence signal
+
 # # Inspect fluorescence baseline filters
 # filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
 #                                percentile=10, rank=10, sigma=10)
@@ -490,7 +493,7 @@ FdFF_raw = (Frois - F0) / F0
 Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Frois - F0, axis=1)[:, np.newaxis]
 
 
-# Estimate SNR
+# %% Estimate SNR
 
 # v_noiselev = np.median(np.abs(np.diff(FdFF_raw)), axis=1) / np.sqrt(md['framerate'])
 
@@ -515,6 +518,8 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 # plt.plot(FdF[r, 0:500], 'b', alpha=0.5)
 # plt.plot(caconc[r, 0:500] + basels[r], 'm')
 
+
+# %% Deconvolve fluorescence signals
 
 # Friedrich et al 2017 Paninski https://doi.org/10.1371/journal.pcbi.1005423
 # "An AR(1) process models the calcium response to a spike as an instantaneous increase followed by an exponential
@@ -605,7 +610,7 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 # c, s, b, g, lam = deconvolve(Fr)  # , penalty=1)
 
 
-# Plot eye-tracking calibration results
+# %% Plot eye-tracking calibration results
 
 if plot_eyecal and eyecal_data is not None:
     # f = plt.figure()
@@ -744,7 +749,7 @@ if plot_eyecal and eyecal_data is not None:
     # plt.show()
 
 
-# Process stimulus information
+# %% Process stimulus information
 
 # Identify stimulus image set from file paths
 if np.unique([os.path.dirname(p) for p in stimlog['image_path'].values]).size == 1:
@@ -793,7 +798,7 @@ if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
                        'Handling this is not yet implemented.')
 
 
-# % Organize fluorescence signals into a structured array data table
+# %% Organize fluorescence signals into a structured array data table
 
 dlist = [('cond', 'S8'),
          ('stimulus', object),
@@ -1047,7 +1052,8 @@ for c in range(n_conds):
 del tmp_cond, tmp_cat, tmp_id, tmp_pitch, tmp_yaw, tmp_roll, tmp_imagename, tmp_imagepath
 
 
-# Establish sorting functions for ordering based on stimulus details
+# %% Sort data table according to template, then define categories and conditions
+
 sort_by_cond = lambda x: (np.where(template == x[1].category)[0][0]
                           if np.where(template == x[1].category)[0].size > 0
                           else np.iinfo(np.where(template == x[1].category)[0].dtype).max,
@@ -1080,16 +1086,11 @@ if n_conds != conditions.shape[0]:
     del u, c, mult
 
 
-# Check for NaN values after loading data
-for m in metrics:
-    if np.any(np.isnan(data[m])):
-        raise Exception('Found NaNs after loading {} data.'.format(m))
-del m
+# %% Plot across-stimulus population responses (similar to PSTH)
+#    across-stimulus mean of trial-averaged population (ROI-averaged) responses
 
-
-# Plot population mean response (similar to PSTH)
 fig_psth = plt.figure()
-fig_psth.suptitle('mean population response (across all ROIs) by category')
+fig_psth.suptitle('across-stimulus mean of trial-averaged population responses')
 axes = fig_psth.subplots(nrows=n_metrics, ncols=1)
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
@@ -1138,7 +1139,7 @@ plt.show()
 del mi, m, xs, xticks, xticklabels
 
 
-# Define booleans for face and non-face conditions
+# %% Define booleans for face and non-face conditions
 #   *** TODO: Also consider yaw and roll...
 bool_F = np.logical_or.reduce([data['cat'] == fc for fc in categories
                                if 'face' in fc.decode() 
