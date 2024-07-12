@@ -1142,7 +1142,7 @@ for mi, m in enumerate(metrics):
                         color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.1, zorder=2)
     del cati, cat
     ax.legend(fontsize=4, frameon=False, loc=(.02, .7))
-plt.show()
+fig_psth.show()
 del mi, m, xs, xticks, xticklabels
 
 
@@ -1482,7 +1482,7 @@ for r in range(n_plot_ROIs):
             Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
-    plt.show()
+    fig.show()
 del mi, m, xs, xticks, xticklabels
 del dpm
 
@@ -1560,7 +1560,7 @@ for r in range(n_plot_ROIs):
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
 del m, xs, r, pr, cat, cnd, cndi, t 
 del bool_focus, conds_focus, n_conds_focus
-plt.show()
+fig.show()
 
 
 # ... by conditions (selected subset), as a trial-averaged heatmap
@@ -1625,7 +1625,7 @@ for cndi, cnd in enumerate(conds_focus):
         else:
             ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
-plt.show()
+fig.show()
 
 del m, pr, cndi, cnd
 del ax, xl, xlines
@@ -1747,7 +1747,7 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
-plt.show()
+fig_cb.show()
 
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
@@ -1911,7 +1911,7 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
-plt.show()
+fig_cb.show()
 
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace' + save_ext),
@@ -1926,8 +1926,8 @@ del i, t, tick
 # Plot heatmap of across-trial, across-cond mean responses by category...
 # ...for all ROIs, sorted by across-trial, across-cond mean to the face category
 sort_idx_cat_F = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)).argsort()
-fhm = plt.figure()
-fhm.suptitle('heatmap of across-trial, across-cond mean responses by category', fontsize=8)
+fig_hm = plt.figure()
+fig_hm.suptitle('heatmap of across-trial, across-cond mean responses by category', fontsize=8)
 plt.xlabel('Image Category')
 plt.ylabel('ROI')
 ax = plt.gca()
@@ -1937,18 +1937,18 @@ plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_cat_F],
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
-plt.show()
+fig_hm.show()
 if saving:
-    fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
-                dpi=plt.rcParams['figure.dpi'], transparent=True)
+    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
+                   dpi=plt.rcParams['figure.dpi'], transparent=True)
 del sort_idx_cat_F
 
 
 # Plot heatmap of across-trial, across-cond mean responses by category...
 # ...only for ROIs with an across-trial mean response above a z-score threshold
 above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
-fhm = plt.figure()
-fhm.suptitle('heatmap of across-trial, across-cond mean responses by category, z peak_cond_val > 0.5', fontsize=8)
+fig_hm = plt.figure()
+fig_hm.suptitle('heatmap of across-trial, across-cond mean responses by category, z peak_cond_val > 0.5', fontsize=8)
 plt.xlabel('Image Category')
 plt.ylabel('ROI')
 ax = plt.gca()
@@ -1958,10 +1958,10 @@ plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[above_threshold[at_sor
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
-plt.show()
+fig_hm.show()
 if saving:
-    fhm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
-                dpi=plt.rcParams['figure.dpi'], transparent=True)
+    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
+                   dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 # Plot overlays for each ROI the category eliciting the peak response...
@@ -2092,8 +2092,8 @@ from scipy.stats import binned_statistic
 bin_medians, _, _ = binned_statistic(roi_dists, response_corr, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roi_dists, response_corr, statistic='std', bins=bin_edges)
 
-f1 = plt.figure()
-ax = f1.subplots(1, 1)
+fig_corr = plt.figure()
+ax = fig_corr.subplots(1, 1)
 ax.set_ylabel('Stimulus response correlation ($\it{r}$)', fontsize=10)
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
@@ -2104,15 +2104,11 @@ ax.set_ylim((response_corr.min() - np.abs(0.1 * response_corr.min()), 1))
 # Plot all pairs of direction difference and distance difference
 ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
 
-# Plot median values for distance bins
-# ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
             fmt='o', elinewidth=1, ecolor='k')
 
-# ax.plot(ddxs, ddys)
-
-plt.show()
+fig_corr.show()
 
 
 # Compare rank-based correlation between stimulus response vectors with distance between ROIs
@@ -2141,8 +2137,8 @@ bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_
 bin_medians, _, _ = binned_statistic(roi_dists, response_rank_rho, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roi_dists, response_rank_rho, statistic='std', bins=bin_edges)
 
-f1 = plt.figure()
-ax = f1.subplots(1, 1)
+fig_corr = plt.figure()
+ax = fig_corr.subplots(1, 1)
 ax.set_ylabel(r'Stimulus response rank correlation ($\rho$)', fontsize=10)
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
@@ -2153,22 +2149,17 @@ ax.set_ylim((response_rank_rho.min() - np.abs(0.1 * response_rank_rho.min()), 1)
 # Plot all pairs of direction difference and distance difference
 ax.scatter(roi_dists, response_rank_rho, marker='.', s=1, edgecolor='k')
 
-# Plot median values for distance bins
-# ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
             fmt='o', elinewidth=1, ecolor='k')
-
-# ax.plot(ddxs, ddys)
-
-plt.show()
+fig_corr.show()
 
 
 bin_medians, _, _ = binned_statistic(roi_dists, response_rank_tau, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roi_dists, response_rank_tau, statistic='std', bins=bin_edges)
 
-f1 = plt.figure()
-ax = f1.subplots(1, 1)
+fig_corr = plt.figure()
+ax = fig_corr.subplots(1, 1)
 ax.set_ylabel(r'Stimulus response rank correlation ($\tau$)', fontsize=10)
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
@@ -2179,15 +2170,13 @@ ax.set_ylim((response_rank_tau.min() - np.abs(0.1 * response_rank_tau.min()), 1)
 # Plot all pairs of direction difference and distance difference
 ax.scatter(roi_dists, response_rank_tau, marker='.', s=1, edgecolor='k')
 
-# Plot median values for distance bins
-# ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
             fmt='o', elinewidth=1, ecolor='k')
 
 # ax.plot(ddxs, ddys)
 
-plt.show()
+fig_corr.show()
 
 
 
