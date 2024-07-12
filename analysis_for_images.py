@@ -1055,18 +1055,21 @@ sort_by_cat = lambda x: (np.where(template == x[1])[0][0]
                          if np.where(template == x[1])[0].size > 0
                          else np.iinfo(np.where(template == x[1])[0].dtype).max)
 
-categories = np.unique(data[:]['cat'])
-categories = categories[[i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]]
-n_cats = len(categories)
-conditions = np.unique(data[:]['cond'])
-# condition_inds = {c: i for i, c in enumerate(data['cond'])}
 
-stimarr = data[:]['stimulus']
-stimcond = [i for i, _ in sorted(enumerate(stimarr), key=sort_by_cond)]
-stimsort = stimarr[stimcond]
+# Sort data, categories, and conditions
+
+data = data[[i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]]
+
+categories = np.unique(data['cat'])
+categories = categories[[i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]]
+cat_to_catidx = {k: i for i, k in enumerate(categories)}
+n_cats = len(categories)
+conditions = np.unique(data['cond'])
+cond_to_condidx = {k: i for i, k in enumerate(conditions)}
+
 
 if n_conds != conditions.shape[0]:
-    u, c = np.unique(data[:]['cond'], return_counts=True)
+    u, c = np.unique(data['cond'], return_counts=True)
     mult = u[c > 1]
     warn('Some different image files were combined into the same condition. ' +
          '{}'.format(data[data['cond'] == mult]['imagename']))
@@ -1359,20 +1362,6 @@ plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime, title='dprime
 
 # Summarize responsiveness of each ROI
 
-# Ensure that category order is FOB for consistent RGB color code
-fob = np.array([b'face_mrm', b'obj', b'body_mrm'], dtype='|S8')
-if all(x in categories for x in [b'face_mrm', b'obj', b'body_mrm']):
-    if np.setdiff1d(categories, fob).size == 0:
-        categories = fob
-    else:
-        categories = np.concatenate((fob, np.setdiff1d(categories, fob)))
-
-# # ONLY CONSIDER FOB MARM IMAGES
-cat_subset = fob
-cond_subset = np.where((data['cat'] == b'face_mrm') | (data['cat'] == b'obj') | (data['cat'] == b'body_mrm'))[0]
-cond_names = np.hstack([np.sort(data[data['cat'] == cat]['cond']) for cat in cat_subset])
-cond_idx = np.array([np.where(data['cond'] == cond)[0][0] for cond in cond_names])
-
 # * * * TODO improve variable naming here for clarity
 
 # Determine for each ROI which condition (image) elicited the largest response
@@ -1397,7 +1386,7 @@ for t in template:
 
 # Plot the data
 
-# Define a subset of ROIs to plot.
+# Define a subset of ROIs to plot
 n_plot_ROIs = 9
 n_plot_ROIs_div = np.round(n_plot_ROIs / 3).astype('int')
 plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
