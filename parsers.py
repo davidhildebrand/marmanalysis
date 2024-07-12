@@ -608,7 +608,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             g = re.match(pattern_isi, line).groups()
             t = float(g[0])
             trial = int(g[1])
-            if (n_trials - 1) != int(g[2]):
+            if g[2] is not None and (n_trials - 1) != int(g[2]):
                 warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
             acqfr = int(g[4])
@@ -637,7 +637,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             g = re.match(pattern_fix, line).groups()
             t = float(g[0])
             trial = int(g[1])
-            if (n_trials - 1) != int(g[2]):
+            if g[2] is not None and (n_trials - 1) != int(g[2]):
                 warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
             acqfr = int(g[4])
@@ -667,7 +667,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             g = re.match(pattern_stim, line).groups()
             t = float(g[0])
             trial = int(g[1])
-            if (n_trials - 1) != int(g[2]):
+            if g[2] is not None and (n_trials - 1) != int(g[2]):
                 warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
             acqfr = int(g[18])
