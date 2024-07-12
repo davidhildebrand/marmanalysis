@@ -1673,13 +1673,6 @@ plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
 img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
-# ax_hm.invert_yaxis()
-# ax_hm.axvline(x=20)
-
-cbar = plt.colorbar(img_hm, ax=ax_hm, shrink=0.6)  # , location='bottom', shrink=0.6)
-cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
-cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
-cbar.set_label('mean Zscore during stimulus')
 
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
@@ -1725,9 +1718,22 @@ plt.rc('legend', fontsize=16)
 plt.rc('figure', titlesize=8)
 
 fig_hm.show()
+
+fig_cb, ax_cb = plt.subplots()
+cbar = plt.colorbar(img_hm, ax=ax_cb)
+cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
+cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
+cbar.set_label('mean Zscore during stimulus')
+ax_cb.remove()
+plt.show()
+
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace' + save_ext),
                    dpi=plt.rcParams['figure.dpi'], transparent=True)
+    fig_cb.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCondition_sortMeanFace_Colorbar' + save_ext),
+                   dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+del i, t, tick
 del m
 
 
