@@ -1999,6 +1999,14 @@ Fzsc_mean_min_cat = np.min(Fzsc_fob, axis=1)
 for col_i in range(3):
     Fzsc_fob[:, col_i] = Fzsc_fob[:, col_i] - Fzsc_mean_min_cat
 
+
+resp_vect_cat_rel = np.vstack(ROI_stats_df[m]['resp_vect_cat'].values)
+
+# Subtract the value corresponding to least responsive category to make it relative
+# (otherwise, an ROI that responds to all categories would show up as white)
+resp_vect_cat_rel = np.subtract(resp_vect_cat_rel.T, np.min(resp_vect_cat_rel), axis=1).T
+
+
 max_Fzsc = 0.5
 Fzsc_fob_norm = Fzsc_fob / max_Fzsc
 Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
