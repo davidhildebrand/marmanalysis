@@ -1146,7 +1146,8 @@ fig_psth.show()
 del mi, m, xs, xticks, xticklabels
 
 
-# %% Define booleans for face and non-face conditions
+# %% Define booleans for face and non-face 'super categories'
+
 #   *** TODO: Also consider yaw and roll...
 bool_F = np.logical_or.reduce([data['cat'] == fc for fc in categories
                                if 'face' in fc.decode() 
@@ -1164,8 +1165,11 @@ bool_B = np.logical_or.reduce([data['cat'] == fc for fc in categories
                                and 'blank' not in fc.decode() and 'scram' not in fc.decode()])
 
 
-# Calculate across-stimulus, trial-averaged mean responses
+# %% Compute a variety of statistics for each ROI
+
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
+
+# Calculate across-stimulus, trial-averaged response means and standard deviations for each ROI
 muR_F = {}
 muR_NF = {}
 muR_NFobj = {}
@@ -1184,15 +1188,15 @@ for m in metrics:
     sigma_NFobj[m] = np.full(n_ROIs, np.nan)
     sigma_B[m] = np.full(n_ROIs, np.nan)
 
-    # Calculate across-stimulus mean responses.
-    #   Note that the ordering of mean calculations matters here because the mean of a set is only the
+    # Calculate across-stimulus, trial-averaged, frame-averaged mean responses
+    #   Ordering of mean calculations matters here because the mean of a set is only the
     #   same as the mean of the mean of subsets if the subsets share the same sample size.
     muR_F[m] = np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_NF[m] = np.mean(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_NFobj[m] = np.mean(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_B[m] = np.mean(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 
-    # Calculate across-stimulus standard deviation.
+    # Calculate across-stimulus, trial-averaged, frame-averaged standard deviations
     #   Take the mean across trials and frames (okay because same n_samp_stim in each), 
     #   then take std across stimulus conditions.
     sigma_F[m] = np.std(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
@@ -1200,7 +1204,6 @@ for m in metrics:
     sigma_NFobj[m] = np.std(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     sigma_B[m] = np.std(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 del m
-
 
 # Calculate face discriminability index d′
 # based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
@@ -1212,7 +1215,6 @@ del m
 # σ_F and σ_NF are the across-stimulus SDs. This face d′ value quantifies how much higher (positive d′) or lower
 # (negative d′) the response to a face is expected to be compared to a non-face, in SD units.
 # """
-
 dprime = {}
 sort_idx_dprime = {}
 for m in metrics:
@@ -1221,7 +1223,6 @@ for m in metrics:
     dprime[m] = (muR_F[m] - muR_NF[m]) / np.sqrt((sigma_F[m]**2 + sigma_NF[m]**2) / 2)
     sort_idx_dprime[m] = np.argsort(dprime[m])[::-1]
 del m
-
 
 # Calculate face selectivity index (FSI)
 # based on Freiwald and Tsao 2010 Science https://doi.org/10.1126/science.1194908
@@ -1233,7 +1234,6 @@ del m
 # For cases where (Rface > 0) and (Rnonfaceobjects < 0), FSI was set to 1; for cases where (Rface < 0) and 
 # (Rnonfaceobjects > 0), FSI was set to -1.
 # """
-
 FSI = {}
 for m in metrics:
     FSI[m] = np.full(n_ROIs, np.nan)
@@ -1247,7 +1247,6 @@ for m in metrics:
     FSI[m][bool_FposNFneg] = 1.0
     FSI[m][bool_FnegNFpos] = -1.0
 del m, bool_same, bool_FposNFneg, bool_FnegNFpos
-
 
 # Response reliability
 # based on Vinken et al Livingstone 2023 Sci Adv https://doi.org/10.1126/sciadv.adg1736
@@ -1281,11 +1280,7 @@ del m, bool_same, bool_FposNFneg, bool_FnegNFpos
 # p_i = the response to stimulus i expressed as a proportion of the total response to all stimuli in the set
 
 
-# Calculate stimulus response vectors for each ROI
-# conds_in_cat = {cat: data[data['cat'] == cat]['cond'] for cat in template.tolist()}
-# cond_inds_in_cat = {cat: [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()] 
-#                     for cat in template.tolist()
-#                     if [condition_inds[ci] for ci in conds_in_cat[cat] if ci.tolist()]}
+# Calculate 'stimulus response vectors' for each ROI
 resp_vect_cond = {}
 resp_vect_cat = {}
 for m in metrics:
