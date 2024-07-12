@@ -19,7 +19,10 @@ from skimage import exposure, util
 import socket
 from warnings import warn
 
+import filters
+from metadata import default_metadata
 import parsers
+import plots
 
 
 # %% Settings
@@ -39,6 +42,7 @@ dpi = plt.rcParams['figure.dpi']
 if 'md' in locals():
     md = dict()
     del md
+
 
 # %% Specify data locations
 
@@ -90,7 +94,7 @@ filestr_stimulus_log = '*_stimlog.*'
 filestr_eyetrack_data = '*_AIdata.p'
 dirstr_eyecal = '*_EyeTrackingCalibration'
 filestr_eyecal_log = '*_EyeTrackingCalibration.log'
-filestr_eyecal_data = '*_EyeTrackingCalibration_AIdata.p'
+filestr_eyecal_aidata = '*_EyeTrackingCalibration_AIdata.p'
 if 'dirstr_suite2p' not in locals():
     dirstr_suite2p = 'suite2p*'
 dirstr_suite2p_plane = 'plane0'
@@ -137,6 +141,13 @@ if 'md' not in locals():
         import metadata
         simd = metadata.get_metadata(df_path)
         md = metadata.extract_useful_metadata(simd)
+md = {**default_metadata(), **md}
+
+if 'fov' in md:
+    if 'w_um' not in md['fov'] and 'resolution_umpx' in md['fov'] and 'w_px' in md['fov']:
+        md['fov']['w_um'] = md['fov']['resolution_umpx'][0] * md['fov']['w_px']
+    if 'h_um' not in md['fov'] and 'resolution_umpx' in md['fov'] and 'h_px' in md['fov']:
+        md['fov']['h_um'] = md['fov']['resolution_umpx'][1] * md['fov']['h_px']
 
 filelist_session_log = [f for f in glob(os.path.join(session_path, filestr_session_log))
                         if re.search(pattern_session_log, f) and os.path.isfile(f)]
@@ -161,20 +172,49 @@ if len(filelist_stimulus_log) > 0:
         if len(pkls) > 1:
             warn('Found multiple stimlog pickle files, using the first: {}'.format(pkls[0]))
         slf_path = pkls[0]
-        stimlog = pd.read_pickle(slf_path)
+        sl = pd.read_pickle(slf_path)
     elif len(hdf5s) > 0:
         if len(hdf5s) > 1:
             warn('Found multiple stimlog hdf5 files, using the first: {}'.format(hdf5s[0]))
         slf_path = hdf5s[0]
-        stimlog = pd.read_hdf(slf_path)
+        sl = pd.read_hdf(slf_path)
     elif len(csvs) > 0:
         if len(hdf5s) > 1:
             warn('Found multiple stimlog csv files, using the first: {}'.format(csvs[0]))
         slf_path = csvs[0]
-        stimlog = pd.read_csv(slf_path)
+        sl = pd.read_csv(slf_path)
+    else:
+        sl = None
+    if sl is not None:
+        stimlog = parsers.create_stimulus_record(trials=len(sl))
+        stimlog.update(sl)
     else:
         stimlog = None
-    del pkls, hdf5s, csvs
+    del pkls, hdf5s, csvs, sl
+else:
+    if session_log is not None:
+        stimlog = parsers.parse_log_stim_dots(session_log)
+    else:
+        stimlog = None
+        raise RuntimeError('Could not load stimulus record from session log file.')
+
+# Fill in missing stimulus log values by calculation or from the session log
+if stimlog is not None:
+    if stimlog['dur_isi_pre'].isnull().values.any():
+        if not stimlog['t_isi_i'].isnull().values.any() and not stimlog['t_isi_f'].isnull().values.any():
+            stimlog['dur_isi_pre'] = stimlog['t_isi_f'] - stimlog['t_isi_i']
+    if stimlog['dur_stim'].isnull().values.any():
+        if not stimlog['t_stim_i'].isnull().values.any() and not stimlog['t_stim_f'].isnull().values.any():
+            stimlog['dur_stim'] = stimlog['t_stim_f'] - stimlog['t_stim_i']
+    if stimlog['dur_isi_post'].isnull().values.any():
+        if not stimlog['t_isi_i'].isnull().values.any() and not stimlog['t_isi_f'].isnull().values.any():
+            for t in range(len(stimlog['dur_isi_post']) - 1):
+                stimlog.at[t, 'dur_isi_post'] = stimlog['t_isi_f'].loc[t + 1] - stimlog['t_isi_i'].loc[t + 1]
+            del t
+    if stimlog.isnull().values.any() and session_log is not None:
+        sl = parsers.parse_log_stim_dots(session_log)
+        stimlog.update(sl, overwrite=False)
+        del sl
 
 dirlist_eyecal = [d for d in glob(os.path.join(date_path, dirstr_eyecal)) if os.path.isdir(d)]
 if len(dirlist_eyecal) > 0:
@@ -183,12 +223,12 @@ if len(dirlist_eyecal) > 0:
         warn('Found multiple eye tracking calibration directories, using the first one: {}'.format(ecd_path))
     filelist_eyecal_log = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_log))
                            if os.path.isfile(f)]
-    filelist_eyecal_data = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_data))
-                            if os.path.isfile(f)]
+    filelist_eyecal_aidata = [f for f in glob(os.path.join(ecd_path, filestr_eyecal_aidata))
+                              if os.path.isfile(f)]
 else:
     ecd_path = None
     filelist_eyecal_log = []
-    filelist_eyecal_data = []
+    filelist_eyecal_aidata = []
 
 if len(filelist_eyecal_log) > 0:
     ec_lf_path = filelist_eyecal_log[0]
@@ -203,16 +243,24 @@ else:
     eyecal_log = None
 del eclf
 
-if len(filelist_eyecal_data) > 0:
-    ec_df_path = filelist_eyecal_data[0]
-    if len(filelist_eyecal_data) > 1:
+if len(filelist_eyecal_aidata) > 0:
+    ec_df_path = filelist_eyecal_aidata[0]
+    if len(filelist_eyecal_aidata) > 1:
         warn('Found multiple eye tracking calibration data files, using the first one: {}'.format(ec_df_path))
     with open(ec_df_path, 'rb') as ec_df:
-        eyecal_data = pickle.load(ec_df)
+        eyecal_aidata = pickle.load(ec_df)
+    del ec_df
 else:
     etf_path = None
+    eyecal_aidata = None
+
+if eyecal_log is not None:
+    if eyecal_aidata is not None:
+        eyecal_data = parsers.parse_log_eyecal(eyecal_log, eyecal_aidata)
+    else:
+        eyecal_data = parsers.parse_log_eyecal(eyecal_log)
+else:
     eyecal_data = None
-del ec_df
 
 filelist_eyetrack_data = [f for f in glob(os.path.join(session_path, filestr_eyetrack_data)) if os.path.isfile(f)]
 if len(filelist_eyetrack_data) > 0:
@@ -260,12 +308,23 @@ fov_size = (fov_h, fov_w)  # rows/height/y, columns/width/x
 fov_image = s2p_ops['meanImg']
 n_ROIs, n_frames = Frois.shape
 
-###
-# Alternative approach to computing FdFF, likely from David Fitzpatrick's lab:
-# Baseline fluorescence (F0) was calculated by applying a rank-order filter to
-# the raw fluorescence trace (10th percentile) with a rolling time window of 60s.
-FdFF = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.mean(Frois, axis=1)[:, np.newaxis]
-Fzsc = (Frois - np.mean(Frois, axis=1)[:, np.newaxis]) / np.std(Frois, axis=1)[:, np.newaxis]
+
+# # Inspect fluorescence baseline filters
+# filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
+#                                percentile=10, rank=10, sigma=10)
+
+# Calculate baseline fluorescence (F0)
+F0_filt_win_sec = 60  # sec
+F0_filt_win_frames = round(F0_filt_win_sec * md['framerate'])  # frames
+F0 = filters.calculate_baselines(Frois, framerate=md['framerate'], window=F0_filt_win_sec, method='meanbw')
+
+# Compute dF/F and z-scored dF/F
+FdF = Frois - F0
+FdFF_raw = (Frois - F0) / F0
+Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Frois - F0, axis=1)[:, np.newaxis]
+
+FdFF = FdFF_raw
+Fzsc = Fzsc_raw
 
 
 #%% Define functions
@@ -638,9 +697,6 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
 # Load stimulus information
 
 # # *** TODO load from a pickle file or pandas frame instead of a text log
-# file = open(os.path.join(lf_path), 'r')
-# lines = file.read().splitlines()
-# file.close()
 
 if session_log is not None:
     lines = session_log.splitlines()
@@ -1017,7 +1073,7 @@ for r in range(0, n_ROIs_tuned, 1):
     # fig.subplots(nrows=2, ncols=8)
     fig.clf()
     fig.suptitle('roi {} ({})'.format(r, ridx), fontsize=12)
-    axes = fig.subplots(nrows=2, ncols=8)
+    axes = fig.subplots(nrows=2, ncols=n_conds)
     for c in range(n_conds):
         ax = axes[0, c]
         ax.set_title(str(conds[c]) + deg_symbol, fontsize=10)
