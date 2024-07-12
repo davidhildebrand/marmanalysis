@@ -1583,7 +1583,7 @@ ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
 ax_dp.spines['right'].set_visible(False)
 ax_dp.spines['left'].set_visible(False)
-ax_dp.grid(linestyle='--', linewidth=0.5, color='0.75')
+ax_dp.grid(axis='x', linestyle='dashed', linewidth=0.5, color='0.8')
 for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick1line.set_visible(False)
     tick.tick2line.set_visible(False)
@@ -1592,12 +1592,12 @@ for tick in ax_dp.yaxis.get_major_ticks():
 if threshold_dprime is not None:
     if threshold_dprime != 0:
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
-                      color='0.2', linestyle='dotted', linewidth=1)
+                      color='0.2', linestyle='dotted', linewidth=0.5)
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
-                      color='0.2', linestyle='dotted', linewidth=1)
+                      color='0.2', linestyle='dotted', linewidth=0.5)
     else:
         ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime), atol=0.05),
-                      color='0.2', linestyle='dotted', linewidth=1)
+                      color='0.2', linestyle='dotted', linewidth=0.5)
 
 for cndi, cnd in enumerate(conds_focus):
     ax = axes[pr, cndi + 1]
@@ -1606,7 +1606,16 @@ for cndi, cnd in enumerate(conds_focus):
                        vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
     xlines = [dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate']]
     for xl in xlines:
-        ax.axvline(x=xl, linestyle='--', linewidth=0.5, color='0.6')
+        ax.axvline(x=xl, linestyle='dashed', linewidth=0.5, color='0.4')
+    if threshold_dprime is not None:
+        if threshold_dprime != 0:
+            ax.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
+            ax.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
+        else:
+            ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime), atol=0.05),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
 plt.show()
 
 del m, pr, cndi, cnd
@@ -1668,6 +1677,15 @@ plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
 img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
+if threshold_dprime is not None:
+    if threshold_dprime != 0:
+        ax_hm.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
+        ax_hm.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
+    else:
+        ax_hm.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
 
 ax_dp.set_xlabel('Face d′')
 ax_dp.set_axisbelow(True)
@@ -1675,7 +1693,7 @@ ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
 ax_dp.spines['right'].set_visible(False)
 ax_dp.spines['left'].set_visible(False)
-ax_dp.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
+ax_dp.grid(axis='x', linestyle='dashed', linewidth=0.5, color='0.8')
 for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick1line.set_visible(False)
     tick.tick2line.set_visible(False)
@@ -1684,12 +1702,12 @@ for tick in ax_dp.yaxis.get_major_ticks():
 if threshold_dprime is not None:
     if threshold_dprime != 0:
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
-                      color='0.2', linestyle='dotted', linewidth=1)
+                      color='0.2', linestyle='dotted', linewidth=0.5)
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
-                      color='0.2', linestyle='dotted', linewidth=1)
+                      color='0.2', linestyle='dotted', linewidth=0.5)
     else:
         ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
-                      color='0.2', linestyle='dotted', linewidth=1)
+                      color='0.2', linestyle='dotted', linewidth=0.5)
     
 ax_fsi.set_xlabel('FSI')
 ax_fsi.set_axisbelow(True)
@@ -1698,7 +1716,7 @@ ax_fsi.barh(range(0, n_ROIs), FSI[m][sort_idx_dprime[m]], height=1.0, color='0.5
 ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
 ax_fsi.spines['right'].set_visible(False)
 ax_fsi.spines['left'].set_visible(False)
-ax_fsi.grid(linestyle='--', linewidth=0.5, color='0.75')  # axis='x'
+ax_fsi.grid(axis='x', linestyle='dashed', linewidth=0.5, color='0.8')
 for tick in ax_fsi.yaxis.get_major_ticks():
     tick.tick1line.set_visible(False)
     tick.tick2line.set_visible(False)
