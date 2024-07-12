@@ -548,15 +548,18 @@ def parse_log_stim_image_orig(session_log):
 
 def parse_log_stim_image(session_log) -> pd.DataFrame:
     """
-    Parse the session log file output of the original stimulus_image.py script more completely.
+    Parse the session log file output of the original stimulus_image.py script into newer DataFrame format.
     """
 
     lines = session_log.splitlines()
 
     mode = None
+    found_stimfunc = False
     tmp_stimtimestr = ''
     tmp_isitimestr = ''
     for line in lines:
+        if 'ImageStim(' in line:
+            found_stimfunc = True
         if 'EXP \tstim_times:' in line:
             mode = 'stimtime'
         if 'EXP \tinterstim_times:' in line:
@@ -705,6 +708,9 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
         pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
                        r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_conc, line) is not None:
+            if 'trial' not in locals() or not found_stimfunc:
+                raise Exception('Incorrect log parser chosen. This parser is for image sessions. '
+                                'Conclusion reached without finding a trial or no ImageStim found.')
             g = re.match(pattern_conc, line).groups()
             t = float(g[0])
             acqfr = int(g[2])
