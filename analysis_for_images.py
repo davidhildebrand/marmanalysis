@@ -1127,7 +1127,7 @@ for mi, m in enumerate(metrics):
     ax.set_xlim((0, np.ceil(dur_trial) * md['framerate']))
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.plot(xs,
-            np.mean(data[m], axis=(0, 1, 2)), 
+            np.mean(np.mean(data[m], axis=(1, 2)), axis=0), 
             label='All', 
             color='0', linestyle='dotted', linewidth=1, zorder=4)
     for cati, cat in enumerate(categories):
