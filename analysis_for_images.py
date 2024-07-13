@@ -1416,8 +1416,9 @@ plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
                        title='dprimes calculated from FdFF values', save_path=sp)
 
 
-# %% Plot responses for example ROIs
-#    (across-stimulus mean of trial-averaged responses and per-stimulus trial-averaged responses)...
+# %% Plot across-stimulus mean of trial-averaged responses for example ROIs...
+#    ... by category
+#    ... with a separate figure for each example ROI
 
 # * * * TODO improve variable naming here for clarity
 
@@ -1425,7 +1426,7 @@ m = 'Fzsc'
 above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
 at_sortidx = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)[above_threshold]).argsort()
 
-# Define subset of ROIs to plot
+# Select ROI subset
 n_plot_ROIs = 9
 n_plot_ROIs_div = np.round(n_plot_ROIs / 3).astype('int')
 plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
@@ -1440,9 +1441,6 @@ if len(plot_ROI_subset) > n_plot_ROIs:
                                       range(n_ROIs - n_plot_ROIs_div, n_ROIs)))
 del n_plot_ROIs_div
 
-
-# Plot the across-stimulus mean of trial-averaged responses...
-# ... by category, with a separate figure for each example ROI.
 dpm = 'Fzsc'
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
@@ -1492,8 +1490,10 @@ del mi, m, xs, xticks, xticklabels
 del dpm
 
 
-# Plot the trial-averaged mean responses...
-# ... for a subset of conditions, with each example ROI on a separate row.
+# %% Plot trial-averaged mean responses...
+#    ... for selected ROIs
+#    ... for a subset of conditions (e.g., faces)
+
 m = 'Fzsc'
 # bool_focus = (data['cat'] == b'face_mrm')
 bool_focus = bool_F
@@ -1557,21 +1557,21 @@ del m, xs, r, pr, cat, cnd, cndi, t
 del bool_focus, conds_focus, n_conds_focus
 
 
-# Plot the across-stimulus mean of trial-averaged responses and per-stimulus trial-averaged responses,
-# ... for a subset of conditions, with each example ROI on a separate row.
+# %% Heatmap trial-averaged responses...
+#    ... for all ROIs
+#    ... for a subset of conditions (e.g., faces)
 
-# ... by conditions (selected subset), as a trial-averaged heatmap
 m = 'Fzsc'
-# focus_cat = b'face_mrm'
-# bool_focus = (data['cat'] == focus_cat)
+# bool_focus = (data['cat'] == b'face_mrm')
 bool_focus = bool_F
 conds_focus = np.where(bool_focus)[0]
 conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stimulus']), key=sort_by_cond)]]
 n_conds_focus = len(conds_focus)
 
 fig = plt.figure()
+axes = fig.subplots(nrows=2, ncols=(n_conds_focus + 1), height_ratios=[40, 790], sharey='row')
+fig.subplots_adjust(hspace=0)
 fig.suptitle('trial-averaged mean responses, all ROIs')
-axes = fig.subplots(nrows=2, ncols=(n_conds_focus + 1), height_ratios=[30, 790], sharey='row')
 
 pr = 0
 ax = axes[pr, 0]
@@ -1622,12 +1622,16 @@ for cndi, cnd in enumerate(conds_focus):
         else:
             ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
+set_plot_text_settings()
 fig.show()
 del m, pr, cndi, cnd
 del ax, xl, xlines
 
 
-# %% Plot heatmap of across-trial mean responses to all presented conditions (images) for all ROIs
+# %% Heatmap trial-averaged stimulus-epoch mean responses...
+#    ... for all ROIs
+#    ... for all conditions
+
 m = 'Fzsc'
 
 # Define category-dividing ticks
@@ -1647,7 +1651,8 @@ del t, ts, wheret
 sort_idx_cond = [i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]
 fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
 # fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
-plt.subplots_adjust(wspace=0.05)
+fig_hm.subplots_adjust(wspace=0.05)
+fig_hm.suptitle('trial-averaged stimulus-epoch mean responses, all ROIs')
 ax_hm.set_xlabel('Stimulus Image')
 ax_hm.set_ylabel('ROI')
 xtick_majors = []
@@ -1728,12 +1733,7 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
 
-plt.rc('axes', titlesize=8, labelsize=8)
-plt.rc('xtick', labelsize=8)
-plt.rc('ytick', labelsize=8)
-plt.rc('legend', fontsize=16)
-plt.rc('figure', titlesize=8)
-
+set_plot_text_settings()
 fig_hm.show()
 
 fig_cb, ax_cb = plt.subplots()
@@ -1742,11 +1742,7 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
-plt.rc('axes', titlesize=8, labelsize=8)
-plt.rc('xtick', labelsize=8)
-plt.rc('ytick', labelsize=8)
-plt.rc('legend', fontsize=16)
-plt.rc('figure', titlesize=8)
+set_plot_text_settings()
 fig_cb.show()
 
 if saving:
@@ -1759,40 +1755,11 @@ del i, t, tick
 del m
 
 
+# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses...
+#    ... for all ROIs
+#    ... for all categories
+#    ... sorted by dprime_F
 
-m = 'Fzsc'
-
-# Plot for each ROI the category of the condition (image) eliciting the largest response
-above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
-ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
-                       for c in np.divide([cat_to_catidx[c] 
-                                           for c in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
-                                          len(categories))])
-sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclZgt0p5' + save_ext
-sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
-                        ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='category of the condition (image) eliciting the largest response, z > 0.5', 
-                        save_path=sp)
-
-# Plot for each ROI the category of the condition (image) eliciting the largest response
-above_threshold = np.where(np.abs(FSI[m]) > threshold_fsi)[0]
-ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
-                       for c in np.divide([cat_to_catidx[c] 
-                                           for c in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
-                                          len(categories))])
-sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclFSIthrs' + save_ext
-sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
-                        ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='category of the condition (image) eliciting the largest response, ' +
-                              'FSI > {:0.2f}'.format(threshold_fsi),
-                        save_path=sp)
-
-
-# Plot heatmap of across-trial mean responses for all ROIs
 m = 'Fzsc'
 
 # Define category ticks
@@ -1800,7 +1767,6 @@ tickinfo = {t.decode(): {} for t in template}
 for t in template:
     ts = t.decode()
     wheret = np.where(categories == t)[0]
-    # wheret = np.where(data[[i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]]['cat'] == t)[0]
     if wheret.size > 0:
         tickinfo[ts]['start'] = wheret[0]
         tickinfo[ts]['end'] = wheret[0]
@@ -1813,7 +1779,8 @@ del t, ts, wheret
 sort_idx_cat = [i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]
 fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
 # fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
-plt.subplots_adjust(wspace=0.05)
+fig_hm.subplots_adjust(wspace=0.05)
+fig_hm.suptitle('across-stimulus mean of trial-averaged responses, all ROIs')
 ax_hm.set_xlabel('Stimulus Category')
 ax_hm.set_ylabel('ROI')
 xtick_majors = []
@@ -1896,12 +1863,7 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
 
-plt.rc('axes', titlesize=8, labelsize=8)
-plt.rc('xtick', labelsize=8)
-plt.rc('ytick', labelsize=8)
-plt.rc('legend', fontsize=16)
-plt.rc('figure', titlesize=8)
-
+set_plot_text_settings()
 fig_hm.show()
 
 fig_cb, ax_cb = plt.subplots()
@@ -1910,11 +1872,7 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
-plt.rc('axes', titlesize=8, labelsize=8)
-plt.rc('xtick', labelsize=8)
-plt.rc('ytick', labelsize=8)
-plt.rc('legend', fontsize=16)
-plt.rc('figure', titlesize=8)
+set_plot_text_settings()
 fig_cb.show()
 
 if saving:
@@ -1926,12 +1884,14 @@ if saving:
 del i, t, tick
 
 
+# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses...
+#    ... for all ROIs
+#    ... for all categories
+#    ... sorted by across-stimulus mean
 
-# Plot heatmap of across-trial, across-cond mean responses by category...
-# ...for all ROIs, sorted by across-trial, across-cond mean to the face category
 sort_idx_cat_F = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)).argsort()
 fig_hm = plt.figure()
-fig_hm.suptitle('heatmap of across-trial, across-cond mean responses by category')
+fig_hm.suptitle('across-stimulus mean of trial-averaged responses, all ROIs')
 plt.xlabel('Image Category')
 plt.ylabel('ROI')
 ax = plt.gca()
@@ -1941,11 +1901,7 @@ plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_cat_F],
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
-plt.rc('axes', titlesize=8, labelsize=8)
-plt.rc('xtick', labelsize=8)
-plt.rc('ytick', labelsize=8)
-plt.rc('legend', fontsize=16)
-plt.rc('figure', titlesize=8)
+set_plot_text_settings()
 fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
@@ -1953,11 +1909,14 @@ if saving:
 del sort_idx_cat_F
 
 
-# Plot heatmap of across-trial, across-cond mean responses by category...
-# ...only for ROIs with an across-trial mean response above a z-score threshold
+# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses...
+#    ... only for ROIs with an across-trial mean response above a z-score threshold
+#    ... for all categories
+#    ... sorted by across-stimulus mean
+
 above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
 fig_hm = plt.figure()
-fig_hm.suptitle('heatmap of across-trial, across-cond mean responses by category, z peak_cond_val > 0.5', fontsize=8)
+fig_hm.suptitle('across-stimulus mean of trial-averaged responses, peak_z > 0.5', fontsize=8)
 plt.xlabel('Image Category')
 plt.ylabel('ROI')
 ax = plt.gca()
@@ -1977,6 +1936,40 @@ if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
                    dpi=plt.rcParams['figure.dpi'], transparent=True)
 
+
+# %% Overlay ROI masks over mean frame image...
+#    ... pseudo-colored by ...
+
+m = 'Fzsc'
+
+# Plot for each ROI the category of the condition (image) eliciting the largest response
+above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
+ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
+                       for c in np.divide([cat_to_catidx[c] 
+                                           for c in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
+                                          len(categories))])
+sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclZgt0p5' + save_ext
+sp = os.path.join(save_path, sn) if saving else ''
+plots.plot_roi_overlays(ROIs[above_threshold], 
+                        ROI_colors[above_threshold],
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='category of the condition (image) eliciting the largest response, z > 0.5', 
+                        save_path=sp)
+
+# Plot for each ROI the category of the condition (image) eliciting the largest response
+above_threshold = np.where(np.abs(FSI[m]) > threshold_fsi)[0]
+ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
+                       for c in np.divide([cat_to_catidx[c] 
+                                           for c in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
+                                          len(categories))])
+sn = save_pfix + '_ROIplot_ColorByCategoryOfMostActivatingConditionImage_inclFSIthrs' + save_ext
+sp = os.path.join(save_path, sn) if saving else ''
+plots.plot_roi_overlays(ROIs[above_threshold], 
+                        ROI_colors[above_threshold],
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='category of the condition (image) eliciting the largest response, ' +
+                              'FSI > {:0.2f}'.format(threshold_fsi),
+                        save_path=sp)
 
 # Plot overlays for each ROI the category eliciting the peak response...
 # ...only for ROIs with an across-trial, across-cond mean response above a z-score threshold
@@ -2008,7 +2001,8 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 # TODO * * * * PLOT THIS
 
 
-# % Plot relative response strength
+# %% Overlay ROI masks over mean frame image...
+#    ... pseudo-colored by relative response strength
 
 # TODO make this more dynamic
 
