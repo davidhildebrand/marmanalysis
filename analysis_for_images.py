@@ -1148,11 +1148,12 @@ del mi, m, xs, xticks, xticklabels
 
 # %% Define booleans for face and non-face 'super categories'
 
+#   *** TODO: create a cond idx dict for these, as well
 #   *** TODO: Also consider yaw and roll...
 bool_F = np.logical_or.reduce([data['cat'] == c for c in categories
                                if 'face' in c.decode() 
                                and 'blank' not in c.decode() and 'scram' not in c.decode()
-                               and 'ctn' not in c.decode()])  # Exclude cartoon faces
+                               and 'ctn' not in c.decode()])
 bool_NF = np.logical_or.reduce([data['cat'] == c for c in categories 
                                 if 'face' not in c.decode() 
                                 and 'blank' not in c.decode() and 'scram' not in c.decode()])
@@ -1165,7 +1166,7 @@ bool_B = np.logical_or.reduce([data['cat'] == c for c in categories
                                and 'blank' not in c.decode() and 'scram' not in c.decode()])
 
 
-# %% Compute a variety of statistics for each ROI
+# %% Compute statistics for each ROI
 
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
@@ -1403,19 +1404,16 @@ plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
                        title='dprimes calculated from FdFF values', save_path=sp)
 
 
-# Summarize responsiveness of each ROI
+# %% Plot responses for example ROIs
+#    (across-stimulus mean of trial-averaged responses and per-stimulus trial-averaged responses)...
 
 # * * * TODO improve variable naming here for clarity
 
-# Determine for each ROI which condition (image) elicited the largest response
 m = 'Fzsc'
 above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
 at_sortidx = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)[above_threshold]).argsort()
 
-
-# Plot the data
-
-# Define a subset of ROIs to plot
+# Define subset of ROIs to plot
 n_plot_ROIs = 9
 n_plot_ROIs_div = np.round(n_plot_ROIs / 3).astype('int')
 plot_ROI_subset = np.concatenate((range(0, n_plot_ROIs_div),
@@ -1428,10 +1426,11 @@ if len(plot_ROI_subset) > n_plot_ROIs:
                                       range(np.floor(n_ROIs / 2 - n_plot_ROIs_div / 2).astype('int'),
                                             np.ceil(n_ROIs / 2 + n_plot_ROIs_div / 2).astype('int') - n_diff),
                                       range(n_ROIs - n_plot_ROIs_div, n_ROIs)))
+del n_plot_ROIs_div
 
-# Plot summary of each single ROI's responses ...
 
-# ... by category, including the average for each condition within that category.
+# Plot the across-stimulus mean of trial-averaged responses...
+# ... by category, with a separate figure for each example ROI.
 dpm = 'Fzsc'
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
@@ -1482,10 +1481,10 @@ del mi, m, xs, xticks, xticklabels
 del dpm
 
 
-# ... by conditions (selected subset), including the average for each trial within that condition
+# Plot the trial-averaged mean responses...
+# ... for a subset of conditions, with each example ROI on a separate row.
 m = 'Fzsc'
-# focus_cat = b'face_mrm'
-# bool_focus = (data['cat'] == focus_cat)
+# bool_focus = (data['cat'] == b'face_mrm')
 bool_focus = bool_F
 conds_focus = np.where(bool_focus)[0]
 conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stimulus']), key=sort_by_cond)]]
@@ -1512,8 +1511,6 @@ for r in range(n_plot_ROIs):
     # Summary plots of category averages
     ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
     ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
-    # if m == 0:
-    #     ax.set_title(template_labels[categories[cat]], fontsize=10)
     ax = axes[pr, 0]
     ax.axis('off')
     # if r == 0:
@@ -1553,10 +1550,13 @@ for r in range(n_plot_ROIs):
         Fsem = np.std(data[cnd][m][ridx, :, :], axis=0) / np.sqrt(n_reps)
         ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
+fig.show()
 del m, xs, r, pr, cat, cnd, cndi, t 
 del bool_focus, conds_focus, n_conds_focus
-fig.show()
 
+
+# Plot the across-stimulus mean of trial-averaged responses and per-stimulus trial-averaged responses,
+# ... for a subset of conditions, with each example ROI on a separate row.
 
 # ... by conditions (selected subset), as a trial-averaged heatmap
 m = 'Fzsc'
@@ -1621,12 +1621,11 @@ for cndi, cnd in enumerate(conds_focus):
             ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
 fig.show()
-
 del m, pr, cndi, cnd
 del ax, xl, xlines
 
 
-# Plot heatmap of across-trial mean responses to all presented conditions (images) for all ROIs
+# %% Plot heatmap of across-trial mean responses to all presented conditions (images) for all ROIs
 m = 'Fzsc'
 
 # Define category-dividing ticks
