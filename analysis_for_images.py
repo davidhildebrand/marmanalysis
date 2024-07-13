@@ -1372,7 +1372,7 @@ if n_metrics > 1:
     del mi, m, bool_cnd, ROIs_diff_peak_cnd, bool_cat, ROIs_diff_peak_cat
 
 
-# Output information about ROI tuning based on defined thresholds
+# %% Output information about ROI tuning based on defined thresholds
 print('|FSI| threshold: {}'.format(threshold_fsi))
 ROIs_tuned_idx = np.argwhere(np.abs(FSI['Fzsc'][np.argsort(FSI['Fzsc'])[::-1]]) > threshold_fsi).squeeze()
 n_ROIs_tuned = np.argwhere(np.abs(FSI['Fzsc'][np.argsort(FSI['Fzsc'])[::-1]]) > threshold_fsi).shape[0]
@@ -1388,7 +1388,7 @@ print('Percentage of tuned ROIs: {}%'.format(round(((100 * n_ROIs_tuned) / n_ROI
 del ROIs_tuned_idx, n_ROIs_tuned
 
 
-# Plot histograms of ROI tuning
+# %% Plot histograms of ROI tuning
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromFdFF' + save_ext) if saving else ''
 plots.plot_hist_fsi(FSI['FdFF'], threshold=threshold_fsi,
                     title='FSIs calculated from FdFF values', save_path=sp)
