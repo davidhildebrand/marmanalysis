@@ -1444,11 +1444,11 @@ for r in range(n_plot_ROIs):
     for mi, m in enumerate(metrics):
         ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
         ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
-        for cat in range(n_cats):
-            ax = axes[mi, cat]
+        for cati, cat in enumerate(categories):
+            ax = axes[mi, cati]
             if mi == 0:
-                ax.set_title(template_labels[categories[cat]])
-            if cat == 0:
+                ax.set_title(template_labels[cat])
+            if cati == 0:
                 ax.set_ylabel(metric_labels[m])
                 ax.tick_params(axis='both', which='major', labelsize=8)
                 ax.spines['top'].set_visible(False)
@@ -1519,13 +1519,12 @@ for r in range(n_plot_ROIs):
                   horizontalalignment='right', rotation=0, fontsize=4)
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
-    for cat in range(n_cats):
-        n_cnd_in_cat = data[cat_to_condidx[cat]]['cond'].shape[0]
+    for cati, cat in enumerate(categories):
         Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
-        Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
-        ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
+        Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(len(cat_to_condidx[cat]))
+        ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
-                        facecolor=colorsys.hsv_to_rgb(cat / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
+                        facecolor=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
 
     # Plots for each cond
     for cndi, cnd in enumerate(conds_focus):
