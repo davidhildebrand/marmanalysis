@@ -81,6 +81,18 @@ if 'md' in locals():
 
 # %% Specify data locations
 
+# %% Define functions
+
+
+def set_plot_text_settings():
+    plt.rc('axes', titlesize=8, labelsize=8)
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
+    plt.rc('legend', fontsize=16)
+    plt.rc('figure', titlesize=8)
+    
+    
+
 # # # Cadbury
 animal_str = 'Cadbury'
 # # 20221016d
