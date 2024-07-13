@@ -1438,9 +1438,8 @@ else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for r in range(n_plot_ROIs):
     ridx = sort_idx_dprime[dpm][plot_ROI_subset[r]]
-    dp = dprime[dpm][ridx]
     fig = plt.figure()
-    fig.suptitle('ROI {} dprime={:0.2f}: mean response by category (each cond mean plotted)'.format(ridx, dp))
+    fig.suptitle(r'ROI {} ($d^\prime_F$ {:0.2f}) across-stimulus mean responses'.format(ridx, dprime[dpm][ridx]))
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
     for mi, m in enumerate(metrics):
         ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
@@ -1491,7 +1490,8 @@ conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stim
 n_conds_focus = len(conds_focus)
 
 fig = plt.figure()
-fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
+fig.suptitle('trial-averaged mean responses, selected ROIs')
+# fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
@@ -1512,20 +1512,11 @@ for r in range(n_plot_ROIs):
     ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
     ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
     ax = axes[pr, 0]
-    ax.axis('off')
-    # if r == 0:
-    #     ax.set_ylabel(metric_labels[m], fontsize=8)
-    # elif r == n_plot_ROIs - 1:
-    #     ax.set_xlabel('Time (sec)', fontsize=6)
-    # ax.tick_params(axis='both', which='major', length=2, labelsize=6)
-    # ax.spines['top'].set_visible(False)
-    # ax.spines['right'].set_visible(False)
-    # xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
-    # xticklabels = ['' if not np.isclose(xt, dur_isi * md['framerate'])
-    #                and not np.isclose(xt, (dur_isi + dur_stim) * md['framerate'])
-    #                else '{}'.format(np.round(xt / md['framerate']).astype('int')) for xt in xticks]
-    # ax.set_xticks(xticks)            
-    # ax.set_xticklabels(xticklabels)
+    ax.spines[:].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_ylabel(r'ROI {}' '\n' '$d^\prime_F$ {:0.2f}'.format(ridx, dprime[m][ridx]), 
+                  horizontalalignment='right', rotation=0, fontsize=4)
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cat in range(n_cats):
@@ -1568,7 +1559,7 @@ conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stim
 n_conds_focus = len(conds_focus)
 
 fig = plt.figure()
-fig.suptitle('trial-averaged heat maps by condition', fontsize=8)
+fig.suptitle('trial-averaged mean responses, all ROIs')
 axes = fig.subplots(nrows=2, ncols=(n_conds_focus + 1), height_ratios=[30, 790], sharey='row')
 
 pr = 0
@@ -1581,7 +1572,7 @@ for cndi, cnd in enumerate(conds_focus):
 
 pr = 1
 ax_dp = axes[pr, 0]
-ax_dp.set_xlabel('Face d′', fontsize=6)
+ax_dp.set_xlabel('$d^\prime_F$')
 ax_dp.set_axisbelow(True)
 ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
@@ -1690,7 +1681,7 @@ if threshold_dprime is not None:
         ax_hm.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
 
-ax_dp.set_xlabel('Face d′')
+ax_dp.set_xlabel('$d^\prime_F$')
 ax_dp.set_axisbelow(True)
 ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
@@ -1726,8 +1717,7 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
 
-plt.rc('axes', titlesize=8)
-plt.rc('axes', labelsize=8)
+plt.rc('axes', titlesize=8, labelsize=8)
 plt.rc('xtick', labelsize=8)
 plt.rc('ytick', labelsize=8)
 plt.rc('legend', fontsize=16)
@@ -1741,6 +1731,11 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
+plt.rc('axes', titlesize=8, labelsize=8)
+plt.rc('xtick', labelsize=8)
+plt.rc('ytick', labelsize=8)
+plt.rc('legend', fontsize=16)
+plt.rc('figure', titlesize=8)
 fig_cb.show()
 
 if saving:
@@ -1854,7 +1849,7 @@ if threshold_dprime is not None:
         ax_hm.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
 
-ax_dp.set_xlabel('Face d′')
+ax_dp.set_xlabel('$d^\prime_F$')
 ax_dp.set_axisbelow(True)
 ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
@@ -1890,8 +1885,7 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
 
-plt.rc('axes', titlesize=8)
-plt.rc('axes', labelsize=8)
+plt.rc('axes', titlesize=8, labelsize=8)
 plt.rc('xtick', labelsize=8)
 plt.rc('ytick', labelsize=8)
 plt.rc('legend', fontsize=16)
@@ -1905,6 +1899,11 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
+plt.rc('axes', titlesize=8, labelsize=8)
+plt.rc('xtick', labelsize=8)
+plt.rc('ytick', labelsize=8)
+plt.rc('legend', fontsize=16)
+plt.rc('figure', titlesize=8)
 fig_cb.show()
 
 if saving:
@@ -1921,7 +1920,7 @@ del i, t, tick
 # ...for all ROIs, sorted by across-trial, across-cond mean to the face category
 sort_idx_cat_F = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)).argsort()
 fig_hm = plt.figure()
-fig_hm.suptitle('heatmap of across-trial, across-cond mean responses by category', fontsize=8)
+fig_hm.suptitle('heatmap of across-trial, across-cond mean responses by category')
 plt.xlabel('Image Category')
 plt.ylabel('ROI')
 ax = plt.gca()
@@ -1931,6 +1930,11 @@ plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_cat_F],
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
+plt.rc('axes', titlesize=8, labelsize=8)
+plt.rc('xtick', labelsize=8)
+plt.rc('ytick', labelsize=8)
+plt.rc('legend', fontsize=16)
+plt.rc('figure', titlesize=8)
 fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
@@ -1952,6 +1956,11 @@ plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[above_threshold[at_sor
            vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 cbar = plt.colorbar()
 cbar.set_label('mean Zscore across stim period and images')
+plt.rc('axes', titlesize=8, labelsize=8)
+plt.rc('xtick', labelsize=8)
+plt.rc('ytick', labelsize=8)
+plt.rc('legend', fontsize=16)
+plt.rc('figure', titlesize=8)
 fig_hm.show()
 if saving:
     fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
