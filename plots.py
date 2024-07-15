@@ -166,8 +166,8 @@ def plot_roi_overlays(rois, colors, size=None,
             canvas = ski_rotate(canvas, rotate)
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
 
-    f0 = plt.figure(figsize=(w / float(dpi), h / float(dpi)))  # (w, h), in
-    ax = f0.add_axes((0, 0, 1, 1))
+    f = plt.figure(figsize=(w / float(dpi), h / float(dpi)))  # (w, h), in
+    ax = f.add_axes((0, 0, 1, 1))
     plt.set_cmap('hsv')
     ax.axis('off')
     ax.set_frame_on(False)
@@ -175,12 +175,13 @@ def plot_roi_overlays(rois, colors, size=None,
                    labelbottom=False, bottom=False)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
+    
     if title != '':
-        ax.set_title(title, fontsize=2)
-    f0.show()
+        ax.set_title(title)
     set_plot_text_settings()
+    f.show()
     if save_path != '':
-        f0.savefig(save_path, dpi=dpi, transparent=True)
+        f.savefig(save_path, dpi=dpi, transparent=True)
 
 
 def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
@@ -211,7 +212,6 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
     f0 = plt.figure(figsize=fsize)
     ax = f0.add_axes((0, 0, 1, 1))
     plt.set_cmap('hsv')
-    # plt.axis('off')
     ax.axis('off')
     ax.set_frame_on(False)
     if image is not None:
@@ -287,7 +287,7 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
                         '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
                         '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
                         '_legend.png'
-            f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
+            f1.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
 
     # Santi original
     # # create colormap for reference
