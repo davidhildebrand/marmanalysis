@@ -14,6 +14,14 @@ from skimage.transform import rotate as ski_rotate
 from warnings import warn
 
 
+def set_plot_text_settings():
+    plt.rc('axes', titlesize=4, labelsize=6)
+    plt.rc('xtick', labelsize=6)
+    plt.rc('ytick', labelsize=6)
+    plt.rc('legend', fontsize=6)
+    plt.rc('figure', titlesize=4)
+
+
 # % Define plotting function for histograms of selectivity metrics
 def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path: str = ''):
     dpi = plt.rcParams['figure.dpi']
@@ -42,6 +50,7 @@ def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path: str 
         else:
             plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
 
+    set_plot_text_settings()
     f.tight_layout()
     f.show()
     if save_path != '':
@@ -75,6 +84,7 @@ def plot_hist_dprime(dprimes, threshold=0.2, bins=41, title: str = '', save_path
         else:
             plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
 
+    set_plot_text_settings()
     f.tight_layout()
     f.show()
     if save_path != '':
@@ -168,6 +178,7 @@ def plot_roi_overlays(rois, colors, size=None,
     if title != '':
         ax.set_title(title, fontsize=2)
     f0.show()
+    set_plot_text_settings()
     if save_path != '':
         f0.savefig(save_path, dpi=dpi, transparent=True)
 
@@ -226,6 +237,8 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
     # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))  #, quant_steps))#, alpha=1.0)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
+    
+    set_plot_text_settings()
     f0.show()
     if save_path != '':
         now = datetime.now()
@@ -264,6 +277,8 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
         cb.outline.set_visible(False)
         ax1.set_axis_off()
         ax1.set_rlim([-1, 1])
+        
+        set_plot_text_settings()
         f1.show()
         if save_path != '':
             now = datetime.now()
