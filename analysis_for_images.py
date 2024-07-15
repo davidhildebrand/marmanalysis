@@ -81,18 +81,6 @@ if 'md' in locals():
 
 # %% Specify data locations
 
-# %% Define functions
-
-
-def set_plot_text_settings():
-    plt.rc('axes', titlesize=8, labelsize=8)
-    plt.rc('xtick', labelsize=8)
-    plt.rc('ytick', labelsize=8)
-    plt.rc('legend', fontsize=16)
-    plt.rc('figure', titlesize=8)
-    
-    
-
 # # # Cadbury
 animal_str = 'Cadbury'
 # # 20221016d
@@ -1622,7 +1610,7 @@ for cndi, cnd in enumerate(conds_focus):
         else:
             ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
-set_plot_text_settings()
+plots.set_plot_text_settings()
 fig.show()
 del m, pr, cndi, cnd
 del ax, xl, xlines
@@ -1733,7 +1721,7 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
 
-set_plot_text_settings()
+plots.set_plot_text_settings()
 fig_hm.show()
 
 fig_cb, ax_cb = plt.subplots()
@@ -1742,7 +1730,7 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
-set_plot_text_settings()
+plots.set_plot_text_settings()
 fig_cb.show()
 
 if saving:
@@ -1863,7 +1851,7 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
 
-set_plot_text_settings()
+plots.set_plot_text_settings()
 fig_hm.show()
 
 fig_cb, ax_cb = plt.subplots()
@@ -1872,7 +1860,7 @@ cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
 cbar.set_label('mean Zscore during stimulus')
 ax_cb.remove()
-set_plot_text_settings()
+plots.set_plot_text_settings()
 fig_cb.show()
 
 if saving:
@@ -2183,7 +2171,7 @@ ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             fmt='o', elinewidth=1, ecolor='k')
 
 # ax.plot(ddxs, ddys)
-
+plots.set_plot_text_settings()
 fig_corr.show()
 
 
