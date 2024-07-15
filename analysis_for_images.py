@@ -1179,6 +1179,7 @@ sigma_F = {}
 sigma_NF = {}
 sigma_NFobj = {}
 sigma_B = {}
+sort_idx_muR_F = {}
 for m in metrics:
     muR_F[m] = np.full(n_ROIs, np.nan)
     muR_NF[m] = np.full(n_ROIs, np.nan)
@@ -1204,6 +1205,9 @@ for m in metrics:
     sigma_NF[m] = np.std(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     sigma_NFobj[m] = np.std(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     sigma_B[m] = np.std(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+
+    # Create sorting index based on across-stimulus, trial-averaged, frame-averaged mean responses
+    sort_idx_muR_F[m] = np.argsort(muR_F[m])[::-1]
 del m
 
 # Calculate face discriminability index d′
