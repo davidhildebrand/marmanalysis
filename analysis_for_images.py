@@ -1743,10 +1743,9 @@ del i, t, tick
 del m
 
 
-# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses...
+# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses... sorted by dprime_F...
 #    ... for all ROIs
 #    ... for all categories
-#    ... sorted by dprime_F
 
 m = 'Fzsc'
 
@@ -1872,58 +1871,114 @@ if saving:
 del i, t, tick
 
 
-# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses...
+# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses... sorted by across-stimulus mean...
 #    ... for all ROIs
 #    ... for all categories
 #    ... sorted by across-stimulus mean
 
-sort_idx_cat_F = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)).argsort()
-fig_hm = plt.figure()
-fig_hm.suptitle('across-stimulus mean of trial-averaged responses, all ROIs')
-plt.xlabel('Image Category')
-plt.ylabel('ROI')
-ax = plt.gca()
-ax.set_xticks([0, 1, 2])
-ax.set_xticklabels(['faces', 'objects', 'bodies'])
-plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_cat_F],
-           vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
-cbar = plt.colorbar()
-cbar.set_label('mean Zscore across stim period and images')
-set_plot_text_settings()
+m = 'Fzsc'
+
+# Define category ticks
+tickinfo = {t.decode(): {} for t in template}
+for t in template:
+    ts = t.decode()
+    wheret = np.where(categories == t)[0]
+    if wheret.size > 0:
+        tickinfo[ts]['start'] = wheret[0]
+        tickinfo[ts]['end'] = wheret[0]
+        tickinfo[ts]['labelpos'] = wheret[0]
+        tickinfo[ts]['label'] = template_labels[t]
+    else:
+        tickinfo.pop(ts)
+del t, ts, wheret
+
+fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
+# fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
+fig_hm.subplots_adjust(wspace=0.05)
+fig_hm.suptitle('across-stimulus mean of trial-averaged responses, all ROIs, sorted by F mean')
+ax_hm.set_xlabel('Stimulus Category')
+ax_hm.set_ylabel('ROI')
+xtick_majors = []
+xtick_majorlabels = []
+xtick_minors = []
+xtick_minorlabels = []
+for i, t in enumerate(tickinfo):
+    ti = tickinfo[t]
+    if ti['start'] == ti['end']:
+        if i == 0:
+            xtick_majors.append(ti['start'] - 0.5)
+            xtick_majorlabels.append(None)
+        xtick_majors.append(ti['start'] + 0.5)
+        xtick_majorlabels.append(None)
+        xtick_minors.append(ti['labelpos'])
+        xtick_minorlabels.append(ti['label'])
+    elif ti['end'] > ti['start']:
+        xtick_majors.append(ti['start'] - 0.5)
+        xtick_majorlabels.append(None)
+        xtick_minors.append(ti['labelpos'])
+        xtick_minorlabels.append(ti['label'])
+        if i == len(tickinfo) - 1:
+            xtick_majors.append(ti['end'] + 0.5)
+            xtick_majorlabels.append(None)
+    else:
+        warn('Heatmap plot tick issue for category {}'.format(ti))
+ax_hm.set_xticks(xtick_majors)
+ax_hm.set_xticklabels(xtick_majorlabels)
+ax_hm.set_xticks(xtick_minors, minor=True)
+ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
+plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
+ax_hm.tick_params(which='minor', length=0)
+# img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_muR_F[m]],
+#                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
+img_hm = ax_hm.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_muR_F[m]],
+                      vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
+
+ax_dp.set_xlabel('$d^\prime_F$')
+ax_dp.set_axisbelow(True)
+ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_muR_F[m]], height=1.0, color='0.5')
+ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
+ax_dp.spines['right'].set_visible(False)
+ax_dp.spines['left'].set_visible(False)
+ax_dp.grid(axis='x', linestyle='dashed', linewidth=0.5, color='0.8')
+for tick in ax_dp.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(False)
+    tick.tick2line.set_visible(False)
+    tick.label1.set_visible(False)
+    tick.label2.set_visible(False)
+    
+ax_fsi.set_xlabel('FSI')
+ax_fsi.set_axisbelow(True)
+ax_fsi.set_xlim([-1, 1])
+ax_fsi.barh(range(0, n_ROIs), FSI[m][sort_idx_muR_F[m]], height=1.0, color='0.5')
+ax_fsi.axvline(x=0, color='0.0', linewidth=0.5)
+ax_fsi.spines['right'].set_visible(False)
+ax_fsi.spines['left'].set_visible(False)
+ax_fsi.grid(axis='x', linestyle='dashed', linewidth=0.5, color='0.8')
+for tick in ax_fsi.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(False)
+    tick.tick2line.set_visible(False)
+    tick.label1.set_visible(False)
+    tick.label2.set_visible(False)
+
+plots.set_plot_text_settings()
 fig_hm.show()
+
+fig_cb, ax_cb = plt.subplots()
+cbar = plt.colorbar(img_hm, ax=ax_cb)
+cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
+cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
+cbar.set_label('mean Zscore during stimulus')
+ax_cb.remove()
+plots.set_plot_text_settings()
+fig_cb.show()
+
 if saving:
-    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
+    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace' + save_ext),
                    dpi=plt.rcParams['figure.dpi'], transparent=True)
-del sort_idx_cat_F
-
-
-# %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses...
-#    ... only for ROIs with an across-trial mean response above a z-score threshold
-#    ... for all categories
-#    ... sorted by across-stimulus mean
-
-above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
-fig_hm = plt.figure()
-fig_hm.suptitle('across-stimulus mean of trial-averaged responses, peak_z > 0.5', fontsize=8)
-plt.xlabel('Image Category')
-plt.ylabel('ROI')
-ax = plt.gca()
-ax.set_xticks([0, 1, 2])
-ax.set_xticklabels(['faces', 'objects', 'bodies'])
-plt.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[above_threshold[at_sortidx]],
-           vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
-cbar = plt.colorbar()
-cbar.set_label('mean Zscore across stim period and images')
-plt.rc('axes', titlesize=8, labelsize=8)
-plt.rc('xtick', labelsize=8)
-plt.rc('ytick', labelsize=8)
-plt.rc('legend', fontsize=16)
-plt.rc('figure', titlesize=8)
-fig_hm.show()
-if saving:
-    fig_hm.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_threshZgt0p5' + save_ext),
+    fig_cb.savefig(os.path.join(save_path, save_pfix + '_Heatmap_byCategory_sortMeanFace_Colorbar' + save_ext),
                    dpi=plt.rcParams['figure.dpi'], transparent=True)
 
+del i, t, tick
 
 # %% Overlay ROI masks over mean frame image...
 #    ... pseudo-colored by ...
