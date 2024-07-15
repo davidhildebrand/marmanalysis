@@ -1136,30 +1136,3 @@ for r in range(0, n_ROIs_tuned, 1):
     plt.pause(0.05)
 
 # calculate_dsi(Ts, Rs[ridx], plotting=True, debugging=True)
-
-# %%
-# Frois_peak_frame = np.argmax(Frois, axis=1)
-# y_height = 0
-# plt.figure()
-# for n in range(20):
-#     r = np.random.randint(Frois.shape[0])
-#     if Frois_peak_frame[r] > 18 and Frois_peak_frame[r] < Frois.shape[1]-36:
-#         plt.plot(np.linspace(1,18+36,18+36)-19, (Frois[r, Frois_peak_frame[r]-18:Frois_peak_frame[r]+36]) + y_height)
-#         y_height += 0.5
-
-# plt.xlabel('Frame # (@'+str(md['framerate'])+'Hz)')
-# plt.yticks(range(int(np.ceil(y_height))))
-# plt.ylabel(normalize + ' (arbitrary baseline)')
-# plt.axvline(x=0)
-# plt.title('Peak ' + normalize + ' for 20 neurons')
-
-
-# y_height = 0
-# plt.figure()
-# for n in range(20):
-#     plt.plot( np.linspace(1,Frois.shape[1],Frois.shape[1]), ( Frois[ np.random.randint(Frois.shape[0]) ,:] ) + y_height, linewidth=0.2)
-#     y_height += 3
-
-# plt.xlabel('Frame # (@'+str(md['framerate'])+'Hz)')
-# plt.ylabel(normalize + ' (arbitrary baseline)')
-# plt.title( normalize + ' for 20 neurons')
