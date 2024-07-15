@@ -2067,8 +2067,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                         save_path=sp)
 
 
-# %% Overlay ROI masks over mean frame image...
-#    ... pseudo-colored by relative response strength
+# %% Overlay ROI masks over mean frame image... pseudocolored by relative response strength...
 
 # TODO make this more dynamic
 
@@ -2094,21 +2093,38 @@ max_Fzsc = 0.5
 Fzsc_fob_norm = Fzsc_fob / max_Fzsc
 Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
 
-above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
-sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclZgt0p5' + save_ext
-sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
-                        Fzsc_fob_norm[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='relative response strength, z > 0.5', save_path=sp)
 
-above_threshold = np.where(FSI[m] > threshold_fsi)[0]
+# ...only for ROIs with |dprime_F| >= threshold
+above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
+plots.plot_overlays_roi(ROIs[above_threshold],
                         Fzsc_fob_norm[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='relative response strength, FSI > {:0.2f}'.format(threshold_fsi),
+                        title='relative response strength, ' +
+                              r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
+                        save_path=sp)
+
+# ...only for ROIs with |FSI| >= threshold
+above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclFSIthrs' + save_ext
+sp = os.path.join(save_path, sn) if saving else ''
+plots.plot_overlays_roi(ROIs[above_threshold],
+                        Fzsc_fob_norm[above_threshold],
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='relative response strength, ' +
+                              r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
+                        save_path=sp)
+
+# ...only for ROIs with |mean Z-score| >= threshold
+above_threshold = np.where(stats_df[m]['peak_cat_val'] > 0.5)[0]
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclZgt0p5' + save_ext
+sp = os.path.join(save_path, sn) if saving else ''
+plots.plot_overlays_roi(ROIs[above_threshold],
+                        Fzsc_fob_norm[above_threshold],
+                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title='relative response strength, ' +
+                              r'z $\geq$ 0.5', 
                         save_path=sp)
 
 
