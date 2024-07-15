@@ -1997,7 +1997,7 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0)
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
 sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition_incldprimethrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
+plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category of the condition (image) eliciting the largest response, ' +
@@ -2008,7 +2008,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
 sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
+plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category of the condition (image) eliciting the largest response, ' +
@@ -2019,7 +2019,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 above_threshold = np.where(stats_df[m]['peak_cond_val'] >= 0.5)[0]
 sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
+plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category of the condition (image) eliciting the largest response, ' +
@@ -2037,7 +2037,7 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0)
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
 sn = save_pfix + '_ROIplot_ColorByPeakCategory_incldprimethrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
+plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category eliciting the largest average response, ' +
@@ -2048,7 +2048,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
 sn = save_pfix + '_ROIplot_ColorByPeakCategory_inclFSIthrs' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
+plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category eliciting the largest average response, ' +
@@ -2059,7 +2059,7 @@ plots.plot_roi_overlays(ROIs[above_threshold],
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > 0.5)[0]
 sn = save_pfix + '_ROIplot_ColorByPeakCategory_inclZgt0p5' + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_roi_overlays(ROIs[above_threshold], 
+plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category eliciting the largest average response, ' +
