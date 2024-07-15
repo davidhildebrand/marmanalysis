@@ -1418,7 +1418,6 @@ plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
 
 m = 'Fzsc'
 above_threshold = np.where(stats_df[m]['peak_cond_val'] > 0.5)[0]
-at_sortidx = (-np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)[above_threshold]).argsort()
 
 # Select ROI subset
 n_plot_ROIs = 9
@@ -1769,7 +1768,6 @@ for t in template:
         tickinfo.pop(ts)
 del t, ts, wheret
 
-sort_idx_cat = [i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]
 fig_hm, (ax_hm, ax_dp, ax_fsi) = plt.subplots(1, 3, width_ratios=[7.5, 0.75, 0.75], sharey=True)
 # fig_hm, (ax_hm, ax_dp) = plt.subplots(1, 2, width_ratios=[7.5, 0.75], sharey=True)
 fig_hm.subplots_adjust(wspace=0.05)
