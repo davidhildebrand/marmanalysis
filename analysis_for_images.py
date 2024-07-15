@@ -2074,35 +2074,43 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # TODO make this more dynamic
 
-# Fzsc_fob = np.array([muR_F[m],
-#                      muR_NFobj[m],
-#                      muR_B[m]]).swapaxes(0, 1)
-
-Fzsc_fob = np.vstack(stats_df[m]['resp_vect_cat'].values)
-
-Fzsc_mean_min_cat = np.min(Fzsc_fob, axis=1)
-for col_i in range(3):
-    Fzsc_fob[:, col_i] = Fzsc_fob[:, col_i] - Fzsc_mean_min_cat
-
-
-resp_vect_cat_rel = np.vstack(stats_df[m]['resp_vect_cat'].values)
-
+resp_vect_FOB = np.array([muR_F[m], muR_NFobj[m], muR_B[m]]).swapaxes(0, 1)
 # Subtract the value corresponding to least responsive category to make it relative
 # (otherwise, an ROI that responds to all categories would show up as white)
-resp_vect_cat_rel = np.subtract(resp_vect_cat_rel.T, np.min(resp_vect_cat_rel), axis=1).T
+resp_vect_FOB_rel = np.subtract(resp_vect_FOB.T, np.min(resp_vect_FOB, axis=1)).T
 
+# # Fzsc_fob = np.array([muR_F[m],
+# #                      muR_NFobj[m],
+# #                      muR_B[m]]).swapaxes(0, 1)
 
-max_Fzsc = 0.5
-Fzsc_fob_norm = Fzsc_fob / max_Fzsc
-Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
+# Fzsc_fob = np.vstack(stats_df[m]['resp_vect_cat'].values)
 
+# Fzsc_mean_min_cat = np.min(Fzsc_fob, axis=1)
+# for col_i in range(3):
+#     Fzsc_fob[:, col_i] = Fzsc_fob[:, col_i] - Fzsc_mean_min_cat
+
+# max_Fzsc = 0.5
+# Fzsc_fob_norm = Fzsc_fob / max_Fzsc
+# Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
+
+# resp_vect_cat_rel = np.vstack(stats_df[m]['resp_vect_cat'].values)
+
+# # Subtract the value corresponding to least responsive category to make it relative
+# # (otherwise, an ROI that responds to all categories would show up as white)
+# resp_vect_cat_rel = np.subtract(resp_vect_cat_rel.T, np.min(resp_vect_cat_rel, axis=1)).T
+
+ROI_colors_maxval = 0.5
+ROI_colors = resp_vect_FOB_rel / ROI_colors_maxval
+ROI_colors[ROI_colors > 1] = 1
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclFSIthrs' + save_ext
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
+    '_max{}{:0.2f}'.format(m, ROI_colors_maxval).replace('.', 'p') + \
+    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
-                        Fzsc_fob_norm[above_threshold],
+                        ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, ' +
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
@@ -2110,22 +2118,25 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclFSIthrs' + save_ext
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
+    '_max{}{:0.2f}'.format(m, ROI_colors_maxval).replace('.', 'p') + \
+    '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
-                        Fzsc_fob_norm[above_threshold],
+                        ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, ' +
                               r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
 
 # ...only for ROIs with |mean Z-score| >= threshold
-above_threshold = np.where(stats_df[m]['peak_cat_val'] > 0.5)[0]
-sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength_inclZgt0p5' + save_ext
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
+    '_max{}{:0.2f}'.format(m, ROI_colors_maxval).replace('.', 'p') + \
+    '_thresh{}{:0.2f}'.format(m, threshold_Zscore).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
-                        Fzsc_fob_norm[above_threshold],
+                        ROI_colors[above_threshold],
                         image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, ' +
                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore), 
