@@ -216,7 +216,7 @@ if 'dirstr_suite2p' not in locals():
 dirstr_suite2p_plane = 'plane0'
 
 
-# Object defininitions
+# %% Define functions and classes
 
 
 class StimulusImage(object):
@@ -1373,6 +1373,7 @@ if n_metrics > 1:
 
 
 # %% Output information about ROI tuning based on defined thresholds
+
 print('|FSI| threshold: {}'.format(threshold_fsi))
 ROIs_tuned_idx = np.argwhere(np.abs(FSI['Fzsc'][np.argsort(FSI['Fzsc'])[::-1]]) > threshold_fsi).squeeze()
 n_ROIs_tuned = np.argwhere(np.abs(FSI['Fzsc'][np.argsort(FSI['Fzsc'])[::-1]]) > threshold_fsi).shape[0]
@@ -1389,6 +1390,7 @@ del ROIs_tuned_idx, n_ROIs_tuned
 
 
 # %% Plot histograms of ROI tuning
+
 sp = os.path.join(save_path, save_pfix + '_Histogram_FSIs_fromFdFF' + save_ext) if saving else ''
 plots.plot_hist_fsi(FSI['FdFF'], threshold=threshold_fsi,
                     title='FSIs calculated from FdFF values', save_path=sp)
@@ -1545,9 +1547,9 @@ del m, xs, r, pr, cat, cnd, cndi, t
 del bool_focus, conds_focus, n_conds_focus
 
 
-# %% Heatmap trial-averaged responses...
+# %% Heatmap trial-averaged responses... for a subset of conditions (e.g., faces)...
 #    ... for all ROIs
-#    ... for a subset of conditions (e.g., faces)
+#    ... sorted by dprime_F
 
 m = 'Fzsc'
 # bool_focus = (data['cat'] == b'face_mrm')
@@ -1616,9 +1618,9 @@ del m, pr, cndi, cnd
 del ax, xl, xlines
 
 
-# %% Heatmap trial-averaged stimulus-epoch mean responses...
+# %% Heatmap trial-averaged stimulus-epoch responses... for all conditions...
 #    ... for all ROIs
-#    ... for all conditions
+#    ... sorted by dprime_F
 
 m = 'Fzsc'
 
@@ -1980,8 +1982,8 @@ if saving:
 
 del i, t, tick
 
-# %% Overlay ROI masks over mean frame image...
-#    ... pseudo-colored by ...
+
+# %% Overlay ROI masks over imaging data... pseudocolored by the category of the peak response condition...
 
 m = 'Fzsc'
 
