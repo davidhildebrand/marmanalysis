@@ -2078,33 +2078,12 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # %% Overlay ROI masks over mean frame image... pseudocolored by relative response strength...
 
-# TODO make this more dynamic
-
 resp_vect_FOB = np.array([muR_F[m], muR_NFobj[m], muR_B[m]]).swapaxes(0, 1)
 # Subtract the value corresponding to least responsive category to make it relative
 # (otherwise, an ROI that responds to all categories would show up as white)
 resp_vect_FOB_rel = np.subtract(resp_vect_FOB.T, np.min(resp_vect_FOB, axis=1)).T
 
-# # Fzsc_fob = np.array([muR_F[m],
-# #                      muR_NFobj[m],
-# #                      muR_B[m]]).swapaxes(0, 1)
-
-# Fzsc_fob = np.vstack(stats_df[m]['resp_vect_cat'].values)
-
-# Fzsc_mean_min_cat = np.min(Fzsc_fob, axis=1)
-# for col_i in range(3):
-#     Fzsc_fob[:, col_i] = Fzsc_fob[:, col_i] - Fzsc_mean_min_cat
-
-# max_Fzsc = 0.5
-# Fzsc_fob_norm = Fzsc_fob / max_Fzsc
-# Fzsc_fob_norm[Fzsc_fob_norm > 1] = 1
-
-# resp_vect_cat_rel = np.vstack(stats_df[m]['resp_vect_cat'].values)
-
-# # Subtract the value corresponding to least responsive category to make it relative
-# # (otherwise, an ROI that responds to all categories would show up as white)
-# resp_vect_cat_rel = np.subtract(resp_vect_cat_rel.T, np.min(resp_vect_cat_rel, axis=1)).T
-
+# Saturate colors at specified value (corresponding to the across-stimulus mean of trial-averaged responses)
 ROI_colors_maxval = 0.5
 ROI_colors = resp_vect_FOB_rel / ROI_colors_maxval
 ROI_colors[ROI_colors > 1] = 1
