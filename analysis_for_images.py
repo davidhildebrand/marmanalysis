@@ -1998,7 +1998,8 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0)
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition_incldprimethrs' + save_ext
+sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
+    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
@@ -2009,7 +2010,8 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition_inclFSIthrs' + save_ext
+sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
+    '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
@@ -2020,7 +2022,8 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |mean Z-score| >= threshold
 above_threshold = np.where(stats_df[m]['peak_cond_val'] >= threshold_Zscore)[0]
-sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition_inclZgt0p5' + save_ext
+sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
+    '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
@@ -2038,7 +2041,8 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0)
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_ROIplot_ColorByPeakCategory_incldprimethrs' + save_ext
+sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
+    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
@@ -2049,7 +2053,8 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_ROIplot_ColorByPeakCategory_inclFSIthrs' + save_ext
+sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
+    '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
@@ -2060,7 +2065,8 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |mean Z-score| >= threshold
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
-sn = save_pfix + '_ROIplot_ColorByPeakCategory_inclZgt0p5' + save_ext
+sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
+    '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
@@ -2133,7 +2139,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
     '_max{}{:0.2f}'.format(m, ROI_colors_maxval).replace('.', 'p') + \
-    '_thresh{}{:0.2f}'.format(m, threshold_Zscore).replace('.', 'p') + save_ext
+    '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
                         ROI_colors[above_threshold],
