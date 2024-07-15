@@ -1807,7 +1807,7 @@ ax_hm.tick_params(which='minor', length=0)
 # img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
 #                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 img_hm = ax_hm.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_dprime[m]],
-                      vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
+                      vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
 if threshold_dprime is not None:
     if threshold_dprime != 0:
         ax_hm.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
@@ -1818,7 +1818,7 @@ if threshold_dprime is not None:
         ax_hm.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
                        color='0.2', linestyle='dotted', linewidth=0.5)
 
-ax_dp.set_xlabel('$d^\prime_F$')
+ax_dp.set_xlabel(r'$d^\prime_F$')
 ax_dp.set_axisbelow(True)
 ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
 ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
