@@ -141,9 +141,9 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
             if bgimage.shape[2] == 3 or bgimage.shape[2] == 4:
                 canvas = ref
             else:
-                warn('unsupported input bgimage type (grayscale or RGB)')
+                raise ValueError('unsupported input bgimage type (grayscale or RGB)')
         else:
-            warn('unsupported input bgimage type (grayscale or RGB)')
+            raise ValueError('unsupported input bgimage type (grayscale or RGB)')
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
     else:
         if size is not None:
@@ -234,9 +234,9 @@ def plot_overlays_img(rois, images, colors=None, size=None,
             if bgimage.shape[2] == 3:
                 pass
             else:
-                warn('unsupported input bgimage type (grayscale or RGB)')
+                raise ValueError('unsupported input bgimage type (grayscale or RGB)')
         else:
-            warn('unsupported input bgimage type (grayscale or RGB)')
+            raise ValueError('unsupported input bgimage type (grayscale or RGB)')
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
     else:
         if size is not None:
