@@ -110,8 +110,6 @@ def auto_level_s2p_image(image, target_median=5140):
     return img_as_float64(image)
 
 
-# % Define plotting function for face-body-object selective cells
-
 def plot_overlays_roi(rois, colors, size=None, 
                       bgimage=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
@@ -288,23 +286,6 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
                         '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
                         '_legend.png'
             f1.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
-
-    # Santi original
-    # # create colormap for reference
-    # f3 = plt.figure()
-    # x = np.linspace(0, 1, len(np.unique(tuning)) + 1)
-    # y = np.linspace(1, 0, 101)
-    # xx, yy = np.meshgrid(x, y)
-    # canvas_colormap = np.ones([101, len(np.unique(tuning)) + 1, 3])
-    # for rgb in range(3):
-    #     if circular:
-    #         canvas_colormap[:,:,rgb] = abs(1 - 2 * abs(xx - rgb * 1/3)) * yy
-    #     else:
-    #         canvas_colormap[:,:,rgb] = abs(1 - 2 * abs(xx/1.5 - rgb * 1/3)) * yy
-    # plt.imshow(canvas_colormap, extent=[0,1,0,1], interpolation='none')
-    # plt.xlabel('tuning')
-    # plt.ylabel('tuning mag')
-    # f2.show()
 
 
 # def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
