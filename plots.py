@@ -170,11 +170,16 @@ def plot_overlays_roi(rois, colors, size=None,
             warn('unsupported flip parameter')
             
     if rotate is not None and rotate != 0:
+        # if rotate % 90 == 0:
+        #     k = rotate / -90
+        #     canvas = np.rot90(canvas, -k)
+        # else:
+        #     canvas = ski_rotate(canvas, rotate)
         if rotate % 90 == 0:
-            k = rotate / -90
-            canvas = np.rot90(canvas, -k)
+            k = rotate / -90  # number of counterclockwise rotations
+            canvas = np.rot90(canvas, k)
         else:
-            canvas = ski_rotate(canvas, rotate)
+            canvas = ski_rotate(canvas, -rotate, resize=True)
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
 
     f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
