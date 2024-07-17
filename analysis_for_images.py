@@ -2187,10 +2187,10 @@ m = 'Fzsc'
 
 ROI_colors = dprime[m]
 
-# # Saturate at specified value
-ROI_colors_saturateval = 2.0  # dprime
-ROI_colors = ROI_colors / ROI_colors_saturateval
-ROI_colors[ROI_colors > 1] = 1
+# # # Saturate at specified value
+# ROI_colors_saturateval = 2.0  # dprime
+# ROI_colors = ROI_colors / ROI_colors_saturateval
+# ROI_colors[ROI_colors > 1] = 1
 
 # ROI_colors = np.array([colorsys.hsv_to_rgb(1.0, dp, 1.0) for dp in dprime[m]])
 
@@ -2200,7 +2200,7 @@ sn = save_pfix + '_ROIplot_ColorByDprimeVal' + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
-                        ROI_colors[above_threshold], alpha=1.0, colormap='cool',
+                        ROI_colors[above_threshold], alpha=1.0, colormap='bwr', colorlim=1.0, 
                         bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title=r'$d^\prime_F$ value, ' +
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
