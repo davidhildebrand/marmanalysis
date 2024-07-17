@@ -123,8 +123,9 @@ def auto_level_s2p_image(image, target_median=5140):
     return img_as_float64(image)
 
 
-def plot_overlays_roi(rois, colors, size=None, 
-                      bgimage=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
+def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
+                      bgimage=None, size=None, flip='lr', rotate=-90, 
+                      scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
     n_rois = len(rois)
     n_colors = len(colors)
@@ -135,11 +136,10 @@ def plot_overlays_roi(rois, colors, size=None,
             warn('input bgimage size does not match input size parameter, using bgimage size')
         ref = ski_rescale_intensity(util.img_as_float64(bgimage))
         if bgimage.ndim == 2:
-            # Copy single channel bgimage to form an RGB image
             canvas = np.stack((ref,) * 3, axis=-1)
         elif bgimage.ndim == 3:
-            if bgimage.shape[2] == 3:
-                pass
+            if bgimage.shape[2] == 3 or bgimage.shape[2] == 4:
+                canvas = ref
             else:
                 warn('unsupported input bgimage type (grayscale or RGB)')
         else:
@@ -153,17 +153,24 @@ def plot_overlays_roi(rois, colors, size=None,
             w = np.array([rois[r]['xpix'].max() for r in range(n_rois)]).max()  # columns/w/x
             h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
         canvas = np.zeros([h, w, 3], dtype=np.float64)
+        
+    if canvas.shape[2] == 3:
+        canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
+    overlay = np.zeros(canvas.shape)
 
     for r, rt in enumerate(rois):
         ry = rt['ypix']
         rx = rt['xpix']
-        canvas[ry, rx, :] = colors[r]
+        overlay[ry, rx, 0:3] = colors[r]
+        overlay[ry, rx, 3] = alpha
 
     match flip:
         case 'lr':
             canvas = np.fliplr(canvas)
+            overlay = np.fliplr(overlay)
         case 'ud':
             canvas = np.flipud(canvas)
+            overlay = np.flipud(overlay)
         case None:
             pass
         case _:
@@ -178,18 +185,22 @@ def plot_overlays_roi(rois, colors, size=None,
         if rotate % 90 == 0:
             k = rotate / -90  # number of counterclockwise rotations
             canvas = np.rot90(canvas, k)
+            overlay = np.rot90(overlay, k)
         else:
             canvas = ski_rotate(canvas, -rotate, resize=True)
+            overlay = ski_rotate(overlay, -rotate, resize=True)
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
 
-    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
+    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), 
+                            h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
     ax = f.add_axes((0, 0, 1, 1))
     plt.set_cmap('hsv')
     ax.axis('off')
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
-    ax.imshow(canvas, interpolation='none', cmap='hsv')
+    ax.imshow(canvas, interpolation='none', cmap=colormap)
+    ax.imshow(overlay, interpolation='none', cmap=colormap)
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     
     if title != '':
