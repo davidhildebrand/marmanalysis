@@ -2145,7 +2145,7 @@ sn = save_pfix + '_ROIplot_OverlayImageColorByPeakCategory' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_img(ROIs[above_threshold], 
                         images=ROI_images[above_threshold],
-                        colors=ROI_colors[above_threshold],
+                        colors=ROI_colors[above_threshold], alpha=0.6,
                         bgimage=plots.auto_level_s2p_image(fov_image), 
                         flip=None, rotate=90,  # flip='lr', rotate=-90,
                         title='image eliciting the largest average response, ' +
@@ -2159,7 +2159,7 @@ plots.plot_overlays_img(ROIs[above_threshold],
 # sp = os.path.join(save_path, sn) if saving else ''
 # plots.plot_overlays_img(ROIs[above_threshold], 
 #                         images=ROI_images[above_threshold],
-#                         colors=ROI_colors[above_threshold],
+#                         colors=ROI_colors[above_threshold], alpha=0.6,
 #                         bgimage=plots.auto_level_s2p_image(fov_image), 
 #                         flip=None, rotate=90,  # flip='lr', rotate=-90,
 #                         title='image eliciting the largest average response, ' +

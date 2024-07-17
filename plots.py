@@ -211,8 +211,9 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
         f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
-def plot_overlays_img(rois, images, colors=None, size=None, 
-                      bgimage=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
+def plot_overlays_img(rois, images, colors=None, alpha=1.0, colormap='hsv',
+                      bgimage=None, size=None, flip='lr', rotate=-90, 
+                      scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
     n_rois = len(rois)
     n_images = len(images)
@@ -228,11 +229,10 @@ def plot_overlays_img(rois, images, colors=None, size=None,
             warn('input bgimage size does not match input size parameter, using bgimage size')
         ref = ski_rescale_intensity(util.img_as_float64(bgimage))
         if bgimage.ndim == 2:
-            # Copy single channel bgimage to form an RGB image
             canvas = np.stack((ref,) * 3, axis=-1)
         elif bgimage.ndim == 3:
-            if bgimage.shape[2] == 3:
-                pass
+            if bgimage.shape[2] == 3 or bgimage.shape[2] == 4:
+                canvas = ref
             else:
                 raise ValueError('unsupported input bgimage type (grayscale or RGB)')
         else:
@@ -246,6 +246,9 @@ def plot_overlays_img(rois, images, colors=None, size=None,
             w = np.array([rois[r]['xpix'].max() for r in range(n_rois)]).max()  # columns/w/x
             h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
         canvas = np.zeros([h, w, 3], dtype=np.float64)
+
+    if canvas.shape[2] == 3:
+        canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
 
     roi_mask = {}
     roi_ctr = np.full((n_rois, 2), np.nan)
@@ -283,13 +286,14 @@ def plot_overlays_img(rois, images, colors=None, size=None,
 
     from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
-    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
-    ax = f.add_axes([0, 0, 1, 1])
+    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), 
+                            h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
+    ax = f.add_axes((0, 0, 1, 1))
     plt.set_cmap('hsv')
     ax.axis('off')
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
-    ax.imshow(canvas, interpolation='none', cmap='hsv')
+    ax.imshow(canvas, interpolation='none', cmap=colormap)
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     ax.scatter(roi_ctr[:, 0], roi_ctr[:, 1], marker='.', s=1, color='w')
     ax.set_aspect('equal')
@@ -303,7 +307,7 @@ def plot_overlays_img(rois, images, colors=None, size=None,
         else:
             imp = AnnotationBbox(OffsetImage(stim, zoom=z), roi_ctr[ir, :], 
                                  frameon=True, pad=0, 
-                                 bboxprops=dict(facecolor=colors[ir], edgecolor=None, linewidth=0))
+                                 bboxprops=dict(facecolor=colors[ir], edgecolor=None, linewidth=0, alpha=alpha))
         ax.add_artist(imp)
     
     if title != '':
