@@ -154,15 +154,24 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
             h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
         canvas = np.zeros([h, w, 3], dtype=np.float64)
         
-    if canvas.shape[2] == 3:
-        canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
-    overlay = np.zeros(canvas.shape)
+    # if canvas.shape[2] == 3:
+    #     canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
+
+    linear_overlay = False
+    if colors.squeeze().ndim > 1:
+        overlay = np.zeros(canvas.shape)
+    else:
+        linear_overlay = True
+        overlay = np.full(canvas.shape[0:2], np.nan)
 
     for r, rt in enumerate(rois):
         ry = rt['ypix']
         rx = rt['xpix']
-        overlay[ry, rx, 0:3] = colors[r]
-        overlay[ry, rx, 3] = alpha
+        if not linear_overlay:
+            overlay[ry, rx, 0:3] = colors[r]
+            # overlay[ry, rx, 3] = alpha
+        else:
+            overlay[ry, rx] = colors[r]
 
     match flip:
         case 'lr':
@@ -199,8 +208,8 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
-    ax.imshow(canvas, interpolation='none', cmap=colormap)
-    ax.imshow(overlay, interpolation='none', cmap=colormap)
+    ax.imshow(canvas, interpolation='none', cmap='gray')
+    ax.imshow(overlay, interpolation='none', cmap=colormap, alpha=alpha)
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     
     if title != '':
@@ -211,7 +220,7 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
         f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
-def plot_overlays_img(rois, images, colors=None, alpha=1.0, colormap='hsv',
+def plot_overlays_img(rois, images, colors=None, alpha=1.0,
                       bgimage=None, size=None, flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
@@ -246,8 +255,8 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0, colormap='hsv',
             h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
         canvas = np.zeros([h, w, 3], dtype=np.float64)
 
-    if canvas.shape[2] == 3:
-        canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
+    # if canvas.shape[2] == 3:
+    #     canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
 
     roi_mask = {}
     roi_ctr = np.full((n_rois, 2), np.nan)
@@ -292,7 +301,7 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0, colormap='hsv',
     ax.axis('off')
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
-    ax.imshow(canvas, interpolation='none', cmap=colormap)
+    ax.imshow(canvas, interpolation='none', cmap='gray')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     ax.scatter(roi_ctr[:, 0], roi_ctr[:, 1], marker='.', s=1, color='w')
     ax.set_aspect('equal')
