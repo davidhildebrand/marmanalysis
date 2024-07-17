@@ -280,7 +280,7 @@ def plot_overlays_img(rois, images, colors=None, size=None,
     ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
-    # ax.scatter(roi_ctr[:, 0], roi_ctr[:, 1], marker='.', s=1, color='w')
+    ax.scatter(roi_ctr[:, 0], roi_ctr[:, 1], marker='.', s=1, color='w')
     ax.set_aspect('equal')
     for ir, r in enumerate(rois):
         stim = plt.imread(images[ir])
