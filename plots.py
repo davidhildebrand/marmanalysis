@@ -241,8 +241,9 @@ def plot_overlays_img(rois, images, colors=None, size=None,
     for r, rt in enumerate(rois):
         roi_mask[r] = np.concatenate((rt['xpix'][:, np.newaxis], rt['ypix'][:, np.newaxis]), axis=1)
         roi_ctr[r, :] = np.average(roi_mask[r], axis=0)
-    roi_dists = np.array([np.linalg.norm(roi_ctr[r] - roi_ctr[r+1]) for r in range(n_rois - 1)])
-    stim_maxpx = np.round(roi_dists.min() / 2).astype(int)
+    roipair_dists = np.array([np.linalg.norm(roi_ctr[r0] - roi_ctr[r1]) 
+                              for r0, r1 in list(itertools.combinations(range(n_rois), 2))])
+    stim_maxpx = np.round(roipair_dists.min()).astype(int)
 
     match flip:
         case 'lr':

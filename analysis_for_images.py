@@ -3,6 +3,7 @@
 
 import colorsys
 from glob import glob
+import itertools
 import matplotlib.pyplot as plt
 # import matplotlib.image as mpimg
 import numpy as np
@@ -2180,82 +2181,82 @@ plots.plot_overlays_img(ROIs[above_threshold],
 
 m = 'Fzsc'
 
-dprime_diff = np.array([ndprime[r] ]
-                        for r in range(n_ROIs - 1)])
-# response_corr = [scipy.stats.pearsonr(stats_df[m].loc[r]['resp_vect_cond'], 
-#                                       stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
-#                  for r in range(n_ROIs - 1)]
+centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
+centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
+# roipair_dist_px = np.array([np.linalg.norm(centroid_px[r0] - centroid_px[r1]) 
+#                             for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+roipair_dist_um = np.array([np.linalg.norm(centroid_um[r0] - centroid_um[r1]) 
+                            for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
-roi_dists = np.array([np.linalg.norm(stats_df[m].loc[r]['centroid_um'] - stats_df[m].loc[r+1]['centroid_um'])
-                      for r in range(n_ROIs - 1)])
-
-if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
+if np.any(roipair_dist_um > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
     warn('Distance between some ROIs exceeds expected FOV diagonal.')
+
+roipair_dprimediff = np.array([np.abs(dprime[m][r0] - dprime[m][r1])
+                               for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
 # Calculate median values across ROI distance bins
 w_bin_um = 25
-n_bins = int(np.ceil(roi_dists.max() / w_bin_um))
+n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
 bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
 from scipy.stats import binned_statistic
-bin_medians, _, _ = binned_statistic(roi_dists, response_corr, statistic='median', bins=bin_edges)
-bin_stds, _, _ = binned_statistic(roi_dists, response_corr, statistic='std', bins=bin_edges)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='std', bins=bin_edges)
 
 fig_corr = plt.figure()
 ax = fig_corr.subplots(1, 1)
-ax.set_ylabel('Stimulus response correlation ($\it{r}$)')
-ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.set_ylabel(r'$\Delta d^\prime_F$')
+ax.set_xlabel('Distance (µm)')
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
-ax.set_xlim((0, roi_dists.max() + 1))
-ax.set_ylim((response_corr.min() - np.abs(0.1 * response_corr.min()), 1))
+ax.set_xlim((0, roipair_dist_um.max() + 1))
+ax.set_ylim((roipair_dprimediff.min() - np.abs(0.1 * roipair_dprimediff.min()), 
+             roipair_dprimediff.max() + np.abs(0.1 * roipair_dprimediff.max())))
 
 # Plot all pairs of direction difference and distance difference
-ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
+ax.scatter(roipair_dist_um, roipair_dprimediff, marker='.', s=0.5, color='k', edgecolor='None')
 
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
-            fmt='o', elinewidth=1, ecolor='k')
+            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='b')
 
 fig_corr.show()
+
 
 # %% Compare value-based correlation between stimulus response vectors with distance between ROIs
 
 m = 'Fzsc'
 
-response_corr = np.array([np.corrcoef(stats_df[m].loc[r]['resp_vect_cond'],
-                                      stats_df[m].loc[r+1]['resp_vect_cond'])[0, 1]
-                          for r in range(n_ROIs - 1)])
-# response_corr = [scipy.stats.pearsonr(stats_df[m].loc[r]['resp_vect_cond'], 
-#                                       stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
-#                  for r in range(n_ROIs - 1)]
-
-roi_dists = np.array([np.linalg.norm(stats_df[m].loc[r]['centroid_um'] - stats_df[m].loc[r+1]['centroid_um'])
-                      for r in range(n_ROIs - 1)])
-
-if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
-    warn('Distance between some ROIs exceeds expected FOV diagonal.')
+roipair_corr_respvect = np.array([np.corrcoef(stats_df[m].loc[r0]['resp_vect_cond'],
+                                              stats_df[m].loc[r1]['resp_vect_cond'])[0, 1]
+                                  for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+import scipy
+roipair_corr_respvect = np.array([scipy.stats.pearsonr(stats_df[m].loc[r0]['resp_vect_cond'], 
+                                                       stats_df[m].loc[r1]['resp_vect_cond']).statistic 
+                                  for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
 # Calculate median values across ROI distance bins
 w_bin_um = 25
-n_bins = int(np.ceil(roi_dists.max() / w_bin_um))
+n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
 bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
 from scipy.stats import binned_statistic
-bin_medians, _, _ = binned_statistic(roi_dists, response_corr, statistic='median', bins=bin_edges)
-bin_stds, _, _ = binned_statistic(roi_dists, response_corr, statistic='std', bins=bin_edges)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='std', bins=bin_edges)
 
 fig_corr = plt.figure()
 ax = fig_corr.subplots(1, 1)
 ax.set_ylabel(r'Stimulus response correlation ($\it{r}$)')
-ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.set_xlabel('Distance (µm)')
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roi_dists.max() + 1))
 ax.set_ylim((response_corr.min() - np.abs(0.1 * response_corr.min()), 1))
+ax.set_xlim((0, roipair_dist_um.max() + 1))
+ax.set_ylim((roipair_corr_respvect.min() - np.abs(0.1 * roipair_corr_respvect.min()), 1))
 
 # Plot all pairs of direction difference and distance difference
-ax.scatter(roi_dists, response_corr, marker='.', s=1, edgecolor='k')
+ax.scatter(roipair_dist_um, roipair_corr_respvect, marker='.', s=1, edgecolor='k')
 
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
@@ -2275,32 +2276,27 @@ response_rank_rho = np.array([spearmanr(stats_df[m].loc[r]['resp_vect_cond'],
 response_rank_tau = np.array([kendalltau(stats_df[m].loc[r]['resp_vect_cond'], 
                                          stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
                               for r in range(n_ROIs - 1)])
-roi_dists = np.array([np.linalg.norm(stats_df[m].loc[r]['centroid_um'] - stats_df[m].loc[r+1]['centroid_um'])
-                      for r in range(n_ROIs - 1)])
-
-if np.any(roi_dists > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
-    warn('Distance between some ROIs exceeds expected FOV diagonal.')
 
 # Calculate median values across ROI distance bins
 w_bin_um = 25
-n_bins = int(np.ceil(roi_dists.max() / w_bin_um))
+n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
 bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
 
-bin_medians, _, _ = binned_statistic(roi_dists, response_rank_rho, statistic='median', bins=bin_edges)
-bin_stds, _, _ = binned_statistic(roi_dists, response_rank_rho, statistic='std', bins=bin_edges)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, response_rank_rho, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, response_rank_rho, statistic='std', bins=bin_edges)
 
 fig_corr = plt.figure()
 ax = fig_corr.subplots(1, 1)
 ax.set_ylabel(r'Stimulus response rank correlation ($\rho$)')
-ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.set_xlabel('Distance (µm)')
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
-ax.set_xlim((0, roi_dists.max() + 1))
+ax.set_xlim((0, roipair_dist_um.max() + 1))
 ax.set_ylim((response_rank_rho.min() - np.abs(0.1 * response_rank_rho.min()), 1))
 
 # Plot all pairs of direction difference and distance difference
-ax.scatter(roi_dists, response_rank_rho, marker='.', s=1, edgecolor='k')
+ax.scatter(roipair_dist_um, response_rank_rho, marker='.', s=1, edgecolor='k')
 
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
@@ -2308,20 +2304,20 @@ ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
 fig_corr.show()
 
 
-bin_medians, _, _ = binned_statistic(roi_dists, response_rank_tau, statistic='median', bins=bin_edges)
-bin_stds, _, _ = binned_statistic(roi_dists, response_rank_tau, statistic='std', bins=bin_edges)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, response_rank_tau, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, response_rank_tau, statistic='std', bins=bin_edges)
 
 fig_corr = plt.figure()
 ax = fig_corr.subplots(1, 1)
 ax.set_ylabel(r'Stimulus response rank correlation ($\tau$)')
-ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.set_xlabel('Distance (µm)')
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
-ax.set_xlim((0, roi_dists.max() + 1))
+ax.set_xlim((0, roipair_dist_um.max() + 1))
 ax.set_ylim((response_rank_tau.min() - np.abs(0.1 * response_rank_tau.min()), 1))
 
 # Plot all pairs of direction difference and distance difference
-ax.scatter(roi_dists, response_rank_tau, marker='.', s=1, edgecolor='k')
+ax.scatter(roipair_dist_um, response_rank_tau, marker='.', s=1, edgecolor='k')
 
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
