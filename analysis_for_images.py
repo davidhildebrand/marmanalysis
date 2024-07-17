@@ -2140,7 +2140,7 @@ ROI_images = np.array([data[stats_df[m]['peak_cond_idx'][ir]]['stimulus'].filepa
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
+sn = save_pfix + '_ROIplot_OverlayImageColorByPeakCategory' + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_img(ROIs[above_threshold], 
