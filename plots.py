@@ -217,7 +217,6 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0, colormap='hsv',
                       title: str = '', save_path: str = ''):
     n_rois = len(rois)
     n_images = len(images)
-    n_colors = len(colors)
     if colors is not None:
         n_colors = len(colors)
         assert n_rois == n_images == n_colors
