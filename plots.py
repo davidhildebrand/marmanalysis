@@ -304,7 +304,7 @@ def plot_overlays_img(rois, images, colors=None, size=None,
 
 
 def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
-             circular=False, image=None, scale_bar=False, um_per_px=None,
+             circular=False, bgimage=None, scale_bar=False, um_per_px=None,
              n_neighbors=None, save_path: str = ''):
     # The values tuning and tuning_mag must be within [0,1].
     # 'circular' determines whether tuning has the same color for 0 and 1
@@ -333,9 +333,9 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
     plt.set_cmap('hsv')
     ax.axis('off')
     ax.set_frame_on(False)
-    if image is not None:
-        ilow, ihigh = np.percentile(image, (1.0, 99.98))
-        ref_f64 = util.img_as_float64(image)
+    if bgimage is not None:
+        ilow, ihigh = np.percentile(bgimage, (1.0, 99.98))
+        ref_f64 = util.img_as_float64(bgimage)
         ref_rescale = ski_rescale_intensity(ref_f64, in_range=(ilow, ihigh))
         ref = ref_rescale
         canvas = np.stack((ref,) * 3, axis=-1)  # copy single channel to form RGB image
@@ -360,9 +360,7 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
     set_plot_text_settings()
     f0.show()
     if save_path != '':
-        now = datetime.now()
-        dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
-        save_name = dt + '_ROIplot_FSIzsc_thresh' + \
+        save_name = 'ROIplot_FSIzsc_thresh' + \
                     '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
                     '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
                     '.png'
@@ -400,9 +398,7 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
         set_plot_text_settings()
         f1.show()
         if save_path != '':
-            now = datetime.now()
-            dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
-            save_name = dt + '_ROIplot_FSIzsc_thresh' + \
+            save_name = 'ROIplot_FSIzsc_thresh' + \
                         '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
                         '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
                         '_legend.png'
