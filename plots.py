@@ -123,7 +123,7 @@ def auto_level_s2p_image(image, target_median=5140):
     return img_as_float64(image)
 
 
-def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
+def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None,
                       bgimage=None, size=None, flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
@@ -206,9 +206,13 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
-    ax.imshow(canvas, interpolation='none', cmap='gray')
-    ax.imshow(overlay, interpolation='none', cmap=colormap, alpha=alpha)
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
+    im_canvas = ax.imshow(canvas, interpolation='none', cmap='gray')
+    im_overlay = ax.imshow(overlay, interpolation='none', cmap=colormap, alpha=alpha)
+    if linear_overlay:
+        if colorlim is None:
+            colorlim = np.ceil(np.max([np.abs(colors.min()), np.abs(colors.max())]))
+        im_overlay.set_clim(vmin=-colorlim, vmax=colorlim)
     
     if title != '':
         ax.set_title(title)
