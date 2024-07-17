@@ -4,7 +4,7 @@
 import colorsys
 from glob import glob
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+# import matplotlib.image as mpimg
 import numpy as np
 import os
 import pandas as pd
@@ -1511,7 +1511,7 @@ for r in range(n_plot_ROIs):
         for cndi, cnd in enumerate(conds_focus):
             ax = axes[0, cndi + 1]
             ax.axis('off')
-            ax.imshow(mpimg.imread(data[cnd]['stimulus'].filepath))
+            ax.imshow(plt.imread(data[cnd]['stimulus'].filepath))
     pr = r + 1
     
     # Summary plots of category averages
@@ -1573,7 +1573,7 @@ ax.axis('off')
 for cndi, cnd in enumerate(conds_focus):
     ax = axes[pr, cndi + 1]
     ax.axis('off')
-    img_st = ax.imshow(mpimg.imread(data[cnd]['stimulus'].filepath))
+    img_st = ax.imshow(plt.imread(data[cnd]['stimulus'].filepath))
 
 pr = 1
 ax_dp = axes[pr, 0]
@@ -2306,7 +2306,7 @@ fig_corr.show()
 #         ax.set_xticklabels([])
 #         ax.axis('off')
 #         imp = os.path.join(stimimage_path, data[cond_idx[i]]['imagename'])
-#         ax.imshow(mpimg.imread(imp))
+#         ax.imshow(plt.imread(imp))
 # if saving:
 #     fig.savefig(os.path.join(save_path, save_pfix + '_StimulusImages' + save_ext),
 #                 dpi=plt.rcParams['figure.dpi'], transparent=True)
