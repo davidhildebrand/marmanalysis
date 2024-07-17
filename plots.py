@@ -113,31 +113,31 @@ def auto_level_s2p_image(image, target_median=5140):
 # % Define plotting function for face-body-object selective cells
 
 def plot_overlays_roi(rois, colors, size=None, 
-                      image=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
+                      bgimage=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
     dpi = plt.rcParams['figure.dpi']
     n_rois = len(rois)
 
-    if image is not None:
-        if size is not None and size != image.shape:
-            warn('input image size does not match input size parameter, using image size')
-        ref = ski_rescale_intensity(util.img_as_float64(image))
-        if image.ndim == 2:
-            # Copy single channel image to form an RGB image
+    if bgimage is not None:
+        if size is not None and size != bgimage.shape:
+            warn('input bgimage size does not match input size parameter, using bgimage size')
+        ref = ski_rescale_intensity(util.img_as_float64(bgimage))
+        if bgimage.ndim == 2:
+            # Copy single channel bgimage to form an RGB image
             canvas = np.stack((ref,) * 3, axis=-1)
-        elif image.ndim == 3:
-            if image.shape[2] == 3:
+        elif bgimage.ndim == 3:
+            if bgimage.shape[2] == 3:
                 pass
             else:
-                warn('unsupported input image type (grayscale or RGB)')
+                warn('unsupported input bgimage type (grayscale or RGB)')
         else:
-            warn('unsupported input image type (grayscale or RGB)')
+            warn('unsupported input bgimage type (grayscale or RGB)')
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
     else:
         if size is not None:
             h, w = size  # rows/h/y, columns/w/x 
         else:
-            warn('no input image or input size, estimating from ROI mask positions')
+            warn('no input bgimage or input size, estimating from ROI mask positions')
             w = np.array([rois[r]['xpix'].max() for r in range(n_rois)]).max()  # columns/w/x
             h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
         canvas = np.zeros([h, w, 3], dtype=np.float64)

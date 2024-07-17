@@ -2002,7 +2002,7 @@ sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category of the condition (image) eliciting the largest response, ' +
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
                         save_path=sp)
@@ -2014,7 +2014,7 @@ sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category of the condition (image) eliciting the largest response, ' +
                               r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
@@ -2026,7 +2026,7 @@ sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category of the condition (image) eliciting the largest response, ' +
                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore),
                         save_path=sp)
@@ -2045,7 +2045,7 @@ sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category eliciting the largest average response, ' +
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
                         save_path=sp)
@@ -2057,7 +2057,7 @@ sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category eliciting the largest average response, ' +
                               r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
@@ -2069,7 +2069,7 @@ sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold], 
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='category eliciting the largest average response, ' +
                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore),
                         save_path=sp)
@@ -2095,7 +2095,7 @@ sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, ' +
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
                         save_path=sp)
@@ -2108,7 +2108,7 @@ sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, ' +
                               r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
                         save_path=sp)
@@ -2121,7 +2121,7 @@ sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
                         ROI_colors[above_threshold],
-                        image=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
                         title='relative response strength, ' +
                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore), 
                         save_path=sp)
@@ -2276,11 +2276,11 @@ fig_corr.show()
 # # making face-cells be red
 
 # # plots.plot_ROIs_RGB(ROIs_for_plot_discrete, Fzsc_for_plot_discrete,
-# #                     size=fov_size, image=fov_image, save_path=save_path)
+# #                     size=fov_size, bgimage=fov_image, save_path=save_path)
 
 # plots.plot_roi_overlays(ROIs[above_threshold], 
 #                         Fzsc_for_plot_discrete[above_threshold],
-#                         image=plots.auto_level_s2p_image(fov_image))
+#                         bgimage=plots.auto_level_s2p_image(fov_image))
 
 
 # %% Plot stimulus images
