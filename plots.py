@@ -22,6 +22,19 @@ def set_plot_text_settings():
     plt.rc('figure', titlesize=4)
 
 
+def rotate_coordinates(pts, origin=(0, 0), dest=None, degrees=0):
+    # As described at https://stackoverflow.com/a/58781388
+    if dest is None:
+        dest = origin
+    angle = np.deg2rad(degrees)
+    R = np.array([[np.cos(angle), -np.sin(angle)],
+                  [np.sin(angle),  np.cos(angle)]])
+    o = np.atleast_2d(origin)
+    d = np.atleast_2d(dest)
+    p = np.atleast_2d(pts)
+    return np.squeeze((R @ (p.T - o.T) + d.T).T)
+
+
 # % Define plotting function for histograms of selectivity metrics
 def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path: str = ''):
     dpi = plt.rcParams['figure.dpi']
@@ -179,7 +192,108 @@ def plot_overlays_roi(rois, colors, size=None,
     set_plot_text_settings()
     f.show()
     if save_path != '':
-        f.savefig(save_path, dpi=dpi, transparent=True)
+        f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+
+def plot_overlays_img(rois, images, colors=None, size=None, 
+                      bgimage=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
+                      title: str = '', save_path: str = ''):
+    n_rois = len(rois)
+    n_images = len(images)
+    n_colors = len(colors)
+    if colors is not None:
+        n_colors = len(colors)
+        assert n_rois == n_images == n_colors
+    else:
+        assert n_rois == n_images
+
+    if bgimage is not None:
+        if size is not None and size != bgimage.shape:
+            warn('input bgimage size does not match input size parameter, using bgimage size')
+        ref = ski_rescale_intensity(util.img_as_float64(bgimage))
+        if bgimage.ndim == 2:
+            # Copy single channel bgimage to form an RGB image
+            canvas = np.stack((ref,) * 3, axis=-1)
+        elif bgimage.ndim == 3:
+            if bgimage.shape[2] == 3:
+                pass
+            else:
+                warn('unsupported input bgimage type (grayscale or RGB)')
+        else:
+            warn('unsupported input bgimage type (grayscale or RGB)')
+        h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
+    else:
+        if size is not None:
+            h, w = size  # rows/h/y, columns/w/x 
+        else:
+            warn('no input bgimage or input size, estimating from ROI mask positions')
+            w = np.array([rois[r]['xpix'].max() for r in range(n_rois)]).max()  # columns/w/x
+            h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
+        canvas = np.zeros([h, w, 3], dtype=np.float64)
+
+    roi_mask = {}
+    roi_ctr = np.full((n_rois, 2), np.nan)
+    for r, rt in enumerate(rois):
+        roi_mask[r] = np.concatenate((rt['xpix'][:, np.newaxis], rt['ypix'][:, np.newaxis]), axis=1)
+        roi_ctr[r, :] = np.average(roi_mask[r], axis=0)
+    roi_dists = np.array([np.linalg.norm(roi_ctr[r] - roi_ctr[r+1]) for r in range(n_rois - 1)])
+    stim_maxpx = np.round(roi_dists.min() / 2).astype(int)
+
+    match flip:
+        case 'lr':
+            canvas = np.fliplr(canvas)
+            roi_ctr[:, 0] = w - roi_ctr[:, 0]
+        case 'ud':
+            canvas = np.flipud(canvas)
+            roi_ctr[:, 1] = h - roi_ctr[:, 1]
+        case None:
+            pass
+        case _:
+            warn('unsupported flip parameter')
+    
+    if rotate is not None and rotate != 0:
+        if rotate % 90 == 0:
+            k = rotate / -90  # number of counterclockwise rotations
+            canvas = np.rot90(canvas, k)
+        else:
+            canvas = ski_rotate(canvas, -rotate, resize=True)
+        # roi_ctr = rotate_coordinates(roi_ctr, origin=np.mean(roi_ctr, axis=0), degrees=rotate)
+        # roi_ctr = rotate_coordinates(roi_ctr, origin=(w / 2, h / 2), degrees=rotate)
+        roi_ctr = rotate_coordinates(roi_ctr, degrees=rotate,
+                                     origin=(w / 2, h / 2), 
+                                     dest=np.array(canvas.shape[0:2]) / 2)
+        h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
+
+    from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
+    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
+    ax = f.add_axes([0, 0, 1, 1])
+    plt.set_cmap('hsv')
+    ax.axis('off')
+    ax.set_frame_on(False)
+    ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
+    ax.imshow(canvas, interpolation='none', cmap='hsv')
+    ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
+    # ax.scatter(roi_ctr[:, 0], roi_ctr[:, 1], marker='.', s=1, color='w')
+    ax.set_aspect('equal')
+    for ir, r in enumerate(rois):
+        stim = plt.imread(images[ir])
+        sh, sw = stim.shape[0:2]
+        if sh > stim_maxpx or sw > stim_maxpx:
+            z = np.min([stim_maxpx / sd for sd in [sh, sw]])
+        if colors is None:
+            imp = AnnotationBbox(OffsetImage(stim, zoom=z), roi_ctr[ir, :], frameon=False)
+        else:
+            imp = AnnotationBbox(OffsetImage(stim, zoom=z), roi_ctr[ir, :], 
+                                 frameon=True, pad=0, 
+                                 bboxprops=dict(facecolor=colors[ir], edgecolor=None, linewidth=0))
+        ax.add_artist(imp)
+    
+    if title != '':
+        ax.set_title(title)
+    set_plot_text_settings()
+    f.show()
+    if save_path != '':
         f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
