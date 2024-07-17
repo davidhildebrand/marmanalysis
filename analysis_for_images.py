@@ -540,7 +540,7 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 # frame_end = frame_start + n_samp_inspect
 
 # fig = plt.figure()
-# # fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
+# # fig.suptitle('mean response by condition (each trial plotted)')
 # axes = fig.subplots(nrows=n_plot_ROIs, ncols=1)
 # for r in range(n_plot_ROIs):
 #     ridx = plot_ROIs[r]
@@ -585,8 +585,8 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 #         ax = axes[r]
 #     else:
 #         ax = axes
-#     ax.set_ylabel('dF/F', fontsize=6)
-#     ax.set_xlabel('Frames', fontsize=6)
+#     ax.set_ylabel('dF/F')
+#     ax.set_xlabel('Frames')
 #     ax.spines['top'].set_visible(False)
 #     ax.spines['right'].set_visible(False)
 
@@ -602,7 +602,7 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 #     # ax.plot(xs, Fr_dFF_ma, label='FdFF_ma', linewidth=0.5, alpha=0.5, zorder=3)
 #     ax.plot(xs, Fr_dFF_oasisL0, label='FdFF_oasisL0', color='g', linewidth=1, alpha=0.8, zorder=10)
 
-#     ax.legend(fontsize=4, ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
+#     ax.legend(ncol=len(ax.get_lines()), frameon=False, loc=(.02, .85))
 # plt.show()
 
 # from oasis.functions import gen_data, gen_sinusoidal_data, deconvolve, estimate_parameters
@@ -1116,7 +1116,7 @@ for mi, m in enumerate(metrics):
                             for c in categories]))
     ax = axes[mi]
     ax.set_ylabel(metric_labels[m])
-    ax.tick_params(axis='both', which='major', labelsize=8)
+    ax.tick_params(axis='both', which='major')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
@@ -1143,7 +1143,7 @@ for mi, m in enumerate(metrics):
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
                         color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.1, zorder=2)
     del cati, cat
-    ax.legend(fontsize=4, frameon=False, loc=(.02, .7))
+    ax.legend(frameon=False, loc=(.02, .7))
 fig_psth.show()
 del mi, m, xs, xticks, xticklabels
 
@@ -1454,7 +1454,7 @@ for r in range(n_plot_ROIs):
                 ax.set_title(template_labels[cat])
             if cati == 0:
                 ax.set_ylabel(metric_labels[m])
-                ax.tick_params(axis='both', which='major', labelsize=8)
+                ax.tick_params(axis='both', which='major')
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
                 xticks = [x * md['framerate'] for x in range(np.ceil(dur_trial).astype('int') + 1)]
@@ -2156,10 +2156,10 @@ bin_stds, _, _ = binned_statistic(roi_dists, response_corr, statistic='std', bin
 
 fig_corr = plt.figure()
 ax = fig_corr.subplots(1, 1)
-ax.set_ylabel('Stimulus response correlation ($\it{r}$)', fontsize=10)
+ax.set_ylabel(r'Stimulus response correlation ($\it{r}$)')
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
-ax.tick_params(axis='both', which='major', labelsize=10)
+ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roi_dists.max() + 1))
 ax.set_ylim((response_corr.min() - np.abs(0.1 * response_corr.min()), 1))
 
@@ -2201,10 +2201,10 @@ bin_stds, _, _ = binned_statistic(roi_dists, response_rank_rho, statistic='std',
 
 fig_corr = plt.figure()
 ax = fig_corr.subplots(1, 1)
-ax.set_ylabel(r'Stimulus response rank correlation ($\rho$)', fontsize=10)
+ax.set_ylabel(r'Stimulus response rank correlation ($\rho$)')
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
-ax.tick_params(axis='both', which='major', labelsize=10)
+ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roi_dists.max() + 1))
 ax.set_ylim((response_rank_rho.min() - np.abs(0.1 * response_rank_rho.min()), 1))
 
@@ -2222,10 +2222,10 @@ bin_stds, _, _ = binned_statistic(roi_dists, response_rank_tau, statistic='std',
 
 fig_corr = plt.figure()
 ax = fig_corr.subplots(1, 1)
-ax.set_ylabel(r'Stimulus response rank correlation ($\tau$)', fontsize=10)
+ax.set_ylabel(r'Stimulus response rank correlation ($\tau$)')
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
-ax.tick_params(axis='both', which='major', labelsize=10)
+ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roi_dists.max() + 1))
 ax.set_ylim((response_rank_tau.min() - np.abs(0.1 * response_rank_tau.min()), 1))
 
