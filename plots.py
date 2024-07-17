@@ -123,7 +123,7 @@ def auto_level_s2p_image(image, target_median=5140):
     return img_as_float64(image)
 
 
-def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None,
+def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cbartitle='',
                       bgimage=None, size=None, flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
@@ -207,19 +207,32 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None,
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
-    im_canvas = ax.imshow(canvas, interpolation='none', cmap='gray')
+    ax.imshow(canvas, interpolation='none', cmap='gray')
     im_overlay = ax.imshow(overlay, interpolation='none', cmap=colormap, alpha=alpha)
     if linear_overlay:
         if colorlim is None:
             colorlim = np.ceil(np.max([np.abs(colors.min()), np.abs(colors.max())]))
         im_overlay.set_clim(vmin=-colorlim, vmax=colorlim)
     
+        f_cb, ax_cb = plt.subplots()
+        cbar = plt.colorbar(im_overlay, ax=ax_cb)
+        # cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
+        # cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
+        if cbartitle != '':
+            cbar.set_label(cbartitle)
+        ax_cb.remove()
+        set_plot_text_settings()
+        f_cb.show()
+
     if title != '':
         ax.set_title(title)
     set_plot_text_settings()
     f.show()
     if save_path != '':
         f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
+        if linear_overlay:
+            save_path_cb = os.path.splitext(save_path)[0] + '_ColorBar' + os.path.splitext(save_path)[1]
+            f_cb.savefig(save_path_cb, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 def plot_overlays_img(rois, images, colors=None, alpha=1.0,

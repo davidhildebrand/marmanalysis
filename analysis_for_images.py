@@ -2187,13 +2187,6 @@ m = 'Fzsc'
 
 ROI_colors = dprime[m]
 
-# # # Saturate at specified value
-# ROI_colors_saturateval = 2.0  # dprime
-# ROI_colors = ROI_colors / ROI_colors_saturateval
-# ROI_colors[ROI_colors > 1] = 1
-
-# ROI_colors = np.array([colorsys.hsv_to_rgb(1.0, dp, 1.0) for dp in dprime[m]])
-
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
 sn = save_pfix + '_ROIplot_ColorByDprimeVal' + \
