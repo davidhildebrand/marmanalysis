@@ -156,7 +156,8 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
 
     linear_overlay = False
     if colors.squeeze().ndim > 1:
-        overlay = np.dstack((np.zeros(canvas.shape), np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
+        overlay = np.zeros(canvas.shape, dtype=canvas.dtype)
+        # overlay = np.dstack((np.zeros(canvas.shape), np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
     else:
         linear_overlay = True
         overlay = np.full(canvas.shape[0:2], np.nan)
@@ -166,7 +167,7 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
         rx = rt['xpix']
         if not linear_overlay:
             overlay[ry, rx, 0:3] = colors[r]
-            overlay[ry, rx, 3] = alpha
+            # overlay[ry, rx, 3] = alpha
         else:
             overlay[ry, rx] = colors[r]
 
