@@ -2084,14 +2084,14 @@ resp_vect_FOB = np.array([muR_F[m], muR_NFobj[m], muR_B[m]]).swapaxes(0, 1)
 resp_vect_FOB_rel = np.subtract(resp_vect_FOB.T, np.min(resp_vect_FOB, axis=1)).T
 
 # Saturate colors at specified value (corresponding to the across-stimulus mean of trial-averaged responses)
-ROI_colors_maxval = 0.5
-ROI_colors = resp_vect_FOB_rel / ROI_colors_maxval
+ROI_colors_saturateval = 0.2
+ROI_colors = resp_vect_FOB_rel / ROI_colors_saturateval
 ROI_colors[ROI_colors > 1] = 1
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
 sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
-    '_max{}{:0.2f}'.format(m, ROI_colors_maxval).replace('.', 'p') + \
+    '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 sp = os.path.join(save_path, sn) if saving else ''
 plots.plot_overlays_roi(ROIs[above_threshold],
@@ -2101,31 +2101,31 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
                         save_path=sp)
 
-# ...only for ROIs with |FSI| >= threshold
-above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
-    '_max{}{:0.2f}'.format(m, ROI_colors_maxval).replace('.', 'p') + \
-    '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p') + save_ext
-sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_overlays_roi(ROIs[above_threshold],
-                        ROI_colors[above_threshold],
-                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='relative response strength, ' +
-                              r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
-                        save_path=sp)
+# # ...only for ROIs with |FSI| >= threshold
+# above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
+# sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
+#     '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
+#     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p') + save_ext
+# sp = os.path.join(save_path, sn) if saving else ''
+# plots.plot_overlays_roi(ROIs[above_threshold],
+#                         ROI_colors[above_threshold],
+#                         bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+#                         title='relative response strength, ' +
+#                               r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
+#                         save_path=sp)
 
-# ...only for ROIs with |mean Z-score| >= threshold
-above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
-sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
-    '_max{}{:0.2f}'.format(m, ROI_colors_maxval).replace('.', 'p') + \
-    '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p') + save_ext
-sp = os.path.join(save_path, sn) if saving else ''
-plots.plot_overlays_roi(ROIs[above_threshold],
-                        ROI_colors[above_threshold],
-                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-                        title='relative response strength, ' +
-                              r'z $\geq$ {:0.2f}'.format(threshold_Zscore), 
-                        save_path=sp)
+# # ...only for ROIs with |mean Z-score| >= threshold
+# above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
+# sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
+#     '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
+#     '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p') + save_ext
+# sp = os.path.join(save_path, sn) if saving else ''
+# plots.plot_overlays_roi(ROIs[above_threshold],
+#                         ROI_colors[above_threshold],
+#                         bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+#                         title='relative response strength, ' +
+#                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore), 
+#                         save_path=sp)
 
 
 # %% Overlay peak response-eliciting stimulus images over imaging data...
@@ -2154,26 +2154,30 @@ plots.plot_overlays_img(ROIs[above_threshold],
 
 # # ...only for ROIs with |FSI| >= threshold
 # above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-# sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
-#     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p') + save_ext
+# sn = save_pfix + '_ROIplot_OverlayImageColorByPeakCategory' + \
+#     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 # sp = os.path.join(save_path, sn) if saving else ''
-# plots.plot_overlays_roi(ROIs[above_threshold], 
-#                         ROI_colors[above_threshold],
-#                         bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-#                         title='category eliciting the largest average response, ' +
-#                               r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
+# plots.plot_overlays_img(ROIs[above_threshold], 
+#                         images=ROI_images[above_threshold],
+#                         colors=ROI_colors[above_threshold],
+#                         bgimage=plots.auto_level_s2p_image(fov_image), 
+#                         flip=None, rotate=90,  # flip='lr', rotate=-90,
+#                         title='image eliciting the largest average response, ' +
+#                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
 #                         save_path=sp)
 
 # # ...only for ROIs with |mean Z-score| >= threshold
 # above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
-# sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
-#     '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p') + save_ext
+# sn = save_pfix + '_ROIplot_OverlayImageColorByPeakCategory' + \
+#     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
 # sp = os.path.join(save_path, sn) if saving else ''
-# plots.plot_overlays_roi(ROIs[above_threshold], 
-#                         ROI_colors[above_threshold],
-#                         bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-#                         title='category eliciting the largest average response, ' +
-#                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore),
+# plots.plot_overlays_img(ROIs[above_threshold], 
+#                         images=ROI_images[above_threshold],
+#                         colors=ROI_colors[above_threshold],
+#                         bgimage=plots.auto_level_s2p_image(fov_image), 
+#                         flip=None, rotate=90,  # flip='lr', rotate=-90,
+#                         title='image eliciting the largest average response, ' +
+#                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
 #                         save_path=sp)
 
 
@@ -2250,8 +2254,6 @@ ax.set_ylabel(r'Stimulus response correlation ($\it{r}$)')
 ax.set_xlabel('Distance (µm)')
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
-ax.set_xlim((0, roi_dists.max() + 1))
-ax.set_ylim((response_corr.min() - np.abs(0.1 * response_corr.min()), 1))
 ax.set_xlim((0, roipair_dist_um.max() + 1))
 ax.set_ylim((roipair_corr_respvect.min() - np.abs(0.1 * roipair_corr_respvect.min()), 1))
 
