@@ -1327,20 +1327,20 @@ del m
 stats_df = {}
 for m in metrics:
     stats_df[m] = pd.DataFrame({'roi': range(n_ROIs),
-                                    'mask': None,
-                                    'centroid_px': None,
-                                    'centroid_um': None,
-                                    'peak_cond': None,
-                                    'peak_cond_idx': None,
-                                    'peak_cond_val': None,
-                                    'cat_of_peak_cond': None,
-                                    'peak_cat': None,
-                                    'peak_cat_idx': None,
-                                    'peak_cat_val': None,
-                                    'dprime_f': None,
-                                    'fsi': None,
-                                    'resp_vect_cond': None,
-                                    'resp_vect_cat': None})
+                                'mask': None,
+                                'centroid_px': None,
+                                'centroid_um': None,
+                                'peak_cond': None,
+                                'peak_cond_idx': None,
+                                'peak_cond_val': None,
+                                'cat_of_peak_cond': None,
+                                'peak_cat': None,
+                                'peak_cat_idx': None,
+                                'peak_cat_val': None,
+                                'dprime_f': None,
+                                'fsi': None,
+                                'resp_vect_cond': None,
+                                'resp_vect_cat': None})
     stats_df[m].set_index(['roi'])
 
     for r in range(n_ROIs):
