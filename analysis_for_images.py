@@ -2173,7 +2173,7 @@ plots.plot_overlays_img(ROIs[above_threshold],
 # sp = os.path.join(save_path, sn) if saving else ''
 # plots.plot_overlays_img(ROIs[above_threshold], 
 #                         images=ROI_images[above_threshold],
-#                         colors=ROI_colors[above_threshold],
+#                         colors=ROI_colors[above_threshold], alpha=0.6,
 #                         bgimage=plots.auto_level_s2p_image(fov_image), 
 #                         flip=None, rotate=90,  # flip='lr', rotate=-90,
 #                         title='image eliciting the largest average response, ' +
@@ -2181,7 +2181,33 @@ plots.plot_overlays_img(ROIs[above_threshold],
 #                         save_path=sp)
 
 
-# %% Compare dprime_F with distance between ROIs
+# %% Overlay ROI masks over imaging data... pseudocolored by dprime_F value...
+
+m = 'Fzsc'
+
+# ROI_colors = dprime[m]
+
+# # Saturate at specified value
+# ROI_colors_saturateval = 1.0  # dprime
+# ROI_colors = ROI_colors / ROI_colors_saturateval
+# ROI_colors[ROI_colors > 1] = 1
+
+ROI_colors = np.array([colorsys.hsv_to_rgb(1.0, dp, 1.0) for dp in dprime[m]])
+
+# ...only for ROIs with |dprime_F| >= threshold
+above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
+sn = save_pfix + '_ROIplot_ColorByDprimeVal' + \
+    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p') + save_ext
+sp = os.path.join(save_path, sn) if saving else ''
+plots.plot_overlays_roi(ROIs[above_threshold], 
+                        ROI_colors[above_threshold], alpha=1.0, colormap='jet',
+                        bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
+                        title=r'$d^\prime_F$ value, ' +
+                              r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
+                        save_path=sp)
+
+
+# %% Compare ROI dprime_F values with respect to distance
 
 m = 'Fzsc'
 
