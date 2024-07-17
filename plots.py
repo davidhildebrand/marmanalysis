@@ -153,13 +153,10 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
             w = np.array([rois[r]['xpix'].max() for r in range(n_rois)]).max()  # columns/w/x
             h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
         canvas = np.zeros([h, w, 3], dtype=np.float64)
-        
-    # if canvas.shape[2] == 3:
-    #     canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
 
     linear_overlay = False
     if colors.squeeze().ndim > 1:
-        overlay = np.zeros(canvas.shape)
+        overlay = np.dstack((np.zeros(canvas.shape), np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
     else:
         linear_overlay = True
         overlay = np.full(canvas.shape[0:2], np.nan)
@@ -169,7 +166,7 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv',
         rx = rt['xpix']
         if not linear_overlay:
             overlay[ry, rx, 0:3] = colors[r]
-            # overlay[ry, rx, 3] = alpha
+            overlay[ry, rx, 3] = alpha
         else:
             overlay[ry, rx] = colors[r]
 
