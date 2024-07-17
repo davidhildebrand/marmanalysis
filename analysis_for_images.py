@@ -1497,7 +1497,6 @@ n_conds_focus = len(conds_focus)
 
 fig = plt.figure()
 fig.suptitle('trial-averaged mean responses, selected ROIs')
-# fig.suptitle('mean response by condition (each trial plotted)', fontsize=8)
 if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
