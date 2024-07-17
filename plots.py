@@ -113,8 +113,9 @@ def auto_level_s2p_image(image, target_median=5140):
 def plot_overlays_roi(rois, colors, size=None, 
                       bgimage=None, flip='lr', rotate=-90, scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
-    dpi = plt.rcParams['figure.dpi']
     n_rois = len(rois)
+    n_colors = len(colors)
+    assert n_rois == n_colors 
 
     if bgimage is not None:
         if size is not None and size != bgimage.shape:
@@ -140,8 +141,7 @@ def plot_overlays_roi(rois, colors, size=None,
             h = np.array([rois[r]['ypix'].max() for r in range(n_rois)]).max()  # rows/h/y
         canvas = np.zeros([h, w, 3], dtype=np.float64)
 
-    for r in range(n_rois):
-        rt = rois[r]
+    for r, rt in enumerate(rois):
         ry = rt['ypix']
         rx = rt['xpix']
         canvas[ry, rx, :] = colors[r]
@@ -164,7 +164,7 @@ def plot_overlays_roi(rois, colors, size=None,
             canvas = ski_rotate(canvas, rotate)
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
 
-    f = plt.figure(figsize=(w / float(dpi), h / float(dpi)))  # (w, h), in
+    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
     ax = f.add_axes((0, 0, 1, 1))
     plt.set_cmap('hsv')
     ax.axis('off')
@@ -180,6 +180,7 @@ def plot_overlays_roi(rois, colors, size=None,
     f.show()
     if save_path != '':
         f.savefig(save_path, dpi=dpi, transparent=True)
+        f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
