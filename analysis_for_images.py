@@ -2198,7 +2198,6 @@ if np.any(roipair_dist_um > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)
 roipair_dprimediff = np.array([np.abs(dprime[m][r0] - dprime[m][r1])
                                for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
-# Calculate median values across ROI distance bins
 w_bin_um = 25
 n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
@@ -2217,9 +2216,7 @@ ax.set_xlim((0, roipair_dist_um.max() + 1))
 ax.set_ylim((roipair_dprimediff.min() - np.abs(0.1 * roipair_dprimediff.min()), 
              roipair_dprimediff.max() + np.abs(0.1 * roipair_dprimediff.max())))
 
-# Plot all pairs of direction difference and distance difference
 ax.scatter(roipair_dist_um, roipair_dprimediff, marker='.', s=0.5, color='k', edgecolor='None')
-
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
             fmt='o', elinewidth=1, ecolor='b')
@@ -2227,19 +2224,16 @@ ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
 fig_corr.show()
 
 
-# %% Compare value-based correlation between stimulus response vectors with distance between ROIs
+# %% Compare ROI value-based correlations between stimulus response vectors with respect to distance
 
 m = 'Fzsc'
 
-roipair_corr_respvect = np.array([np.corrcoef(stats_df[m].loc[r0]['resp_vect_cond'],
-                                              stats_df[m].loc[r1]['resp_vect_cond'])[0, 1]
+roipair_corr_respvect = np.array([np.corrcoef(resp_vect_cond[m][r0], resp_vect_cond[m][r1])[0, 1]
                                   for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
-import scipy
-roipair_corr_respvect = np.array([scipy.stats.pearsonr(stats_df[m].loc[r0]['resp_vect_cond'], 
-                                                       stats_df[m].loc[r1]['resp_vect_cond']).statistic 
-                                  for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+# import scipy
+# roipair_corr_respvect_sp = np.array([scipy.stats.pearsonr(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
+#                                      for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
-# Calculate median values across ROI distance bins
 w_bin_um = 25
 n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
@@ -2257,29 +2251,24 @@ ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roipair_dist_um.max() + 1))
 ax.set_ylim((roipair_corr_respvect.min() - np.abs(0.1 * roipair_corr_respvect.min()), 1))
 
-# Plot all pairs of direction difference and distance difference
-ax.scatter(roipair_dist_um, roipair_corr_respvect, marker='.', s=1, edgecolor='k')
-
+ax.scatter(roipair_dist_um, roipair_corr_respvect, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
-            fmt='o', elinewidth=1, ecolor='k')
-
+            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='b')
+plots.set_plot_text_settings()
 fig_corr.show()
 
 
-# Compare rank-based correlation between stimulus response vectors with distance between ROIs
+# %% Compare ROI rank-based correlations between stimulus response vectors with respect to distance
 
 m = 'Fzsc'
 
 from scipy.stats import binned_statistic, kendalltau, spearmanr
-response_rank_rho = np.array([spearmanr(stats_df[m].loc[r]['resp_vect_cond'], 
-                                        stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
-                              for r in range(n_ROIs - 1)])
-response_rank_tau = np.array([kendalltau(stats_df[m].loc[r]['resp_vect_cond'], 
-                                         stats_df[m].loc[r+1]['resp_vect_cond']).statistic 
-                              for r in range(n_ROIs - 1)])
+response_rank_rho = np.array([spearmanr(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
+                              for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+response_rank_tau = np.array([kendalltau(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
+                              for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
-# Calculate median values across ROI distance bins
 w_bin_um = 25
 n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
@@ -2297,12 +2286,11 @@ ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roipair_dist_um.max() + 1))
 ax.set_ylim((response_rank_rho.min() - np.abs(0.1 * response_rank_rho.min()), 1))
 
-# Plot all pairs of direction difference and distance difference
-ax.scatter(roipair_dist_um, response_rank_rho, marker='.', s=1, edgecolor='k')
-
+ax.scatter(roipair_dist_um, response_rank_rho, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
-            fmt='o', elinewidth=1, ecolor='k')
+            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='b')
+plots.set_plot_text_settings()
 fig_corr.show()
 
 
@@ -2318,13 +2306,10 @@ ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roipair_dist_um.max() + 1))
 ax.set_ylim((response_rank_tau.min() - np.abs(0.1 * response_rank_tau.min()), 1))
 
-# Plot all pairs of direction difference and distance difference
-ax.scatter(roipair_dist_um, response_rank_tau, marker='.', s=1, edgecolor='k')
-
+ax.scatter(roipair_dist_um, response_rank_tau, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
-            fmt='o', elinewidth=1, ecolor='k')
-
+            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='b')
 # ax.plot(ddxs, ddys)
 plots.set_plot_text_settings()
 fig_corr.show()
