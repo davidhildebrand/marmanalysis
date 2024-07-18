@@ -86,13 +86,14 @@ if 'md' in locals():
 
 # # # Cadbury
 animal_str = 'Cadbury'
+# # 20220909d
+# date_str = '20220909d'
+# -- PD ?
+# session_str = '174325tUTC_SP_depth200um_fov0600x0600um_res1p04x1p00umpx_fr09p608Hz_pow050p2mW_stimImagesSongFOBonly'
 # # 20221016d
 # date_str = '20221016d_olds2p'
 date_str = '20221016d'
-# --  PD GOOD
-# ... |FSI| threshold: 0.25
-# ... Tuned ROIs: 894. Total ROIs: 6020.   (note: using threshold_cellprob old = 0.0)
-# ... Percentage of tuned ROIs: 14.85%
+# --  PD good
 session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
 md = dict()
 md['framerate'] = 6.364
