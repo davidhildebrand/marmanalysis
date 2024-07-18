@@ -564,6 +564,8 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
     """
     Parse the session log file output of the original stimulus_image.py script into newer DataFrame format.
     """
+    
+    # TODO * * * also handle 'Keypress: q' and/or 'stimulus aborted' such as in Cadbury 20220909d
 
     lines = session_log.splitlines()
 
