@@ -16,10 +16,10 @@ from warnings import warn
 
 def set_plot_text_settings():
     plt.rc('axes', titlesize=4, labelsize=6)
-    plt.rc('xtick', labelsize=6)
-    plt.rc('ytick', labelsize=6)
-    plt.rc('legend', fontsize=3)
-    plt.rc('figure', titlesize=4)
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
+    plt.rc('legend', fontsize=8)
+    plt.rc('figure', titlesize=8)
 
 
 def rotate_coordinates(pts, origin=(0, 0), dest=None, degrees=0):
