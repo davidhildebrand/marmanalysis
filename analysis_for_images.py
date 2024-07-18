@@ -86,13 +86,14 @@ if 'md' in locals():
 
 # # # Cadbury
 animal_str = 'Cadbury'
+# # 20220909d
+# date_str = '20220909d'
+# -- PD ?
+# session_str = '174325tUTC_SP_depth200um_fov0600x0600um_res1p04x1p00umpx_fr09p608Hz_pow050p2mW_stimImagesSongFOBonly'
 # # 20221016d
 # date_str = '20221016d_olds2p'
 date_str = '20221016d'
-# --  PD GOOD
-# ... |FSI| threshold: 0.25
-# ... Tuned ROIs: 894. Total ROIs: 6020.   (note: using threshold_cellprob old = 0.0)
-# ... Percentage of tuned ROIs: 14.85%
+# --  PD good
 session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
 md = dict()
 md['framerate'] = 6.364
@@ -2343,49 +2344,6 @@ plots.set_plot_text_settings()
 fig_corr.show()
 
 
-# %% Plot tuned cells with discrete tuning-wheel
-
-# # parameters
-# plotting_threshold_discrete = 0.15
-# subtract_responses_to_other_stim = True
-# subtract_least_or_secondLeast_preferred_stim_responses = 0  # If set to 0, will subtract the responses to the
-# least-preferred stim. If set to 1, will subtract the responses to the second-least (in this case, second-most)
-# preferred stim
-
-
-# Fzsc_for_plot_discrete = Fzsc_fob_norm  # Fzsc_for_plot_bfo
-
-# # Subtract to all responses the responses to the second-preferred stimulus
-# if subtract_responses_to_other_stim:
-#     for row_i in range(len(Fzsc_for_plot_discrete)):
-#         this_row = Fzsc_for_plot_discrete[row_i]
-#         response_to_non_preferred_stim = sorted(set(this_row))[
-#             subtract_least_or_secondLeast_preferred_stim_responses]  # This sorts the responses and selects the
-#             lowest(0) or second-lowest(1) response
-#         Fzsc_for_plot_discrete[row_i] = this_row - response_to_non_preferred_stim
-
-
-# above_threshold = np.where(FSIs_zsc > threshold_fsi)[0]
-
-# Fzsc_for_plot_preferredKey = np.argmax(Fzsc_for_plot_discrete, axis=1)
-# Fzsc_for_plot_discrete[:] = 0  # We will re-fill the preferredkeys with 1s in the folowwing for loop
-# for roi_i in range(len(Fzsc_for_plot_discrete)):
-#     Fzsc_for_plot_discrete[roi_i, Fzsc_for_plot_preferredKey[roi_i]] = 1
-
-# # Fzsc_for_plot_discrete[:, [0, 1, 2]] = Fzsc_for_plot_discrete[:, [key_bodies, key_faces,
-# #                                                                   key_objs]]  # Swap face indexes to be on the
-# # first column, making face-cells be red
-# # Fzsc_for_plot_discrete[:,[1,2]] = Fzsc_for_plot_discrete[:,[2,1]] #Swap face indexes to be on the first column,
-# # making face-cells be red
-
-# # plots.plot_ROIs_RGB(ROIs_for_plot_discrete, Fzsc_for_plot_discrete,
-# #                     size=fov_size, bgimage=fov_image, save_path=save_path)
-
-# plots.plot_roi_overlays(ROIs[above_threshold], 
-#                         Fzsc_for_plot_discrete[above_threshold],
-#                         bgimage=plots.auto_level_s2p_image(fov_image))
-
-
 # %% Plot stimulus images
 
 # n_subconds = len(cond_subset)
@@ -2416,17 +2374,6 @@ fig_corr.show()
 
 # %% Other approaches for measuring/approximating tuning
 
-# e.g. from https://www.biorxiv.org/content/10.1101/2022.03.06.483186v1.full.pdf
-# Face selectivity was quantified by computing the d’ sensitivity index
-# comparing trial averaged responses to faces and to non-faces:
-# [eq]
-# where 𝜇f and 𝜇nf are the across-stimulus averages of the trial-averaged
-# responses to faces and non-faces, and 𝜎f and 𝜎nf are the across-stimulus
-# standard deviations. This face d’ value quantifies how much higher
-# (positive d’) or lower (negative d’) the response to a face is expected
-# to be compared to an object, in standard deviation units.
-
-
 # if normalize == 'dF/F':
 #     Ftest_cond = FdFF_by_cond_meanRstim
 #     Ftest_cat = FdFF_by_cat_meanRstim
@@ -2450,22 +2397,3 @@ fig_corr.show()
 #     first_quantile_all_cats = np.percentile(Ftest_cat, percentile, axis=2)
 #     first_quantile_max_cat = np.max(first_quantile_all_cats, axis = 1)
 #     tuning_index_cat = first_quantile_max_cat
-# elif tuning == 'average':
-#     average_cond = np.abs(np.mean(Ftest_cond, axis=-1))
-#     average_max_cond = np.max(average_cond, axis=1)
-#     tuning_index_cond = average_max_cond
-#     average_cat = np.abs(np.mean(Ftest_cat, axis=-1))
-#     average_max_cat = np.max(average_cat, axis=1)
-#     tuning_index_cat = average_max_cat
-# elif tuning == 'fsi':
-#     #FSI = (mean responsefaces – mean responsenonface objects)/(mean responsefaces + mean responsenonface objects)
-#     #average_cond = np.abs(np.mean(Frois_by_cond_meanRstim, axis=-1))
-#     Rcatframes = np.mean(Ftest_cat, axis=-1)
-#     Rcatnorm = Rcatframes + np.abs(np.min(Rcatframes))
-#     catidx_face = [c for c in categories if categories[c]=='m'][0]
-#     catidx_obj = [c for c in categories if categories[c]=='u'][0]
-#     Rfaces = Rcatframes[:,catidx_face]
-#     Robjs = Rcatnorm[:,catidx_obj]
-#     fsi = (Rfaces - Robjs) / (Rfaces + Robjs)
-#     tuning_index_cat = fsi
-#     tuning_index_cond = fsi
