@@ -155,19 +155,18 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cb
         canvas = np.zeros([h, w, 3], dtype=np.float64)
 
     linear_overlay = False
-    if colors.squeeze().ndim > 1:
-        overlay = np.zeros(canvas.shape, dtype=canvas.dtype)
-        # overlay = np.dstack((np.zeros(canvas.shape), np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
-    else:
+    if colors.squeeze().ndim == 1:
         linear_overlay = True
         overlay = np.full(canvas.shape[0:2], np.nan)
+    else:
+        overlay = np.dstack((np.zeros(canvas.shape), np.full(canvas.shape[0:2], 0.0, dtype=canvas.dtype)))
 
     for r, rt in enumerate(rois):
         ry = rt['ypix']
         rx = rt['xpix']
         if not linear_overlay:
             overlay[ry, rx, 0:3] = colors[r]
-            # overlay[ry, rx, 3] = alpha
+            overlay[ry, rx, 3] = alpha
         else:
             overlay[ry, rx] = colors[r]
 
@@ -201,19 +200,21 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cb
     f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), 
                             h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
     ax = f.add_axes((0, 0, 1, 1))
-    plt.set_cmap('hsv')
     ax.axis('off')
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
     ax.imshow(canvas, interpolation='none', cmap='gray')
-    im_overlay = ax.imshow(overlay, interpolation='none', cmap=colormap, alpha=alpha)
     if linear_overlay:
+        im_overlay = ax.imshow(overlay, interpolation='none', cmap=colormap, alpha=alpha)
         if colorlim is None:
             colorlim = np.ceil(np.max([np.abs(colors.min()), np.abs(colors.max())]))
         im_overlay.set_clim(vmin=-colorlim, vmax=colorlim)
-    
+    else:
+        im_overlay = ax.imshow(overlay, interpolation='none', cmap=colormap)
+
+    if linear_overlay:  
         f_cb, ax_cb = plt.subplots()
         cbar = plt.colorbar(im_overlay, ax=ax_cb)
         # cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
