@@ -1996,6 +1996,15 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0)
                                            for c in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']], 
                                           len(categories))])
 
+# super_categories =
+
+# # bool_focus = (data['cat'] == b'face_mrm')
+# bool_focus = bool_F
+# conds_focus = np.where(bool_focus)[0]
+# conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stimulus']), key=sort_by_cond)]]
+# n_conds_focus = len(conds_focus)
+
+
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
 sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
