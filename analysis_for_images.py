@@ -440,9 +440,9 @@ if len(filelist_eyetrack_data) > 0:
         warn('Found multiple log files, using the first: {}'.format(etf_path))
     with open(etf_path, 'rb') as etf:
         eyetrk_data = pickle.load(etf)
+    del etf
 else:
     etf_path = None
-del etf
 
 dirlist_suite2p = [d for d in glob(os.path.join(session_path, dirstr_suite2p)) if os.path.isdir(d)]
 if len(dirlist_suite2p) > 0:
