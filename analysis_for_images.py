@@ -1143,7 +1143,7 @@ for mi, m in enumerate(metrics):
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
                         color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.1, zorder=2)
     del cati, cat
-    ax.legend(frameon=False, loc=(.02, .7))
+    ax.legend(frameon=False, loc=(.02, .7), fontsize=6)
 fig_psth.show()
 del mi, m, xs, xticks, xticklabels
 
@@ -1427,10 +1427,10 @@ plots.plot_hist_fsi(FSI['Fzsc'], threshold=threshold_fsi,
 
 sp = os.path.join(save_path, save_pfix + '_Histogram_dprimes_fromFzsc' + save_ext) if saving else ''
 plots.plot_hist_dprime(dprime['Fzsc'], threshold=threshold_dprime,
-                       title='dprimes calculated from Fzsc values', save_path=sp)
+                       title=r'$d^\prime_F$ calculated from Fzsc values', save_path=sp)
 sp = os.path.join(save_path, save_pfix + '_Histogram_dprimes_fromFdFF' + save_ext) if saving else ''
 plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
-                       title='dprimes calculated from FdFF values', save_path=sp)
+                       title=r'$d^\prime_F$ calculated from FdFF values', save_path=sp)
 
 
 # %% Plot across-stimulus mean of trial-averaged responses for example ROIs...
