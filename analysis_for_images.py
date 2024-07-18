@@ -2364,17 +2364,6 @@ fig_corr.show()
 
 # %% Other approaches for measuring/approximating tuning
 
-# e.g. from https://www.biorxiv.org/content/10.1101/2022.03.06.483186v1.full.pdf
-# Face selectivity was quantified by computing the d’ sensitivity index
-# comparing trial averaged responses to faces and to non-faces:
-# [eq]
-# where 𝜇f and 𝜇nf are the across-stimulus averages of the trial-averaged
-# responses to faces and non-faces, and 𝜎f and 𝜎nf are the across-stimulus
-# standard deviations. This face d’ value quantifies how much higher
-# (positive d’) or lower (negative d’) the response to a face is expected
-# to be compared to an object, in standard deviation units.
-
-
 # if normalize == 'dF/F':
 #     Ftest_cond = FdFF_by_cond_meanRstim
 #     Ftest_cat = FdFF_by_cat_meanRstim
@@ -2398,22 +2387,3 @@ fig_corr.show()
 #     first_quantile_all_cats = np.percentile(Ftest_cat, percentile, axis=2)
 #     first_quantile_max_cat = np.max(first_quantile_all_cats, axis = 1)
 #     tuning_index_cat = first_quantile_max_cat
-# elif tuning == 'average':
-#     average_cond = np.abs(np.mean(Ftest_cond, axis=-1))
-#     average_max_cond = np.max(average_cond, axis=1)
-#     tuning_index_cond = average_max_cond
-#     average_cat = np.abs(np.mean(Ftest_cat, axis=-1))
-#     average_max_cat = np.max(average_cat, axis=1)
-#     tuning_index_cat = average_max_cat
-# elif tuning == 'fsi':
-#     #FSI = (mean responsefaces – mean responsenonface objects)/(mean responsefaces + mean responsenonface objects)
-#     #average_cond = np.abs(np.mean(Frois_by_cond_meanRstim, axis=-1))
-#     Rcatframes = np.mean(Ftest_cat, axis=-1)
-#     Rcatnorm = Rcatframes + np.abs(np.min(Rcatframes))
-#     catidx_face = [c for c in categories if categories[c]=='m'][0]
-#     catidx_obj = [c for c in categories if categories[c]=='u'][0]
-#     Rfaces = Rcatframes[:,catidx_face]
-#     Robjs = Rcatnorm[:,catidx_obj]
-#     fsi = (Rfaces - Robjs) / (Rfaces + Robjs)
-#     tuning_index_cat = fsi
-#     tuning_index_cond = fsi
