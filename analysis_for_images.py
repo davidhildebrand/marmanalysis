@@ -2334,49 +2334,6 @@ plots.set_plot_text_settings()
 fig_corr.show()
 
 
-# %% Plot tuned cells with discrete tuning-wheel
-
-# # parameters
-# plotting_threshold_discrete = 0.15
-# subtract_responses_to_other_stim = True
-# subtract_least_or_secondLeast_preferred_stim_responses = 0  # If set to 0, will subtract the responses to the
-# least-preferred stim. If set to 1, will subtract the responses to the second-least (in this case, second-most)
-# preferred stim
-
-
-# Fzsc_for_plot_discrete = Fzsc_fob_norm  # Fzsc_for_plot_bfo
-
-# # Subtract to all responses the responses to the second-preferred stimulus
-# if subtract_responses_to_other_stim:
-#     for row_i in range(len(Fzsc_for_plot_discrete)):
-#         this_row = Fzsc_for_plot_discrete[row_i]
-#         response_to_non_preferred_stim = sorted(set(this_row))[
-#             subtract_least_or_secondLeast_preferred_stim_responses]  # This sorts the responses and selects the
-#             lowest(0) or second-lowest(1) response
-#         Fzsc_for_plot_discrete[row_i] = this_row - response_to_non_preferred_stim
-
-
-# above_threshold = np.where(FSIs_zsc > threshold_fsi)[0]
-
-# Fzsc_for_plot_preferredKey = np.argmax(Fzsc_for_plot_discrete, axis=1)
-# Fzsc_for_plot_discrete[:] = 0  # We will re-fill the preferredkeys with 1s in the folowwing for loop
-# for roi_i in range(len(Fzsc_for_plot_discrete)):
-#     Fzsc_for_plot_discrete[roi_i, Fzsc_for_plot_preferredKey[roi_i]] = 1
-
-# # Fzsc_for_plot_discrete[:, [0, 1, 2]] = Fzsc_for_plot_discrete[:, [key_bodies, key_faces,
-# #                                                                   key_objs]]  # Swap face indexes to be on the
-# # first column, making face-cells be red
-# # Fzsc_for_plot_discrete[:,[1,2]] = Fzsc_for_plot_discrete[:,[2,1]] #Swap face indexes to be on the first column,
-# # making face-cells be red
-
-# # plots.plot_ROIs_RGB(ROIs_for_plot_discrete, Fzsc_for_plot_discrete,
-# #                     size=fov_size, bgimage=fov_image, save_path=save_path)
-
-# plots.plot_roi_overlays(ROIs[above_threshold], 
-#                         Fzsc_for_plot_discrete[above_threshold],
-#                         bgimage=plots.auto_level_s2p_image(fov_image))
-
-
 # %% Plot stimulus images
 
 # n_subconds = len(cond_subset)
