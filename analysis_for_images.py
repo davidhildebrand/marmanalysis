@@ -1075,15 +1075,13 @@ sort_by_cat = lambda x: (np.where(template == x[1])[0][0]
                          if np.where(template == x[1])[0].size > 0
                          else np.iinfo(np.where(template == x[1])[0].dtype).max)
 
-
 data = data[[i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]]
 
-# Note that numpy.unique() sorts, but pandas.unique() does not
-categories = pd.unique(data['cat'])
+categories = pd.unique(data['cat'])  # Use pandas instead of numpy to avoid automatic sorting
 # categories = categories[[i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]]
 cat_to_catidx = {k: i for i, k in enumerate(categories)}
 n_cats = len(categories)
-conditions = pd.unique(data['cond'])
+conditions = pd.unique(data['cond'])  # Use pandas instead of numpy to avoid automatic sorting
 # conditions = conditions[[i for i, _ in sorted(enumerate(conditions), key=sort_by_cond)]]
 cond_to_condidx = {k: i for i, k in enumerate(conditions)}
 cat_to_condidx = {cat: [cond_to_condidx[cnd] for cnd in data[data['cat'] == cat]['cond']] 
@@ -1152,7 +1150,6 @@ del mi, m, xs, xticks, xticklabels
 
 # %% Define booleans for face and non-face 'super categories'
 
-#   *** TODO: create a cond idx dict for these, as well
 #   *** TODO: Also consider yaw and roll...
 bool_F = np.logical_or.reduce([data['cat'] == c for c in categories
                                if 'face' in c.decode() 
@@ -1165,9 +1162,27 @@ bool_NFobj = np.logical_or.reduce([data['cat'] == c for c in categories
                                    if 'face' not in c.decode() 
                                    and 'blank' not in c.decode() and 'scram' not in c.decode()
                                    and 'body' not in c.decode()])
+bool_O = bool_NFobj
 bool_B = np.logical_or.reduce([data['cat'] == c for c in categories 
                                if 'body' in c.decode() 
                                and 'blank' not in c.decode() and 'scram' not in c.decode()])
+
+supercategories = ['F', 'O', 'B']
+n_supcats = len(supercategories)
+supcat_to_bool = {'F': bool_F, 'O': bool_O, 'B': bool_B}
+supcat_to_supcatidx = {k: i for i, k in enumerate(supercategories)}
+supcat_to_cat = {scat: pd.unique(np.array([cat for cat in data[supcat_to_bool[scat]]['cat']]))
+                 for scat in supercategories}
+supcat_to_catidx = {scat: pd.unique(np.array([cat_to_catidx[cat] for cat in data[supcat_to_bool[scat]]['cat']]))
+                    for scat in supercategories}
+supcat_to_cond = {scat: pd.unique(np.array([cnd for cnd in data[supcat_to_bool[scat]]['cond']]))
+                  for scat in supercategories}
+supcat_to_condidx = {scat: pd.unique(np.array([cond_to_condidx[cnd] for cnd in data[supcat_to_bool[scat]]['cond']]))
+                     for scat in supercategories}
+cat_to_supcat = {cat: scat for scat, catlist in supcat_to_cat.items() for cat in catlist}
+catidx_to_supcat = {icat: scat for scat, icatlist in supcat_to_catidx.items() for icat in icatlist}
+cond_to_supcat = {cnd: scat for scat, cndlist in supcat_to_cond.items() for cnd in cndlist}
+condidx_to_supcat = {icnd: scat for scat, icndlist in supcat_to_condidx.items() for icnd in icndlist}
 
 
 # %% Compute statistics for each ROI
@@ -1178,10 +1193,12 @@ idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 muR_F = {}
 muR_NF = {}
 muR_NFobj = {}
+muR_O = {}
 muR_B = {}
 sigma_F = {}
 sigma_NF = {}
 sigma_NFobj = {}
+sigma_O = {}
 sigma_B = {}
 sort_idx_muR_F = {}
 for m in metrics:
@@ -1200,6 +1217,7 @@ for m in metrics:
     muR_F[m] = np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_NF[m] = np.mean(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_NFobj[m] = np.mean(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_O[m] = muR_NFobj[m]
     muR_B[m] = np.mean(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 
     # Calculate across-stimulus, trial-averaged, frame-averaged standard deviations
@@ -1208,6 +1226,7 @@ for m in metrics:
     sigma_F[m] = np.std(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     sigma_NF[m] = np.std(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     sigma_NFobj[m] = np.std(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_O[m] = sigma_NFobj[m]
     sigma_B[m] = np.std(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 
     # Create sorting index based on across-stimulus, trial-averaged, frame-averaged mean responses
@@ -1247,12 +1266,12 @@ FSI = {}
 for m in metrics:
     FSI[m] = np.full(n_ROIs, np.nan)
 
-    bool_same = (np.sign(muR_F[m]) == np.sign(muR_NFobj[m]))
-    bool_FposNFneg = (np.sign(muR_F[m]) > np.sign(muR_NFobj[m]))
-    bool_FnegNFpos = (np.sign(muR_F[m]) < np.sign(muR_NFobj[m]))
+    bool_same = (np.sign(muR_F[m]) == np.sign(muR_O[m]))
+    bool_FposNFneg = (np.sign(muR_F[m]) > np.sign(muR_O[m]))
+    bool_FnegNFpos = (np.sign(muR_F[m]) < np.sign(muR_O[m]))
     
-    FSI[m][bool_same] = (muR_F[m][bool_same] - muR_NFobj[m][bool_same]) / \
-        (muR_F[m][bool_same] + muR_NFobj[m][bool_same])
+    FSI[m][bool_same] = (muR_F[m][bool_same] - muR_O[m][bool_same]) / \
+        (muR_F[m][bool_same] + muR_O[m][bool_same])
     FSI[m][bool_FposNFneg] = 1.0
     FSI[m][bool_FnegNFpos] = -1.0
 del m, bool_same, bool_FposNFneg, bool_FnegNFpos
@@ -2088,7 +2107,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # %% Overlay ROI masks over mean frame image... pseudocolored by relative response strength...
 
-resp_vect_FOB = np.array([muR_F[m], muR_NFobj[m], muR_B[m]]).swapaxes(0, 1)
+resp_vect_FOB = np.array([muR_F[m], muR_O[m], muR_B[m]]).swapaxes(0, 1)
 # Subtract the value corresponding to least responsive category to make it relative
 # (otherwise, an ROI that responds to all categories would show up as white)
 resp_vect_FOB_rel = np.subtract(resp_vect_FOB.T, np.min(resp_vect_FOB, axis=1)).T
@@ -2142,7 +2161,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 m = 'Fzsc'
 
-resp_vect_FOB = np.array([muR_F[m], muR_NFobj[m], muR_B[m]]).swapaxes(0, 1)
+resp_vect_FOB = np.array([muR_F[m], muR_O[m], muR_B[m]]).swapaxes(0, 1)
 ROI_colors_idx = np.argmax(resp_vect_FOB, axis=1).astype(int)
 ROI_colors = np.array([colorsys.hsv_to_rgb(c, 1.0, 1.0) 
                        for c in np.divide(ROI_colors_idx, resp_vect_FOB.shape[1])])
