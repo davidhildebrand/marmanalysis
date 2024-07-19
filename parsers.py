@@ -467,15 +467,20 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
 
     mode = None
     found_stimfunc = False
+    times_stim = None
+    times_isi = None
     tmp_stimtimestr = ''
     tmp_isitimestr = ''
+    tmp_ntrials = None
     for line in lines:
         if 'ImageStim(' in line:
             found_stimfunc = True
         if 'EXP \tstim_times:' in line:
-            mode = 'stimtime'
+            if '...' not in line and ']' not in line:
+                mode = 'stimtime'
         if 'EXP \tinterstim_times:' in line:
-            mode = 'isitime'
+            if '...' not in line and ']' not in line:
+                mode = 'isitime'
         if mode == 'stimtime':
             tmp_stimtimestr = tmp_stimtimestr + line
             if ']' in line:
@@ -484,6 +489,12 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             tmp_isitimestr = tmp_isitimestr + line
             if ']' in line:
                 mode = None
+        if tmp_ntrials is None:
+            pattern_nt = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?.*'
+            if re.match(pattern_nt, line) is not None:
+                g = re.match(pattern_nt, line).groups()
+                if g[2] is not None:
+                    tmp_ntrials = int(g[2]) + 1
 
     if tmp_stimtimestr != '':
         s_si = tmp_stimtimestr.find('[')
@@ -491,9 +502,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
         times_stim = np.fromstring(tmp_stimtimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
         dur_stim = np.round(np.mean(times_stim), 2)
     else:
-        warn('Could not automatically detect stimulus duration, assuming 1.0 sec.')
-        times_stim = []
-        dur_stim = 1.0
+        warn('Could not automatically detect stimulus times from log file.')
 
     if tmp_isitimestr != '':
         s_si = tmp_isitimestr.find('[')
@@ -501,15 +510,19 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
         times_isi = np.fromstring(tmp_isitimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
         dur_isi = np.round(np.min(times_isi), 2)
     else:
-        warn('Could not automatically detect interstimulus duration, assuming 1.0 sec.')
-        times_isi = []
-        dur_isi = 1.0
-
-    if len(times_stim) == len(times_isi):
-        n_trials = len(times_stim)
+        warn('Could not automatically detect interstimulus times from log file.')
+    
+    if tmp_ntrials is not None:
+        n_trials = tmp_ntrials
     else:
-        n_trials = None
-        warn('Number of stimulus and interstimulus times do not match.  Unknown number of trials.')
+        if times_stim is not None and times_isi is not None:
+            if len(times_stim) == len(times_isi):
+                n_trials = len(times_stim)
+            else:
+                raise ValueError('Number of stimulus and interstimulus times do not match.')
+        else:
+            raise ValueError('Unknown number of trials. Unable to detect stimulus '
+                             'or interstimulus times from log file.')
 
     log = create_stimulus_record(trials=n_trials)
 
@@ -528,20 +541,34 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
 
             match g[3]:
                 case 'start':
-                    log.at[trial, 'dur_isi_pre'] = times_isi[trial]
-                    if trial > 0:
-                        log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
+                    if times_isi is not None:
+                        log.at[trial, 'dur_isi_pre'] = times_isi[trial]
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
+                    else:
+                        time_isi_i = t
+                    # log.at[trial, 'dur_isi_pre'] = times_isi[trial]
+                    # if trial > 0:
+                    #     log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
                     log.at[trial, 't_isi_i'] = t
                     log.at[trial, 'acqfr_isi_i'] = acqfr
                     # log.at[trial, 'dispfr_isi_i'] = np.nan
                     log.at[trial, 'ai_isi_i'] = ai_shape[0]
                 case 'end':
+                    if times_isi is None and 'time_isi_i' in locals():
+                        log.at[trial, 'dur_isi_pre'] = t - time_isi_i
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = t - time_isi_i
+                    else:
+                        log.at[trial, 'dur_isi_pre'] = np.nan
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = np.nan
                     log.at[trial, 't_isi_f'] = t
                     log.at[trial, 'acqfr_isi_f'] = acqfr
                     # log.at[trial, 'dispfr_isi_f'] = np.nan
                     log.at[trial, 'ai_isi_f'] = ai_shape[0]
                 case _:
-                    warn('Unknown ISI event in log file.')
+                    warn('Unknown interstimulus event in log file: {}'.format(line))
 
         pattern_fix = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,\s*fixation\s*(start|end),\s*' + \
                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
@@ -550,7 +577,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             t = float(g[0])
             trial = int(g[1])
             if g[2] is not None and (n_trials - 1) != int(g[2]):
-                warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
+                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
             acqfr = int(g[4])
             ai_shape = (int(g[5]), int(g[6]))
@@ -567,7 +594,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                     # log.at[trial, 'dispfr_fix_f'] = np.nan
                     log.at[trial, 'ai_fix_f'] = ai_shape[0]
                 case _:
-                    warn('Unknown ISI event in log file.')
+                    warn('Unknown interstimulus event in log file: {}'.format(line))
 
         pattern_stim = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*stim\s*(start|end),?\s*' + \
                        r'((image),?\s*cond=([0-9]+),?\s*name=[a-zA-Z0-9_]+:([a-zA-Z0-9_]+\.png),?\s*path=([^\s]+),?\s*' + \
@@ -580,7 +607,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             t = float(g[0])
             trial = int(g[1])
             if g[2] is not None and (n_trials - 1) != int(g[2]):
-                warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
+                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
             acqfr = int(g[18])
             ai_shape = (int(g[19]), int(g[20]))
@@ -588,7 +615,11 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
             match g[3]:
                 case 'start':
                     log.at[trial, 'trial'] = trial
-                    log.at[trial, 'dur_stim'] = times_stim[trial]
+                    if times_stim is not None:
+                        log.at[trial, 'dur_stim'] = times_stim[trial]
+                    else:
+                        time_stim_i = t
+                    # log.at[trial, 'dur_stim'] = times_stim[trial]
                     log.at[trial, 't_stim_i'] = t
                     log.at[trial, 'acqfr_stim_i'] = acqfr
                     # log.at[trial, 'dispfr_stim_i'] = np.nan
@@ -610,12 +641,16 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                     log.at[trial, 'opacity'] = float(g[16])
                     log.at[trial, 'texRes'] = int(g[17])
                 case 'end':
+                    if times_stim is None and 'time_stim_i' in locals():
+                        log.at[trial, 'dur_stim'] = t - time_stim_i
+                    else:
+                        log.at[trial, 'dur_stim'] = np.nan
                     log.at[trial, 't_stim_f'] = t
                     log.at[trial, 'acqfr_stim_f'] = acqfr
                     # log.at[trial, 'dispfr_stim_f'] = np.nan
                     log.at[trial, 'ai_stim_f'] = ai_shape[0]
                 case _:
-                    warn('Unknown stim event in log file.')
+                    warn('Unknown stim event in log file: {}'.format(line))
 
         pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
                        r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
@@ -637,7 +672,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                     else:
                         log.at[trial, 'dur_isi_post'] = np.nan
                 case _:
-                    warn('Unknown conclusion event in log file.')
+                    warn('Unknown conclusion event in log file: {}'.format(line))
 
     return log
 
