@@ -2148,10 +2148,14 @@ del i, t, tick
 
 m = 'Fzsc'
 
-ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
-                       for h in np.divide([supcat_to_supcatidx[condidx_to_supcat[icnd]]
+ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0) if not np.isnan(h) else (0, 0, 0)
+                       for h in np.divide([supcat_to_supcatidx[condidx_to_supcat[icnd]] if icnd in condidx_to_supcat else np.nan
                                            for icnd in stats_df[m]['peak_cond_idx'].values.astype(int)],
                                           n_supcats)])
+# ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
+#                        for h in np.divide([supcat_to_supcatidx[condidx_to_supcat[icnd]]
+#                                            for icnd in stats_df[m]['peak_cond_idx'].values.astype(int)],
+#                                           n_supcats)])
 # ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
 #                         for h in np.divide([cat_to_catidx[cat]
 #                                             for cat in data[stats_df[m]['peak_cond_idx'].values.astype(int)]['cat']],
@@ -2193,15 +2197,22 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore),
                         save_path=sp)
 
+del above_threshold, ROI_colors
+
 
 # %% Overlay ROI masks over imaging data... pseudocolored by the peak across-stimulus average response supercategory...
 
 m = 'Fzsc'
 
-ROI_colors_n = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
+ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0) if not np.isnan(h) else (0, 0, 0)
                        for h in np.divide([supcat_to_supcatidx[catidx_to_supcat[icat]]
+                                           if icat in catidx_to_supcat else np.nan
                                            for icat in stats_df[m]['peak_cat_idx'].values.astype(int)],
                                           n_supcats)])
+# ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
+#                        for h in np.divide([supcat_to_supcatidx[catidx_to_supcat[icat]]
+#                                            for icat in stats_df[m]['peak_cat_idx'].values.astype(int)],
+#                                           n_supcats)])
 # ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
 #                         for h in np.divide(stats_df[m]['peak_cat_idx'].values.astype(int), n_cats)])
 
@@ -2240,6 +2251,8 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                         title='category eliciting the largest average response, ' +
                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore),
                         save_path=sp)
+
+del above_threshold, ROI_colors
 
 
 # %% Overlay ROI masks over mean frame image... pseudocolored by relative response strength...
@@ -2293,15 +2306,26 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                               r'z $\geq$ {:0.2f}'.format(threshold_Zscore), 
                         save_path=sp)
 
+del above_threshold, ROI_colors
 
-# %% Overlay peak response-eliciting stimulus images over imaging data...
+
+# %% Overlay peak response-eliciting stimulus images over imaging data... pseudocolored by the peak across-stimulus
+#    average response supercategory...
 
 m = 'Fzsc'
 
-resp_vect_FOB = np.array([muR_F[m], muR_O[m], muR_B[m]]).swapaxes(0, 1)
-ROI_colors_idx = np.argmax(resp_vect_FOB, axis=1).astype(int)
-ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
-                       for h in np.divide(ROI_colors_idx, resp_vect_FOB.shape[1])])
+# resp_vect_FOB = np.array([muR_F[m], muR_O[m], muR_B[m]]).swapaxes(0, 1)
+# ROI_colors_idx = np.argmax(resp_vect_FOB, axis=1).astype(int)
+# ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
+#                        for h in np.divide(ROI_colors_idx, resp_vect_FOB.shape[1])])
+ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0) if not np.isnan(h) else (0, 0, 0)
+                       for h in np.divide([supcat_to_supcatidx[catidx_to_supcat[icat]] if icat in catidx_to_supcat else np.nan
+                                           for icat in stats_df[m]['peak_cat_idx'].values.astype(int)],
+                                          n_supcats)])
+# ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)
+#                        for h in np.divide([supcat_to_supcatidx[catidx_to_supcat[icat]]
+#                                            for icat in stats_df[m]['peak_cat_idx'].values.astype(int)],
+#                                           n_supcats)])
 ROI_images = np.array([data[stats_df[m]['peak_cond_idx'][ir]]['stimulus'].filepath for ir in range(n_ROIs)])
 
 # ...only for ROIs with |dprime_F| >= threshold
@@ -2346,6 +2370,8 @@ plots.plot_overlays_img(ROIs[above_threshold],
 #                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
 #                         save_path=sp)
 
+del above_threshold, ROI_colors, ROI_images
+
 
 # %% Overlay ROI masks over imaging data... pseudocolored by dprime_F value...
 
@@ -2364,6 +2390,8 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                         title=r'$d^\prime_F$ value, ' +
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
                         save_path=sp)
+
+del above_threshold, ROI_colors
 
 
 # %% Compare ROI dprime_F values with respect to distance
