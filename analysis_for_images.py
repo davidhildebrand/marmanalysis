@@ -52,7 +52,7 @@ plot_eyecal = False
 
 
 # Plotting parameters
-plt.rcParams['figure.dpi'] = 300
+plt.rcParams['figure.dpi'] = 600
 
 # Metrics to consider for plots and calculations
 metrics = ['FdFF', 'Fzsc']
@@ -64,16 +64,16 @@ template = np.array([b'blank', b'scram_s', b'scram_p',
                      b'face_mrm', b'face_rhe', b'face_hum', b'face_ctn',
                      b'obj', b'food',
                      b'body_mrm', b'animal'], dtype='|S8')
-template_labels = {b'blank': 'Blank',
-                   b'scram_s': 'Scramble (Spatial)',
-                   b'scram_p': 'Scrambles (Phase)',
-                   b'face_mrm': 'Faces (Marmo)',
+template_labels = {b'blank': 'B',  # 'Blank',
+                   b'scram_s': 'S',  # 'Scrambles (Spatial)',
+                   b'scram_p': 'P',  # 'Scrambles (Phase)',
+                   b'face_mrm': 'mrmFaces',  # 'Faces (Marmo)',
                    b'face_rhe': 'R',  # 'Faces (Rhesus)',
                    b'face_hum': 'H',  # 'Faces (Human)',
                    b'face_ctn': 'Ctn',  # 'Faces (Cartoon)',
                    b'obj': 'Objects',
                    b'food': 'Foods',
-                   b'body_mrm': 'Bodies (Marmo)',
+                   b'body_mrm': 'mrmBods',  # 'Bodies (Marmo)',
                    b'animal': 'Animals'}
 
 # Remove stale metadata
