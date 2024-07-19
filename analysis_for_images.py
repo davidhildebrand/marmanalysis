@@ -89,44 +89,49 @@ savepath_str = 'analysis'
 
 # # # Cadbury
 animal_str = 'Cadbury'
+
 # # 20220909d
 # date_str = '20220909d'
-# -- PD ?
+# -- UNCLEAR session aborted
 # session_str = '174325tUTC_SP_depth200um_fov0600x0600um_res1p04x1p00umpx_fr09p608Hz_pow050p2mW_stimImagesSongFOBonly'
+# dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
+
 # # 20221016d
 # date_str = '20221016d_olds2p'
-date_str = '20221016d'
-# --  PD good
-session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
-md = dict()
-md['framerate'] = 6.364
-md['fov'] = dict()
-md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
-md['fov']['w_px'] = 730
-md['fov']['h_px'] = 730
-# dirstr_suite2p = 'suite2p_old*'
-dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
+# date_str = '20221016d'
+# --  PD (good)
+# session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
+# md = dict()
+# md['framerate'] = 6.364
+# md['fov'] = dict()
+# md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
+# md['fov']['w_px'] = 730
+# md['fov']['h_px'] = 730
+# # dirstr_suite2p = 'suite2p_old*'
+# dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
-# # 20230510d
+# # 20230510d (possibly 300-400um fluid)
 # date_str = '20230510d'
-# # -- UNCLEAR (fluid, z drift across time)
+# # -- PD (bad | z drift, two stims only, imaging ended before stimulus)
+# session_str = '141055tUTC_SP_depth200um_fov2190x2000um_res3p00x3p02umpx_fr06p993Hz_pow059p9mW_stimImagesSong2imTest'
+# # -- OBJ? (okay? | half FOV dim) *some interesting object responses, look again*
 # session_str = '155713tUTC_SP_depth200um_fov2190x2000um_res3p00x3p02umpx_fr06p993Hz_pow059p9mW_stimImagesSong230509dSel'
 
-# # 20230809d
+# # 20230809d (not much fluid)
 # date_str = '20230809d'
-# # -- OBJ ()
+# # -- OBJ (okay? | struggle exclusions needed, half FOV dim)
 # session_str = '173936tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimImagesFOBmin'
 
-# # 20231001d
+# # 20231001d (~430um fluid)
 # date_str = '20231001d'
-# # -- PD ()
+# # -- PD (not very bright, struggle exclusions needed, duplicate cond issue) ... but maybe look more closely later
 # session_str = '190608tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow060p3mW_stimImagesFOBmany'
-# # -- PD ()
+# # -- PD (not very bright, struggle exclusions needed) ... but maybe look more closely later
 # session_str = '200422tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p3mW_stimImagesFOBmin'
 
-# # 20231003d
+# # 20231003d (~140um fluid)
 # date_str = '20231003d'
-# # -- PD (200um, )
+# # -- PD (200um, struggle exclusions needed)
 # session_str = '142836tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
 # # -- PD (150um, )
 # session_str = '145031tUTC_SP_depth150um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow060p0mW_stimImagesFOBmin'
@@ -143,21 +148,20 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- OBJ (200um, )
 # session_str = '173850tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
 
-# # 20231007d
-# date_str = '20231007d'
-# # -- OBJ (200um, )
-# session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
-# # -- OBJ (150um, )
+# # 20231007d (~120um fluid)
+date_str = '20231007d'
+# # -- OBJ 200um (decent/good? | )
+session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
+# # -- OBJ 150um ( )
 # session_str = '162705tUTC_SP_depth150um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow049p8mW_stimImagesFOBmin'
-# # -- OBJ (250um, )
+# # -- OBJ 250um ( )
 # session_str = '164258tUTC_SP_depth250um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow069p8mW_stimImagesFOBmin'
-# # -- OBJ (300um, )
+# # -- OBJ 300um ( )
 # session_str = '170046tUTC_SP_depth300um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow099p7mW_stimImagesFOBmin'
-# # -- PD (200um, )
+# # -- PD 200um ( )
 # session_str = '174147tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow080p2mW_stimImagesFOBmin'
-# # -- PD (200um, )
+# # -- PD 200um ( | eyetrack crashed)
 # session_str = '180407tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p359Hz_pow080p2mW_stimMultimodal'
-# stimimage_path = r'multimodal'
 
 # # 20231018d
 # date_str = '20231018d'
@@ -171,28 +175,89 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # # Dali
 # animal_str = 'Dali'
-# # 20230511d
+# # 20230511d (~158um dura to glass)
 # date_str = '20230511d'
-# # -- PD (headpost not tight)
+# # -- PD 200um (run | headpost loose)
 # session_str = '134800tUTC_SP_depth200um_fov2190x2000um_res3p02x3p02umpx_fr06p993Hz_pow050p0mW_stimImagesSong230509dSel'
-# # -- PD ()
+# # -- PD 300um ()
 # session_str = '150200tUTC_SP_depth300um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow065p0mW_stimImagesSong230509dSel'
 
 # # 20230515d
 # date_str = '20230515d'
-# # -- Dali ? () CHECK MEANIM
+# # -- PDish 200um ()
 # session_str = '135100tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
-# # -- Dali ? () CHECK MEANIM
+# # -- PDish 200um ()
 # session_str = '144500tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
 
 # # 20230522d
 # date_str = '20230522d'
-# # -- Dali ? (ANISO) CHECK MEANIM
+# # -- ? (ANISO)
 # session_str = '153415tUTC_SP_depth200um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow051p8mW_stimImagesFOBsel230517dAniso'
-# # -- Dali ? () CHECK MEANIM
+# # -- ? () CHECK 
 # session_str = '170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel'
 
 # ... Dali .... aniso until 20230804d
+
+# # 20230810d
+# date_str = '20230810d'
+# # -- ??? 200um ()
+# session_str = '140728tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimImagesFOBmany'
+# # -- ??? 200um ()
+# session_str = '150108tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimImagesSongFOBonly'
+# # -- ??? 300um ()
+# session_str = '152105tUTC_SP_depth300um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
+
+# # 20230831d
+# date_str = '20230831d'
+# # -- ??? 200um ()
+# session_str = '180939tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p485Hz_pow059p7mW_stimImagesFOBmin'
+# # -- ??? 200um ()
+# session_str = '184618tUTC_SP_depth200um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow050p2mW_stimImagesFOBmin'
+# # -- ??? 300um ()
+# session_str = '190748tUTC_SP_depth300um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow080p0mW_stimImagesFOBmin'
+
+# # 20230906d
+# date_str = '20230906d'
+# # -- ??? 200um () CHECK
+# session_str = '173359tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow030p2mW_stimImagesFOBmin'
+# # -- ??? 200um () CHECK
+# session_str = '181552tUTC_SP_depth250um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow080p4mW_stimImagesFOBmin'
+
+# # 20230910d
+# date_str = '20230910d'
+# # -- ??? 200um () CHECK
+# session_str = '170833tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p481Hz_pow060p4mW_stimImagesFOBmany'
+# # -- ??? 300um () CHECK
+# session_str = '183115tUTC_SP_depth300um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow079p5mW_stimImagesFOBmin'
+# # -- ??? 150um () CHECK
+# session_str = '185714tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow039p8mW_stimImagesFOBmin'
+
+
+# # # Curly
+# animal_str = 'Curly'
+# # 20231103d
+# date_str = '20231103d'
+# # -- MTish 200um ( | )
+# session_str = '162355tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow049p9mW_stimImagesFOBmin'
+# # -- PDish 200um ( | )
+# session_str = '165202tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow049p9mW_stimImagesFOBmin'
+
+# # 20231110d
+# date_str = '20231110d'
+# # -- MTadjacent 200um ( | )
+# session_str = '170315tUTC_SP_depth200um_fov2555x2500um_res2p50x2p50umpx_fr03p349Hz_pow059p9mW_stimMultimodal'
+
+# # 20231113d
+# date_str = '20231113d'
+# # -- MTish 200um ( | )
+# session_str = '185712tUTC_SP_depth200um_fov2190x2000um_res2p50x2p50umpx_fr04p853Hz_pow059p8mW_stimMultimodal'
+
+# # 20231117d
+# date_str = '20231117d'
+# # -- OBJ 200um ( | )
+# session_str = '165535tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow059p9mW_stimMultimodal'
+# # -- PVandOBJ 200um ( | )
+# session_str = '181016tUTC_SP_depth200um_fov2190x2920um_res2p50x2p50umpx_fr03p355Hz_pow065p1mW_stimMultimodal'
 
 
 if 'save_path' not in locals():
