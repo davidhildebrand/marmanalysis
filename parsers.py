@@ -456,106 +456,6 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
     return log
 
 
-def parse_log_stim_image_orig(session_log):
-    """
-    Parse the session log file output of the original stimulus_image.py script.
-    """
-
-    lines = session_log.splitlines()
-
-    trialdata = {}
-    ims = {}
-    impaths = {}
-    lf_categories = {}
-    tmp_image = None
-    tmp_imagepath = None
-    tmp_units = None
-    tmp_pos = None
-    tmp_size = None
-    tmp_ori = None
-    tmp_category = None
-    tmp_catid = None
-    tmp_cond = None
-    tmp_acqfr = None
-    tmp_stimtimestr = ''
-    stimtime_mode = False
-    tmp_isitimestr = ''
-    isitime_mode = False
-    for line in lines:
-        if 'EXP \tstim_times:' in line:
-            stimtime_mode = True
-        if 'EXP \tinterstim_times:' in line:
-            isitime_mode = True
-        if stimtime_mode:
-            tmp_stimtimestr = tmp_stimtimestr + line
-            if ']' in line:
-                stimtime_mode = False
-        if isitime_mode:
-            tmp_isitimestr = tmp_isitimestr + line
-            if ']' in line:
-                isitime_mode = False
-
-        if 'stim start' not in line or 'image' not in line:
-            continue
-
-        col = line.split('trial')
-        if not col:
-            continue
-        subcol = [sc.strip() for sc in col[1].split(',')]
-        tmp_trial = int(subcol[0].split('/')[0].strip())
-        if 'cond' in subcol[3]:
-            tmp_cond = int(subcol[3].split('=')[1].strip())
-        else:
-            print('could not get cond from log entry')
-        if 'image' in subcol[4]:
-            tmp_image = subcol[4].split(':')[1].strip()
-            if tmp_image not in ims:
-                ims[tmp_image] = tmp_cond
-            tmp_category = tmp_image[0]
-            if tmp_category not in lf_categories:
-                lf_categories[tmp_category] = len(lf_categories)
-            tmp_catid = lf_categories[tmp_category]
-        else:
-            print('could not get image name from log entry')
-        if 'path' in subcol[5]:
-            tmp_imagepath = subcol[5].split('=')[1].strip()
-            if tmp_imagepath not in impaths:
-                impaths[tmp_imagepath] = tmp_cond
-        else:
-            print('could not get image name from log entry')
-        if 'units' in subcol[6]:
-            tmp_units = subcol[6].split('=')[1].strip()
-        else:
-            print('could not get units from log entry')
-        if 'pos' in subcol[7]:
-            tmp_pos = np.fromstring(subcol[7].split('=')[1].strip('[]'), sep=' ')
-        else:
-            print('could not get pos from log entry')
-        if 'size' in subcol[8]:
-            tmp_size = np.fromstring(subcol[8].split('=')[1].strip('[]'), sep=' ')
-        else:
-            print('could not get size from log entry')
-        if 'ori' in subcol[9]:
-            tmp_ori = float(subcol[9].split('=')[1].strip())
-        else:
-            print('could not get ori from log entry')
-        if 'acqfr' in subcol[15]:
-            tmp_acqfr = int(subcol[15].split('=')[1].strip())
-        else:
-            print('could not get acqfr from log entry')
-        trialdata[tmp_trial] = {'cond': tmp_cond,
-                                'image': tmp_image,
-                                'imagepath': tmp_imagepath,
-                                'units': tmp_units,
-                                'pos': tmp_pos,
-                                'size': tmp_size,
-                                'ori': tmp_ori,
-                                'category': tmp_category,
-                                'catid': tmp_catid,
-                                'acqfr': tmp_acqfr}
-    return trialdata
-
-
 def parse_log_stim_image(session_log) -> pd.DataFrame:
     """
     Parse the session log file output of the original stimulus_image.py script into newer DataFrame format.
@@ -740,6 +640,106 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                     warn('Unknown conclusion event in log file.')
 
     return log
+
+
+def parse_log_stim_image_orig(session_log):
+    """
+    Parse the session log file output of the original stimulus_image.py script.
+    """
+
+    lines = session_log.splitlines()
+
+    trialdata = {}
+    ims = {}
+    impaths = {}
+    lf_categories = {}
+    tmp_image = None
+    tmp_imagepath = None
+    tmp_units = None
+    tmp_pos = None
+    tmp_size = None
+    tmp_ori = None
+    tmp_category = None
+    tmp_catid = None
+    tmp_cond = None
+    tmp_acqfr = None
+    tmp_stimtimestr = ''
+    stimtime_mode = False
+    tmp_isitimestr = ''
+    isitime_mode = False
+    for line in lines:
+        if 'EXP \tstim_times:' in line:
+            stimtime_mode = True
+        if 'EXP \tinterstim_times:' in line:
+            isitime_mode = True
+        if stimtime_mode:
+            tmp_stimtimestr = tmp_stimtimestr + line
+            if ']' in line:
+                stimtime_mode = False
+        if isitime_mode:
+            tmp_isitimestr = tmp_isitimestr + line
+            if ']' in line:
+                isitime_mode = False
+
+        if 'stim start' not in line or 'image' not in line:
+            continue
+
+        col = line.split('trial')
+        if not col:
+            continue
+        subcol = [sc.strip() for sc in col[1].split(',')]
+        tmp_trial = int(subcol[0].split('/')[0].strip())
+        if 'cond' in subcol[3]:
+            tmp_cond = int(subcol[3].split('=')[1].strip())
+        else:
+            print('could not get cond from log entry')
+        if 'image' in subcol[4]:
+            tmp_image = subcol[4].split(':')[1].strip()
+            if tmp_image not in ims:
+                ims[tmp_image] = tmp_cond
+            tmp_category = tmp_image[0]
+            if tmp_category not in lf_categories:
+                lf_categories[tmp_category] = len(lf_categories)
+            tmp_catid = lf_categories[tmp_category]
+        else:
+            print('could not get image name from log entry')
+        if 'path' in subcol[5]:
+            tmp_imagepath = subcol[5].split('=')[1].strip()
+            if tmp_imagepath not in impaths:
+                impaths[tmp_imagepath] = tmp_cond
+        else:
+            print('could not get image name from log entry')
+        if 'units' in subcol[6]:
+            tmp_units = subcol[6].split('=')[1].strip()
+        else:
+            print('could not get units from log entry')
+        if 'pos' in subcol[7]:
+            tmp_pos = np.fromstring(subcol[7].split('=')[1].strip('[]'), sep=' ')
+        else:
+            print('could not get pos from log entry')
+        if 'size' in subcol[8]:
+            tmp_size = np.fromstring(subcol[8].split('=')[1].strip('[]'), sep=' ')
+        else:
+            print('could not get size from log entry')
+        if 'ori' in subcol[9]:
+            tmp_ori = float(subcol[9].split('=')[1].strip())
+        else:
+            print('could not get ori from log entry')
+        if 'acqfr' in subcol[15]:
+            tmp_acqfr = int(subcol[15].split('=')[1].strip())
+        else:
+            print('could not get acqfr from log entry')
+        trialdata[tmp_trial] = {'cond': tmp_cond,
+                                'image': tmp_image,
+                                'imagepath': tmp_imagepath,
+                                'units': tmp_units,
+                                'pos': tmp_pos,
+                                'size': tmp_size,
+                                'ori': tmp_ori,
+                                'category': tmp_category,
+                                'catid': tmp_catid,
+                                'acqfr': tmp_acqfr}
+    return trialdata
 
 
 def parse_log_stim_dots_orig(session_log):
