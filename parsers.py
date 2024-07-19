@@ -642,6 +642,208 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
     return log
 
 
+def parse_log_stim_dots(session_log) -> pd.DataFrame:
+    """
+    Parse the session log file output of the original stimulus_dots.py script into newer DataFrame format.
+    """
+
+    lines = session_log.splitlines()
+
+    mode = None
+    found_stimfunc = False
+    times_stim = None
+    times_isi = None
+    tmp_stimtimestr = ''
+    tmp_isitimestr = ''
+    tmp_ntrials = None
+    for line in lines:
+        if 'DotStim(' in line:
+            found_stimfunc = True
+        if 'EXP \tstim_times:' in line:
+            if '...' not in line and ']' not in line:
+                mode = 'stimtime'
+        if 'EXP \tinterstim_times:' in line:
+            if '...' not in line and ']' not in line:
+                mode = 'isitime'
+        if mode == 'stimtime':
+            tmp_stimtimestr = tmp_stimtimestr + line
+            if ']' in line:
+                mode = None
+        if mode == 'isitime':
+            tmp_isitimestr = tmp_isitimestr + line
+            if ']' in line:
+                mode = None
+        if tmp_ntrials is None:
+            pattern_nt = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?.*'
+            if re.match(pattern_nt, line) is not None:
+                g = re.match(pattern_nt, line).groups()
+                if g[2] is not None:
+                    tmp_ntrials = int(g[2]) + 1
+
+    if tmp_stimtimestr != '':
+        s_si = tmp_stimtimestr.find('[')
+        s_ei = tmp_stimtimestr.find(']')
+        times_stim = np.fromstring(tmp_stimtimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
+        dur_stim = np.round(np.mean(times_stim), 2)
+    else:
+        warn('Could not automatically detect stimulus times from log file.')
+
+    if tmp_isitimestr != '':
+        s_si = tmp_isitimestr.find('[')
+        s_ei = tmp_isitimestr.find(']')
+        times_isi = np.fromstring(tmp_isitimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
+        dur_isi = np.round(np.min(times_isi), 2)
+    else:
+        warn('Could not automatically detect interstimulus times from log file.')
+
+    if tmp_ntrials is not None:
+        n_trials = tmp_ntrials
+    else:
+        if times_stim is not None and times_isi is not None:
+            if len(times_stim) == len(times_isi):
+                n_trials = len(times_stim)
+            else:
+                raise ValueError('Number of stimulus and interstimulus times do not match.')
+        else:
+            raise ValueError('Unknown number of trials. Unable to detect stimulus '
+                             'or interstimulus times from log file.')
+
+    log = create_stimulus_record(trials=n_trials)
+
+    for line in lines:
+        pattern_isi = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*ISI\s*(start|end),?\s*' + \
+                      r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_isi, line) is not None:
+            g = re.match(pattern_isi, line).groups()
+            t = float(g[0])
+            trial = int(g[1])
+            if g[2] is not None and (n_trials - 1) != int(g[2]):
+                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
+                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
+            acqfr = int(g[4])
+            ai_shape = (int(g[5]), int(g[6]))
+
+            match g[3]:
+                case 'start':
+                    if times_isi is not None:
+                        log.at[trial, 'dur_isi_pre'] = times_isi[trial]
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
+                    else:
+                        time_isi_i = t
+                    # log.at[trial, 'dur_isi_pre'] = times_isi[trial]
+                    # if trial > 0:
+                    #     log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
+                    log.at[trial, 't_isi_i'] = t
+                    log.at[trial, 'acqfr_isi_i'] = acqfr
+                    # log.at[trial, 'dispfr_isi_i'] = np.nan
+                    log.at[trial, 'ai_isi_i'] = ai_shape[0]
+                case 'end':
+                    if times_isi is None and 'time_isi_i' in locals():
+                        log.at[trial, 'dur_isi_pre'] = t - time_isi_i
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = t - time_isi_i
+                    else:
+                        log.at[trial, 'dur_isi_pre'] = np.nan
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = np.nan
+                    log.at[trial, 't_isi_f'] = t
+                    log.at[trial, 'acqfr_isi_f'] = acqfr
+                    # log.at[trial, 'dispfr_isi_f'] = np.nan
+                    log.at[trial, 'ai_isi_f'] = ai_shape[0]
+                case _:
+                    warn('Unknown interstimulus event in log file: {}'.format(line))
+
+        pattern_stim = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*stim\s*(start|end),?\s*' + \
+                       r'((dots),?\s*(full\s*field),?\s*(drifting),?\s*cond=([0-9]+),?\s*nDots=([0-9]+),?\s*' + \
+                       r'coherence=([0-9\.]+),?\s*fieldPos=\[([\-0-9\.\s]+)\],?\s*fieldSize=\[([\-0-9\.\s]+)\],?\s*' + \
+                       r'fieldShape=([a-zA-Z]+),?\s*dotSize=([0-9\.]+),?\s*dotLife=([0-9\.]+),?\s*' + \
+                       r'dir=([0-9\.]+),?\s*speed=([0-9\.]+),?\s*color=\[([\-0-9\.\s]+)\],?\s*' + \
+                       r'opacity=([0-9\.]+),?\s*contrast=([0-9\.]+),?\s*signalDots=([a-zA-Z]+),?\s*' + \
+                       r'noiseDots=([a-zA-Z]+),?)?\s*' + \
+                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_stim, line) is not None:
+            g = re.match(pattern_stim, line).groups()
+            t = float(g[0])
+            trial = int(g[1])
+            if g[2] is not None and (n_trials - 1) != int(g[2]):
+                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
+                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
+            acqfr = int(g[23])
+            ai_shape = (int(g[24]), int(g[25]))
+
+            match g[3]:
+                case 'start':
+                    log.at[trial, 'trial'] = trial
+                    if times_stim is not None:
+                        log.at[trial, 'dur_stim'] = times_stim[trial]
+                    else:
+                        time_stim_i = t
+                    # log.at[trial, 'dur_stim'] = times_stim[trial]
+                    log.at[trial, 't_stim_i'] = t
+                    log.at[trial, 'acqfr_stim_i'] = acqfr
+                    # log.at[trial, 'dispfr_stim_i'] = np.nan
+                    log.at[trial, 'ai_stim_i'] = ai_shape[0]
+
+                    log.at[trial, 'cond'] = int(g[8])
+                    log.at[trial, 'stim_mode'] = 'visual'
+                    log.at[trial, 'stim_class'] = g[5]
+                    if g[6].replace(' ', '') == 'fullfield' and g[7].replace(' ', '') == 'drifting':
+                        log.at[trial, 'stim_subclass'] = 'translation'
+                        log.at[trial, 'dots_translation_dir'] = float(g[16])
+                    else:
+                        log.at[trial, 'stim_subclass'] = None
+                    log.at[trial, 'dots_nDots'] = int(g[9])
+                    log.at[trial, 'dots_coherence'] = float(g[10])
+                    log.at[trial, 'dots_fieldPos'] = np.fromstring(g[11], sep=' ')
+                    log.at[trial, 'dots_fieldSize'] = np.fromstring(g[12], sep=' ')
+                    log.at[trial, 'dots_fieldShape'] = g[13]
+                    log.at[trial, 'dots_dotSize'] = float(g[14])
+                    log.at[trial, 'dots_dotLife'] = float(g[15])
+                    log.at[trial, 'dots_dir'] = float(g[16])
+                    log.at[trial, 'dots_speed'] = float(g[17])
+                    log.at[trial, 'dots_color'] = np.fromstring(g[18], sep=' ')
+                    log.at[trial, 'dots_opacity'] = float(g[19])
+                    log.at[trial, 'dots_contrast'] = float(g[20])
+                    log.at[trial, 'dots_signalDots'] = g[21]
+                    log.at[trial, 'dots_noiseDots'] = g[22]
+                case 'end':
+                    if times_stim is None and 'time_stim_i' in locals():
+                        log.at[trial, 'dur_stim'] = t - time_stim_i
+                    else:
+                        log.at[trial, 'dur_stim'] = np.nan
+                    log.at[trial, 't_stim_f'] = t
+                    log.at[trial, 'acqfr_stim_f'] = acqfr
+                    # log.at[trial, 'dispfr_stim_f'] = np.nan
+                    log.at[trial, 'ai_stim_f'] = ai_shape[0]
+                case _:
+                    warn('Unknown stim event in log file: {}'.format(line))
+
+        pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
+                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_conc, line) is not None:
+            if 'trial' not in locals() or not found_stimfunc:
+                raise Exception('Incorrect log parser chosen. This parser is for dots sessions. '
+                                'Conclusion reached without finding a trial or no ImageStim found.')
+            g = re.match(pattern_conc, line).groups()
+            t = float(g[0])
+            acqfr = int(g[2])
+            ai_shape = (int(g[3]), int(g[4]))
+
+            match g[1]:
+                case 'start':
+                    time_conc_i = t
+                case 'end':
+                    if 'time_conc_i' in locals():
+                        log.at[trial, 'dur_isi_post'] = t - time_conc_i
+                    else:
+                        log.at[trial, 'dur_isi_post'] = np.nan
+                case _:
+                    warn('Unknown conclusion event in log file: {}'.format(line))
+
+    return log
+
+
 def parse_log_stim_image_orig(session_log):
     """
     Parse the session log file output of the original stimulus_image.py script.
@@ -788,171 +990,3 @@ def parse_log_stim_dots_orig(session_log):
                                 'f': tmp_f,
                                 'acqfr': tmp_acqfr}
     return trialdata
-
-
-def parse_log_stim_dots(session_log) -> pd.DataFrame:
-    """
-    Parse the session log file output of the original stimulus_dots.py script into newer DataFrame format.
-    """
-
-    lines = session_log.splitlines()
-
-    mode = None
-    found_stimfunc = False
-    tmp_stimtimestr = ''
-    tmp_isitimestr = ''
-    for line in lines:
-        if 'DotStim(' in line:
-            found_stimfunc = True
-        if 'EXP \tstim_times:' in line:
-            mode = 'stimtime'
-        if 'EXP \tinterstim_times:' in line:
-            mode = 'isitime'
-        if mode == 'stimtime':
-            tmp_stimtimestr = tmp_stimtimestr + line
-            if ']' in line:
-                mode = None
-        if mode == 'isitime':
-            tmp_isitimestr = tmp_isitimestr + line
-            if ']' in line:
-                mode = None
-
-    if tmp_stimtimestr != '':
-        s_si = tmp_stimtimestr.find('[')
-        s_ei = tmp_stimtimestr.find(']')
-        times_stim = np.fromstring(tmp_stimtimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
-        dur_stim = np.round(np.mean(times_stim), 2)
-    else:
-        warn('Could not automatically detect stimulus duration, assuming 1.0 sec.')
-        times_stim = []
-        dur_stim = 1.0
-
-    if tmp_isitimestr != '':
-        s_si = tmp_isitimestr.find('[')
-        s_ei = tmp_isitimestr.find(']')
-        times_isi = np.fromstring(tmp_isitimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
-        dur_isi = np.round(np.min(times_isi), 2)
-    else:
-        warn('Could not automatically detect interstimulus duration, assuming 1.0 sec.')
-        times_isi = []
-        dur_isi = 1.0
-
-    if len(times_stim) == len(times_isi):
-        n_trials = len(times_stim)
-    else:
-        n_trials = None
-        warn('Number of stimulus and interstimulus times do not match.  Unknown number of trials.')
-
-    log = create_stimulus_record(trials=n_trials)
-
-    for line in lines:
-        pattern_isi = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*ISI\s*(start|end),?\s*' + \
-                      r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
-        if re.match(pattern_isi, line) is not None:
-            g = re.match(pattern_isi, line).groups()
-            t = float(g[0])
-            trial = int(g[1])
-            if g[2] is not None and (n_trials - 1) != int(g[2]):
-                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
-                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
-            acqfr = int(g[4])
-            ai_shape = (int(g[5]), int(g[6]))
-
-            match g[3]:
-                case 'start':
-                    log.at[trial, 'dur_isi_pre'] = times_isi[trial]
-                    if trial > 0:
-                        log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
-                    log.at[trial, 't_isi_i'] = t
-                    log.at[trial, 'acqfr_isi_i'] = acqfr
-                    # log.at[trial, 'dispfr_isi_i'] = np.nan
-                    log.at[trial, 'ai_isi_i'] = ai_shape[0]
-                case 'end':
-                    log.at[trial, 't_isi_f'] = t
-                    log.at[trial, 'acqfr_isi_f'] = acqfr
-                    # log.at[trial, 'dispfr_isi_f'] = np.nan
-                    log.at[trial, 'ai_isi_f'] = ai_shape[0]
-                case _:
-                    warn('Unknown ISI event in log file.')
-
-        pattern_stim = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*stim\s*(start|end),?\s*' + \
-                       r'((dots),?\s*(full\s*field),?\s*(drifting),?\s*cond=([0-9]+),?\s*nDots=([0-9]+),?\s*' + \
-                       r'coherence=([0-9\.]+),?\s*fieldPos=\[([\-0-9\.\s]+)\],?\s*fieldSize=\[([\-0-9\.\s]+)\],?\s*' + \
-                       r'fieldShape=([a-zA-Z]+),?\s*dotSize=([0-9\.]+),?\s*dotLife=([0-9\.]+),?\s*' + \
-                       r'dir=([0-9\.]+),?\s*speed=([0-9\.]+),?\s*color=\[([\-0-9\.\s]+)\],?\s*' + \
-                       r'opacity=([0-9\.]+),?\s*contrast=([0-9\.]+),?\s*signalDots=([a-zA-Z]+),?\s*' + \
-                       r'noiseDots=([a-zA-Z]+),?)?\s*' + \
-                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
-        if re.match(pattern_stim, line) is not None:
-            g = re.match(pattern_stim, line).groups()
-            t = float(g[0])
-            trial = int(g[1])
-            if g[2] is not None and (n_trials - 1) != int(g[2]):
-                warn('Calculated number of trials ({}) does not match number'.format(n_trials) +
-                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
-            acqfr = int(g[23])
-            ai_shape = (int(g[24]), int(g[25]))
-
-            match g[3]:
-                case 'start':
-                    log.at[trial, 'trial'] = trial
-                    log.at[trial, 'dur_stim'] = times_stim[trial]
-                    log.at[trial, 't_stim_i'] = t
-                    log.at[trial, 'acqfr_stim_i'] = acqfr
-                    # log.at[trial, 'dispfr_stim_i'] = np.nan
-                    log.at[trial, 'ai_stim_i'] = ai_shape[0]
-
-                    log.at[trial, 'cond'] = int(g[8])
-                    log.at[trial, 'stim_mode'] = 'visual'
-                    log.at[trial, 'stim_class'] = g[5]
-                    if g[6].replace(' ', '') == 'fullfield' and g[7].replace(' ','') == 'drifting':
-                        log.at[trial, 'stim_subclass'] = 'translation'
-                        log.at[trial, 'dots_translation_dir'] = float(g[16])
-                    else:
-                        log.at[trial, 'stim_subclass'] = None
-                    log.at[trial, 'dots_nDots'] = int(g[9])
-                    log.at[trial, 'dots_coherence'] = float(g[10])
-                    log.at[trial, 'dots_fieldPos'] = np.fromstring(g[11], sep=' ')
-                    log.at[trial, 'dots_fieldSize'] = np.fromstring(g[12], sep=' ')
-                    log.at[trial, 'dots_fieldShape'] = g[13]
-                    log.at[trial, 'dots_dotSize'] = float(g[14])
-                    log.at[trial, 'dots_dotLife'] = float(g[15])
-                    log.at[trial, 'dots_dir'] = float(g[16])
-                    log.at[trial, 'dots_speed'] = float(g[17])
-                    log.at[trial, 'dots_color'] = np.fromstring(g[18], sep=' ')
-                    log.at[trial, 'dots_opacity'] = float(g[19])
-                    log.at[trial, 'dots_contrast'] = float(g[20])
-                    log.at[trial, 'dots_signalDots'] = g[21]
-                    log.at[trial, 'dots_noiseDots'] = g[22]
-
-                case 'end':
-                    log.at[trial, 't_stim_f'] = t
-                    log.at[trial, 'acqfr_stim_f'] = acqfr
-                    # log.at[trial, 'dispfr_stim_f'] = np.nan
-                    log.at[trial, 'ai_stim_f'] = ai_shape[0]
-                case _:
-                    warn('Unknown stim event in log file.')
-
-        pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
-                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
-        if re.match(pattern_conc, line) is not None:
-            if 'trial' not in locals() or not found_stimfunc:
-                raise Exception('Incorrect log parser chosen. This parser is for dots sessions. '
-                                'Conclusion reached without finding a trial or no ImageStim found.')
-            g = re.match(pattern_conc, line).groups()
-            t = float(g[0])
-            acqfr = int(g[2])
-            ai_shape = (int(g[3]), int(g[4]))
-
-            match g[1]:
-                case 'start':
-                    time_conc_i = t
-                case 'end':
-                    if 'time_conc_i' in locals():
-                        log.at[trial, 'dur_isi_post'] = t - time_conc_i
-                    else:
-                        log.at[trial, 'dur_isi_post'] = np.nan
-                case _:
-                    warn('Unknown conclusion event in log file.')
-
-    return log
