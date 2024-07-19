@@ -1100,7 +1100,17 @@ for c in range(n_conds):
                                         identity=tmp_id, filename=tmp_imagename, filepath=tmp_imagepath)
     for t in range(n_reps):
         fr_start = stimlog[stimlog['cond'] == c].iloc[t]['acqfr_stim_i'] - n_samp_isi
+        if isinstance(fr_start, float):
+            if fr_start.is_integer():
+                fr_start = int(fr_start)
+            else:
+                raise ValueError('Non-integer acquisition frame index.')
         fr_end = stimlog[stimlog['cond'] == c].iloc[t]['acqfr_stim_i'] + n_samp_stim + n_samp_isi
+        if isinstance(fr_end, float):
+            if fr_end.is_integer():
+                fr_end = int(fr_end)
+            else:
+                raise ValueError('Non-integer acquisition frame index.')
         if fr_start < 0 and t == 0:
             # TODO exclude trials at start of imaging if ISI is too short
             warn('Period before first trial was shorter than inter-stimulus interval. ' +
