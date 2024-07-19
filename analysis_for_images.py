@@ -268,6 +268,8 @@ else:
 
 if 'stimImagesSongFOBonly' in session_str:
     dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
+elif 'stimImagesSong2imTest' in session_str:
+    dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_selected20230509d'.replace('|', os.path.sep)
 elif 'stimImagesSong230509dSel' in session_str:
     dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_selected20230509d'.replace('|', os.path.sep)
 elif 'stimImagesFOBmin' in session_str:
