@@ -84,6 +84,9 @@ if 'md' in locals():
 
 # %% Specify data locations
 
+savepath_str = 'analysis'
+# save_path = r'F:\Data\analysis'
+
 # # # Cadbury
 animal_str = 'Cadbury'
 # # 20220909d
@@ -263,11 +266,6 @@ else:
     base_path = None
     stim_path = None
 
-if save_path == '':
-    saving = False
-else:
-    saving = True
-
 if 'stimImagesSongFOBonly' in session_str:
     dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
 elif 'stimImagesSong230509dSel' in session_str:
@@ -294,6 +292,14 @@ if not os.path.isdir(stimimage_path):
 
 date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
+
+if savepath_str != "" and save_path == '':
+    save_path = os.path.join(session_path, savepath_str)
+    os.makedirs(save_path, exist_ok=True)
+if save_path == '':
+    saving = False
+else:
+    saving = True
 
 filelist_metadata = [f for f in glob(os.path.join(session_path, filestr_metadata)) if os.path.isfile(f)]
 filelist_image_data = [f for f in glob(os.path.join(session_path, filestr_image_data)) if os.path.isfile(f)]
