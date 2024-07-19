@@ -63,7 +63,7 @@ def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path: str 
         else:
             plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
 
-    set_plot_text_settings()
+    # set_plot_text_settings()
     f.tight_layout()
     f.show()
     if save_path != '':
@@ -97,7 +97,7 @@ def plot_hist_dprime(dprimes, threshold=0.2, bins=41, title: str = '', save_path
         else:
             plt.axvline(threshold, color='0.2', linestyle='dashed', linewidth=1)
 
-    set_plot_text_settings()
+    # set_plot_text_settings()
     f.tight_layout()
     f.show()
     if save_path != '':
@@ -226,7 +226,8 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cb
         f_cb.show()
 
     if title != '':
-        ax.set_title(title)
+        # ax.set_title(title, fontsize=3)
+        f.suptitle(title, fontsize=6)
     set_plot_text_settings()
     f.show()
     if save_path != '':
@@ -335,7 +336,8 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
         ax.add_artist(imp)
     
     if title != '':
-        ax.set_title(title)
+        # ax.set_title(title, fontsize=3)
+        f.suptitle(title, fontsize=6)
     set_plot_text_settings()
     f.show()
     if save_path != '':
