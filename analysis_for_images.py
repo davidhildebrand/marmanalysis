@@ -1525,8 +1525,6 @@ plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
 #    ... by category
 #    ... with a separate figure for each example ROI
 
-# * * * TODO improve variable naming here for clarity
-
 m = 'Fzsc'
 
 # Select ROI subset
@@ -1560,7 +1558,7 @@ for r in range(n_plot_ROIs):
         for cati, cat in enumerate(categories):
             ax = axes[mi, cati]
             if mi == 0:
-                ax.set_title(template_labels[cat])
+                ax.set_title(template_labels[cat], fontsize=6)
             if cati == 0:
                 ax.set_ylabel(metric_labels[m])
                 ax.tick_params(axis='both', which='major')
@@ -1710,6 +1708,8 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+for tick in ax_dp.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
@@ -1795,8 +1795,10 @@ xtick_minorlabels = []
 for i, t in enumerate(tickinfo):
     ti = tickinfo[t]
     if ti['start'] == ti['end']:
-        xtick_majors.append(ti['start'] + 0.5)
-        xtick_majorlabels.append(ti['label'])
+        # xtick_majors.append(ti['start'] + 0.5)
+        # xtick_majorlabels.append(ti['label'])
+        xtick_minors.append(ti['labelpos'])
+        xtick_minorlabels.append(ti['label'])
     elif ti['end'] > ti['start']:
         # https://stackoverflow.com/questions/13576805/matplotlib-hiding-specific-ticks-on-x-axis
         # if ti['end'] - ti['start'] > 10:
@@ -1842,6 +1844,8 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+for tick in ax_dp.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
@@ -1865,6 +1869,8 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+for tick in ax_fsi.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
 
 plots.set_plot_text_settings()
 fig_hm.show()
@@ -1873,7 +1879,7 @@ fig_cb, ax_cb = plt.subplots()
 cbar = plt.colorbar(img_hm, ax=ax_cb)
 cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
-cbar.set_label('mean Zscore during stimulus')
+cbar.set_label('Z-score')
 ax_cb.remove()
 plots.set_plot_text_settings()
 fig_cb.show()
@@ -1972,6 +1978,8 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+for tick in ax_dp.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
 if threshold_dprime is not None:
     if threshold_dprime != 0:
         ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
@@ -1995,7 +2003,9 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
-
+for tick in ax_fsi.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
+    
 plots.set_plot_text_settings()
 fig_hm.show()
 
@@ -2003,7 +2013,7 @@ fig_cb, ax_cb = plt.subplots()
 cbar = plt.colorbar(img_hm, ax=ax_cb)
 cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
-cbar.set_label('mean Zscore during stimulus')
+cbar.set_label('Z-score')
 ax_cb.remove()
 plots.set_plot_text_settings()
 fig_cb.show()
@@ -2022,7 +2032,6 @@ del i, t, tick
 # %% Heatmap across-stimulus mean of trial-averaged stimulus-epoch responses... sorted by across-stimulus mean...
 #    ... for all ROIs
 #    ... for all categories
-#    ... sorted by across-stimulus mean
 
 m = 'Fzsc'
 
@@ -2093,6 +2102,8 @@ for tick in ax_dp.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+for tick in ax_dp.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
     
 ax_fsi.set_xlabel('FSI')
 ax_fsi.set_axisbelow(True)
@@ -2107,6 +2118,8 @@ for tick in ax_fsi.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)
     tick.label1.set_visible(False)
     tick.label2.set_visible(False)
+for tick in ax_fsi.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
 
 plots.set_plot_text_settings()
 fig_hm.show()
@@ -2115,7 +2128,7 @@ fig_cb, ax_cb = plt.subplots()
 cbar = plt.colorbar(img_hm, ax=ax_cb)
 cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
 cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
-cbar.set_label('mean Zscore during stimulus')
+cbar.set_label('Z-score')
 ax_cb.remove()
 plots.set_plot_text_settings()
 fig_cb.show()
@@ -2254,18 +2267,18 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
                         save_path=sp)
 
-# # ...only for ROIs with |FSI| >= threshold
-# above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-# sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
-#     '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
-#     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p') + save_ext
-# sp = os.path.join(save_path, sn) if saving else ''
-# plots.plot_overlays_roi(ROIs[above_threshold],
-#                         ROI_colors[above_threshold],
-#                         bgimage=plots.auto_level_s2p_image(fov_image), flip='lr', rotate=-90,
-#                         title='relative response strength, ' +
-#                               r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
-#                         save_path=sp)
+# ...only for ROIs with |FSI| >= threshold
+above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
+sn = save_pfix + '_10_ROIplot_ColorByRelativeResponseStrength' + \
+    '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
+    '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p')
+sp = os.path.join(save_path, sn + save_ext) if saving else ''
+plots.plot_overlays_roi(ROIs[above_threshold],
+                        ROI_colors[above_threshold],
+                        bgimage=plots.auto_level_s2p_image(fov_image),  # flip='lr', rotate=-90,
+                        title='relative response strength,\n' +
+                              r'FSI $\geq$ {:0.2f}'.format(threshold_fsi),
+                        save_path=sp)
 
 # ...only for ROIs with |mean Z-score| >= threshold
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
