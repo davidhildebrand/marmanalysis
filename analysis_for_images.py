@@ -1159,14 +1159,19 @@ n_cats = len(categories)
 conditions = pd.unique(data['cond'])  # Use pandas instead of numpy to avoid automatic sorting
 # conditions = conditions[[i for i, _ in sorted(enumerate(conditions), key=sort_by_cond)]]
 cond_to_condidx = {k: i for i, k in enumerate(conditions)}
+cat_to_cond = {cat: [cnd for cnd in data[data['cat'] == cat]['cond']] 
+               for cat in categories}
 cat_to_condidx = {cat: [cond_to_condidx[cnd] for cnd in data[data['cat'] == cat]['cond']] 
                   for cat in categories}
+cond_to_cat = {cnd: cat for cat, cndlist in cat_to_cond.items() for cnd in cndlist}
+condidx_to_cat = {icnd: cat for cat, icndlist in cat_to_condidx.items() for icnd in icndlist}
 
 if n_conds != conditions.shape[0]:
     u, c = np.unique(data['cond'], return_counts=True)
     mult = u[c > 1]
     warn('Some different image files were combined into the same condition. ' +
          '{}'.format(data[data['cond'] == mult]['imagename']))
+    warn('May not be able to handle that yet...')
     del u, c, mult
 
 
@@ -1408,7 +1413,8 @@ for m in metrics:
         stats[m][r]['peak_cond_idx'] = stats[m][r]['resp_vect_cond'].argmax()
         stats[m][r]['peak_cond'] = conditions[stats[m][r]['peak_cond_idx']]
         stats[m][r]['peak_cond_val'] = stats[m][r]['resp_vect_cond'].max()
-        stats[m][r]['cat_of_peak_cond'] = data[data['cond'] == stats[m][r]['peak_cond']]['cat']
+        # stats[m][r]['cat_of_peak_cond'] = (data[data['cond'] == stats[m][r]['peak_cond']]['cat'])
+        stats[m][r]['cat_of_peak_cond'] = cond_to_cat[stats[m][r]['peak_cond']]
     
         stats[m][r]['resp_vect_cat'] = resp_vect_cat[m][r]
         stats[m][r]['peak_cat_idx'] = stats[m][r]['resp_vect_cat'].argmax()
@@ -1448,7 +1454,8 @@ for m in metrics:
         stats_df[m].at[r, 'peak_cond_idx'] = stats_df[m].loc[r]['resp_vect_cond'].argmax()
         stats_df[m].at[r, 'peak_cond'] = conditions[stats_df[m].at[r, 'peak_cond_idx']]
         stats_df[m].at[r, 'peak_cond_val'] = stats_df[m].loc[r]['resp_vect_cond'].max()
-        stats_df[m].at[r, 'cat_of_peak_cond'] = data[data['cond'] == conditions[stats_df[m].at[r, 'peak_cond_idx']]]['cat']
+        # stats_df[m].at[r, 'cat_of_peak_cond'] = (data[data['cond'] == conditions[stats_df[m].at[r, 'peak_cond_idx']]]['cat'])
+        stats_df[m].at[r, 'cat_of_peak_cond'] = cond_to_cat[stats_df[m].at[r, 'peak_cond']]
 
         stats_df[m].at[r, 'resp_vect_cat'] = resp_vect_cat[m][r]
         stats_df[m].at[r, 'peak_cat_idx'] = stats_df[m].loc[r]['resp_vect_cat'].argmax()
