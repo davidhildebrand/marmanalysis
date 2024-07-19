@@ -124,7 +124,7 @@ def auto_level_s2p_image(image, target_median=5140):
 
 
 def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cbartitle='',
-                      bgimage=None, size=None, flip='lr', rotate=-90, 
+                      bgimage=None, size=None, flip=None, rotate=0,  # flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
     n_rois = len(rois)
@@ -197,9 +197,10 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cb
             overlay = ski_rotate(overlay, -rotate, resize=True)
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
 
-    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), 
-                            h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
-    ax = f.add_axes((0, 0, 1, 1))
+    f = plt.figure()  #figsize=(w / float(plt.rcParams['figure.dpi']), 
+                            # h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
+    # ax = f.add_axes((0, 0, 1, 1))
+    ax = f.gca()
     ax.axis('off')
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False,
@@ -238,7 +239,7 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cb
 
 
 def plot_overlays_img(rois, images, colors=None, alpha=1.0,
-                      bgimage=None, size=None, flip='lr', rotate=-90, 
+                      bgimage=None, size=None, flip=None, rotate=0,  # flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
     n_rois = len(rois)
@@ -282,7 +283,7 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
         roi_ctr[r, :] = np.average(roi_mask[r], axis=0)
     roipair_dists = np.array([np.linalg.norm(roi_ctr[r0] - roi_ctr[r1]) 
                               for r0, r1 in list(itertools.combinations(range(n_rois), 2))])
-    stim_maxpx = np.round(roipair_dists.min()).astype(int)
+    stim_maxpx = np.min([np.round(roipair_dists.min() / 2).astype(int), 6])
 
     match flip:
         case 'lr':
@@ -311,10 +312,11 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
 
     from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
-    f = plt.figure(figsize=(w / float(plt.rcParams['figure.dpi']), 
-                            h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
-    ax = f.add_axes((0, 0, 1, 1))
-    plt.set_cmap('hsv')
+    f = plt.figure()  #figsize=(w / float(plt.rcParams['figure.dpi']), 
+                            # h / float(plt.rcParams['figure.dpi'])))  # (w, h), in
+    # ax = f.add_axes((0, 0, 1, 1))
+    ax = f.gca()
+    # plt.set_cmap('hsv')
     ax.axis('off')
     ax.set_frame_on(False)
     ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
