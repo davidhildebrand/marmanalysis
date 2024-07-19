@@ -916,12 +916,14 @@ for c in range(n_conds):
     tmp_imagepath = os.path.join(stimimage_path, tmp_imagename) \
         if os.path.isfile(os.path.join(stimimage_path, tmp_imagename)) else None
     if image_set == 'FOBmin' or image_set == 'FOBmany':
-        pattern_imn = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?[^_]*_?(inverted)?$'
+        pattern_imn = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?' + \
+                      r'([^_]*erode[^_]*)?_?(inverted)?$'
         if re.match(pattern_imn, imn) is not None:
             sp = re.match(pattern_imn, imn).group(4)
             ct = re.match(pattern_imn, imn).group(5)
             di = re.match(pattern_imn, imn).group(6)
             nm = re.match(pattern_imn, imn).group(7)
+            ed = 'e' if re.match(pattern_imn, imn).group(8) is not None else ''
             if nm.isnumeric():
                 nm = float(nm)
                 if nm.is_integer():
@@ -929,21 +931,21 @@ for c in range(n_conds):
                 else:
                     warn('View index in filename incorrect ({}). '.format(tmp_imagename) +
                          'Expected integer, not float.')
-            iv = re.match(pattern_imn, imn).group(8) is not None
+            iv = re.match(pattern_imn, imn).group(9) is not None
             match sp:
                 case 'Human':
                     if ct == 'Head':
-                        tmp_cond = bytes('fh{:02}'.format(nm), 'ascii')
+                        tmp_cond = bytes('fh{:02}{}'.format(nm, ed), 'ascii')
                         tmp_cat = b'face_hum'
-                        tmp_id = bytes('Hum{:02}'.format(nm), 'ascii')
+                        tmp_id = bytes('Hum{:02}{}'.format(nm, ed), 'ascii')
                         tmp_pitch = 0
                         tmp_roll = 0
                         tmp_yaw = 0
                 case 'MacaqueRhesus':
                     if ct == 'Head':
-                        tmp_cond = bytes('fr{:02}'.format(nm), 'ascii')
+                        tmp_cond = bytes('fr{:02}{}'.format(nm, ed), 'ascii')
                         tmp_cat = b'face_rhe'
-                        tmp_id = bytes('Rhe{:02}'.format(nm), 'ascii')
+                        tmp_id = bytes('Rhe{:02}{}'.format(nm, ed), 'ascii')
                         tmp_pitch = 0
                         tmp_roll = 0
                         tmp_yaw = 0
@@ -951,7 +953,7 @@ for c in range(n_conds):
                     if ct == 'Head':
                         if iv is True:
                             nm = 9
-                        tmp_cond = bytes('fm{}{:02}'.format(di[0:3], nm), 'ascii')
+                        tmp_cond = bytes('fm{}{:02}{}'.format(di[0:3], nm, ed), 'ascii')
                         tmp_cat = b'face_mrm'
                         tmp_id = bytes(di[0:8], 'ascii')
                         match nm:
@@ -997,7 +999,7 @@ for c in range(n_conds):
                                 tmp_yaw = None
                                 tmp_roll = None
                     if ct == 'Body':
-                        tmp_cond = bytes('bm{}{:02}'.format(di[0:3], nm), 'ascii')
+                        tmp_cond = bytes('bm{}{:02}{}'.format(di[0:3], nm, ed), 'ascii')
                         tmp_cat = b'body_mrm'
                         tmp_id = bytes(di[0:8], 'ascii')
                 case 'Objects':
@@ -1017,20 +1019,20 @@ for c in range(n_conds):
                         warn('Could not recognize object details from filename.')
                         ct_p2 = 0
                     if 'Manmade' in ct:
-                        tmp_cond = bytes('om{:01}{:03}'.format(ct_p2, nm), 'ascii')
+                        tmp_cond = bytes('om{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
                         tmp_cat = b'obj'
                     elif 'FruitVeg' in ct:
-                        tmp_cond = bytes('vf{:01}{:03}'.format(ct_p2, nm), 'ascii')
+                        tmp_cond = bytes('vf{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
                         tmp_cat = b'food'
                     elif 'MultipartGeon' in ct:
-                        tmp_cond = bytes('og{:01}{:03}'.format(ct_p2, nm), 'ascii')
+                        tmp_cond = bytes('og{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
                         tmp_id = bytes('Geon{:01}'.format(ct_p2), 'ascii')
                         tmp_cat = b'obj'
                     elif 'Pairwise' in ct:
-                        tmp_cond = bytes('op{:01}{:03}'.format(ct_p2, nm), 'ascii')
+                        tmp_cond = bytes('op{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
                         tmp_cat = b'obj'
                     elif 'String' in ct:
-                        tmp_cond = bytes('os{:01}{:03}'.format(ct_p2, nm), 'ascii')
+                        tmp_cond = bytes('os{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
                         tmp_cat = b'obj'
                     else:
                         warn('Could not recognize category of object image from filename.')
