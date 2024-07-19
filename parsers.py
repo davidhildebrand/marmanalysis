@@ -463,10 +463,6 @@ def parse_log_stim_image_orig(session_log):
 
     lines = session_log.splitlines()
 
-    # 37.1533         EXP     trial 0/240, stim start, image, cond=7, name=image7:b16.png,
-    # path=/FreiwaldSync/MarmoScope/Stimulus/Images/Song_etal_Wang_2020_NatCommun/480288_equalized_RGBA_FOBonly/b16.png,
-    # units=deg, pos=[0. 0.], size=[12.   7.2], ori=0.0, color=[1. 1. 1.], colorSpace=rgb, contrast=1.0,
-    # opacity=1.0, texRes=512, acqfr=23, AI_data.shape=(1336, 5)
     trialdata = {}
     ims = {}
     impaths = {}
