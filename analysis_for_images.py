@@ -98,17 +98,17 @@ animal_str = 'Cadbury'
 
 # # 20221016d
 # date_str = '20221016d_olds2p'
-# date_str = '20221016d'
+date_str = '20221016d'
 # --  PD (good)
-# session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
-# md = dict()
-# md['framerate'] = 6.364
-# md['fov'] = dict()
-# md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
-# md['fov']['w_px'] = 730
-# md['fov']['h_px'] = 730
+session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
+md = dict()
+md['framerate'] = 6.364
+md['fov'] = dict()
+md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
+md['fov']['w_px'] = 730
+md['fov']['h_px'] = 730
 # # dirstr_suite2p = 'suite2p_old*'
-# dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
+dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # 20230510d (possibly 300-400um fluid)
 # date_str = '20230510d'
@@ -149,9 +149,9 @@ animal_str = 'Cadbury'
 # session_str = '173850tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
 
 # # 20231007d (~120um fluid)
-date_str = '20231007d'
+# date_str = '20231007d'
 # # -- OBJ 200um (decent/good? | )
-session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
+# session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
 # # -- OBJ 150um ( )
 # session_str = '162705tUTC_SP_depth150um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow049p8mW_stimImagesFOBmin'
 # # -- OBJ 250um ( )
@@ -2368,7 +2368,7 @@ above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
 sn = save_pfix + '_11_ROIplot_OverlayImageColorByPeakCategory' + \
     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p')
 sp = os.path.join(save_path, sn + save_ext) if saving else ''
-plots.plot_overlays_img(ROIs[above_threshold], 
+plots.plot_overlays_img(ROIs[above_threshold],
                         images=ROI_images[above_threshold],
                         colors=ROI_colors[above_threshold], alpha=0.6,
                         bgimage=plots.auto_level_s2p_image(fov_image),
@@ -2382,7 +2382,7 @@ above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
 sn = save_pfix + '_11_ROIplot_OverlayImageColorByPeakCategory' + \
     '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p')
 sp = os.path.join(save_path, sn + save_ext) if saving else ''
-plots.plot_overlays_img(ROIs[above_threshold], 
+plots.plot_overlays_img(ROIs[above_threshold],
                         images=ROI_images[above_threshold],
                         colors=ROI_colors[above_threshold], alpha=0.6,
                         bgimage=plots.auto_level_s2p_image(fov_image),
