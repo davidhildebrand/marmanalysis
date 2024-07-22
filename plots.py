@@ -22,17 +22,17 @@ def set_plot_text_settings():
     plt.rc('figure', titlesize=8)
 
 
-def rotate_coordinates(pts, origin=(0, 0), dest=None, degrees=0):
+def rotate_coordinates(pts, degrees=0, origin=(0, 0), target=None):
     # As described at https://stackoverflow.com/a/58781388
-    if dest is None:
-        dest = origin
+    if target is None:
+        target = origin
     angle = np.deg2rad(degrees)
-    R = np.array([[np.cos(angle), -np.sin(angle)],
+    r = np.array([[np.cos(angle), -np.sin(angle)],
                   [np.sin(angle),  np.cos(angle)]])
     o = np.atleast_2d(origin)
-    d = np.atleast_2d(dest)
+    t = np.atleast_2d(target)
     p = np.atleast_2d(pts)
-    return np.squeeze((R @ (p.T - o.T) + d.T).T)
+    return np.squeeze((r @ (p.T - o.T) + t.T).T)
 
 
 # % Define plotting function for histograms of selectivity metrics
@@ -124,7 +124,7 @@ def auto_level_s2p_image(image, target_median=5140):
 
 
 def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cbartitle='',
-                      bgimage=None, size=None, flip=None, rotate=0,  # flip='lr', rotate=-90, 
+                      bgimage=None, size=None, flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
     n_rois = len(rois)
@@ -239,7 +239,7 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cb
 
 
 def plot_overlays_img(rois, images, colors=None, alpha=1.0,
-                      bgimage=None, size=None, flip=None, rotate=0,  # flip='lr', rotate=-90, 
+                      bgimage=None, size=None, flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
                       title: str = '', save_path: str = ''):
     n_rois = len(rois)
@@ -277,21 +277,23 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
     #     canvas = np.dstack((canvas, np.full(canvas.shape[0:2], 1.0, dtype=canvas.dtype)))
 
     roi_mask = {}
-    roi_ctr = np.full((n_rois, 2), np.nan)
+    roi_pos = np.full((n_rois, 2), np.nan)
     for r, rt in enumerate(rois):
         roi_mask[r] = np.concatenate((rt['xpix'][:, np.newaxis], rt['ypix'][:, np.newaxis]), axis=1)
-        roi_ctr[r, :] = np.average(roi_mask[r], axis=0)
-    roipair_dists = np.array([np.linalg.norm(roi_ctr[r0] - roi_ctr[r1]) 
+        roi_pos[r, :] = np.average(roi_mask[r], axis=0)
+    roipair_dists = np.array([np.linalg.norm(roi_pos[r0] - roi_pos[r1]) 
                               for r0, r1 in list(itertools.combinations(range(n_rois), 2))])
     stim_maxpx = np.min([np.round(roipair_dists.min() / 2).astype(int), 6])
+
+    oh, ow = h, w
 
     match flip:
         case 'lr':
             canvas = np.fliplr(canvas)
-            roi_ctr[:, 0] = w - roi_ctr[:, 0]
+            roi_pos[:, 0] = w - roi_pos[:, 0]
         case 'ud':
             canvas = np.flipud(canvas)
-            roi_ctr[:, 1] = h - roi_ctr[:, 1]
+            roi_pos[:, 1] = h - roi_pos[:, 1]
         case None:
             pass
         case _:
@@ -303,12 +305,8 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
             canvas = np.rot90(canvas, k)
         else:
             canvas = ski_rotate(canvas, -rotate, resize=True)
-        # roi_ctr = rotate_coordinates(roi_ctr, origin=np.mean(roi_ctr, axis=0), degrees=rotate)
-        # roi_ctr = rotate_coordinates(roi_ctr, origin=(w / 2, h / 2), degrees=rotate)
-        roi_ctr = rotate_coordinates(roi_ctr, degrees=rotate,
-                                     origin=(w / 2, h / 2), 
-                                     dest=np.array(canvas.shape[0:2]) / 2)
         h, w, _ = canvas.shape  # rows/h/y, columns/w/x, channels
+        roi_pos = rotate_coordinates(roi_pos, origin=(ow / 2, oh / 2), target=(w / 2, h / 2), degrees=rotate)
 
     from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
@@ -322,7 +320,7 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
     ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
     ax.imshow(canvas, interpolation='none', cmap='gray')
     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
-    ax.scatter(roi_ctr[:, 0], roi_ctr[:, 1], marker='.', s=1, color='w')
+    ax.scatter(roi_pos[:, 0], roi_pos[:, 1], marker='.', s=1, color='w')
     ax.set_aspect('equal')
     for ir, r in enumerate(rois):
         stim = plt.imread(images[ir])
@@ -330,11 +328,11 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
         if sh > stim_maxpx or sw > stim_maxpx:
             z = np.min([stim_maxpx / sd for sd in [sh, sw]])
         if colors is None:
-            imp = AnnotationBbox(OffsetImage(stim, zoom=z), roi_ctr[ir, :], frameon=False)
+            imp = AnnotationBbox(OffsetImage(stim, zoom=z), roi_pos[ir, :], frameon=False)
         else:
-            imp = AnnotationBbox(OffsetImage(stim, zoom=z), roi_ctr[ir, :], 
-                                 frameon=True, pad=0, 
-                                 bboxprops=dict(facecolor=colors[ir], edgecolor=None, linewidth=0, alpha=alpha))
+            imp = AnnotationBbox(OffsetImage(stim, zoom=z), roi_pos[ir, :], 
+                                  frameon=True, pad=0, 
+                                  bboxprops=dict(facecolor=colors[ir], edgecolor=None, linewidth=0, alpha=alpha))
         ax.add_artist(imp)
     
     if title != '':
