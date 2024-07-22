@@ -84,7 +84,7 @@ if 'md' in locals():
 
 # %% Specify data locations
 
-savepath_str = 'analysis'
+# savepath_str = 'analysis'
 # save_path = r'F:\Data\analysis'
 
 # # # Cadbury
@@ -262,6 +262,8 @@ session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363
 
 if 'save_path' not in locals():
     save_path = ''
+if 'savepath_str' not in locals():
+    savepath_str = ''
 if 'stimimage_path' not in locals():
     stimimage_path = ''
 
