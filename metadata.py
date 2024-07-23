@@ -206,7 +206,7 @@ def get_metadata(filepath):
             warn('Could not determine power from filename. ')
             power = None
         if power is not None:
-            if type(power) == str:
+            if isinstance(power, str):
                 if 'p' in power:
                     power = power.replace('p', '.')
             power = float(power)
@@ -298,10 +298,10 @@ def extract_useful_metadata(scanimage_metadata):
         mrois_raw = simd['json']['RoiGroups']['imagingRoiGroup']['rois']
     else:
         mrois_raw = json.loads(simd["Artist"])['RoiGroups']['imagingRoiGroup']['rois']
-    if type(mrois_raw) is not dict:
+    if not isinstance(mrois_raw, dict):
         mrois_orig = []
         for roi in mrois_raw:
-            if type(roi['scanfields']) is not list:
+            if not isinstance(roi['scanfields'], list):
                 scanfield = roi['scanfields']
             else:
                 scanfield = roi['scanfields'][np.where(np.array(roi['zs']) == 0)[0][0]]
@@ -348,7 +348,7 @@ def extract_useful_metadata(scanimage_metadata):
 
     # Calculate MROI resolutions.  Note that the objective resolution is in um/deg.
     for r in umd['mrois']['orig']:
-        if type(umd['objective_resolution']) is float:
+        if isinstance(umd['objective_resolution'], float):
             r['resolution_umpx'] = umd['objective_resolution'] / (r['size_px'] / r['size_deg'])
             r['resolution_degpx'] = r['size_deg'] / r['size_px']
         else:
@@ -503,7 +503,7 @@ def extract_useful_metadata(scanimage_metadata):
             umd['plane']['h_um'] = round(umd['plane']['size_um'][1])
             umd['plane']['size_um_str'] = 'fov{:04d}x{:04d}um'.format(umd['plane']['w_um'],
                                                                       umd['plane']['h_um'])
-        elif umd['mrois']['overlap'] is True and type(umd['mrois']['overlap_px']) is int:
+        elif umd['mrois']['overlap'] is True and isinstance(umd['mrois']['overlap_px'], int):
             umd['plane']['size_deg'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_deg']
             # TODO reduce plane size by the overlap amount
             # umd['plane']['w_deg'] = umd['plane']['size_deg'][0]
