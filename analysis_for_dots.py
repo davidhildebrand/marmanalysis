@@ -46,9 +46,13 @@ if 'md' in locals():
 
 # %% Specify data locations
 
-# -- GOOD OLD Cadbury MT 20221016d
+
+# # # Cadbury
 animal_str = 'Cadbury'
+
+# # 20221016d
 date_str = '20221016d'
+# -- MT 200um (good)
 session_str = '163736tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p362Hz_pow059p0mW_stimMovingDots8dirFF'
 md = dict()
 md['framerate'] = 6.362
@@ -57,20 +61,75 @@ md['fov']['resolution_umpx'] = np.array([2.0, 2.0])
 md['fov']['w_px'] = 730
 md['fov']['h_px'] = 730
 
-# -- GOOD Cashew MT 20230728d
+# # 20231001d (~430um fluid)
+# date_str = '20231001d'
+# -- MT 200um (| movement exclusions needed)
+# session_str = '205309tUTC_SP_depth200um_fov1460x1200um_res2p00x2p00umpx_fr07p685Hz_pow060p3mW_stimMovingDots16dirFF'
+
+# # 20231007d (~120um fluid)
+# date_str = '20231007d'
+# # -- PD 200um ( | eyetrack crashed) ... PD but included dot stims
+# session_str = '180407tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p359Hz_pow080p2mW_stimMultimodal'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # Cashew
 # animal_str = 'Cashew'
+
+# # 20230728d (negligible fluid)
 # date_str = '20230728d'
-# session_str = '153957tUTC_SP_depth200um_fov2190x2600um_res3p00x3p00umpx_fr05p381Hz_pow059p9mW_stimMovingDots16dirFF'
+# # -- MT 200um ( | drowsy, YouTube audio)
+# session_str = '153957tUTC_SP_depth200um_fov2190x2600um_res3p00x3p00umpx_fr05p381Hz_pow059p9mW_stimMovingDots16dirFF
 
-# -- GOOD Cashew MT 20230809d
-# animal_str = 'Cashew'
+# # 20230806d (up to 250um fluid around MD and STS)
+# date_str = '20230806d'
+# # -- MT 200um ( | )
+# session_str = '161055tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow059p9mW_stimMovingDots16dirFF
+
+# # 20230809d
 # date_str = '20230809d'
+# # -- MT 200um ( | )
 # session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
 
-# next
-# animal_str = 'Cashew'
-# date_str = '20230809d'
-# session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # Dali
+# animal_str = 'Dali'
+
+# # 20230622d
+# date_str = '20230622d'
+# # -- MT? 300um ( | )
+# session_str = '165308tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow069p8mW_stimMovingDots8dirFF'
+
+# # 20230627d
+# date_str = '20230627d'
+# # -- MT? 200um ( | )
+# session_str = '152654tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p3mW_stimMovingDots8dirFF'
+
+# # 20230704d
+# date_str = '20230704d'
+# # -- MT? 200um ( | )
+# session_str = '160506tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p0mW_stimMovingDots16dirFF'
+
+# # 20230906d
+# date_str = '20230906d'
+# # -- PD 200um ( | )
+# session_str = '180300tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow049p6mW_stimMovingDots16dirFF'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # Larry
+# animal_str = 'Larry'
+
+# # 20231007d
+# date_str = '20231007d'
+# # -- MT 200um ( | movement exclusions needed)
+# session_str = '211856tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimMovingDots16dirFF'
+# # -- MT 200um ( | )
+# session_str = '213733tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p1mW_stimMovingDots16dirFF'
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if 'save_path' not in locals():
     save_path = ''
