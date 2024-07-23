@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from datetime import datetime, timedelta
 import magic
-import numpy as np
 import os
 
 import metadata
-# import fileio
 
 
 def is_tiff(filepath: str) -> bool:
