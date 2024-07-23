@@ -2450,6 +2450,12 @@ bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_
 from scipy.stats import binned_statistic
 bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='std', bins=bin_edges)
+bin_ns, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='count', bins=bin_edges)
+
+# n_pairs_required = 100
+# bin_centers = bin_centers[bin_ns > n_pairs_required]
+# bin_medians = bin_medians[bin_ns > n_pairs_required]
+# bin_stds = bin_stds[bin_ns > n_pairs_required]
 
 fig_dprimediff = plt.figure()
 ax = fig_dprimediff.subplots(1, 1)
