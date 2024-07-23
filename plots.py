@@ -283,7 +283,7 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
         roi_pos[r, :] = np.average(roi_mask[r], axis=0)
     roipair_dists = np.array([np.linalg.norm(roi_pos[r0] - roi_pos[r1]) 
                               for r0, r1 in list(itertools.combinations(range(n_rois), 2))])
-    stim_maxpx = np.min([np.round(roipair_dists.min() / 2).astype(int), 6])
+    stim_maxpx = np.min([1.2 * roipair_dists.min(), 0.015 * np.max([h, w])])
 
     oh, ow = h, w
 
