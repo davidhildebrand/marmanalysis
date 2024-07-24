@@ -28,8 +28,12 @@ import plots
 
 # %% Settings
 
+# dprime_F threshold
+# based on Shi et al Tsao bioRxiv (Fig 1g, https://doi.org/10.1101/2023.12.06.570341):
+# "The dotted vertical line marks d’ = 0.2, which we used as our threshold for identifying face-selective units."
+threshold_dprime = 0.2
 
-# FSI threshold 
+# Face-Selectivity Index (FSI) threshold
 # based on Freiwald, Tsao and Livingstone 2009 Nat Neurosci (https://doi.org/10.1038/nn.2363):
 # """
 # For |face-selectivity index| = 1/3, that is, if the response to faces was at least twice (or 
@@ -39,13 +43,7 @@ import plots
 # """
 threshold_fsi = 1 / 3
 
-# dprime_F threshold 
-# based on Shi et al Tsao bioRxiv (Fig 1g, https://doi.org/10.1101/2023.12.06.570341):
-# "The dotted vertical line marks d’ = 0.2, which we used as our threshold for identifying face-selective units."
-threshold_dprime = 0.2
-
 threshold_cellprob = 0.0
-
 threshold_Zscore = 0.5
 
 plot_eyecal = False
