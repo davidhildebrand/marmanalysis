@@ -306,11 +306,10 @@ if len(filelist_eyecal_log) > 0:
     eclf = open(ec_lf_path, 'r')
     eyecal_log = eclf.read()
     eclf.close()
+    del eclf
 else:
     ec_lf_path = None
-    eclf = None
     eyecal_log = None
-del eclf
 
 if len(filelist_eyecal_aidata) > 0:
     ec_df_path = filelist_eyecal_aidata[0]
@@ -338,9 +337,9 @@ if len(filelist_eyetrack_data) > 0:
         warn('Found multiple log files, using the first: {}'.format(etf_path))
     with open(etf_path, 'rb') as etf:
         eyetrk_data = pickle.load(etf)
+    del etf
 else:
     etf_path = None
-del etf
 
 dirlist_suite2p = [d for d in glob(os.path.join(session_path, dirstr_suite2p)) if os.path.isdir(d)]
 if len(dirlist_suite2p) > 0:

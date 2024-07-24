@@ -614,11 +614,10 @@ if len(filelist_eyecal_log) > 0:
     eclf = open(ec_lf_path, 'r')
     eyecal_log = eclf.read()
     eclf.close()
+    del eclf
 else:
     ec_lf_path = None
-    eclf = None
     eyecal_log = None
-del eclf
 
 if len(filelist_eyecal_aidata) > 0:
     ec_df_path = filelist_eyecal_aidata[0]
