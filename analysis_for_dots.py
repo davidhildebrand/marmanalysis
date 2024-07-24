@@ -27,16 +27,22 @@ import plots
 
 # %% Settings
 
+# Direction-Selectivity Index (DSI) threshold
 # based on Pattadkal etal Priebe 2022 bioRxiv
 #   https://doi.org/10.1101/2022.06.23.497220
 # "All cell pairs with DSI ≥ 0.15 are considered."
 dsi_tuning_thresh = 0.15
 
 threshold_cellprob = 0.0
+threshold_Zscore = 0.5
 
+# Plotting parameters
 plt.rcParams['figure.dpi'] = 600
-dpi = plt.rcParams['figure.dpi']
 
+# Metrics to consider for plots and calculations
+metrics = ['FdFF', 'Fzsc']
+metric_labels = {'FdFF': 'dF/F',
+                 'Fzsc': 'Z-score'}
 
 # Remove stale metadata
 if 'md' in locals():
@@ -46,6 +52,10 @@ if 'md' in locals():
 
 # %% Specify data locations
 
+# savepath_str = 'analysis'
+# save_path = r'F:\Data\analysis'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Cadbury
 animal_str = 'Cadbury'
@@ -518,9 +528,8 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
     # (True for MT, False for auditory)
     # TODO **** implement scale bar?
 
-    dpi = plt.rcParams['figure.dpi']
     h, w = fov_size  # rows/height/y, columns/width/x
-    figsize = w / float(dpi), h / float(dpi)
+    figsize = w / float(plt.rcParams['figure.dpi']), h / float(plt.rcParams['figure.dpi'])
 
     n_regions = len(regions)
     # TODO *** note that the >= might not be general (e.g. with FSI)
@@ -600,7 +609,7 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
             '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
             '_tuned{}of{}'.format(n_regions_tuned, n_regions) + \
             '.png'
-        f0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
+        f0.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
     # Plot colorbar or colorwheel
     # if circular is True:
@@ -639,7 +648,7 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
     #             '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
     #             '_tuned{}of{}'.format(n_ROIs_tuned, n_ROIs) + \
     #             '_legend.png'
-    #         f1.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
+    #         f1.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
     # # working but slow
     # # also relevant https://stackoverflow.com/questions/62531754/how-to-draw-a-hsv-color-wheel-using-matplotlib
@@ -663,7 +672,7 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
     #     dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
     #     save_name = dt + '_ROIplot_continuous_withsat_' + \
     #         'legend.png'
-    #     fig.savefig(save_path + os.path.sep + dt, dpi=dpi, transparent=True)
+    #     fig.savefig(save_path + os.path.sep + dt, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
     # # working if image creation or saturation alpha is preferred
     # # also relevant https://rosettacode.org/wiki/Color_wheel
@@ -952,10 +961,10 @@ if saving:
     dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
     save_name = dt + '_histogram_DSI_thresh' + \
         '{:.2f}'.format(dsi_tuning_thresh).replace('.', 'p') + '.svg'
-    f_hist0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
+    f_hist0.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
     save_name = dt + '_histogram_DSI_thresh' + \
         '{:.2f}'.format(dsi_tuning_thresh).replace('.', 'p') + '.png'
-    f_hist0.savefig(save_path + os.path.sep + save_name, dpi=dpi, transparent=True)
+    f_hist0.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 #
 # f_hist1 = plt.figure()
