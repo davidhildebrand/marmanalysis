@@ -143,6 +143,8 @@ md['fov']['h_px'] = 730
 
 if 'save_path' not in locals():
     save_path = ''
+if 'savepath_str' not in locals():
+    savepath_str = ''
 if 'stimimage_path' not in locals():
     stimimage_path = ''
 
@@ -185,13 +187,16 @@ else:
     base_path = None
     stim_path = None
 
+date_path = os.path.join(base_path, animal_str, date_str)
+session_path = os.path.join(base_path, animal_str, date_str, session_str)
+
+if savepath_str != "" and save_path == '':
+    save_path = os.path.join(session_path, savepath_str)
+    os.makedirs(save_path, exist_ok=True)
 if save_path == '':
     saving = False
 else:
     saving = True
-
-date_path = os.path.join(base_path, animal_str, date_str)
-session_path = os.path.join(base_path, animal_str, date_str, session_str)
 
 filelist_metadata = [f for f in glob(os.path.join(session_path, filestr_metadata)) if os.path.isfile(f)]
 filelist_image_data = [f for f in glob(os.path.join(session_path, filestr_image_data)) if os.path.isfile(f)]
@@ -353,7 +358,7 @@ else:
     raise RuntimeError('Could not find suite2p folder.')
 
 
-# % Load suite2p outputs
+# Load suite2p data
 
 s2p_iscell = np.load(os.path.join(s2p_plane_path, 'iscell.npy'))
 s2p_F = np.load(os.path.join(s2p_plane_path, 'F.npy'))
@@ -376,6 +381,8 @@ fov_size = (fov_h, fov_w)  # rows/height/y, columns/width/x
 fov_image = s2p_ops['meanImg']
 n_ROIs, n_frames = Frois.shape
 
+
+# %% Process fluorescence signal
 
 # # Inspect fluorescence baseline filters
 # filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
