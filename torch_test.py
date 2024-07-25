@@ -5,24 +5,29 @@ Created on Tue Jul 23 12:45:17 2024
 @author: DavidH
 """
 
+# based on https://pytorch.org/hub/pytorch_vision_alexnet/
+
 import torch
 model = torch.hub.load('pytorch/vision:v0.10.0', 'alexnet', pretrained=True)
 model.eval()
 
-# https://stackoverflow.com/questions/3969726/attributeerror-module-object-has-no-attribute-urlopen
+# import urllib
+# # url, filename = ("https://github.com/pytorch/hub/raw/master/images/dog.jpg", "dog.jpg")
+# url, filename = ("https://images.pexels.com/photos/667500/pexels-photo-667500.jpeg", "c.jpg")
+# try: urllib.URLopener().retrieve(url, filename)
+# except: urllib.request.urlretrieve(url, filename)
 
-import urllib
-# url, filename = ("https://github.com/pytorch/hub/raw/master/images/dog.jpg", "dog.jpg")
-url, filename = ("https://images.pexels.com/photos/667500/pexels-photo-667500.jpeg", "c.jpg")
-try: urllib.URLopener().retrieve(url, filename)
-except: urllib.request.urlretrieve(url, filename)
-
+filename = r'F:\Data\stimuli\FOBmany\Images\20240312d\FreiwaldFOB2012_Human_Head_10_erode3px.png'
 from PIL import Image
 from torchvision import transforms
-input_image = Image.open(filename)
+input_image = Image.open(filename).convert('RGBA')
+newbg = Image.new('RGBA', input_image.size, (128, 128, 128))
+ac = Image.alpha_composite(newbg, input_image)
+input_image = ac.convert('RGB')
 preprocess = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
+    # transforms.Resize(256),
+    # transforms.Resize(224),
+    # transforms.CenterCrop(224),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
