@@ -104,7 +104,7 @@ animal_str = 'Cadbury'
 # # 20221016d
 # date_str = '20221016d_olds2p'
 date_str = '20221016d'
-# -- PD (good)
+# -- PD (good | fixation spot on before every stimulus, not sure about background stability)
 session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
 md = dict()
 md['framerate'] = 6.364
