@@ -7,6 +7,7 @@ Created on Tue Jul 23 12:45:17 2024
 
 import filetype
 import os
+from PIL import Image
 import socket
 import torch
 
@@ -45,7 +46,7 @@ if 'Galactica' in system_name:
 elif 'Obsidian' in system_name:
     base_path = r'F:\Data'
     stim_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets'
-    collated_stim_path = os.path.join(base_path, 'stims')
+    collated_stim_path = os.path.join(base_path, 'stimuli')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 elif 'Dobbin' in system_name:
     base_path = r'D:\Data'
@@ -55,9 +56,22 @@ elif 'Dobbin' in system_name:
 else:
     base_path = None
     stim_path = None
+    collated_stim_path = None
     device = 'cpu'
 
-image_files = [f for f in os.listdir(collated_stim_path) if filetype.is_image(os.path.join(collated_stim_path, f))]
+image_files = [f for f in os.listdir(collated_stim_path)
+               if os.path.isfile(os.path.join(collated_stim_path, f))
+               and filetype.is_image(os.path.join(collated_stim_path, f))]
+
+for imf in image_files:
+    filename = os.path.join(collated_stim_path, imf)
+    with Image.open(filename) as img:
+        if has_transparency(img):
+            print(f'{imf} has transparency')
+        else:
+            print(f'{imf} does not have transparency')
+        # img.show()
+
 
 model = torch.hub.load('pytorch/vision:v0.10.0', 'alexnet', pretrained=True)
 # model.eval()
