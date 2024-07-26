@@ -5,19 +5,69 @@ Created on Tue Jul 23 12:45:17 2024
 @author: DavidH
 """
 
-# based on https://pytorch.org/hub/pytorch_vision_alexnet/
-
+import filetype
+import os
+import socket
 import torch
+
+
+# Create hook for getting intermediate layer output
+# based on https://discuss.pytorch.org/t/how-can-i-extract-intermediate-layer-output-from-loaded-cnn-model/77301/3
+#     and https://discuss.pytorch.org/t/how-can-l-load-my-best-model-as-a-feature-extractor-evaluator/17254/14
+activation = {}
+def get_activation(name):
+    def hook(model, input, output):
+        activation[name] = output.detach()
+    return hook
+
+
+# based on https://stackoverflow.com/questions/43864101/python-pil-check-if-image-is-transparent
+def has_transparency(image):
+    if image.info.get('transparency', None) is not None:
+        return True
+    if image.mode == 'P':
+        transparent = image.info.get('transparency', -1)
+        for _, index in image.getcolors():
+            if index == transparent:
+                return True
+    elif image.mode == 'RGBA':
+        if image.getextrema()[3][0] < 255:
+            return True
+    return False
+
+
+system_name = socket.gethostname()
+if 'Galactica' in system_name:
+    base_path = r'/Users/davidh/Data/Freiwald/'
+    stim_path = r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets'
+    collated_stim_path = os.path.join(base_path, 'stims')
+    device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+elif 'Obsidian' in system_name:
+    base_path = r'F:\Data'
+    stim_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets'
+    collated_stim_path = os.path.join(base_path, 'stims')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+elif 'Dobbin' in system_name:
+    base_path = r'D:\Data'
+    stim_path = r'C:\Users\DavidH\Sync\Freiwald\MarmoScope\Stimulus\Sets'
+    collated_stim_path = os.path.join(base_path, 'stims')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+else:
+    base_path = None
+    stim_path = None
+    device = 'cpu'
+
+image_files = [f for f in os.listdir(collated_stim_path) if filetype.is_image(os.path.join(collated_stim_path, f))]
+
 model = torch.hub.load('pytorch/vision:v0.10.0', 'alexnet', pretrained=True)
-model.eval()
+# model.eval()
+fc6 = model.classifier[1]  # want output from 'fc6' (1): Linear(in_features=9216, out_features=4096, bias=True)
+fc6.register_forward_hook(get_activation('fc6'))
 
-# import urllib
-# # url, filename = ("https://github.com/pytorch/hub/raw/master/images/dog.jpg", "dog.jpg")
-# url, filename = ("https://images.pexels.com/photos/667500/pexels-photo-667500.jpeg", "c.jpg")
-# try: urllib.URLopener().retrieve(url, filename)
-# except: urllib.request.urlretrieve(url, filename)
 
-filename = r'F:\Data\stimuli\FOBmany\Images\20240312d\FreiwaldFOB2012_Human_Head_10_erode3px.png'
+for imf in image_files:
+
+
 from PIL import Image
 from torchvision import transforms
 input_image = Image.open(filename).convert('RGBA')
