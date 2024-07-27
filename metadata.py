@@ -315,7 +315,7 @@ def extract_useful_metadata(scanimage_metadata):
     umd['mrois']['orig'] = mrois_orig
     umd['n_mrois'] = len(mrois_orig)
     mroi_sizes_px = np.array([r['size_px'] for r in umd['mrois']['orig']], dtype=int)
-    if np.all(np.isclose(mroi_sizes_px[:, 0], mroi_sizes_px[0, 0])):
+    if np.allclose(mroi_sizes_px[:, 0], mroi_sizes_px[0, 0]):
         mroi_w_px = mroi_sizes_px[0, 0]
     else:
         raise Exception('Not all MROIs have the same width.')
@@ -402,8 +402,8 @@ def extract_useful_metadata(scanimage_metadata):
                                             mroi_corners_tl_deg[:, 1].min()])
     umd['fov']['corner_br_deg'] = np.array([mroi_corners_br_deg[:, 0].max(),
                                             mroi_corners_br_deg[:, 1].max()])
-    if np.all(np.isclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0])) and \
-       np.all(np.isclose(mroi_resolutions_degpx, mroi_resolutions_degpx[0])):
+    if np.allclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0]) and \
+       np.allclose(mroi_resolutions_degpx, mroi_resolutions_degpx[0]):
         umd['fov']['resolution_umpx'] = mroi_resolutions_umpx[0]
         umd['fov']['xres_umpx'] = umd['fov']['resolution_umpx'][0]
         umd['fov']['yres_umpx'] = umd['fov']['resolution_umpx'][1]
@@ -463,10 +463,10 @@ def extract_useful_metadata(scanimage_metadata):
         umd['fov']['neurondiameter_px'] = None
 
     # Calculate additional values if all MROIs have the same size, resolution, and vertical position.
-    if np.all(np.isclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1])) and \
-            np.all(np.isclose(mroi_sizes_deg, mroi_sizes_deg[0])) and \
-            np.all(np.isclose(mroi_sizes_px, mroi_sizes_px[0])) and \
-            np.all(np.isclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0])):
+    if np.allclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1]) and \
+            np.allclose(mroi_sizes_deg, mroi_sizes_deg[0]) and \
+            np.allclose(mroi_sizes_px, mroi_sizes_px[0]) and \
+            np.allclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0]):
         # print('All MROIs have the same size, resolution, and vertical position.')
         umd['strip'] = dict()
         umd['n_strips'] = umd['n_mrois']
