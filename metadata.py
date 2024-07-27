@@ -408,8 +408,15 @@ def extract_useful_metadata(scanimage_metadata):
         umd['fov']['xres_umpx'] = umd['fov']['resolution_umpx'][0]
         umd['fov']['yres_umpx'] = umd['fov']['resolution_umpx'][1]
         umd['fov']['resolution_degpx'] = mroi_resolutions_degpx[0]
+    elif not np.allclose(mroi_sizes_px, mroi_sizes_px[0]):
+        warn('Not all MROIs have the same pixel dimensions. ' +
+             'Defining the resolution based on the first MROI.')
+        umd['fov']['resolution_umpx'] = mroi_resolutions_umpx[0]
+        umd['fov']['xres_umpx'] = umd['fov']['resolution_umpx'][0]
+        umd['fov']['yres_umpx'] = umd['fov']['resolution_umpx'][1]
+        umd['fov']['resolution_degpx'] = mroi_resolutions_degpx[0]
     else:
-        warn('Not all MROIs have the same resolution.')
+        warn('Not all MROIs have the same resolution (possibly caused by size mismatch).')
         umd['fov']['resolution_umpx'] = None
         umd['fov']['resolution_degpx'] = None
     fov_positions_deg = [np.arange(umd['fov']['corner_tl_deg'][0],  # x_deg min
