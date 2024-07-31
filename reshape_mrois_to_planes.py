@@ -77,9 +77,20 @@ if md['mrois']['overlap'] is not False or md['mrois']['overlap_px'] is not None:
 if md['n_planes'] != 1:
     RuntimeError('Handing multi-plane data is not yet implemented.')
 
-data = ScanImageTiffReader(source).data()
-data = np.expand_dims(data, 1)
-data = np.swapaxes(data, 1, 3)
+data = ScanImageTiffReader(source).data()  # initial order: frames, y/h/rows, x/w/cols, z/planes
+if data.ndim == 4:
+    # Assume data consists of multiple 3-D volumes sampled across time.
+    data = np.swapaxes(data, 1, 2)  # yields: frames, x/w/cols, y/h/rows, z/planes
+elif data.ndim == 3:
+    # Assume data consists of a 2-D plane sampled across time.
+    data = np.swapaxes(data, 1, 2)  # yields: frames, x/w/cols, y/h/rows
+    data = np.expand_dims(data, 3)  # yields: frames, x/w/cols, y/h/rows, z/planes
+elif data.ndim == 2:
+    # Assume data consists of a 2-D plane sampled once.
+    data = np.swapaxes(data, 0, 1)  # yields: x/w/cols, y/h/rows
+    data = np.expand_dims(data, (0, 3))  # yields: frames, x/w/cols, y/h/rows, z/planes
+else:
+    raise Exception('Unsupported or misconfigured data dimensionality.')
 
 # Divide long acquisition strip into MROI chunks.
 planes_mrois = np.empty((md['n_planes'], md['n_mrois']), dtype=np.ndarray)
@@ -148,6 +159,7 @@ for i_plane in range(n_z):
     end_y = shift_y + canvas.shape[2]
 
     volume[:, shift_x:end_x, shift_y:end_y, i_plane] = canvas
+del canvas, planes_mrois
 
 if np.any(np.isnan(volume)):
     raise Exception('NaNs found in preprocessed volume.')
