@@ -382,8 +382,8 @@ def extract_useful_metadata(scanimage_metadata, strip_overlap=None):
         else:
             # TODO find a way to accurately calculate overlap between mrois
             umd['mrois']['overlap'] = True
-            if (datetime(2022, 10, 14, tzinfo=ZoneInfo('America/New_York')) <= umd['start_datetime'] <=
-                    datetime(2022, 10, 17, tzinfo=ZoneInfo('America/New_York'))):
+            if (datetime(2022, 10, 13, tzinfo=ZoneInfo('America/New_York')) <= umd['start_datetime'] <=
+                    datetime(2022, 10, 18, tzinfo=ZoneInfo('America/New_York'))):
                 umd['mrois']['overlap_px'] = 12
             else:
                 umd['mrois']['overlap_px'] = 'unknown'
