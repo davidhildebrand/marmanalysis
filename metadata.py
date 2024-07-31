@@ -572,7 +572,7 @@ def extract_useful_metadata(scanimage_metadata, strip_overlap=None):
             umd['plane']['size_um'][0] = umd['plane']['w_um']
             umd['plane']['size_um_str'] = 'fov{:04d}x{:04d}um'.format(round(umd['plane']['w_um']),
                                                                       round(umd['plane']['h_um']))
-    # TODO * * * implement bounding box for unequal MROIs
+    # # TODO * * * implement bounding box for unequal MROIs
     # elif (np.allclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1]) and
     #       np.allclose(mroi_sizes_deg, mroi_sizes_deg[0]) and
     #       not np.allclose(mroi_sizes_px, mroi_sizes_px[0]) and
