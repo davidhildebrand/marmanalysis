@@ -378,7 +378,7 @@ def extract_useful_metadata(scanimage_metadata, strip_overlap=None):
     if strip_overlap is None:
         if umd['start_datetime'] > date_2pram_strip_overlap_fix:
             umd['mrois']['overlap'] = False
-            umd['mrois']['overlap_px'] = None
+            umd['mrois']['overlap_px'] = 0
         else:
             # TODO find a way to accurately calculate overlap between mrois
             umd['mrois']['overlap'] = True
@@ -386,8 +386,8 @@ def extract_useful_metadata(scanimage_metadata, strip_overlap=None):
                     datetime(2022, 10, 18, tzinfo=ZoneInfo('America/New_York'))):
                 umd['mrois']['overlap_px'] = 12
             else:
-                umd['mrois']['overlap_px'] = 'unknown'
-            if umd['mrois']['overlap_px'] != 'unknown':
+                umd['mrois']['overlap_px'] = None
+            if umd['mrois']['overlap_px'] is not None:
                 warn('Overlap assumed to be {}px based on manual '.format(umd['mrois']['overlap_px']) +
                      'measurements from the date range in which the data was acquired.')
     else:
@@ -437,7 +437,7 @@ def extract_useful_metadata(scanimage_metadata, strip_overlap=None):
         umd['fov']['resolution_umpx'] = None
         umd['fov']['resolution_degpx'] = None
 
-    if umd['mrois']['overlap_px'] != 'unknown':
+    if umd['mrois']['overlap_px'] is not None:
         if umd['fov']['resolution_umpx'] is not None:
             umd['mrois']['overlap_deg'] = umd['mrois']['overlap_px'] * umd['fov']['resolution_degpx'][0]
         if umd['fov']['resolution_degpx'] is not None:
