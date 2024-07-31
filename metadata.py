@@ -248,10 +248,11 @@ def roi_from_scanfield(scanfield):
     return r
 
 
-def extract_useful_metadata(scanimage_metadata):
-    # NOTE assumes data acquired before 20230505d have strip overlap and after do not
+def extract_useful_metadata(scanimage_metadata, strip_overlap=None):
+    # NOTE assumes data acquired after 20230505d do not strip overlap unless specified
     simd = scanimage_metadata
-    date_strip_overlap_fix = datetime(2023, 5, 5, tzinfo=ZoneInfo('America/New_York'))
+    date_2pram_trigger_fix = datetime(2022, 10, 7, tzinfo=ZoneInfo('America/New_York'))
+    date_2pram_strip_overlap_fix = datetime(2023, 5, 5, tzinfo=ZoneInfo('America/New_York'))
     date_stim_lock_acqfr_inc = datetime(2023, 9, 7, tzinfo=ZoneInfo('America/New_York'))
 
     umd = dict()
@@ -315,7 +316,7 @@ def extract_useful_metadata(scanimage_metadata):
     umd['mrois']['orig'] = mrois_orig
     umd['n_mrois'] = len(mrois_orig)
     mroi_sizes_px = np.array([r['size_px'] for r in umd['mrois']['orig']], dtype=int)
-    if np.all(np.isclose(mroi_sizes_px[:, 0], mroi_sizes_px[0, 0])):
+    if np.allclose(mroi_sizes_px[:, 0], mroi_sizes_px[0, 0]):
         mroi_w_px = mroi_sizes_px[0, 0]
     else:
         raise Exception('Not all MROIs have the same width.')
@@ -371,13 +372,27 @@ def extract_useful_metadata(scanimage_metadata):
     mroi_resolutions_degpx = np.array([r['resolution_degpx'] for r in umd['mrois']['lrsort']])
     mroi_centers_deg = np.array([r['center_deg'] for r in umd['mrois']['lrsort']])
 
-    if umd['start_datetime'] > date_strip_overlap_fix:
-        umd['mrois']['overlap'] = False
-        umd['mrois']['overlap_px'] = None
+    if umd['start_datetime'] < date_2pram_trigger_fix:
+        warn('Acquired before 2pRAM trigger issue was fixed. This data may be corrupted by incorrect scan patterns.')
+
+    if strip_overlap is None:
+        if umd['start_datetime'] > date_2pram_strip_overlap_fix:
+            umd['mrois']['overlap'] = False
+            umd['mrois']['overlap_px'] = None
+        else:
+            # TODO find a way to accurately calculate overlap between mrois
+            umd['mrois']['overlap'] = True
+            if (datetime(2022, 10, 14, tzinfo=ZoneInfo('America/New_York')) <= umd['start_datetime'] <=
+                    datetime(2022, 10, 17, tzinfo=ZoneInfo('America/New_York'))):
+                umd['mrois']['overlap_px'] = 12
+            else:
+                umd['mrois']['overlap_px'] = 'unknown'
+            if umd['mrois']['overlap_px'] != 'unknown':
+                warn('Overlap assumed to be {}px based on manual '.format(umd['mrois']['overlap_px']) +
+                     'measurements from the date range in which the data was acquired.')
     else:
         umd['mrois']['overlap'] = True
-        # TODO calculate overlap between mrois
-        umd['mrois']['overlap_px'] = 'unknown'
+        umd['mrois']['overlap_px'] = strip_overlap
 
     if umd['start_datetime'] > date_stim_lock_acqfr_inc:
         umd['stim_locked_to_acqfr'] = True
@@ -402,16 +417,32 @@ def extract_useful_metadata(scanimage_metadata):
                                             mroi_corners_tl_deg[:, 1].min()])
     umd['fov']['corner_br_deg'] = np.array([mroi_corners_br_deg[:, 0].max(),
                                             mroi_corners_br_deg[:, 1].max()])
-    if np.all(np.isclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0])) and \
-       np.all(np.isclose(mroi_resolutions_degpx, mroi_resolutions_degpx[0])):
+    if (np.allclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0]) and
+            np.allclose(mroi_resolutions_degpx, mroi_resolutions_degpx[0])):
+        umd['fov']['resolution_umpx'] = mroi_resolutions_umpx[0]
+        umd['fov']['xres_umpx'] = umd['fov']['resolution_umpx'][0]
+        umd['fov']['yres_umpx'] = umd['fov']['resolution_umpx'][1]
+        umd['fov']['resolution_degpx'] = mroi_resolutions_degpx[0]
+    elif (np.allclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1]) and
+            np.allclose(mroi_sizes_deg, mroi_sizes_deg[0]) and
+            not np.allclose(mroi_sizes_px, mroi_sizes_px[0])):
+        warn('Not all MROIs have the same pixel dimensions, which may be distorting calculations for resolution. ' +
+             'Defining the resolution based on the first MROI.')
         umd['fov']['resolution_umpx'] = mroi_resolutions_umpx[0]
         umd['fov']['xres_umpx'] = umd['fov']['resolution_umpx'][0]
         umd['fov']['yres_umpx'] = umd['fov']['resolution_umpx'][1]
         umd['fov']['resolution_degpx'] = mroi_resolutions_degpx[0]
     else:
-        warn('Not all MROIs have the same resolution.')
+        warn('Not all MROIs have the same resolution (possibly caused by variable MROI sizes).')
         umd['fov']['resolution_umpx'] = None
         umd['fov']['resolution_degpx'] = None
+
+    if umd['mrois']['overlap_px'] != 'unknown':
+        if umd['fov']['resolution_umpx'] is not None:
+            umd['mrois']['overlap_deg'] = umd['mrois']['overlap_px'] * umd['fov']['resolution_degpx'][0]
+        if umd['fov']['resolution_degpx'] is not None:
+            umd['mrois']['overlap_um'] = umd['mrois']['overlap_px'] * umd['fov']['resolution_umpx'][0]
+
     fov_positions_deg = [np.arange(umd['fov']['corner_tl_deg'][0],  # x_deg min
                                    umd['fov']['corner_br_deg'][0],  # x_deg max
                                    umd['fov']['resolution_degpx'][0]),
@@ -432,7 +463,6 @@ def extract_useful_metadata(scanimage_metadata):
                      'MROI {}, top-left corner {:.4f}, closest {:.4f}'.format(i_mroi,
                                                                               mroi_corners_tl_deg[i_mroi, i_xy],
                                                                               closest_xy_deg))
-    del dimax
 
     # If necessary, remove extra pixel added to reconstruction width due to rounding errors or ScanImage errors.
     if len(fov_positions_deg[0]) == np.sum(mroi_sizes_px[:, 0]) + 1:
@@ -463,11 +493,32 @@ def extract_useful_metadata(scanimage_metadata):
         umd['fov']['neurondiameter_px'] = None
 
     # Calculate additional values if all MROIs have the same size, resolution, and vertical position.
-    if np.all(np.isclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1])) and \
-            np.all(np.isclose(mroi_sizes_deg, mroi_sizes_deg[0])) and \
-            np.all(np.isclose(mroi_sizes_px, mroi_sizes_px[0])) and \
-            np.all(np.isclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0])):
-        # print('All MROIs have the same size, resolution, and vertical position.')
+    if (np.allclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1]) and
+       np.allclose(mroi_sizes_deg, mroi_sizes_deg[0]) and
+       np.allclose(mroi_sizes_px, mroi_sizes_px[0]) and
+       np.allclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0])):
+        umd['strip'] = dict()
+        umd['n_strips'] = umd['n_mrois']
+        umd['strip']['size_deg'] = mroi_sizes_deg[0]
+        umd['strip']['w_deg'] = umd['strip']['size_deg'][0]
+        umd['strip']['h_deg'] = umd['strip']['size_deg'][1]
+        umd['strip']['size_px'] = mroi_sizes_px[0]
+        umd['strip']['w_px'] = umd['strip']['size_px'][0]
+        umd['strip']['h_px'] = umd['strip']['size_px'][1]
+        umd['strip']['resolution_umpx'] = mroi_resolutions_umpx[0]
+        umd['strip']['xres_umpx'] = umd['strip']['resolution_umpx'][0]
+        umd['strip']['yres_umpx'] = umd['strip']['resolution_umpx'][1]
+        xres_str = '{:03.2f}'.format(umd['strip']['xres_umpx']).replace('.', 'p')
+        yres_str = '{:03.2f}'.format(umd['strip']['yres_umpx']).replace('.', 'p')
+        umd['strip']['resolution_str'] = 'res{}x{}umpx'.format(xres_str, yres_str)
+        umd['strip']['size_um'] = umd['strip']['size_px'] * umd['strip']['resolution_umpx']
+        umd['strip']['w_um'] = umd['strip']['size_um'][0]
+        umd['strip']['h_um'] = umd['strip']['size_um'][1]
+    elif (np.allclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1]) and
+            np.allclose(mroi_sizes_deg, mroi_sizes_deg[0]) and
+            not np.allclose(mroi_sizes_px, mroi_sizes_px[0])):
+        warn('Not all MROIs have the same pixel dimensions, which may be distorting calculations for resolution. ' +
+             'Defining the strip details based on the first MROI.')
         umd['strip'] = dict()
         umd['n_strips'] = umd['n_mrois']
         umd['strip']['size_deg'] = mroi_sizes_deg[0]
@@ -486,38 +537,77 @@ def extract_useful_metadata(scanimage_metadata):
         umd['strip']['w_um'] = umd['strip']['size_um'][0]
         umd['strip']['h_um'] = umd['strip']['size_um'][1]
     else:
+        warn('Defining consistent strips is not possible because some MROIs do not have the same scan angle ' +
+             'dimensions, pixel dimensions, or resolution.')
         umd['strip'] = None
         umd['n_strips'] = None
 
     if umd['strip'] is not None:
         umd['plane'] = dict()
         if umd['mrois']['overlap'] is False and umd['mrois']['overlap_px'] is None:
-            umd['plane']['size_deg'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_deg']
-            umd['plane']['w_deg'] = umd['plane']['size_deg'][0]
-            umd['plane']['h_deg'] = umd['plane']['size_deg'][1]
             umd['plane']['size_px'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_px']
             umd['plane']['w_px'] = umd['plane']['size_px'][0]
             umd['plane']['h_px'] = umd['plane']['size_px'][1]
+            umd['plane']['size_deg'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_deg']
+            umd['plane']['w_deg'] = umd['plane']['size_deg'][0]
+            umd['plane']['h_deg'] = umd['plane']['size_deg'][1]
             umd['plane']['size_um'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_um']
             umd['plane']['w_um'] = round(umd['plane']['size_um'][0])
             umd['plane']['h_um'] = round(umd['plane']['size_um'][1])
             umd['plane']['size_um_str'] = 'fov{:04d}x{:04d}um'.format(umd['plane']['w_um'],
                                                                       umd['plane']['h_um'])
         elif umd['mrois']['overlap'] is True and isinstance(umd['mrois']['overlap_px'], int):
+            umd['plane']['size_px'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_px']
+            umd['plane']['w_px'] = umd['plane']['size_px'][0] - (umd['mrois']['overlap_px'] * (umd['n_mrois'] - 1))
+            umd['plane']['h_px'] = umd['plane']['size_px'][1]
+            umd['plane']['size_px'][0] = umd['plane']['w_px']
             umd['plane']['size_deg'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_deg']
-            # TODO reduce plane size by the overlap amount
-            # umd['plane']['w_deg'] = umd['plane']['size_deg'][0]
-            # umd['plane']['h_deg'] = umd['plane']['size_deg'][1]
-            # umd['plane']['size_px'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_px']
-            # umd['plane']['w_px'] = umd['plane']['size_px'][0]
-            # umd['plane']['h_px'] = umd['plane']['size_px'][1]
-            # umd['plane']['size_um'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_um']
-            # umd['plane']['w_um'] = round(umd['plane']['size_um'][0])
-            # umd['plane']['h_um'] = round(umd['plane']['size_um'][1])
-            # umd['plane']['size_um_str'] = 'fov{:04d}x{:04d}um'.format(round(umd['plane']['w_um']),
-            #                                                           round(umd['plane']['h_um']))
+            umd['plane']['w_deg'] = umd['plane']['size_deg'][0] - (umd['mrois']['overlap_deg'] * (umd['n_mrois'] - 1))
+            umd['plane']['h_deg'] = umd['plane']['size_deg'][1]
+            umd['plane']['size_deg'][0] = umd['plane']['w_deg']
+            umd['plane']['size_um'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_um']
+            umd['plane']['w_um'] = round(umd['plane']['size_um'][0]) - \
+                                   (umd['mrois']['overlap_um'] * (umd['n_mrois'] - 1))
+            umd['plane']['h_um'] = round(umd['plane']['size_um'][1])
+            umd['plane']['size_um'][0] = umd['plane']['w_um']
+            umd['plane']['size_um_str'] = 'fov{:04d}x{:04d}um'.format(round(umd['plane']['w_um']),
+                                                                      round(umd['plane']['h_um']))
+    # TODO * * * implement bounding box for unequal MROIs
+    # elif (np.allclose(mroi_centers_deg[:, 1], mroi_centers_deg[0, 1]) and
+    #       np.allclose(mroi_sizes_deg, mroi_sizes_deg[0]) and
+    #       not np.allclose(mroi_sizes_px, mroi_sizes_px[0]) and
+    #       not np.allclose(mroi_resolutions_umpx, mroi_resolutions_umpx[0])):
+    #     warn('All MROIs have the same scan angle dimensions but not pixel dimensions. ' +
+    #          'Attempting to define the FOV based on the maximum bounding box area containing all MROIs.')
+    #     if umd['mrois']['overlap'] is False and umd['mrois']['overlap_px'] is None:
+    #         umd['plane']['size_deg'] = len(mroi_sizes_deg) * mroi_sizes_deg[0]
+    #         umd['plane']['w_deg'] = umd['plane']['size_deg'][0]
+    #         umd['plane']['h_deg'] = umd['plane']['size_deg'][1]
+    #         umd['plane']['size_px'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_px']
+    #         umd['plane']['w_px'] = umd['plane']['size_px'][0]
+    #         umd['plane']['h_px'] = umd['plane']['size_px'][1]
+    #         umd['plane']['size_um'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_um']
+    #         umd['plane']['w_um'] = round(umd['plane']['size_um'][0])
+    #         umd['plane']['h_um'] = round(umd['plane']['size_um'][1])
+    #         umd['plane']['size_um_str'] = 'fov{:04d}x{:04d}um'.format(umd['plane']['w_um'],
+    #                                                                   umd['plane']['h_um'])
+    #     elif umd['mrois']['overlap'] is True and isinstance(umd['mrois']['overlap_px'], int):
+    #         umd['plane']['size_px'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_px']
+    #         umd['plane']['w_px'] = umd['plane']['size_px'][0] - (umd['mrois']['overlap_px'] * (md['n_mrois'] - 1))
+    #         umd['plane']['h_px'] = umd['plane']['size_px'][1]
+    #         umd['plane']['size_px'][0] = umd['plane']['w_px']
+    #         umd['plane']['size_deg'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_deg']
+    #         umd['plane']['w_deg'] = umd['plane']['size_deg'][0] - (umd['mrois']['overlap_deg'] * (md['n_mrois'] - 1))
+    #         umd['plane']['h_deg'] = umd['plane']['size_deg'][1]
+    #         umd['plane']['size_deg'][0] = umd['plane']['w_deg']
+    #         umd['plane']['size_um'] = np.array([umd['n_strips'], 1]) * umd['strip']['size_um']
+    #         umd['plane']['w_um'] = round(umd['plane']['size_um'][0]) - (umd['mrois']['overlap_um'] * (md['n_mrois'] - 1))
+    #         umd['plane']['h_um'] = round(umd['plane']['size_um'][1])
+    #         umd['plane']['size_um'][0] = umd['plane']['w_um']
+    #         umd['plane']['size_um_str'] = 'fov{:04d}x{:04d}um'.format(round(umd['plane']['w_um']),
+    #                                                                   round(umd['plane']['h_um']))
     else:
-        warn('Only MROI strips are currently supported.')
+        warn('Unclear definition of a plane for this data.')
         umd['plane'] = None
 
     return umd

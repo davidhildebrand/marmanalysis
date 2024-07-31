@@ -36,12 +36,12 @@ def json_serializer(obj):
 
 # Parse command line options
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    'source',
-    help='Path to a ScanImage TIFF data file. [required]')
-parser.add_argument(
-    '-o', '--overlap', type=int, default=0,
-    help='Overlapping pixels between MROIs. [optional, default: 0]')
+parser.add_argument('source',
+                    help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument('-o', '--overlap', type=int, default=0,
+                    help='Overlapping pixels between MROIs. [optional, default: 0]')
+parser.add_argument('-fv', '--fill_value', type=int, default=0,
+                    help='Intensity value with which to fill empty regions. [optional, default: 0, type: uint16]')
 opts = parser.parse_args()
 
 if os.path.isfile(opts.source):
@@ -54,6 +54,8 @@ else:
     raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
 
 overlap_px = opts.overlap
+fill_value = opts.fill_value
+
 
 if not is_tiff(source):
     raise RuntimeError('Source file must be a TIFF stack.')
@@ -77,9 +79,20 @@ if md['mrois']['overlap'] is not False or md['mrois']['overlap_px'] is not None:
 if md['n_planes'] != 1:
     RuntimeError('Handing multi-plane data is not yet implemented.')
 
-data = ScanImageTiffReader(source).data()
-data = np.expand_dims(data, 1)
-data = np.swapaxes(data, 1, 3)
+data = ScanImageTiffReader(source).data()  # initial order: frames, y/h/rows, x/w/cols, z/planes
+if data.ndim == 4:
+    # Assume data consists of multiple 3-D volumes sampled across time.
+    data = np.swapaxes(data, 1, 2)  # yields: frames, x/w/cols, y/h/rows, z/planes
+elif data.ndim == 3:
+    # Assume data consists of a 2-D plane sampled across time.
+    data = np.swapaxes(data, 1, 2)  # yields: frames, x/w/cols, y/h/rows
+    data = np.expand_dims(data, 3)  # yields: frames, x/w/cols, y/h/rows, z/planes
+elif data.ndim == 2:
+    # Assume data consists of a 2-D plane sampled once.
+    data = np.swapaxes(data, 0, 1)  # yields: x/w/cols, y/h/rows
+    data = np.expand_dims(data, (0, 3))  # yields: frames, x/w/cols, y/h/rows, z/planes
+else:
+    raise Exception('Unsupported or misconfigured data dimensionality.')
 
 # Divide long acquisition strip into MROI chunks.
 planes_mrois = np.empty((md['n_planes'], md['n_mrois']), dtype=np.ndarray)
@@ -104,7 +117,7 @@ mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']]
 # print('n_f={} n_x={} n_y={} n_z={}'.format(n_f, n_x, n_y, n_z))
 
 volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
-# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
+# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.uint16)
 # print('volume shape: {}'.format(volume.shape))
 
 for i_plane in range(n_z):
@@ -148,12 +161,22 @@ for i_plane in range(n_z):
     end_y = shift_y + canvas.shape[2]
 
     volume[:, shift_x:end_x, shift_y:end_y, i_plane] = canvas
+del canvas, planes_mrois
 
 if np.any(np.isnan(volume)):
-    raise Exception('NaNs found in preprocessed volume.')
+    warn('Empty regions (NaNs) found in processed volume, ' +
+         'filling with pixels with intensity {} (uint16).'.format(fill_value))
+    volume = np.nan_to_num(volume, nan=fill_value)
 
-if volume.dtype != np.int16:
-    volume = volume.astype(np.int16)
+final_dtype = np.uint16
+if np.any(volume < np.iinfo(final_dtype).min) or np.any(volume > np.iinfo(final_dtype).max):
+    warn('Intensity values outside the minimum ({}) or '.format(np.iinfo(final_dtype).min) +
+         'maximum ({}) range type uint16 were clipped.'.format(np.iinfo(final_dtype).max))
+    volume = np.clip(volume, np.iinfo(final_dtype).min, np.iinfo(final_dtype).max)
+
+if volume.dtype != final_dtype:
+    volume = volume.astype(final_dtype)
+
 volume = np.squeeze(np.swapaxes(volume, 1, 2))
 
 md_str = json.dumps(md, default=json_serializer)
