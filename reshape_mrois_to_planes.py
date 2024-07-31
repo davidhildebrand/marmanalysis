@@ -117,7 +117,7 @@ mroi_corners_tl_px = np.array([r['corner_tl_px'] for r in md['mrois']['lrsort']]
 # print('n_f={} n_x={} n_y={} n_z={}'.format(n_f, n_x, n_y, n_z))
 
 volume = np.full((n_f, n_x, n_y, n_z), np.nan, dtype=np.float32)
-# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.int16)
+# volume = np.empty((n_f, n_x, n_y, n_z), dtype=np.uint16)
 # print('volume shape: {}'.format(volume.shape))
 
 for i_plane in range(n_z):
@@ -168,8 +168,15 @@ if np.any(np.isnan(volume)):
          'filling with pixels with intensity {} (uint16).'.format(fill_value))
     volume = np.nan_to_num(volume, nan=fill_value)
 
-if volume.dtype != np.int16:
-    volume = volume.astype(np.int16)
+final_dtype = np.uint16
+if np.any(volume < np.iinfo(final_dtype).min) or np.any(volume > np.iinfo(final_dtype).max):
+    warn('Intensity values outside the minimum ({}) or '.format(np.iinfo(final_dtype).min) +
+         'maximum ({}) range type uint16 were clipped.'.format(np.iinfo(final_dtype).max))
+    volume = np.clip(volume, np.iinfo(final_dtype).min, np.iinfo(final_dtype).max)
+
+if volume.dtype != final_dtype:
+    volume = volume.astype(final_dtype)
+
 volume = np.squeeze(np.swapaxes(volume, 1, 2))
 
 md_str = json.dumps(md, default=json_serializer)
