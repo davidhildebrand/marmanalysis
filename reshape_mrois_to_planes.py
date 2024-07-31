@@ -73,9 +73,9 @@ p['overwrite_warn'] = False
 simd = metadata.get_metadata(source)
 md = metadata.extract_useful_metadata(simd)
 
-if md['mrois']['overlap'] is not False or md['mrois']['overlap_px'] is not None:
+# TODO use metadata overlap if exists?
+if md['mrois']['overlap'] and md['mrois']['overlap_px'] == 'unknown':
     warn('Overlap between MROIs may require calculation, which is not yet supported.')
-    # raise Exception('Handling overlapping MROIs is not yet implemented.')
 if md['n_planes'] != 1:
     RuntimeError('Handing multi-plane data is not yet implemented.')
 
