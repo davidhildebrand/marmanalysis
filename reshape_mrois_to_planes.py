@@ -36,12 +36,12 @@ def json_serializer(obj):
 
 # Parse command line options
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    'source',
-    help='Path to a ScanImage TIFF data file. [required]')
-parser.add_argument(
-    '-o', '--overlap', type=int, default=0,
-    help='Overlapping pixels between MROIs. [optional, default: 0]')
+parser.add_argument('source',
+                    help='Path to a ScanImage TIFF data file. [required]')
+parser.add_argument('-o', '--overlap', type=int, default=0,
+                    help='Overlapping pixels between MROIs. [optional, default: 0]')
+parser.add_argument('-fv', '--fill_value', type=int, default=0,
+                    help='Intensity value with which to fill empty regions. [optional, default: 0, type: uint16]')
 opts = parser.parse_args()
 
 if os.path.isfile(opts.source):
@@ -54,6 +54,8 @@ else:
     raise argparse.ArgumentTypeError('Source file does not exist ({}).'.format(opts.sourcefile))
 
 overlap_px = opts.overlap
+fill_value = opts.fill_value
+
 
 if not is_tiff(source):
     raise RuntimeError('Source file must be a TIFF stack.')
@@ -162,7 +164,9 @@ for i_plane in range(n_z):
 del canvas, planes_mrois
 
 if np.any(np.isnan(volume)):
-    raise Exception('NaNs found in preprocessed volume.')
+    warn('Empty regions (NaNs) found in processed volume, ' +
+         'filling with pixels with intensity {} (uint16).'.format(fill_value))
+    volume = np.nan_to_num(volume, nan=fill_value)
 
 if volume.dtype != np.int16:
     volume = volume.astype(np.int16)
