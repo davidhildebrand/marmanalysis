@@ -46,10 +46,8 @@ threshold_fsi = 1 / 3
 threshold_cellprob = 0.0
 threshold_Zscore = 0.5
 
-plot_eyecal = False
-
-
 # Plotting parameters
+plot_eyecal = False
 plt.rcParams['figure.dpi'] = 600
 
 # Metrics to consider for plots and calculations

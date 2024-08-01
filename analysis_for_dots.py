@@ -22,7 +22,8 @@ from warnings import warn
 import filters
 from metadata import default_metadata
 import parsers
-import plots
+# import plots
+from tuning import calculate_dsi
 
 
 # %% Settings
@@ -37,6 +38,7 @@ threshold_cellprob = 0.0
 threshold_Zscore = 0.5
 
 # Plotting parameters
+plot_eyecal = False
 plt.rcParams['figure.dpi'] = 600
 
 # Metrics to consider for plots and calculations
