@@ -958,7 +958,38 @@ if plot_eyecal and eyecal_data is not None:
 
 # %% Process stimulus information
 
+# Determine basic stimulus presentation information
+dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
+dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
+dur_trial = dur_isi + dur_stim + dur_isi
+n_samp_stim = int(np.floor(np.mean(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'])))
+# n_samp_stim = int(np.ceil(dur_stim * md['framerate']))
+n_samp_isi = int(np.min(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']))
+# n_samp_isi = int(np.round(dur_isi * md['framerate']))
+n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
+
+# Calculate the timing mismatch (contraction) introduced by rounding stim and/or isi frame samples down
+acqfr_dilation_factor = (dur_trial * md['framerate']) / (n_samp_trial - 1)
+
+# *** TODO: take only conds with image presentations
+if np.unique(stimlog[:]['stim_mode'].values).size != 1:
+    warn('More than one stimulus mode was presented and is not yet fully supported.')
+if np.unique(stimlog[:]['stim_class'].values).size != 1:
+    warn('More than one stimulus class was presented and is not yet fully supported.')
+if np.unique(stimlog[:]['stim_subclass'].values).size != 1:
+    warn('More than one stimulus subclass was presented and is not yet fully supported.')
+
+n_metrics = len(metrics)
+n_conds = len(np.unique(stimlog['cond'].values))
+n_trials = len(stimlog)
+n_reps = int(len(stimlog) / n_conds)
+
+if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
+    raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
+                       'Handling this is not yet implemented.')
+
 # Identify stimulus image set from file paths
+# *** TODO: make this work on a per-cond/image level
 if np.unique([os.path.dirname(p) for p in stimlog['image_path'].values]).size == 1:
     image_dirpath = os.path.dirname(stimlog.iloc[0]['image_path'])
     if 'FOBmin_MarmOnly' in image_dirpath or 'MinFOB_MarmOnly' in image_dirpath:
@@ -980,29 +1011,6 @@ else:
     # *** TODO: default to images without category separation in this case
     warn('Images are not all from the same set.')
     image_set = None
-
-
-# Determine basic stimulus presentation information
-dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
-dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
-dur_trial = dur_isi + dur_stim + dur_isi
-n_samp_stim = int(np.floor(np.mean(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'])))
-# n_samp_stim = int(np.ceil(dur_stim * md['framerate']))
-n_samp_isi = int(np.min(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']))
-# n_samp_isi = int(np.round(dur_isi * md['framerate']))
-n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
-
-# Calculate the timing mismatch (contraction) introduced by rounding stim and/or isi frame samples down
-acqfr_dilation_factor = (dur_trial * md['framerate']) / (n_samp_trial - 1)
-
-n_metrics = len(metrics)
-n_conds = len(np.unique(stimlog['cond'].values))
-n_trials = len(stimlog)
-n_reps = int(len(stimlog) / n_conds)
-
-if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
-    raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
-                       'Handling this is not yet implemented.')
 
 
 # %% Organize fluorescence signals into a structured array data table
