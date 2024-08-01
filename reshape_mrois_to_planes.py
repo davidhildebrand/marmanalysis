@@ -169,13 +169,13 @@ if np.any(np.isnan(volume)):
     volume = np.nan_to_num(volume, nan=fill_value)
 
 final_dtype = np.uint16
-if np.any(volume < np.iinfo(final_dtype).min) or np.any(volume > np.iinfo(final_dtype).max):
-    warn('Intensity values outside the minimum ({}) or '.format(np.iinfo(final_dtype).min) +
-         'maximum ({}) range type uint16 were clipped.'.format(np.iinfo(final_dtype).max))
-    warn('Intensity value min was {} and '.format(np.min(volume)) +
-         'max was {}.'.format(np.max(volume)))
+if np.any(volume < np.iinfo(final_dtype).min):
+    warn('Intensity values below the minimum ({} < {}), '.format(np.min(volume), np.iinfo(final_dtype).min) +
+         'adjusting by adding minimum value to all pixels.')
+    volume = volume + np.abs(np.min(volume))
+if np.any(volume > np.iinfo(final_dtype).max):
+    warn('Intensity values above maximum ({} > {}) clipped.'.format(np.max(volume), np.iinfo(final_dtype).max))
     volume = np.clip(volume, np.iinfo(final_dtype).min, np.iinfo(final_dtype).max)
-
 if volume.dtype != final_dtype:
     volume = volume.astype(final_dtype)
 
