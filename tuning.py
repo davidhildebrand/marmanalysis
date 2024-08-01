@@ -10,12 +10,12 @@ def response_at_theta(params, theta):
     #     https://doi.org/10.1101/2022.06.23.497220
     theta_pref = params[0]  # rad, preferred direction
     beta = params[1]  # 'tuning width factor'
-    c = params[2]  # baseline
+    const_baseline = params[2]  # baseline
     a1 = params[3]  # peak 1 maxiumum amplitude
     a2 = params[4]  # peak 2 maxiumum amplitude
     resp = (a1 * np.exp(beta * np.cos(theta - theta_pref))) + \
         (a2 * np.exp(beta * np.cos(np.pi + theta - theta_pref))) + \
-        c
+        const_baseline
     return resp
 
 
