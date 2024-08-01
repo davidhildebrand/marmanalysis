@@ -1041,9 +1041,9 @@ for c in range(n_conds):
     tmp_cond = None
     tmp_cat = None
     tmp_id = None
-    tmp_pitch = -32768
-    tmp_yaw = -32768
-    tmp_roll = -32768
+    tmp_pitch = np.iinfo(np.int16).min
+    tmp_yaw = np.iinfo(np.int16).min
+    tmp_roll = np.iinfo(np.int16).min
     if np.unique(stimlog[stimlog['cond'] == c]['image'].values).size == 1:
         tmp_imagename = np.unique(stimlog[stimlog['cond'] == c]['image'].values)[0]
         imn = os.path.splitext(tmp_imagename)[0]
