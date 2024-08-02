@@ -1184,6 +1184,49 @@ for m in metrics:
 del m
 
 
+# %% Sort data table according to template, then define categories and conditions
+
+sort_by_cond = lambda x: (x[1].dir,
+                          x[1].coherence,
+                          x[1].speed,
+                          x[1].contrast,
+                          x[1].condition.decode().lower())
+# sort_by_cond = lambda x: (np.where(template == x[1].category)[0][0]
+#                           if np.where(template == x[1].category)[0].size > 0
+#                           else np.iinfo(np.where(template == x[1].category)[0].dtype).max,
+#                           np.abs(x[1].roll),
+#                           x[1].roll,
+#                           x[1].yaw,
+#                           x[1].condition.decode().lower())
+# sort_by_cat = lambda x: (np.where(template == x[1])[0][0]
+#                          if np.where(template == x[1])[0].size > 0
+#                          else np.iinfo(np.where(template == x[1])[0].dtype).max)
+
+data = data[[i for i, _ in sorted(enumerate(data['stimulus']), key=sort_by_cond)]]
+
+# categories = pd.unique(data['cat'])  # Use pandas instead of numpy to avoid automatic sorting
+# # categories = categories[[i for i, _ in sorted(enumerate(categories), key=sort_by_cat)]]
+# cat_to_catidx = {k: i for i, k in enumerate(categories)}
+# n_cats = len(categories)
+conditions = pd.unique(data['cond'])  # Use pandas instead of numpy to avoid automatic sorting
+# conditions = conditions[[i for i, _ in sorted(enumerate(conditions), key=sort_by_cond)]]
+cond_to_condidx = {k: i for i, k in enumerate(conditions)}
+# cat_to_cond = {cat: [cnd for cnd in data[data['cat'] == cat]['cond']] 
+#                for cat in categories}
+# cat_to_condidx = {cat: [cond_to_condidx[cnd] for cnd in data[data['cat'] == cat]['cond']] 
+#                   for cat in categories}
+# cond_to_cat = {cnd: cat for cat, cndlist in cat_to_cond.items() for cnd in cndlist}
+# condidx_to_cat = {icnd: cat for cat, icndlist in cat_to_condidx.items() for icnd in icndlist}
+directions = pd.unique(data['dir'])
+
+if n_conds != conditions.shape[0]:
+    u, c = np.unique(data['cond'], return_counts=True)
+    mult = u[c > 1]
+    warn('Some different stimulus conditions were combined into the same condition.' +
+         'May not be able to handle that yet...')
+    del u, c, mult
+    
+    
 #%% Organize and average fluorescence traces
 
 # F__by_cond = [roi, cond, t, F]
@@ -1208,41 +1251,26 @@ FdFF_by_cond_Rstim = FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
 FdFF_by_cond_meanR = np.mean(FdFF_by_cond_Rstim, axis=2) #mean across trials and selecting stimulus window
 #FFdFF_by_cond_meanR = FdFF_by_cond_Rstim.reshape([FdFF_by_cond_Rstim.shape[0], FdFF_by_cond_Rstim.shape[1], -1]) # susceptible to noise
 
-# F__by_cond = [roi, cond, t, F]
-Fzsc_by_cond = np.full([n_ROIs, n_conds, n_trials, n_samp_isi+n_samp_stim+n_samp_isi], np.nan)
-Fzsc_by_cond_top_decile = np.full([n_ROIs, n_conds], np.nan)
-for c in range(n_conds):
-    for r in range(n_ROIs):
-        for t in range(n_trials):
-            fr_start = acqfr_by_conds[c][t] - n_samp_isi
-            fr_end = acqfr_by_conds[c][t] + n_samp_stim + n_samp_isi
-            if fr_start < 0 and t == 0:
-                warn('Period before first trial was shorter than inter-stimulus interval.' +
-                     'Copied first present value to prevent error. ' +
-                     'But in the future this trial should be excluded.')
-                n_missing = abs(fr_start)
-                Fzsc_by_cond[r, c, t, 0:n_missing] = Fzsc[r, 0]
-                fr_start = 0
-                Fzsc_by_cond[r, c, t, n_missing:n_samp_trial] = Fzsc[r, fr_start:fr_end]
-                continue
-            Fzsc_by_cond[r,c,t,:] = Fzsc[r, fr_start:fr_end]
-            Fzsc_by_cond[r,c,t,:] = Fzsc[r,(acqfr_by_conds[c][t]-n_samp_isi):(acqfr_by_conds[c][t]+n_samp_stim+n_samp_isi)]
-Fzsc_by_cond_Rstim = Fzsc_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
-Fzsc_by_cond_meanR = np.mean(Fzsc_by_cond_Rstim, axis=2) #mean across trials and selecting stimulus window
+
+# %% Compute statistics for each ROI
+
+idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
 
-#%% Compute direction selectivity index and find preferred direction tuning angle
+# FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
+# FdFF_by_cond_Rstim = FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
 
 # dsiT(__by_roi) = [roi, [dsi, T]]
-Ts = np.repeat(conds, n_trials)
-# distxs = np.repeat(conds, n_trials)
-Rs = np.full([n_ROIs, (n_conds * n_trials)], np.nan)
+Ts = np.repeat(directions, n_reps)
+# distxs = np.repeat(conds, n_reps)
+Rs = np.full([n_ROIs, (n_conds * n_reps)], np.nan)
 dsiT = np.full([n_ROIs, 2], np.nan)
 # for r in range(10):
 #     Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
 #     dsiT[r] = calculate_dsi(Ts, Rs[r], plotting=True)
 for r in range(n_ROIs):
-    Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
+    # Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
+    Rs[r] = np.ravel(np.mean(data['FdFF'][:, r, :, idx_stim], axis=0))
     dsiT[r] = calculate_dsi(Ts, Rs[r])
 
 
@@ -1465,11 +1493,12 @@ for r in range(0, n_ROIs_tuned, 1):
     fig = plt.figure(figsize=((8+2)*2*150*ipd, (4+1)*300*ipd))
     # fig.subplots(nrows=2, ncols=8)
     fig.clf()
-    fig.suptitle('roi {} ({})'.format(r, ridx), fontsize=12)
+    fig.suptitle('ROI {} Tpref={:.2f} DSI={:0.2f})'.format(ridx, Tprefs[ridx], DSI[ridx]), fontsize=8)
     axes = fig.subplots(nrows=2, ncols=n_conds)
+    m = 'Fzsc'
     for c in range(n_conds):
         ax = axes[0, c]
-        ax.set_title(str(conds[c]) + deg_symbol, fontsize=10)
+        ax.set_title(str(data[c]['dir']) + deg_symbol, fontsize=6)
         if c == 0:
             # plt.xlabel('Frame (@'+str(md['framerate'])+'Hz)', fontsize=8)
             # ax.set_xlabel('Frame (@'+str(md['framerate'])+'Hz)', fontsize=8)
@@ -1487,11 +1516,17 @@ for r in range(0, n_ROIs_tuned, 1):
             ax.axis('off')
         ax.axvspan(n_samp_isi, (n_samp_isi + n_samp_stim), color='0.9')
         # ax.set_ylim((-2,8))
-        ax.set_ylim((np.min(Fzsc_by_cond[ridx,:,:,:]) - 0.2,
-                     np.max(Fzsc_by_cond[ridx,:,:,:]) + 0.2))
-        for t in range(n_trials):
-            ax.plot(range(n_samp_trial), Fzsc_by_cond[ridx,c,t,:], color=str((0.4)+0.4*t/15))
-        ax.plot(range(n_samp_trial), np.mean(Fzsc_by_cond[ridx,c,:,:], axis=0), color='tab:green')
+        # ax.set_ylim((np.min(Fzsc_by_cond[ridx,:,:,:]) - 0.2,
+        #              np.max(Fzsc_by_cond[ridx,:,:,:]) + 0.2))
+        ymin = np.min(data[m][:, ridx, :, :])
+        ymax = np.max(data[m][:, ridx, :, :])
+        ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
+        for t in range(n_reps):
+            # ax.plot(range(n_samp_trial), Fzsc_by_cond[ridx,c,t,:], color=str((0.4)+0.4*t/15))
+            ax.plot(range(n_samp_trial), data[m][c, ridx, t, :], color=str((0.4)+0.4*t/15))
+        # ax.plot(range(n_samp_trial), np.mean(Fzsc_by_cond[ridx,c,:,:], axis=0), color='tab:green')
+        ax.plot(range(n_samp_trial), np.mean(data[m][c, ridx, :, :], axis=0), color='tab:green')
+    m = 'FdFF'
     for c in range(n_conds):
         ax = axes[1,c]
         if c == 0:
@@ -1509,11 +1544,16 @@ for r in range(0, n_ROIs_tuned, 1):
         ax.axvspan(n_samp_isi, (n_samp_isi + n_samp_stim), color='0.9')
         ax.set_xlim((0,4*md['framerate']))
         # ax.set_ylim((-1,3))
-        ax.set_ylim((np.min(FdFF_by_cond[ridx,:,:,:]) - 0.1,
-                     np.max(FdFF_by_cond[ridx,:,:,:]) + 0.1))
-        for t in range(n_trials):
-            ax.plot(range(n_samp_trial), FdFF_by_cond[ridx,c,t,:], color=str((0.4)+0.4*t/15))
-        ax.plot(range(n_samp_trial), np.mean(FdFF_by_cond[ridx,c,:,:], axis=0), color='tab:blue')    
+        # ax.set_ylim((np.min(FdFF_by_cond[ridx,:,:,:]) - 0.1,
+        #              np.max(FdFF_by_cond[ridx,:,:,:]) + 0.1))
+        ymin = np.min(data[m][:, ridx, :, :])
+        ymax = np.max(data[m][:, ridx, :, :])
+        ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
+        for t in range(n_reps):
+            # ax.plot(range(n_samp_trial), FdFF_by_cond[ridx,c,t,:], color=str((0.4)+0.4*t/15))
+            ax.plot(range(n_samp_trial), data[m][c, ridx, t, :], color=str((0.4)+0.4*t/15))
+        # ax.plot(range(n_samp_trial), np.mean(FdFF_by_cond[ridx,c,:,:], axis=0), color='tab:blue')
+        ax.plot(range(n_samp_trial), np.mean(data[m][c, ridx, :, :], axis=0), color='tab:blue')
         # ## Plot p_value of the mean
         # t_test = scipy.stats.ttest_1samp(np.mean(Frois_by_cond_tuned[r, c, :, :], axis=0), 0) ## mean trace
         # t_test = scipy.stats.ttest_1samp(Frois_by_cond_tuned[r, c].flatten(), 0) ## individual traces 
@@ -1528,4 +1568,3 @@ for r in range(0, n_ROIs_tuned, 1):
     #    fig.savefig(save_path + os.path.sep + 'CadBury_20221016d_roi{}.svg'.format(r), format='svg', dpi=1200)
     plt.pause(0.05)
 
-# calculate_dsi(Ts, Rs[ridx], plotting=True, debugging=True)
