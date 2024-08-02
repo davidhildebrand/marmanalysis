@@ -470,7 +470,23 @@ class StimulusDots(object):
                  noiseDots='direction'):
         self.condition = condition
         self.subclass = subclass
+        self.units = units
+        self.nDots = nDots
+        self.coherence = coherence
+        self.fieldPos = fieldPos
+        self.fieldSize = fieldSize
+        self.fieldShape = fieldShape
+        self.dotSize = dotSize
+        self.dotLife = dotLife
         self.dir = dir
+        self.speed = speed
+        self.color = color
+        self.colorSpace = colorSpace
+        self.opacity = opacity
+        self.contrast = contrast
+        self.element = element
+        self.signalDots = signalDots
+        self.noiseDots = noiseDots
 
     def __repr__(self):
         return str((self.condition, self.subclass, self.dir))
