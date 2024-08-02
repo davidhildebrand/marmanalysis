@@ -110,7 +110,7 @@ md['fov'] = dict()
 md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
 md['fov']['w_px'] = 730
 md['fov']['h_px'] = 730
-# # dirstr_suite2p = 'suite2p_old*'
+# dirstr_suite2p = 'suite2p_old*'
 dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # 20230510d (300-400um fluid)
@@ -1025,7 +1025,7 @@ dlist = [('cond', 'S8'),
          ('imagename', np.unicode_, 256)]
 
 for m in metrics:
-    dlist.append((m, 'f4', (n_ROIs, n_reps, n_samp_trial)))
+    dlist.append((m, 'f8', (n_ROIs, n_reps, n_samp_trial)))
 del m
 
 data = np.zeros(n_conds, dtype=dlist)

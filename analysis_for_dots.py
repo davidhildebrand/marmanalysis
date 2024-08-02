@@ -1025,13 +1025,13 @@ if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
 dlist = [('cond', 'S8'),
          ('stimulus', object),
          ('cat', 'S8'),
-         ('dir', 'f2'),
-         ('coherence', 'f2'),
-         ('speed', 'f2'),
-         ('contrast', 'f2')]
+         ('dir', 'f8'),
+         ('coherence', 'f8'),
+         ('speed', 'f8'),
+         ('contrast', 'f8')]
 
 for m in metrics:
-    dlist.append((m, 'f4', (n_ROIs, n_reps, n_samp_trial)))
+    dlist.append((m, 'f8', (n_ROIs, n_reps, n_samp_trial)))
 del m
 
 data = np.zeros(n_conds, dtype=dlist)
@@ -1044,29 +1044,8 @@ del m
 # 'dots_translation_dir': None,
 # 'dots_opticflow_dir': None,
 # 'dots_rotation_dir': None,
-# 'dots_nDots': None,
-# 'dots_coherence': None,
-# 'dots_fieldPos': None,
-# 'dots_fieldSize': None,
-# 'dots_fieldShape': None,
-# 'dots_dotSize': None,
-# 'dots_dotLife': None,
-# 'dots_dir': None,
-# 'dots_speed': None,
-# 'dots_color': None,
-# 'dots_opacity': None,
-# 'dots_contrast': None,
-# 'dots_signalDots': None,
-# 'dots_noiseDots': None,
 
-# class StimulusDots(object):
-#     """Representation of stimulus dots."""
-
-#     # 'dots_translation_dir': None,
-#     # 'dots_opticflow_dir': None,
-#     # 'dots_rotation_dir': None,
-
-# Currently supported dot categories:
+# Currently supported dot subclasses:
 # 'translation'  # ... rotation and optic flow and etc possible
 for c in range(n_conds):
     tmp_cond = None
