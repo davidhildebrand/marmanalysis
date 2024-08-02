@@ -11,7 +11,7 @@ import os
 import pandas as pd
 import pickle
 import re
-from scipy.optimize import minimize as scipy_minimize
+# from scipy.optimize import minimize as scipy_minimize
 from scipy.optimize import least_squares as scipy_leastsquares
 from scipy.stats import binned_statistic as scipy_binned_statistic
 # from scipy.signal import find_peaks as find_peaks
@@ -72,6 +72,8 @@ md['fov'] = dict()
 md['fov']['resolution_umpx'] = np.array([2.0, 2.0])
 md['fov']['w_px'] = 730
 md['fov']['h_px'] = 730
+# dirstr_suite2p = 'suite2p_old*'
+dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 
 # # 20231001d (~430um fluid)
 # date_str = '20231001d'
