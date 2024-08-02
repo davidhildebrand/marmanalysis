@@ -1175,7 +1175,7 @@ for c in range(n_conds):
     for m in metrics:
         if np.any(np.isnan(data[c][m])):
             warn('Some {} values in cond {} are NaNs'.format(m, c))
-del tmp_cond, tmp_cat, tmp_dir
+del c, tmp_cond, tmp_class, tmp_subclass, tmp_settings
 
 # Sanity check for NaN values after loading data
 for m in metrics:
@@ -1229,27 +1229,27 @@ if n_conds != conditions.shape[0]:
     
 #%% Organize and average fluorescence traces
 
-# F__by_cond = [roi, cond, t, F]
-FdFF_by_cond = np.full([n_ROIs, n_conds, n_trials, n_samp_isi+n_samp_stim+n_samp_isi], np.nan)
-FdFF_by_cond_top_decile = np.full([FdFF.shape[0], n_conds], np.nan)
-for c in range(n_conds):
-    for r in range(n_ROIs):
-        for t in range(n_trials):
-            fr_start = acqfr_by_conds[c][t] - n_samp_isi
-            fr_end = acqfr_by_conds[c][t] + n_samp_stim + n_samp_isi
-            if fr_start < 0 and t == 0:
-                warn('Period before first trial was shorter than inter-stimulus interval.' + \
-                     'Copied first present value to prevent error. ' + \
-                     'But in the future this trial should be excluded.')
-                n_missing = abs(fr_start)
-                FdFF_by_cond[r, c, t, 0:n_missing] = np.array([FdFF[r, 0],] * n_missing).transpose()
-                fr_start = 0
-                FdFF_by_cond[r, c, t, n_missing:n_samp_trial] = FdFF[r, fr_start:fr_end]
-                continue
-            FdFF_by_cond[r,c,t,:] = FdFF[r, fr_start:fr_end]
-FdFF_by_cond_Rstim = FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
-FdFF_by_cond_meanR = np.mean(FdFF_by_cond_Rstim, axis=2) #mean across trials and selecting stimulus window
-#FFdFF_by_cond_meanR = FdFF_by_cond_Rstim.reshape([FdFF_by_cond_Rstim.shape[0], FdFF_by_cond_Rstim.shape[1], -1]) # susceptible to noise
+# # F__by_cond = [roi, cond, t, F]
+# FdFF_by_cond = np.full([n_ROIs, n_conds, n_trials, n_samp_isi+n_samp_stim+n_samp_isi], np.nan)
+# FdFF_by_cond_top_decile = np.full([FdFF.shape[0], n_conds], np.nan)
+# for c in range(n_conds):
+#     for r in range(n_ROIs):
+#         for t in range(n_trials):
+#             fr_start = acqfr_by_conds[c][t] - n_samp_isi
+#             fr_end = acqfr_by_conds[c][t] + n_samp_stim + n_samp_isi
+#             if fr_start < 0 and t == 0:
+#                 warn('Period before first trial was shorter than inter-stimulus interval.' + \
+#                       'Copied first present value to prevent error. ' + \
+#                       'But in the future this trial should be excluded.')
+#                 n_missing = abs(fr_start)
+#                 FdFF_by_cond[r, c, t, 0:n_missing] = np.array([FdFF[r, 0],] * n_missing).transpose()
+#                 fr_start = 0
+#                 FdFF_by_cond[r, c, t, n_missing:n_samp_trial] = FdFF[r, fr_start:fr_end]
+#                 continue
+#             FdFF_by_cond[r,c,t,:] = FdFF[r, fr_start:fr_end]
+# FdFF_by_cond_Rstim = FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
+# FdFF_by_cond_meanR = np.mean(FdFF_by_cond_Rstim, axis=2) #mean across trials and selecting stimulus window
+# #FFdFF_by_cond_meanR = FdFF_by_cond_Rstim.reshape([FdFF_by_cond_Rstim.shape[0], FdFF_by_cond_Rstim.shape[1], -1]) # susceptible to noise
 
 
 # %% Compute statistics for each ROI
