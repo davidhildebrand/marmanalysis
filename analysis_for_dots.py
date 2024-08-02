@@ -1082,22 +1082,13 @@ for c in range(n_conds):
     else:
         warn('Not all dot motion subclasses were the same for condition {}.'.format(c))
         tmp_subclass = None
-    
-    if tmp_class == 'dots':
-        match tmp_subclass:
-            case 'translation':
-                tmp_cond = bytes('dt{:03}'.format(c), 'ascii')
-            case _, None:
-                warn('Unsupported stimulus skipped. cond {} class {} subclass {}'.format(tmp_cond, tmp_class, tmp_subclass))
-                continue
-    
+
     if np.unique(stimlog[stimlog['cond'] == c]['dots_dir'].values).size == 1:
         tmp_dir = np.unique(stimlog[stimlog['cond'] == c]['dots_dir'].values)[0]
     else:
         raise Exception('Not all dot directions were the same for condition {}.'.format(c))
     
-    data[c]['cond'] = tmp_cond
-    
+   
     for k in tmp_settings.keys():
         ks = 'dots_' + k
         if ks in stimlog[stimlog['cond'] == c].columns:
@@ -1111,6 +1102,15 @@ for c in range(n_conds):
                 tmp_settings[k] = None
     del k, ks, val
     
+    if tmp_class == 'dots':
+        match tmp_subclass:
+            case 'translation':
+                tmp_cond = bytes('dt' + '{:03.1f}'.format(tmp_settings['dir']).replace('.','p'), 'ascii')
+            case _, None:
+                warn('Unsupported stimulus skipped. cond {} class {} subclass {}'.format(tmp_cond, tmp_class, tmp_subclass))
+                continue
+
+    data[c]['cond'] = tmp_cond    
     data[c]['dir'] = tmp_settings['dir']
     data[c]['coherence'] = tmp_settings['coherence']
     data[c]['speed'] = tmp_settings['speed']
