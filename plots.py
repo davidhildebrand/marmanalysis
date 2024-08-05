@@ -344,110 +344,252 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
         f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
-def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
-             circular=False, bgimage=None, scale_bar=False, um_per_px=None,
-             n_neighbors=None, save_path: str = ''):
+def plot_overlays_orig(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
+                       circular=False, ref_image=None, title: str = '',
+                       n_neighbors=None, save_path: str = ''):
+    # plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=dsi_tuning_thresh, title=title_str,
+    #          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
     # The values tuning and tuning_mag must be within [0,1].
     # 'circular' determines whether tuning has the same color for 0 and 1
     # (True for MT, False for auditory)
     # TODO **** implement scale bar?
 
-    dpi = plt.rcParams['figure.dpi']
-    h, w = size  # rows/height/y, columns/width/x
-    fsize = w / float(dpi), h / float(dpi)
+    h, w = fov_size  # rows/height/y, columns/width/x
+    figsize = w / float(plt.rcParams['figure.dpi']), h / float(plt.rcParams['figure.dpi'])
 
-    # ##### TODO *** THIS DOES NOT GENERALIZE
-    n_rois = len(rois)
-    tuned = np.abs(tuning_mag) > tuning_thresh
-    rois_tuned = rois[tuned]
+    n_regions = len(regions)
+    # TODO *** note that the >= might not be general (e.g. with FSI)
+    tuned = tuning_mag >= tuning_thresh
+    regions_tuned = regions[tuned]
     tuning_tuned = tuning[tuned]
     tuning_mag_tuned = tuning_mag[tuned]
 
     if tuning.max() > 1:
         warn(UserWarning('provided tuning index has values > 1 (out of range)'))
 
-    assert len(rois_tuned) == len(tuning_tuned) == len(tuning_mag_tuned)
-    n_rois_tuned = len(rois_tuned)
+    assert len(regions_tuned) == len(tuning_tuned) == len(tuning_mag_tuned)
+    n_regions_tuned = len(regions_tuned)
 
-    f0 = plt.figure(figsize=fsize)
+    # if scale_bar is True:
+    #     fig, ax = plt.subplots()
+    #     y = np.random.rand(1000)
+    #     x = np.arange(y.shape[0])
+    #     ax.plot(x, y)
+    #     scalebar = AnchoredScaleBar(ax.transData,
+    #                                 100, '100 um', 'lower right',
+    #                                 pad=0.1,
+    #                                 color='black',
+    #                                 bbox_to_anchor=(0.5,0.5),
+    #                                 bbox_transform=ax.transAxes,
+    #                                 frameon=False,
+    #                                 size_vertical=0.05)
+    #     scalebar.set_clip_on(False)
+    #     ax.add_artist(scalebar)
+
+    # f0 = plt.figure()
+    f0 = plt.figure(figsize=figsize)
     ax = f0.add_axes((0, 0, 1, 1))
     plt.set_cmap('hsv')
+    # plt.axis('off')
     ax.axis('off')
-    ax.set_frame_on(False)
-    if bgimage is not None:
-        ilow, ihigh = np.percentile(bgimage, (1.0, 99.98))
-        ref_f64 = util.img_as_float64(bgimage)
-        ref_rescale = ski_rescale_intensity(ref_f64, in_range=(ilow, ihigh))
+    if ref_image is not None:
+        ilow, ihigh = np.percentile(ref_image, (1.0, 99.98))
+        ref_f64 = util.img_as_float64(ref_image)
+        ref_rescale = exposure.rescale_intensity(ref_f64, in_range=(ilow, ihigh))
         ref = ref_rescale
-        canvas = np.stack((ref,) * 3, axis=-1)  # copy single channel to form RGB image
+        canvas = np.stack((ref,)*3, axis=-1) # copy single channel to form RGB image
     else:
-        canvas = np.zeros([h, w, 3], dtype=np.float64)  # create a color canvas with frame size
+        canvas = np.zeros([h, w, 3], dtype=np.float64) # create a color canvas with frame size
 
-    for r in range(n_rois_tuned):
-        roi = rois_tuned[r]
-        ry = roi['ypix']
-        rx = roi['xpix']
+    region_centers = np.empty([n_regions_tuned, 2])
+    # region_colors = np.empty([n_regions_tuned, 3])
+    for r in range(n_regions_tuned):
+        region = regions_tuned[r]
+        rxs = region['xpix']
+        rys = region['ypix']
+        rxys = np.array(list(zip(rxs, rys)))
+        region_centers[r] = np.average(rxys, axis=0)
         if circular is True:
-            canvas[ry, rx, :] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
+            # for rgb in range(3):
+            # canvas[ry,rx,:] = colorsys.hsv_to_rgb(tuning_tuned[r], tuning_mag[r] / tuning_mag.max(), 1.0)
+            #    abs(1 - 2 * abs(tuning_tuned[r] - rgb * 1/3)) #* tuning_mag[r]
+            canvas[rys, rxs, :] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
+            # region_colors[r] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
         else:
-            for rgb in range(3):
-                canvas[ry, rx, rgb] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - rgb * 1 / 3))  # * tuning_mag[r]
+            for chan in range(3):
+                canvas[rys, rxs, chan] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - chan * 1/3))  # * tuning_mag[r]
+                # region_colors[r, chan] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - chan * 1/3))
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
-    # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))  #, quant_steps))#, alpha=1.0)
+    # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
     ax.imshow(canvas, interpolation='none', cmap='hsv')
-    ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
-    
-    set_plot_text_settings()
+    # ax.scatter(region_centers[:, 0], region_centers[:, 1], s=1, c=region_colors, marker='.', edgecolors='none')
+    # ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
+    if title != '':
+        ax.set_title(title, fontsize=2, color='w')
     f0.show()
     if save_path != '':
-        save_name = 'ROIplot_FSIzsc_thresh' + \
-                    '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
-                    '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
-                    '.png'
-        f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
+        now = datetime.now()
+        dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
+        save_name = dt + '_ROIplot_thresh' + \
+            '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
+            '_tuned{}of{}'.format(n_regions_tuned, n_regions) + \
+            '.png'
+        f0.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
     # Plot colorbar or colorwheel
-    if circular is True:
-        f1 = plt.figure()
-        plt.set_cmap('hsv')
-        # see https://stackoverflow.com/questions/62531754/how-to-draw-a-hsv-color-wheel-using-matplotlib
-        # for color wheel options including saturation
-        ax0 = f1.add_axes((0, 0, 1, 1), polar=True, frameon=False)
-        ax0.set_axis_on()
-        ax0.set_rticks([])
-        ax0.set_xticks([0, np.pi / 2])
-        ax0.set_xticklabels(['0', '90'])
-        ax0.grid(False)
-        ax1 = f1.add_axes(ax0.get_position(), projection='polar')
-        ax1._direction = 2 * np.pi  # This is a nasty hack - using the hidden field to
-        #                           # multiply the values such that 1 become 2*pi
-        #                           # this field is supposed to take values 1 or -1 only!!
-        # Plot the colorbar onto the polar axis
-        # note - use orientation horizontal so that the gradient goes around
-        # the wheel rather than centre out
-        norm = mpl.colors.Normalize(0.0, (2 * np.pi))
-        cb = mpl.colorbar.ColorbarBase(ax1,
-                                       cmap=mpl.cm.get_cmap('hsv'),
-                                       norm=norm,
-                                       orientation='horizontal')
-        # aesthetics - get rid of border and axis labels
-        cb.outline.set_visible(False)
-        ax1.set_axis_off()
-        ax1.set_rlim([-1, 1])
-        
-        set_plot_text_settings()
-        f1.show()
-        if save_path != '':
-            save_name = 'ROIplot_FSIzsc_thresh' + \
-                        '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
-                        '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
-                        '_legend.png'
-            f1.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
+    # if circular is True:
+    #     f1 = plt.figure()
+    #     plt.set_cmap('hsv')
+    #     # see https://stackoverflow.com/questions/62531754/how-to-draw-a-hsv-color-wheel-using-matplotlib
+    #     # for color wheel options including saturation
+    #     ax0 = f1.add_axes([0,0,1,1], polar=True, frameon=False)
+    #     ax0.set_axis_on()
+    #     ax0.set_rticks([])
+    #     ax0.set_xticks([0, np.pi/2])
+    #     ax0.set_xticklabels(['', ''], fontsize=20)
+    #     #ax0.set_xticklabels(['0' + deg_symbol, '90' + deg_symbol], fontsize=20)
+    #     ax0.grid(False)
+    #     ax1 = f1.add_axes(ax0.get_position(), projection='polar')
+    #     ax1._direction = 2 * np.pi ## This is a nasty hack - using the hidden field to
+    #     #                                    ## multiply the values such that 1 become 2*pi
+    #     #                                    ## this field is supposed to take values 1 or -1 only!!
+    #     # Plot the colorbar onto the polar axis
+    #     # note - use orientation horizontal so that the gradient goes around
+    #     # the wheel rather than centre out
+    #     norm = mpl.colors.Normalize(0.0, (2 * np.pi))
+    #     cb = mpl.colorbar.ColorbarBase(ax1,
+    #                                    cmap=mpl.cm.get_cmap('hsv'),
+    #                                    norm=norm,
+    #                                    orientation='horizontal')
+    #     # aesthetics - get rid of border and axis labels
+    #     cb.outline.set_visible(False)
+    #     ax1.set_axis_off()
+    #     #ax1.set_rlim([-1,1])
+    #     f1.show()
+    #     if save_path != '':
+    #         now = datetime.now()
+    #         dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
+    #         save_name = dt + '_ROIplot_thresh' + \
+    #             '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
+    #             '_tuned{}of{}'.format(n_ROIs_tuned, n_ROIs) + \
+    #             '_legend.png'
+    #         f1.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+    # # working but slow
+    # # also relevant https://stackoverflow.com/questions/62531754/how-to-draw-a-hsv-color-wheel-using-matplotlib
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='polar')
+    # rho = np.linspace(0,1,100) # Radius of 1, distance from center to outer edge
+    # phi = np.linspace(0, np.pi*2., 1000) # in radians, one full circle
+    # RHO, PHI = np.meshgrid(rho,phi) # get every combination of rho and phi
+    # h = (PHI-PHI.min()) / (PHI.max()-PHI.min()) # use angle to determine hue, normalized from 0-1
+    # h = np.flip(h)
+    # s = RHO               # saturation is set as a function of radius
+    # v = np.ones_like(RHO) # value is constant
+    # # convert the np arrays to lists. This actually speeds up the colorsys call
+    # h,s,v = h.flatten().tolist(), s.flatten().tolist(), v.flatten().tolist()
+    # c = [colorsys.hsv_to_rgb(*x) for x in zip(h,s,v)]
+    # c = np.array(c)
+    # ax.scatter(PHI, RHO, c=c)
+    # _ = ax.axis('off')
+    # if save_path != '':
+    #     now = datetime.now()
+    #     dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
+    #     save_name = dt + '_ROIplot_continuous_withsat_' + \
+    #         'legend.png'
+    #     fig.savefig(save_path + os.path.sep + dt, dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+    # # working if image creation or saturation alpha is preferred
+    # # also relevant https://rosettacode.org/wiki/Color_wheel
+    # f3 = plt.figure()
+    # imw = 512
+    # imh = 512
+    # radius = 512 / 2.0
+    # cy, cx = imh / 2, imw / 2
+    # pix = np.ones([imh, imw, 3])
+    # for x in range(imw):
+    #     for y in range(imh):
+    #         rx = x - cx
+    #         ry = y - cy
+    #         s = (rx ** 2.0 + ry ** 2.0) ** 0.5 / radius
+    #         if s <= 1.0:
+    #             h = ((np.arctan2(ry, rx) / np.pi) + 1.0) / 2.0
+    #             rgb = colorsys.hsv_to_rgb(h, s, 1.0)
+    #             pix[x,y,:] = [c for c in rgb]
+    #             #pix[x,y,:] = tuple([int(round(c*255.0)) for c in rgb])
+    # plt.imshow(pix)
+    # f3.show()
+
+    # Santi original
+    # create colormap for reference
+    # f3 = plt.figure()
+    # x = np.linspace(0, 1, len(np.unique(tuning)) + 1)
+    # y = np.linspace(1, 0, 101)
+    # xx, yy = np.meshgrid(x, y)
+    # canvas_colormap = np.ones([101, len(np.unique(tuning)) + 1, 3])
+    # for rgb in range(3):
+    #     if circular:
+    #         canvas_colormap[:,:,rgb] = abs(1 - 2 * abs(xx - rgb * 1/3)) * yy
+    #     else:
+    #         canvas_colormap[:,:,rgb] = abs(1 - 2 * abs(xx/1.5 - rgb * 1/3)) * yy
+    # plt.imshow(canvas_colormap, extent=[0,1,0,1], interpolation='none')
+    # plt.xlabel('tuning')
+    # plt.ylabel('tuning mag')
+    # f2.show()
+
+    if n_neighbors is not None:
+        import seaborn as sns
+        from sklearn import neighbors
+        from sklearn.inspection import DecisionBoundaryDisplay
+
+        # We only take the first two features. We could avoid this ugly
+        # slicing by using a two-dim dataset.
+        X = np.empty((n_regions_tuned, 2))
+        y = tuning_tuned * 8
+        y = y.astype(int) + 1
+
+        # tuned_logic = index_strength > strength_thresh
+        # X = X[tuned_logic]
+        # y = y[tuned_logic]
+        for i in range(len(X)):
+            X[i] = np.mean(regions_tuned[i]['xpix'][0]), h - np.mean(regions_tuned[i]['ypix'][0])
+
+        # Create color maps
+        for weights in ['uniform', 'distance']:
+            # we create an instance of Neighbours Classifier and fit the data.
+            clf = neighbors.KNeighborsClassifier(n_neighbors, weights=weights)
+            clf.fit(X, y)
+
+            _, ax = plt.subplots()
+            DecisionBoundaryDisplay.from_estimator(
+                clf,
+                X,
+                cmap='Spectral',
+                ax=ax,
+                response_method='predict',
+                plot_method='pcolormesh',
+                shading='auto')
+
+            # #Plot also the training points
+            sns.scatterplot(
+                x=X[:,0],
+                y=X[:,1],
+                hue=y,
+                palette='Spectral',
+                alpha=1.0,
+                edgecolor='black',
+                #legend='full',
+                s=10)
+            plt.tick_params(left=False, right=False, labelleft=False,
+                            labelbottom=False, bottom=False)
+            plt.axis('square')
+            # plt.title('(k = {}, weights = {})'.format(n_neighbors, weights))
+        plt.show()
 
 
 # def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
-#              circular=False, image=None, scale_bar=False, um_per_px=None,
+#              circular=False, bgimage=None, scale_bar=False, um_per_px=None,
 #              n_neighbors=None, save_path: str = ''):
 #     # The values tuning and tuning_mag must be within [0,1].
 #     # 'circular' determines whether tuning has the same color for 0 and 1
@@ -474,13 +616,12 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
 #     f0 = plt.figure(figsize=fsize)
 #     ax = f0.add_axes((0, 0, 1, 1))
 #     plt.set_cmap('hsv')
-#     # plt.axis('off')
 #     ax.axis('off')
 #     ax.set_frame_on(False)
-#     if image is not None:
-#         ilow, ihigh = np.percentile(image, (1.0, 99.98))
-#         ref_f64 = util.img_as_float64(image)
-#         ref_rescale = exposure.rescale_intensity(ref_f64, in_range=(ilow, ihigh))
+#     if bgimage is not None:
+#         ilow, ihigh = np.percentile(bgimage, (1.0, 99.98))
+#         ref_f64 = util.img_as_float64(bgimage)
+#         ref_rescale = ski_rescale_intensity(ref_f64, in_range=(ilow, ihigh))
 #         ref = ref_rescale
 #         canvas = np.stack((ref,) * 3, axis=-1)  # copy single channel to form RGB image
 #     else:
@@ -500,11 +641,11 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
 #     # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))  #, quant_steps))#, alpha=1.0)
 #     ax.imshow(canvas, interpolation='none', cmap='hsv')
 #     ax.set(xlim=[-0.5, w - 0.5], ylim=[h - 0.5, -0.5], aspect=1)
+#
+#     set_plot_text_settings()
 #     f0.show()
 #     if save_path != '':
-#         now = datetime.now()
-#         dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
-#         save_name = dt + '_ROIplot_FSIzsc_thresh' + \
+#         save_name = 'ROIplot_FSIzsc_thresh' + \
 #                     '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
 #                     '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
 #                     '.png'
@@ -538,78 +679,12 @@ def plot_map(rois, tuning, tuning_mag, tuning_thresh=0, size=(512, 512),
 #         cb.outline.set_visible(False)
 #         ax1.set_axis_off()
 #         ax1.set_rlim([-1, 1])
+#
+#         set_plot_text_settings()
 #         f1.show()
 #         if save_path != '':
-#             now = datetime.now()
-#             dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
-#             save_name = dt + '_ROIplot_FSIzsc_thresh' + \
+#             save_name = 'ROIplot_FSIzsc_thresh' + \
 #                         '{:.2f}'.format(tuning_thresh).replace('.', 'p') + \
 #                         '_tuned{}of{}'.format(n_rois_tuned, n_rois) + \
 #                         '_legend.png'
-#             f0.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
-#
-#     # Santi original
-#     # # create colormap for reference
-#     # f3 = plt.figure()
-#     # x = np.linspace(0, 1, len(np.unique(tuning)) + 1)
-#     # y = np.linspace(1, 0, 101)
-#     # xx, yy = np.meshgrid(x, y)
-#     # canvas_colormap = np.ones([101, len(np.unique(tuning)) + 1, 3])
-#     # for rgb in range(3):
-#     #     if circular:
-#     #         canvas_colormap[:,:,rgb] = abs(1 - 2 * abs(xx - rgb * 1/3)) * yy
-#     #     else:
-#     #         canvas_colormap[:,:,rgb] = abs(1 - 2 * abs(xx/1.5 - rgb * 1/3)) * yy
-#     # plt.imshow(canvas_colormap, extent=[0,1,0,1], interpolation='none')
-#     # plt.xlabel('tuning')
-#     # plt.ylabel('tuning mag')
-#     # f2.show()
-#
-#     if n_neighbors is not None:
-#         import seaborn as sns
-#         from sklearn import neighbors
-#         from sklearn.inspection import DecisionBoundaryDisplay
-#
-#         # we only take the first two features. We could avoid this ugly
-#         # slicing by using a two-dim dataset
-#         X = np.empty((n_ROIs_tuned, 2))
-#         y = tuning_tuned * 8
-#         y = y.astype(int) + 1
-#
-#         # tuned_logic = index_strength > strength_thresh
-#         # X = X[tuned_logic]
-#         # y = y[tuned_logic]
-#         for i in range(len(X)):
-#             X[i] = np.mean(rois_tuned[i]['xpix'][0]), h - np.mean(rois_tuned[i]['ypix'][0])
-#
-#         # Create color maps
-#         for weights in ['uniform', 'distance']:
-#             # Create an instance of Neighbours Classifier and fit the data.
-#             clf = neighbors.KNeighborsClassifier(n_neighbors, weights=weights)
-#             clf.fit(X, y)
-#             _, ax = plt.subplots()
-#             DecisionBoundaryDisplay.from_estimator(
-#                 clf,
-#                 X,
-#                 cmap='Spectral',
-#                 ax=ax,
-#                 response_method='predict',
-#                 plot_method='pcolormesh',
-#                 shading='auto'
-#             )
-#             # Plot also the training points
-#             sns.scatterplot(
-#                 x=X[:, 0],
-#                 y=X[:, 1],
-#                 hue=y,
-#                 palette='Spectral',
-#                 alpha=1.0,
-#                 edgecolor='black',
-#                 # legend='full',
-#                 s=10
-#             )
-#             plt.tick_params(left=False, right=False, labelleft=False,
-#                             labelbottom=False, bottom=False)
-#             plt.axis('square')
-#             # plt.title('(k = {}, weights = {})'.format(n_neighbors, weights))
-#         plt.show()
+#             f1.savefig(os.path.join(save_path, save_name), dpi=dpi, transparent=True)
