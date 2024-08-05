@@ -32,7 +32,7 @@ from tuning import calculate_dsi
 # based on Pattadkal etal Priebe 2022 bioRxiv
 #   https://doi.org/10.1101/2022.06.23.497220
 # "All cell pairs with DSI ≥ 0.15 are considered."
-dsi_tuning_thresh = 0.15
+threshold_dsi = 0.15
 
 threshold_cellprob = 0.0
 threshold_Zscore = 0.5
@@ -239,7 +239,7 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
         canvas = np.zeros([h, w, 3], dtype=np.float64) # create a color canvas with frame size
 
     region_centers = np.empty([n_regions_tuned, 2])
-    region_colors = np.empty([n_regions_tuned, 3])
+    # region_colors = np.empty([n_regions_tuned, 3])
     for r in range(n_regions_tuned):
         region = regions_tuned[r]
         rxs = region['xpix']
@@ -251,11 +251,11 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
             # canvas[ry,rx,:] = colorsys.hsv_to_rgb(tuning_tuned[r], tuning_mag[r] / tuning_mag.max(), 1.0)
             #    abs(1 - 2 * abs(tuning_tuned[r] - rgb * 1/3)) #* tuning_mag[r]
             canvas[rys, rxs, :] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
-            region_colors[r] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
+            # region_colors[r] = colorsys.hsv_to_rgb(tuning_tuned[r], 1.0, 1.0)
         else:
             for chan in range(3):
                 canvas[rys, rxs, chan] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - chan * 1/3))  # * tuning_mag[r]
-                region_colors[r, chan] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - chan * 1/3))
+                # region_colors[r, chan] = abs(1 - 2 * abs(tuning_tuned[r] / 1.5 - chan * 1/3))
     ax.tick_params(left=False, right=False, labelleft=False,
                    labelbottom=False, bottom=False)
     # plt.imshow(canvas, interpolation='none', cmap='hsv')#, cmap=mpl.cm.get_cmap('hsv'))#, quant_steps))#, alpha=1.0)
@@ -1287,13 +1287,13 @@ for r in range(n_ROIs):
 
 
 # %% Define ROIs as tuned or untuned
-print('DSI tuning threshold: {}' .format(dsi_tuning_thresh))
+print('DSI tuning threshold: {}' .format(threshold_dsi))
 tunidx_dsi = dsiT[:, 0]
 DSI = dsiT[:, 0]
 Tprefs = dsiT[:, 1]
 Tprefs_norm = Tprefs / 360  # normalized to [0,1] range
 tunidx_dsi_argsrt = np.argsort(tunidx_dsi)[::-1]
-n_ROIs_tuned = np.argwhere(tunidx_dsi[tunidx_dsi_argsrt] >= dsi_tuning_thresh).shape[0]
+n_ROIs_tuned = np.argwhere(tunidx_dsi[tunidx_dsi_argsrt] >= threshold_dsi).shape[0]
 pct_tuned = round(((100 * n_ROIs_tuned) / n_ROIs), 2)
 print('Tuned ROIs: {}. Total ROIs: {}.'.format(n_ROIs_tuned, n_ROIs))
 print('Percentage of tuned ROIs: {}%'.format(pct_tuned))
@@ -1306,17 +1306,17 @@ plt.hist(tunidx_dsi, bins=100)
 plt.xlabel('Direction-Selectivity Index')
 plt.ylabel('ROIs')
 plt.xlim([0, 1])
-plt.axvline(dsi_tuning_thresh, color='m')
+plt.axvline(threshold_dsi, color='m')
 # plt.axvline(-dsi_tuning_thresh, color='m')
 f_hist0.show()
 if saving:
     now = datetime.now()
     dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
     save_name = dt + '_histogram_DSI_thresh' + \
-        '{:.2f}'.format(dsi_tuning_thresh).replace('.', 'p') + '.svg'
+        '{:.2f}'.format(threshold_dsi).replace('.', 'p') + '.svg'
     f_hist0.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
     save_name = dt + '_histogram_DSI_thresh' + \
-        '{:.2f}'.format(dsi_tuning_thresh).replace('.', 'p') + '.png'
+        '{:.2f}'.format(threshold_dsi).replace('.', 'p') + '.png'
     f_hist0.savefig(save_path + os.path.sep + save_name, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 #
@@ -1332,12 +1332,12 @@ if saving:
 
 # %% Plot tuning map
 
-plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=dsi_tuning_thresh, title=title_str,
+plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=threshold_dsi, title=title_str,
          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
 
 
 # TODO *** note that the >= might not be general (e.g. with FSI)
-tuned_index = DSI >= dsi_tuning_thresh
+tuned_index = DSI >= threshold_dsi
 ROIs_tuned = ROIs[tuned_index]
 tuning_tuned = Tprefs[tuned_index]
 tuning_mag_tuned = DSI[tuned_index]
