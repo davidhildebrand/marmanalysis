@@ -1336,6 +1336,45 @@ plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=threshold_dsi, title=title_str,
          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
 
 
+# ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0) if not np.isnan(h) else (0, 0, 0)
+#                        for h in np.divide([supcat_to_supcatidx[catidx_to_supcat[icat]]
+#                                            if icat in catidx_to_supcat else np.nan
+#                                            for icat in stats_df[m]['peak_cat_idx'].values.astype(int)],
+#                                           n_supcats)])
+ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)  # if not np.isnan(h) else (0, 0, 0)
+                       for h in Tprefs_norm])
+
+
+# resp_vect_FOB = np.array([muR_F[m], muR_O[m], muR_B[m]]).swapaxes(0, 1)
+# # Subtract the value corresponding to the least responsive category to make it relative
+# # (otherwise, an ROI that responds to all categories would show up as white)
+# resp_vect_FOB_rel = np.subtract(resp_vect_FOB.T, np.min(resp_vect_FOB, axis=1)).T
+
+# # Saturate colors at specified value (corresponding to the across-stimulus mean of trial-averaged responses)
+# ROI_colors_saturateval = 0.2
+# ROI_colors = resp_vect_FOB_rel / ROI_colors_saturateval
+# ROI_colors[ROI_colors > 1] = 1
+
+import plots
+
+# ...only for ROIs with |DSI| >= threshold
+above_threshold = np.where(DSI >= threshold_dsi)[0]
+sn = save_pfix + '__ROIplot_ColorByPreferredDotMotionDirection' + \
+    '_threshDSI{:0.2f}'.format(threshold_dsi).replace('.', 'p')
+    # '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
+sp = os.path.join(save_path, sn + save_ext) if saving else ''
+plots.plot_overlays_roi(ROIs[above_threshold],
+                        ROI_colors[above_threshold],
+                        bgimage=plots.auto_level_s2p_image(fov_image), 
+                        flip=None, rotate=0,
+                        # flip='lr', rotate=-90,
+                        title='preferred direction,\n' +
+                              r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dsi),
+                        save_path=sp)
+
+
+
+
 # TODO *** note that the >= might not be general (e.g. with FSI)
 tuned_index = DSI >= threshold_dsi
 ROIs_tuned = ROIs[tuned_index]
