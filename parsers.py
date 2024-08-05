@@ -416,11 +416,20 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
                         'texRes': None,
 
                         'grating_tex': None,
-                        'grating_contrast': None,
-                        'grating_dir': None,
-                        'grating_ori': None,
+                        'grating_mask': None,
+                        'grating_units': None,
+                        'grating_anchor': None,
+                        'grating_pos': None,
+                        'grating_size': None,
                         'grating_sf': None,
-                        'grating_tf': None,
+                        'grating_ori': None,
+                        'grating_phase': None,
+                        'grating_texRes': None,
+                        'grating_color': None,
+                        'grating_colorSpace': None,
+                        'grating_contrast': None,
+                        'grating_opacity': None,
+                        'grating_interpolate': None,
 
                         'dots_translation_dir': None,
                         'dots_opticflow_dir': None,
@@ -879,6 +888,204 @@ def parse_log_stim_dots(session_log) -> pd.DataFrame:
     return log
 
 
+def parse_log_stim_gratings(session_log) -> pd.DataFrame:
+    """
+    Parse the session log file output of the original stimulus_gratings.py script into newer DataFrame format.
+    """
+
+    lines = session_log.splitlines()
+
+    mode = None
+    found_stimfunc = False
+    times_stim = None
+    times_isi = None
+    tmp_stimtimestr = ''
+    tmp_isitimestr = ''
+    tmp_ntrials = None
+    for line in lines:
+        if 'GratingStim(' in line:
+            found_stimfunc = True
+        if 'EXP \tstim_times:' in line:
+            if '...' not in line and ']' not in line:
+                mode = 'stimtime'
+        if 'EXP \tinterstim_times:' in line:
+            if '...' not in line and ']' not in line:
+                mode = 'isitime'
+        if mode == 'stimtime':
+            tmp_stimtimestr = tmp_stimtimestr + line
+            if ']' in line:
+                mode = None
+        if mode == 'isitime':
+            tmp_isitimestr = tmp_isitimestr + line
+            if ']' in line:
+                mode = None
+        if tmp_ntrials is None:
+            pattern_nt = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?.*'
+            if re.match(pattern_nt, line) is not None:
+                g = re.match(pattern_nt, line).groups()
+                if g[2] is not None:
+                    tmp_ntrials = int(g[2]) + 1
+
+    if tmp_stimtimestr != '':
+        s_si = tmp_stimtimestr.find('[')
+        s_ei = tmp_stimtimestr.find(']')
+        times_stim = np.fromstring(tmp_stimtimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
+        dur_stim = np.round(np.mean(times_stim), 2)
+    else:
+        warn('Could not automatically detect stimulus times from log file.')
+
+    if tmp_isitimestr != '':
+        s_si = tmp_isitimestr.find('[')
+        s_ei = tmp_isitimestr.find(']')
+        times_isi = np.fromstring(tmp_isitimestr[s_si + 1:s_ei].strip(' []'), sep=' ')
+        dur_isi = np.round(np.min(times_isi), 2)
+    else:
+        warn('Could not automatically detect interstimulus times from log file.')
+
+    if tmp_ntrials is not None:
+        n_trials = tmp_ntrials
+    else:
+        if times_stim is not None and times_isi is not None:
+            if len(times_stim) == len(times_isi):
+                n_trials = len(times_stim)
+            else:
+                raise ValueError('Number of stimulus and interstimulus times do not match.')
+        else:
+            raise ValueError('Unknown number of trials. Unable to detect stimulus '
+                             'or interstimulus times from log file.')
+
+    log = create_stimulus_record(trials=n_trials)
+
+    for line in lines:
+        pattern_isi = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*ISI\s*(start|end),?\s*' + \
+                      r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_isi, line) is not None:
+            g = re.match(pattern_isi, line).groups()
+            t = float(g[0])
+            trial = int(g[1])
+            if g[2] is not None and (n_trials - 1) != int(g[2]):
+                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
+                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
+            acqfr = int(g[4])
+            ai_shape = (int(g[5]), int(g[6]))
+
+            match g[3]:
+                case 'start':
+                    if times_isi is not None:
+                        log.at[trial, 'dur_isi_pre'] = times_isi[trial]
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
+                    else:
+                        time_isi_i = t
+                    # log.at[trial, 'dur_isi_pre'] = times_isi[trial]
+                    # if trial > 0:
+                    #     log.at[trial - 1, 'dur_isi_post'] = times_isi[trial]
+                    log.at[trial, 't_isi_i'] = t
+                    log.at[trial, 'acqfr_isi_i'] = acqfr
+                    # log.at[trial, 'dispfr_isi_i'] = np.nan
+                    log.at[trial, 'ai_isi_i'] = ai_shape[0]
+                case 'end':
+                    if times_isi is None and 'time_isi_i' in locals():
+                        log.at[trial, 'dur_isi_pre'] = t - time_isi_i
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = t - time_isi_i
+                    else:
+                        log.at[trial, 'dur_isi_pre'] = np.nan
+                        if trial > 0:
+                            log.at[trial - 1, 'dur_isi_post'] = np.nan
+                    log.at[trial, 't_isi_f'] = t
+                    log.at[trial, 'acqfr_isi_f'] = acqfr
+                    # log.at[trial, 'dispfr_isi_f'] = np.nan
+                    log.at[trial, 'ai_isi_f'] = ai_shape[0]
+                case _:
+                    warn('Unknown interstimulus event in log file: {}'.format(line))
+
+        # 27.2920 	EXP 	trial 0, stim start, grating, full field, drifting, cond=1, ori=45.0, tex=sin, size=[75.67137421 75.67137421], sf=[1.2 0. ], tf=4, mask=None, contrast=1.0, acqfr=12
+        pattern_stim = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*stim\s*(start|end),?\s*' + \
+                       r'((grating),?\s*(full\s*field),?\s*(drifting),?\s*cond=([0-9]+),?\s*ori=([0-9\.]+),?\s*' + \
+                       r'tex=(sin|sqr|saw|tri|None),?\s*size=\[([\-0-9\.\s]+)\],?\s*sf=\[([\-0-9\.\s]+)\],?\s*' + \
+                       r'tf=([0-9\.]+),?\s*mask=(circle|gauss|raisedCos|cross|None),?\s*contrast=([0-9\.]+))?,?\s*' + \
+                       r'acqfr=([0-9]+),?\s*(AI_data\.shape=\(([0-9]+),\s*([0-9]+)\))*'
+        if re.match(pattern_stim, line) is not None:
+            g = re.match(pattern_stim, line).groups()
+            t = float(g[0])
+            trial = int(g[1])
+            if g[2] is not None and (n_trials - 1) != int(g[2]):
+                warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
+                     'referenced in trial {} ({}): {}'.format(trial, g[2], line))
+            acqfr = int(g[16])
+            if g[17] is not None and g[18] is not None:
+                ai_shape = (int(g[17]), int(g[18]))
+            else:
+                ai_shape = (None, None)
+
+            match g[3]:
+                case 'start':
+                    log.at[trial, 'trial'] = trial
+                    if times_stim is not None:
+                        log.at[trial, 'dur_stim'] = times_stim[trial]
+                    else:
+                        time_stim_i = t
+                    # log.at[trial, 'dur_stim'] = times_stim[trial]
+                    log.at[trial, 't_stim_i'] = t
+                    log.at[trial, 'acqfr_stim_i'] = acqfr
+                    # log.at[trial, 'dispfr_stim_i'] = np.nan
+                    log.at[trial, 'ai_stim_i'] = ai_shape[0]
+
+                    log.at[trial, 'cond'] = int(g[8])
+                    log.at[trial, 'stim_mode'] = 'visual'
+                    log.at[trial, 'stim_class'] = g[5]
+                    if g[6].replace(' ', '') == 'fullfield' and g[7].replace(' ', '') == 'drifting':
+                        log.at[trial, 'stim_subclass'] = 'translation'
+                        log.at[trial, 'grating_dir'] = float(g[9])
+                    else:
+                        log.at[trial, 'stim_subclass'] = None
+                    log.at[trial, 'grating_ori'] = int(g[9])
+                    log.at[trial, 'ori'] = int(g[9])
+                    log.at[trial, 'grating_tex'] = g[10]
+                    log.at[trial, 'grating_size'] = np.fromstring(g[11], sep=' ')
+                    log.at[trial, 'size'] = np.fromstring(g[11], sep=' ')
+                    log.at[trial, 'grating_sf'] = float(np.fromstring(g[12], sep=' ')[0])
+                    log.at[trial, 'grating_tf'] = float(g[13])
+                    log.at[trial, 'grating_mask'] = g[14]
+                    log.at[trial, 'grating_contrast'] = float(g[15])
+                case 'end':
+                    if times_stim is None and 'time_stim_i' in locals():
+                        log.at[trial, 'dur_stim'] = t - time_stim_i
+                    else:
+                        log.at[trial, 'dur_stim'] = np.nan
+                    log.at[trial, 't_stim_f'] = t
+                    log.at[trial, 'acqfr_stim_f'] = acqfr
+                    # log.at[trial, 'dispfr_stim_f'] = np.nan
+                    log.at[trial, 'ai_stim_f'] = ai_shape[0]
+                case _:
+                    warn('Unknown stim event in log file: {}'.format(line))
+
+        pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
+                       r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+        if re.match(pattern_conc, line) is not None:
+            if 'trial' not in locals() or not found_stimfunc:
+                raise Exception('Incorrect log parser chosen. This parser is for dots sessions. '
+                                'Conclusion reached without finding a trial or no ImageStim found.')
+            g = re.match(pattern_conc, line).groups()
+            t = float(g[0])
+            acqfr = int(g[2])
+            ai_shape = (int(g[3]), int(g[4]))
+
+            match g[1]:
+                case 'start':
+                    time_conc_i = t
+                case 'end':
+                    if 'time_conc_i' in locals():
+                        log.at[trial, 'dur_isi_post'] = t - time_conc_i
+                    else:
+                        log.at[trial, 'dur_isi_post'] = np.nan
+                case _:
+                    warn('Unknown conclusion event in log file: {}'.format(line))
+
+    return log
+
+
 def parse_log_stim_image_orig(session_log):
     """
     Parse the session log file output of the original stimulus_image.py script.
@@ -986,11 +1193,7 @@ def parse_log_stim_dots_orig(session_log):
 
     lines = session_log.splitlines()
 
-    # 41.9371         EXP     trial 0, stim start, grating, full field, drifting, cond=5, ori=225.0, tex=sin,
-    # size=[75.67137421 75.67137421], sf=[1.2 0. ], tf=4, mask=None, contrast=1.0, acqfr=222
-
     trialdata = {}
-
     tmp_stimtimestr = ''
     stimtime_mode = False
     tmp_isitimestr = ''
