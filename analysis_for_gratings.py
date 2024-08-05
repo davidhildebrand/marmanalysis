@@ -11,7 +11,7 @@ import os
 import pandas as pd
 import pickle
 import re
-from scipy.optimize import minimize as scipy_minimize
+# from scipy.optimize import minimize as scipy_minimize
 from scipy.optimize import least_squares as scipy_leastsquares
 from scipy.stats import binned_statistic as scipy_binned_statistic
 # from scipy.signal import find_peaks as find_peaks
@@ -27,26 +27,40 @@ import parsers
 
 # %% Settings
 
+# Orientation-Selectivity Index (OSI) threshold
 # based on Pattadkal etal Priebe 2022 bioRxiv
 #   https://doi.org/10.1101/2022.06.23.497220
 # "All cell pairs with DSI ≥ 0.15 are considered."
-dsi_tuning_thresh = 0.15
+threshold_osi = 0.15
 
 threshold_cellprob = 0.0
+threshold_Zscore = 0.5
 
+# Plotting parameters
+plot_eyecal = False
 plt.rcParams['figure.dpi'] = 600
-dpi = plt.rcParams['figure.dpi']
 
+# Metrics to consider for plots and calculations
+metrics = ['FdFF', 'Fzsc']
+metric_labels = {'FdFF': 'dF/F',
+                 'Fzsc': 'Z-score'}
 
 # Remove stale metadata
 if 'md' in locals():
     md = dict()
     del md
 
+
 # %% Specify data locations
+
+# savepath_str = 'analysis'
+# save_path = r'F:\Data\analysis'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Louwho
 animal_str = 'Louwho'
+
 # # 20230906 MT chamber ribo-jGCaMP8s
 # date_str = '20230906'
 # session_str = '202924tUTC_SP_depth300um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p8mW_stimDriftGratings8dirFF'
@@ -112,9 +126,12 @@ session_str = '214336tUTC_SP_depth070um_fov0636x1500um_res2p00x2p00umpx_fr10p334
 # session_str = '172227tUTC_SP_depth350um_fov0636x1500um_res2p00x2p00umpx_fr10p334Hz_pow069p2mW_stimMultimodalGratings'
 # session_str = '174040tUTC_SP_depth350um_fov0636x1500um_res2p00x2p00umpx_fr10p334Hz_pow069p2mW_stimMultimodalGratings'
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if 'save_path' not in locals():
     save_path = ''
+if 'savepath_str' not in locals():
+    savepath_str = ''
 if 'stimimage_path' not in locals():
     stimimage_path = ''
 
