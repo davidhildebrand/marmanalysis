@@ -251,7 +251,7 @@ if len(filelist_stimulus_log) > 0:
     del pkls, hdf5s, csvs, sl
 else:
     if session_log is not None:
-        stimlog = parsers.parse_log_stim_dots(session_log)
+        stimlog = parsers.parse_log_stim_gratings(session_log)
     else:
         stimlog = None
         raise RuntimeError('Could not load stimulus record from session log file.')
@@ -270,7 +270,7 @@ if stimlog is not None:
                 stimlog.at[t, 'dur_isi_post'] = stimlog['t_isi_f'].loc[t + 1] - stimlog['t_isi_i'].loc[t + 1]
             del t
     if stimlog.isnull().values.any() and session_log is not None:
-        sl = parsers.parse_log_stim_dots(session_log)
+        sl = parsers.parse_log_stim_gratings(session_log)
         stimlog.update(sl, overwrite=False)
         del sl
 
@@ -751,6 +751,49 @@ def plot_map(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
             #plt.title('(k = {}, weights = {})'.format(n_neighbors, weights))
         plt.show()
 
+
+# tex = "sin",
+# mask = "none",
+# units = None,
+# anchor = "center",
+# pos = (0.0, 0.0),
+# size = None,
+# sf = None,
+# ori = 0.0,
+# phase = (0.0, 0.0),
+# texRes = 128,
+# rgb = None,
+# dkl = None,
+# lms = None,
+# color = (1.0, 1.0, 1.0),
+# colorSpace = 'rgb',
+# contrast = 1.0,
+# opacity = None,
+# depth = 0,
+# rgbPedestal = (0.0, 0.0, 0.0),
+# interpolate = False,
+# draggable = False,
+# blendmode = 'avg',
+# name = None,
+# autoLog = None,
+# autoDraw = False,
+# maskParams = None
+
+# 'grating_tex': None,
+# 'grating_mask': None,
+# 'grating_units': None,
+# 'grating_anchor': None,
+# 'grating_pos': None,
+# 'grating_size': None,
+# 'grating_sf': None,
+# 'grating_ori': None,
+# 'grating_phase': None,
+# 'grating_texRes': None,
+# 'grating_color': None,
+# 'grating_colorSpace': None,
+# 'grating_contrast': None,
+# 'grating_opacity': None,
+# 'grating_interpolate': None,
 
 # Load stimulus information
 
