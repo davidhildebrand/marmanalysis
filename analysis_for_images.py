@@ -1035,9 +1035,29 @@ for m in metrics:
     data[m] = np.nan
 del m
 
+
+# 'cond': None,
+# 'stim_mode': None,
+# 'stim_class': None,
+# 'stim_subclass': None,
+
+# 'image': None,
+# 'image_path': None,
+
+# 'units': None,
+# 'pos': None,
+# 'size': None,
+# 'ori': None,
+# 'color': None,
+# 'colorSpace': None,
+# 'contrast': None,
+# 'opacity': None,
+# 'texRes': None,
+
 # Currently supported image sets:
 # 'FOBmin_MarmOnly', 'FOBmin', 'FOBmany', 'Song_etal_Wang_2022_FOBonly'
 for c in range(n_conds):
+    # stimlog[stimlog['cond'] == c]['stim_class']
     tmp_cond = None
     tmp_cat = None
     tmp_id = None
