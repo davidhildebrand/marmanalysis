@@ -15,7 +15,7 @@ import re
 from scipy.optimize import least_squares as scipy_leastsquares
 from scipy.stats import binned_statistic as scipy_binned_statistic
 # from scipy.signal import find_peaks as find_peaks
-from skimage import exposure, util
+# from skimage import exposure, util
 import socket
 from warnings import warn
 
