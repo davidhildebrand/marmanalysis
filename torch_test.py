@@ -85,6 +85,7 @@ fc7relu.register_forward_hook(get_activation('fc7relu'))
 image_files = [f for f in os.listdir(collated_stim_path)
                if os.path.isfile(os.path.join(collated_stim_path, f))
                and filetype.is_image(os.path.join(collated_stim_path, f))]
+image_files.sort()
 n_images = len(image_files)
 
 background_intensity = 128
@@ -125,15 +126,104 @@ for i_im, image_file in enumerate(image_files):
         output = model(input_batch)
 
     fc6_features[i_im, :] = activation['fc6'].cpu().numpy().squeeze()
-    fc6relu_features[i_im, :] = activation['fc6relu'].cpu().numpy().squeeze()
+    # fc6relu_features[i_im, :] = activation['fc6relu'].cpu().numpy().squeeze()
     fc7_features[i_im, :] = activation['fc7'].cpu().numpy().squeeze()
-    fc7relu_features[i_im, :] = activation['fc7relu'].cpu().numpy().squeeze()
+    # fc7relu_features[i_im, :] = activation['fc7relu'].cpu().numpy().squeeze()
 
     # The output has unnormalized scores. To get probabilities, you can run a softmax on it.
     probabilities = torch.nn.functional.softmax(output[0], dim=0)
 
     top_prob, top_catid = torch.topk(probabilities, 1)
     print(image_file, categories[top_catid], top_prob.item())
+
+
+from sklearn.decomposition import PCA
+
+# pca_fc6 = PCA()
+# pca_fc6.fit(fc6_features)
+pca_fc6 = PCA(n_components=2)
+pca_fc6_X_r = pca_fc6.fit_transform(fc6_features)
+
+# pca_fc7 = PCA()
+# pca_fc7.fit(fc7_features)
+pca_fc7 = PCA(n_components=2)
+pca_fc7_X_r = pca_fc7.fit_transform(fc7_features)
+
+
+import pandas as pd
+
+pca_fc6_explvar = pd.DataFrame(
+    data=zip(range(1, len(pca_fc6.explained_variance_ratio_) + 1),
+             pca_fc6.explained_variance_ratio_,
+             pca_fc6.explained_variance_ratio_.cumsum()),
+    columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
+    ).set_index('PCA').mul(100).round(1)
+# print(df_expl_var)
+
+pca_fc7_explvar = pd.DataFrame(
+    data=zip(range(1, len(pca_fc7.explained_variance_ratio_) + 1),
+             pca_fc7.explained_variance_ratio_,
+             pca_fc7.explained_variance_ratio_.cumsum()),
+    columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
+    ).set_index('PCA').mul(100).round(1)
+
+
+loadings_fc6 = pca_fc6.components_
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+fig, ax = plt.subplots(figsize=(8,8))
+
+ax = sns.heatmap(
+    pca_fc6.components_,
+    cmap='coolwarm',
+    yticklabels=[f'PCA{x}' for x in range(1, pca_fc6.n_components_ + 1)],
+    xticklabels=list(pca_fc6_explvar.columns),
+    linewidths=1,
+    annot=True,
+    fmt=',.2f',
+    cbar_kws={"shrink": 0.8, "orientation": 'horizontal'}
+    )
+ax.set_aspect("equal")
+plt.title('Loading for Each Variable and Component', weight='bold')
+plt.show()
+
+
+loadings_fc6_pc1 = loadings_fc6[0]
+loadings_fc6_pc2 = loadings_fc6[1]
+fig, ax = plt.subplots(figsize=(10, 8))
+plt.scatter(
+    x=loadings_fc6_pc1,  # loadings_fc6['PC1'],
+    y=loadings_fc6_pc2,  # loadings_fc6['PC2'],
+)
+
+plt.axvline(x=0, c="black", label="x=0")
+plt.axhline(y=0, c="black", label="y=0")
+
+for label, x_val, y_val in zip(range(len(loadings_fc6)), loadings_fc6_pc1, loadings_fc6_pc2):  # loadings_fc6['PC1'], loadings_fc6['PC2']):
+    plt.annotate(label, (x_val, y_val), textcoords="offset points", xytext=(0, 10), ha='center')
+
+plt.title('Visualizing PCA1 and PCA2 Loadings', weight='bold')
+ax.spines[['right', 'top', ]].set_visible(False)
+plt.show()
+
+
+
+pca_fc6_X_r_df = pd.DataFrame(pca_fc6_X_r, columns=['PCA1', 'PCA2'])  # , index=df.index)
+print(pca_fc6_X_r_df.head())
+
+fig, ax = plt.subplots(figsize=(10,10))
+ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=np.random.rand(len(pca_fc6_X_r_df), 3))
+plt.title('Visualizing Original Data Follow PCA')
+# sns.despine()
+fig.show()
+
+# fig, ax = plt.subplots(figsize=(10,10))
+# sns.scatterplot(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', ax=ax, s=100, alpha=0.5)
+# plt.title('Visualizing Original Data Follow PCA')
+# sns.despine()
+# fig.show()
+
 
 # from PIL import Image
 # from torchvision import transforms
