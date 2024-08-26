@@ -146,23 +146,6 @@ while len(queue) > 0:
         #     </div>
         #     <h1>Download free American Hockey League transparent PNGs</h1>
         # </section>
-        # # Previous handling of category and subcategory information.
-        # pattern_catinfo = r'<section\s*id=info><div\s*class=breadcrumb>' + \
-        #                   r'<a\s*href=/cat>Categories</a>' + \
-        #                   r'(<a\s*href=/cat/([^>]*)>([^<>]*)</a>)*' + \
-        #                   r'<span>([^<>]*)</span>'
-        # if re.search(pattern_catinfo, link_page) is not None:
-        #     groups = re.search(pattern_catinfo, link_page).groups()
-        #     if groups[0] is None and groups[1] is None and groups[2] is not None:
-        #         link_category = groups[2]
-        #         link_subcategory = None
-        #     elif groups[0] is not None and groups[1] is not None and groups[2] is not None:
-        #         link_category = groups[1]
-        #         link_subcategory = groups[2]
-        #     else:
-        #         warn('Unrecognized category information found on page.')
-        # else:
-        #     warn('Unrecognized category information found on page.')
         link_category = None
         link_subcategory = None
         pattern_catsect = r'(?<=<section\sid=info>)(.*?)(?=</section>)'
@@ -316,237 +299,71 @@ for ii in image_info:
 
 
 
-    # # Within-category pages:
-    # <section id=info>
-    #     <div class=breadcrumb>
-    #         <a href=/cat>Categories</a>
-    #         <span>Animals</span>
-    #     </div>
-    #     <h1>Download free Animals transparent PNGs</h1>
-    #     <div class=description>People[...]. </div>
-    # </section>
-    # <section>
-    #     <div class="stickad header-thick">
-    #         <div data-fuse=22411526620></div>
-    #     </div>
-    # </section>
-    # <section id=results class="grid grid-flexible clearfix">
-    #     <div class="grid grid-flexible clearfix">
-    #         <div class=item>
-    #             <a class=image href=/cat/animals/armadillos?page=1>
-    #                 <img src=https://assets.stickpng.com/categories/7639.png alt=Armadillos>
-    #             </a>
-    #             <div class=title>Armadillos</div>
-    #         </div>
-    #         <div class=item>
-    #             <a class=image href=/cat/animals/baboons?page=1>
-    #                 <img src=https://assets.stickpng.com/categories/2188.png alt=Baboons>
-    #             </a>
-    #             <div class=title>Baboons</div>
-    #         </div>
-    #         [...]
-    #     </div>
-    # </section>
-    # <section>
-    #     <div class="stickad header-thick"><div data-fuse=22411526629></div></div>
-    # </section>
-    # <section id=pagination data-pagination='{"pages":9,"current":1,"next":2}'></section>
+# # Within-category pages:
+# <section id=info>
+#     <div class=breadcrumb>
+#         <a href=/cat>Categories</a>
+#         <span>Animals</span>
+#     </div>
+#     <h1>Download free Animals transparent PNGs</h1>
+#     <div class=description>People[...]. </div>
+# </section>
+# <section>
+#     <div class="stickad header-thick">
+#         <div data-fuse=22411526620></div>
+#     </div>
+# </section>
+# <section id=results class="grid grid-flexible clearfix">
+#     <div class="grid grid-flexible clearfix">
+#         <div class=item>
+#             <a class=image href=/cat/animals/armadillos?page=1>
+#                 <img src=https://assets.stickpng.com/categories/7639.png alt=Armadillos>
+#             </a>
+#             <div class=title>Armadillos</div>
+#         </div>
+#         <div class=item>
+#             <a class=image href=/cat/animals/baboons?page=1>
+#                 <img src=https://assets.stickpng.com/categories/2188.png alt=Baboons>
+#             </a>
+#             <div class=title>Baboons</div>
+#         </div>
+#         [...]
+#     </div>
+# </section>
+# <section>
+#     <div class="stickad header-thick"><div data-fuse=22411526629></div></div>
+# </section>
+# <section id=pagination data-pagination='{"pages":9,"current":1,"next":2}'></section>
 
-    # # Image page:
-    # <section id=info>
-    #     <div class=breadcrumb>
-    #         <a href=/cat>Categories</a>
-    #         <a href=/cat/animals?page=1>Animals</a>
-    #         <span>Armadillos</span>
-    #     </div>
-    #     <h1>Download free Armadillos transparent PNGs</h1>
-    # </section>
-    # <section>
-    #     <div class="stickad header-thick">
-    #         <div data-fuse=22411526620></div>
-    #     </div>
-    # </section>
-    # <section id=results class="grid grid-flexible clearfix">
-    #     <div class="grid grid-flexible clearfix">
-    #         <div class=item>
-    #             <a class="image pattern" href=/img/animals/armadillos/armadillo>
-    #                 <img src=https://assets.stickpng.com/thumbs/5c7f956c72f5d9028c17ecb1.png alt=Armadillo>
-    #             </a>
-    #             <div class=title>Armadillo</div>
-    #         </div>
-    #         <div class=item>
-    #             <a class="image pattern" href=/img/animals/armadillos/armadillo-front-view>
-    #                 <img src=https://assets.stickpng.com/thumbs/5c7f954772f5d9028c17ecac.png alt="Armadillo Front View">
-    #             </a>
-    #             <div class=title>Armadillo Front View</div>
-    #         </div>
-    #     </div>
-    #     [...]
-    # </section>
-    # <section id=pagination data-pagination='{"pages":1,"current":1}'></section>
-
-
-    #
-    # for p in range(max_pages):
-    #     link_page_count_curr = link_page_count_prev + 1
-    #     print('p {} curr {} prev {}'.format(p, link_page_count_curr, link_page_count_prev))
-    #     if url_base.endswith('/'):
-    #         link_url = url_base + link + '?page=' + str(link_page_count_curr)
-    #     else:
-    #         link_url = url_base + '/' + link + '?page=' + str(link_page_count_curr)
-    #     req = Request(url=link_url, headers={'User-Agent': 'Mozilla/5.0'})
-    #     # print('{}/{}'.format(i_link, len(queue)), end='', flush=True)
-    #     print('{}/{}'.format(i_link, len(queue)))
-    #     sleep(randint(3, 20))
-    #     link_page = urlopen(req, timeout=10).read().decode('utf8')
-    #
-    #     if link_page_count_curr > 1:
-    #         link_page_num = re.findall(r'<title[^>]*>[^<>]*\s*Page\s*([0-9]+)\s*[^<>]*</title[^>]*>', link_page)
-    #         if link_page_num:
-    #             if link_page_num[0].isnumeric():
-    #                 link_page_num = float(link_page_num[0])
-    #                 if link_page_num.is_integer():
-    #                     link_page_num = int(link_page_num)
-    #                     link_page_count_curr = link_page_num
-    #                     print('updated curr {}'.format(link_page_count_curr))
-    #     if link_page_count_curr == link_page_count_prev:
-    #         print('broke')
-    #         break
-    #
-    #     # if re.match(r'<a\s*href=/img/download/([a-zA-Z0-9]+)\s*class=button><i></i>Download</a>', page_subcat):
-    #     #     images[subcategory] = re.findall(r'<a\s*class=image\s*href=/img/([^?>]*)', page_subcat)
-    #     #
-    #     #
-    #     #     '<a href=/img/download/580b57fbd9996e24bc43bdf2 class=button><i></i>Download</a>'
-    #     #     '<a href=/cat>Categories</a><a href=/cat/bots-and-robots?page=1>Bots and Robots</a><span>Robot Warm Up</span></div>'
-    #     #
-    #     #     'https://assets.stickpng.com/images/580b57fbd9996e24bc43bdf2.png'
-    # images = {}
-    # # dict
-    # # 'name'
-    # # 'nickname'
-    # # 'catgory'
-    # # 'subcategory'
-    # # 'code'
-    # # 'display_url'
-    # # 'url'
-    #
-    #     queue.extend(re.findall(r'<a\s*class=image\s*href=/cat/(' + link + '/[^?>]*)', link_page))
-    #     # queue = list(set(queue))
-    #
-    #     link_page_count_prev = link_page_count_curr
-    #     print('updated last {}'.format(link_page_count_curr))
-    #     # print('.', end='', flush=True)
-    #
-    # queue.remove(link)
-
-
-
-
-
-
-# categories = re.findall(r'<a\s*class=image\s*href=/cat/([^?>]*)', page)
-#
-# subcategories = {}
-# image_urls = []
-# images = {}
-# # dict
-# # 'name'
-# # 'nickname'
-# # 'catgory'
-# # 'subcategory'
-# # 'code'
-# # 'display_url'
-# # 'url'
-#
-# max_pages = 100
-# for category in categories:
-#     subcategories[category] = []
-#
-#     pagenum_cat_curr = 0
-#     pagenum_cat_last = 0
-#     for p in range(max_pages):
-#         pagenum_cat_curr = pagenum_cat_last + 1
-#
-#         sleep(randint(3, 30))
-#
-#         if url_base.endswith('/'):
-#             url_catpage = url_base + category + '?page=' + str(pagenum_cat_curr)
-#         else:
-#             url_catpage = url_base + '/' + category + '?page=' + str(pagenum_cat_curr)
-#
-#         req = Request(
-#             url=url_catpage,
-#             headers={'User-Agent': 'Mozilla/5.0'}
-#         )
-#         page_cat = urlopen(req, timeout=10).read().decode('utf8')
-#
-#         if pagenum_cat_curr > 1:
-#             pagenum_cat_check = re.findall(r'<title[^>]*>[^<>]*\s*Page\s*([0-9]+)\s*[^<>]*</title[^>]*>', page_cat)
-#             if pagenum_cat_check:
-#                 if pagenum_cat_check[0].isnumeric():
-#                     pagenum_cat_check = float(pagenum_cat_check[0])
-#                     if pagenum_cat_check.is_integer():
-#                         pagenum_cat_check = int(pagenum_cat_check)
-#                         pagenum_cat_curr = pagenum_cat_check
-#         if pagenum_cat_curr == pagenum_cat_last:
-#             break
-#
-#         subcategories[category].extend(re.findall(r'<a\s*class=image\s*href=/cat/' + category + '/([^?>]*)', page_cat))
-#
-#         pagenum_cat_last = pagenum_cat_curr
-#         print('.', end='', flush=True)
-#
-#     pagenum_subcat_curr = 0
-#     pagenum_subcat_last = 0
-#     for subcategory in subcategories[category]:
-#         # images[subcategory] = []
-#
-#         for p in range(max_pages):
-#             pagenum_subcat_curr = pagenum_subcat_last + 1
-#
-#             sleep(randint(3, 30))
-#
-#             if url_base.endswith('/'):
-#                 url_subcatpage = url_base + category + '/' + subcategory + '?page=' + str(pagenum_subcat_curr)
-#             else:
-#                 url_subcatpage = url_base + '/' + category + '/' + subcategory + '?page=' + str(pagenum_subcat_curr)
-#
-#             req = Request(
-#                 url=url_subcatpage,
-#                 headers={'User-Agent': 'Mozilla/5.0'}
-#             )
-#             page_subcat = urlopen(req, timeout=10).read().decode('utf8')
-#
-#             if pagenum_subcat_curr > 1:
-#                 pagenum_subcat_check = re.findall(r'<title[^>]*>[^<>]*\s*Page\s*([0-9]+)\s*[^<>]*</title[^>]*>', page_subcat)
-#                 if pagenum_subcat_check:
-#                     if pagenum_subcat_check[0].isnumeric():
-#                         pagenum_subcat_check = float(pagenum_subcat_check[0])
-#                         if pagenum_subcat_check.is_integer():
-#                             pagenum_subcat_check = int(pagenum_subcat_check)
-#                             pagenum_subcat_curr = pagenum_subcat_check
-#             if pagenum_subcat_curr == pagenum_subcat_last:
-#                 break
-#
-#             # r'<a class="image pattern" href=/img/animals/elephants/elephant-back-view-close-up>'
-#             image_urls.extend(re.findall(r'<a\s*class="image\s*pattern"\s*href=([^>]+)', page_subcat))
-#             # images[subcategory].extend(re.findall(r'<a\s*class=image\s*href=/img/([^?>]*)', page_subcat))
-#             # images[image_num]['display_url'] = re.findall(r'<a\s*class=image\s*href=/img/([^?>]*)', page_subcat)
-#             # r'https://www.stickpng.com/img/animals/elephants/mother-and-baby-elephant'
-#
-#
-# # first, build a list of all image display urls... all info is on those pages
-#
-#             pagenum_subcat_last = pagenum_subcat_curr
-#             print('-', end='', flush=True)
-#
-#
-#     if re.match(r'<a\s*href=/img/download/([a-zA-Z0-9]+)\s*class=button><i></i>Download</a>', page_subcat):
-#         images[subcategory] = re.findall(r'<a\s*class=image\s*href=/img/([^?>]*)', page_subcat)
-#
-#
-#     '<a href=/img/download/580b57fbd9996e24bc43bdf2 class=button><i></i>Download</a>'
-#     '<a href=/cat>Categories</a><a href=/cat/bots-and-robots?page=1>Bots and Robots</a><span>Robot Warm Up</span></div>'
-#
-#     'https://assets.stickpng.com/images/580b57fbd9996e24bc43bdf2.png'
+# # Image page:
+# <section id=info>
+#     <div class=breadcrumb>
+#         <a href=/cat>Categories</a>
+#         <a href=/cat/animals?page=1>Animals</a>
+#         <span>Armadillos</span>
+#     </div>
+#     <h1>Download free Armadillos transparent PNGs</h1>
+# </section>
+# <section>
+#     <div class="stickad header-thick">
+#         <div data-fuse=22411526620></div>
+#     </div>
+# </section>
+# <section id=results class="grid grid-flexible clearfix">
+#     <div class="grid grid-flexible clearfix">
+#         <div class=item>
+#             <a class="image pattern" href=/img/animals/armadillos/armadillo>
+#                 <img src=https://assets.stickpng.com/thumbs/5c7f956c72f5d9028c17ecb1.png alt=Armadillo>
+#             </a>
+#             <div class=title>Armadillo</div>
+#         </div>
+#         <div class=item>
+#             <a class="image pattern" href=/img/animals/armadillos/armadillo-front-view>
+#                 <img src=https://assets.stickpng.com/thumbs/5c7f954772f5d9028c17ecac.png alt="Armadillo Front View">
+#             </a>
+#             <div class=title>Armadillo Front View</div>
+#         </div>
+#     </div>
+#     [...]
+# </section>
+# <section id=pagination data-pagination='{"pages":1,"current":1}'></section>
