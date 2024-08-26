@@ -18,8 +18,7 @@ url_base = 'https://www.stickpng.com/'
 url_cat = url_base + 'cat/'
 url_assets = 'https://assets.stickpng.com/images/'
 
-
-skip_categories = ['icons-logos-emojis']
+skip_categories = ['bots-and-robots', 'comics-and-fantasy', 'icons-logos-emojis', 'holidays', 'memes', 'religion']
 
 
 system_name = socket.gethostname()
@@ -250,6 +249,8 @@ while len(queue) > 0:
 
 # Download images.
 for ii in image_info:
+    if image_info[ii]['code_category'] in skip_categories:
+        continue
     image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
     if not os.path.isfile(image_path):
         sleep(randint(30, 120))
@@ -265,7 +266,7 @@ for ii in image_info:
                                                                image_info[ii]['code']))
 
 
-# # Within-category pages:
+# # Within-category page example:
 # <section id=info>
 #     <div class=breadcrumb>
 #         <a href=/cat>Categories</a>
@@ -301,7 +302,7 @@ for ii in image_info:
 # </section>
 # <section id=pagination data-pagination='{"pages":9,"current":1,"next":2}'></section>
 
-# # Image page:
+# # Image page example:
 # <section id=info>
 #     <div class=breadcrumb>
 #         <a href=/cat>Categories</a>
