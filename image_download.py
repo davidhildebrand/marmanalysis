@@ -19,9 +19,7 @@ url_cat = url_base + 'cat/'
 url_assets = 'https://assets.stickpng.com/images/'
 
 
-
 skip_categories = ['icons-logos-emojis']
-skip_subcategories = []
 
 
 system_name = socket.gethostname()
@@ -265,38 +263,6 @@ for ii in image_info:
         print('Linked {}/{}.png to image asset {}.png.'.format(image_info[ii]['code_category_full'],
                                                                image_info[ii]['title'],
                                                                image_info[ii]['code']))
-
-
-# # Temporary converter to add details.
-# iminf = {}
-# for ii in image_info:
-#     code_category = None
-#     code_subcategory = None
-#     code_full = None
-#     pattern_catcode = r'^' + url_base + 'img/((([^/]*)/?(.*)?)/([^/]*))$'
-#     if re.search(pattern_catcode, image_info[ii]['url_info']) is not None:
-#         groups = re.search(pattern_catcode, image_info[ii]['url_info']).groups()
-#         code_category = groups[2]
-#         code_subcategory = groups[3] if groups[3] != '' else None
-#         code_full = groups[1]
-#     else:
-#         warn('Unable to parse category code from URL for image_info {}.'.format(ii))
-#
-#     if image_info[ii]['code'] in iminf:
-#         warn('Duplicate image code ({}) found in image_info, overwriting.'.format(image_info[ii]['code']))
-#     iminf[image_info[ii]['code']] = {
-#         'title': image_info[ii]['title'],
-#         'name': image_info[ii]['name'],
-#         'category': image_info[ii]['category'],
-#         'subcategory': image_info[ii]['subcategory'],
-#         'code': image_info[ii]['code'],
-#         'code_category': code_category,
-#         'code_subcategory': code_subcategory,
-#         'code_category_full': code_full,
-#         'url_info': image_info[ii]['url_info'],
-#         'url_image': image_info[ii]['url_image'],
-#     }
-
 
 
 # # Within-category pages:
