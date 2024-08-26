@@ -18,7 +18,40 @@ url_base = 'https://www.stickpng.com/'
 url_cat = url_base + 'cat/'
 url_assets = 'https://assets.stickpng.com/images/'
 
-skip_categories = ['bots-and-robots', 'comics-and-fantasy', 'icons-logos-emojis', 'holidays', 'memes', 'religion']
+skip_categories = [
+    'animals/bilbies',
+    'bots-and-robots',
+    'comics-and-fantasy',
+    'icons-logos-emojis',
+    'holidays',
+    'memes',
+    'religion',
+    'sports/cricket-teams',
+    'sports/ice-hockey/american-hockey-league',
+    'sports/ice-hockey/asia-league-ice-hockey',
+    'sports/ice-hockey/australian-ice-hockey-league',
+    'sports/ice-hockey/belgian-ice-hockey-teams',
+    'sports/ice-hockey/champions-hockey-league',
+    'sports/ice-hockey/eastern-hockey-league',
+    'sports/ice-hockey/echl',
+    'sports/ice-hockey/elite-ice-hockey-league',
+    'sports/ice-hockey/federal-hockey-league',
+    'sports/ice-hockey/french-ice-hockey-teams',
+    'sports/ice-hockey/german-ice-hockey-teams',
+    'sports/ice-hockey/international-ice-hockey-teams',
+    'sports/ice-hockey/kontinental-hockey-league',
+    'sports/ice-hockey/ligue-magnus',
+    'sports/ice-hockey/ligue-nordamericaine-de-hockey',
+    'sports/ice-hockey/national-hockey-league',
+    'sports/ice-hockey/national-ice-hockey-league',
+    'sports/ice-hockey/ontario-hockey-league',
+    'sports/ice-hockey/quebec-major-junior-hockey-league',
+    'sports/ice-hockey/southern-professional-hockey-league',
+    'sports/ice-hockey/united-states-hockey-league',
+    'sports/ice-hockey/us-premier-hockey-league',
+    'sports/ice-hockey/western-hockey-league',
+    'sports/nfl-football',
+]
 
 
 system_name = socket.gethostname()
@@ -82,7 +115,7 @@ while len(queue) > 0:
         warn('Queue contains duplicate entries.')
 
     link = queue[0]
-    print('Processing queued link: {} ({}/{})'.format(link, link_counter, len(queue)))
+    print('Processing queued link: {} ({}|{})'.format(link, link_counter, len(queue)))
     while page_current <= n_pages:
         link_url = url_cat + link + '?page=' + str(page_current) \
             if url_cat.endswith('/') \
@@ -177,20 +210,20 @@ while len(queue) > 0:
                 pattern_imageinfo = r'<a\s*class="image pattern"\s*href=/(img/' + link + '/([^>]*))>' + \
                                     r'<img\s*src=https://[^/]*/thumbs/([^/\.]*)\.[^\s]*\s*alt=([^>]*)>'
                 image_search_result = re.findall(pattern_imageinfo, grid_search_result)
-                for ii in image_search_result:
-                    if ii[2] in image_info:
-                        warn('Previously processed image code found on page ({}), overwriting.'.format(ii[2]))
-                    image_info[ii[2]] = {
-                        'title': ii[1],
-                        'name': ii[3].strip('"'),
+                for isr in image_search_result:
+                    if isr[2] in image_info:
+                        warn('Previously processed image ({}) encountered again, overwriting information.'.format(ii[2]))
+                    image_info[isr[2]] = {
+                        'title': isr[1],
+                        'name': isr[3].strip('"'),
                         'category': link_category,
                         'subcategory': link_subcategory,
-                        'code': ii[2],
+                        'code': isr[2],
                         'code_category': code_category,
                         'code_subcategory': code_subcategory,
                         'code_category_full': code_full,
-                        'url_info': url_base + ii[0],
-                        'url_image': url_assets + ii[2] + '.png',
+                        'url_info': url_base + isr[0],
+                        'url_image': url_assets + isr[2] + '.png',
                     }
         else:
             warn('No grid section found on page.')
@@ -223,7 +256,11 @@ while len(queue) > 0:
 
 # Download images.
 for ii in image_info:
-    if image_info[ii]['code_category'] in skip_categories:
+    if (image_info[ii]['code_category'] in skip_categories or
+            image_info[ii]['code_subcategory'] in skip_categories or
+            image_info[ii]['code_category_full'] in skip_categories):
+        continue
+    if np.any([skip_categories[sc] in image_info[ii]['code_category_full'] for sc in skip_categories]):
         continue
     image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
     if not os.path.isfile(image_path):
