@@ -117,32 +117,6 @@ while len(queue) > 0:
         else:
             warn('Unable to parse category code from URL.')
 
-        # # Typical example for a category page.
-        # <section id=info>
-        #     <div class=breadcrumb>
-        #         <a href=/cat>Categories</a>
-        #         <span>Animals</span>
-        #     </div>
-        # </section>
-        # # Typical example for a sub-category page.
-        # <section id=info>
-        #     <div class=breadcrumb>
-        #         <a href=/cat>Categories</a>
-        #         <a href=/cat/animals?page=1>Animals</a>
-        #         <span>Armadillos</span>
-        #     </div>
-        #     <h1>Download free Armadillos transparent PNGs</h1>
-        # </section>
-        # # Unusual example for a page with multiple sub-categories.
-        # <section id=info>
-        #     <div class=breadcrumb>
-        #         <a href=/cat>Categories</a>
-        #         <a href=/cat/sports?page=1>Sports</a>
-        #         <a href=/cat/sports/ice-hockey?page=1>Ice Hockey</a>
-        #         <span>American Hockey League</span>
-        #     </div>
-        #     <h1>Download free American Hockey League transparent PNGs</h1>
-        # </section>
         link_category = None
         link_subcategory = None
         pattern_catsect = r'(?<=<section\sid=info>)(.*?)(?=</section>)'
@@ -266,6 +240,35 @@ for ii in image_info:
                                                                image_info[ii]['code']))
 
 
+# # # Category information examples:
+# # Typical example for a category page.
+# <section id=info>
+#     <div class=breadcrumb>
+#         <a href=/cat>Categories</a>
+#         <span>Animals</span>
+#     </div>
+# </section>
+# # Typical example for a sub-category page.
+# <section id=info>
+#     <div class=breadcrumb>
+#         <a href=/cat>Categories</a>
+#         <a href=/cat/animals?page=1>Animals</a>
+#         <span>Armadillos</span>
+#     </div>
+#     <h1>Download free Armadillos transparent PNGs</h1>
+# </section>
+# # Unusual example for a page with multiple sub-categories.
+# <section id=info>
+#     <div class=breadcrumb>
+#         <a href=/cat>Categories</a>
+#         <a href=/cat/sports?page=1>Sports</a>
+#         <a href=/cat/sports/ice-hockey?page=1>Ice Hockey</a>
+#         <span>American Hockey League</span>
+#     </div>
+#     <h1>Download free American Hockey League transparent PNGs</h1>
+# </section>
+
+# # # Example HTML:
 # # Within-category page example:
 # <section id=info>
 #     <div class=breadcrumb>
