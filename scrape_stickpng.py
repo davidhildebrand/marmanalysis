@@ -282,9 +282,9 @@ while len(os.listdir(asset_path)) < len(image_info):
                                                                image_info[ii]['code']))
 
 
-full_category_codes = np.unique([image_info[ii]['code_category_full'] for ii in image_info])
-for fcc in full_category_codes:
-    print(fcc)
+# full_category_codes = np.unique([image_info[ii]['code_category_full'] for ii in image_info])
+# for fcc in full_category_codes:
+#     print(fcc)
 
 # # # Category information examples:
 # # Typical example for a category page.
