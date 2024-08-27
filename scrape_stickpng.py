@@ -205,7 +205,7 @@ while len(queue) > 0:
                 new_items = re.findall(r'<a\s*class=image\s*href=/cat/(' + link + '/[^?>]*)', grid_search_result)
                 queue.extend(new_items)
                 n_total = n_total + len(new_items)
-                print('  extended queue with {} new items'.format(len(queue)))
+                print('  extended queue with {} new items'.format(len(new_items)))
                 del new_items
 
             # Match within-subcategory pages (i.e. lists of images) and add them to the image list.
