@@ -96,6 +96,17 @@ def download_image(url, filename):
         out_file.write(data)
 
 
+def save_snapshot():
+    now = datetime.now(timezone.utc)
+    datetime_str = now.strftime('%Y%m%dd%H%M%StUTC')
+    infosave_filename = datetime_str + '_stickpng_image_info_partial.pickle'
+    infosave_filepath = os.path.join(infosave_path, infosave_filename)
+    with open(infosave_filepath, 'wb') as file:
+        pickle.dump([image_info, queue, n_pages, page_current, page_info],
+                    file,
+                    protocol=pickle.HIGHEST_PROTOCOL)
+
+
 req = Request(url=url_cat, headers={'User-Agent': 'Mozilla/5.0'})
 page = urlopen(req, timeout=10).read().decode('utf8')
 
@@ -242,18 +253,12 @@ while len(queue) > 0:
 
     # Save a snapshot of the collected information.
     if link_counter % 100 == 0 and link_counter > 0:
-        now = datetime.now(timezone.utc)
-        datetime_str = now.strftime('%Y%m%dd%H%M%StUTC')
-        infosave_filename = datetime_str + '_stickpng_image_info_partial.pickle'
-        infosave_filepath = os.path.join(infosave_path, infosave_filename)
-        with open(infosave_filepath, 'wb') as file:
-            pickle.dump([image_info, queue, n_pages, page_current, page_info],
-                        file,
-                        protocol=pickle.HIGHEST_PROTOCOL)
+        save_snapshot()
 
     link_counter += 1
     queue.remove(link)
     queue = sorted(queue, key=queue_sort_function)
+save_snapshot()
 
 
 # Download images.
