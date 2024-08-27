@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import json
 import os
 import pickle
-from random import randint
+from random import randint, choice
 import numpy as np
 import re
 import socket
@@ -20,7 +20,9 @@ url_assets = 'https://assets.stickpng.com/images/'
 
 skip_categories = [
     'animals/bilbies',
+    'animals/birds/bird-silhouettes',
     'bots-and-robots',
+    'cartoons',
     'comics-and-fantasy',
     'icons-logos-emojis',
     'holidays',
@@ -121,7 +123,7 @@ while len(queue) > 0:
             if url_cat.endswith('/') \
             else url_cat + '/' + link + '?page=' + str(page_current)
         req = Request(url=link_url, headers={'User-Agent': 'Mozilla/5.0'})
-        sleep(randint(15, 80))
+        sleep(randint(15, 70))
         link_page = urlopen(req, timeout=10).read().decode('utf8')
 
         # Update page counts using provided numbers.
@@ -212,7 +214,7 @@ while len(queue) > 0:
                 image_search_result = re.findall(pattern_imageinfo, grid_search_result)
                 for isr in image_search_result:
                     if isr[2] in image_info:
-                        warn('Previously processed image ({}) encountered again, overwriting information.'.format(ii[2]))
+                        warn('Previously processed image ({}) encountered again, overwriting information.'.format(isr[2]))
                     image_info[isr[2]] = {
                         'title': isr[1],
                         'name': isr[3].strip('"'),
@@ -255,27 +257,29 @@ while len(queue) > 0:
 
 
 # Download images.
-for ii in image_info:
-    if (image_info[ii]['code_category'] in skip_categories or
-            image_info[ii]['code_subcategory'] in skip_categories or
-            image_info[ii]['code_category_full'] in skip_categories):
-        continue
-    if np.any([skip_categories[sc] in image_info[ii]['code_category_full'] for sc in skip_categories]):
+# for ii in image_info:
+while len(os.listdir(asset_path)) < len(image_info):
+    ii = choice(list(image_info.keys()))
+    if np.any([skip_categories[sc] in image_info[ii]['code_category_full'] for sc, _ in enumerate(skip_categories)]):
         continue
     image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
     if not os.path.isfile(image_path):
-        sleep(randint(30, 120))
+        sleep(randint(10, 80))
         download_image(image_info[ii]['url_image'], image_path)
         print('Downloaded image {}.png ({}.png).'.format(image_info[ii]['code'], image_info[ii]['title']))
     linkdir_path = os.path.join(tree_path, image_info[ii]['code_category_full'])
     os.makedirs(linkdir_path, exist_ok=True)
     link_path = os.path.join(linkdir_path, image_info[ii]['title'] + '.png')
     if not os.path.islink(link_path):
-        os.symlink(image_path, link_path)
+        os.symlink(os.path.relpath(image_path, os.path.dirname(link_path)), link_path)
         print('Linked {}/{}.png to image asset {}.png.'.format(image_info[ii]['code_category_full'],
                                                                image_info[ii]['title'],
                                                                image_info[ii]['code']))
 
+
+full_category_codes = np.unique([image_info[ii]['code_category_full'] for ii in image_info])
+for fcc in full_category_codes:
+    print(fcc)
 
 # # # Category information examples:
 # # Typical example for a category page.
