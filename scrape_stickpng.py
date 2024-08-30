@@ -271,11 +271,8 @@ if scrape_site:
 if download_images:
     latest_snapshot = r'20240830d003444tUTC_stickpng_image_info_partial.pickle'
     with open(os.path.join(infosave_path, latest_snapshot), 'rb') as file:
-        # Deserialize and load the object from the file
         loaded_object = pickle.load(file)
-    # Print the loaded object
-    # print(loaded_object)
-    image_info = loaded_object['image_info']
+    image_info = loaded_object[0]
 
     # Download images.
     # for ii in image_info:
