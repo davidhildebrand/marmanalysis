@@ -281,8 +281,10 @@ if download_images:
     # for ii in image_info:
     while len(os.listdir(asset_path)) < len(image_info):
         ii = choice(list(image_info.keys()))
-        # if np.any([skip_categories[sc] in image_info[ii]['code_category_full'] for sc, _ in enumerate(skip_categories)]):
-        #     continue
+        if image_info[ii]['code_category_full'] is None or image_info[ii]['code_category'] is None:
+            continue
+        if np.any([skip_categories[sc] in image_info[ii]['code_category_full'] for sc, _ in enumerate(skip_categories)]):
+            continue
         image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
         if not os.path.isfile(image_path):
             dur_sleep = randint(10, 80)
@@ -290,17 +292,14 @@ if download_images:
             sleep(dur_sleep)
             download_image(image_info[ii]['url_image'], image_path)
             print('Downloaded image {}.png ({}.png).'.format(image_info[ii]['code'], image_info[ii]['title']))
-        if image_info[ii]['code_category_full'] is not None:
-            linkdir_path = os.path.join(tree_path, image_info[ii]['code_category_full'])
-            os.makedirs(linkdir_path, exist_ok=True)
-            link_path = os.path.join(linkdir_path, image_info[ii]['title'].replace('/', '-') + '.png')
-            if not os.path.islink(link_path):
-                os.symlink(os.path.relpath(image_path, os.path.dirname(link_path)), link_path)
-                print('Linked {}/{}.png to image asset {}.png.'.format(image_info[ii]['code_category_full'],
-                                                                       image_info[ii]['title'].replace('/', '-'),
-                                                                       image_info[ii]['code']))
-        else:
-            warn('code_category_full for {} is {}'.format(ii, image_info[ii]['code_category_full']))
+        linkdir_path = os.path.join(tree_path, image_info[ii]['code_category_full'])
+        os.makedirs(linkdir_path, exist_ok=True)
+        link_path = os.path.join(linkdir_path, image_info[ii]['title'].replace('/', '-') + '.png')
+        if not os.path.islink(link_path):
+            os.symlink(os.path.relpath(image_path, os.path.dirname(link_path)), link_path)
+            print('Linked {}/{}.png to image asset {}.png.'.format(image_info[ii]['code_category_full'],
+                                                                   image_info[ii]['title'].replace('/', '-'),
+                                                                   image_info[ii]['code']))
 
 
 # full_category_codes = np.unique([image_info[ii]['code_category_full'] for ii in image_info])
