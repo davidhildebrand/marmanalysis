@@ -97,7 +97,7 @@ os.makedirs(infosave_path, exist_ok=True)
 
 def download_image(url, filename):
     dlreq = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urlopen(dlreq, timeout=10) as response, open(filename, 'wb') as out_file:
+    with urlopen(dlreq, timeout=30) as response, open(filename, 'wb') as out_file:
         data = response.read()
         out_file.write(data)
 
@@ -179,8 +179,11 @@ if scrape_site:
                     warn('Multiple category information sections found on page. Only the first will be used.')
                 category_search_result = groups[0]
 
+# <a href=/cat>Categories</a><span>Bots and Robots</span></div>
                 pattern_catinfo0 = r'<div\s*class=breadcrumb><a\s*href=/cat>Categories</a>'
-                pattern_catinfo1 = r'(<a\s*href=/cat/([^?>]*)[^>]*>([^<>]*)</a>)(<span>([^<>]*)</span>)?'
+                # pattern_catinfo1 = r'(<a\s*href=/cat/([^?>]*)[^>]*>([^<>]*)</a>)(<span>([^<>]*)</span>)?'
+                pattern_catinfo1 = r'(<a\s*href=/cat/([^?>]+)[^>]*>([^<>]+)</a>)*(<span>([^<>]*)</span>)?'
+                pattern_catinfo2 = r'(<span>([^<>]*)</span>)?'
                 if (re.search(pattern_catinfo0, category_search_result) is not None and
                         re.search(pattern_catinfo1, category_search_result) is not None):
                     category_items = re.findall(pattern_catinfo1, category_search_result)
