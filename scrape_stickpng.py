@@ -269,7 +269,7 @@ if scrape_site:
 
 
 if download_images:
-    latest_snapshot = r'20240830d003444tUTC_stickpng_image_info_partial.pickle'
+    latest_snapshot = r'20240830d003444tUTC_stickpng_image_info_full.pickle'
     with open(os.path.join(infosave_path, latest_snapshot), 'rb') as file:
         loaded_object = pickle.load(file)
     image_info = loaded_object[0]
@@ -285,14 +285,17 @@ if download_images:
             sleep(randint(10, 80))
             download_image(image_info[ii]['url_image'], image_path)
             print('Downloaded image {}.png ({}.png).'.format(image_info[ii]['code'], image_info[ii]['title']))
-        linkdir_path = os.path.join(tree_path, image_info[ii]['code_category_full'])
-        os.makedirs(linkdir_path, exist_ok=True)
-        link_path = os.path.join(linkdir_path, image_info[ii]['title'].replace('/', '-') + '.png')
-        if not os.path.islink(link_path):
-            os.symlink(os.path.relpath(image_path, os.path.dirname(link_path)), link_path)
-            print('Linked {}/{}.png to image asset {}.png.'.format(image_info[ii]['code_category_full'],
-                                                                   image_info[ii]['title'].replace('/', '-'),
-                                                                   image_info[ii]['code']))
+        if image_info[ii]['code_category_full'] is not None:
+            linkdir_path = os.path.join(tree_path, image_info[ii]['code_category_full'])
+            os.makedirs(linkdir_path, exist_ok=True)
+            link_path = os.path.join(linkdir_path, image_info[ii]['title'].replace('/', '-') + '.png')
+            if not os.path.islink(link_path):
+                os.symlink(os.path.relpath(image_path, os.path.dirname(link_path)), link_path)
+                print('Linked {}/{}.png to image asset {}.png.'.format(image_info[ii]['code_category_full'],
+                                                                       image_info[ii]['title'].replace('/', '-'),
+                                                                       image_info[ii]['code']))
+        else:
+            warn('code_category_full for {} is {}'.format(ii, image_info[ii]['code_category_full']))
 
 
 # full_category_codes = np.unique([image_info[ii]['code_category_full'] for ii in image_info])
