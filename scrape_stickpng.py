@@ -282,7 +282,9 @@ if download_images:
         #     continue
         image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
         if not os.path.isfile(image_path):
-            sleep(randint(10, 80))
+            dur_sleep = randint(10, 80)
+            print('Pausing for {}sec...'.format(dur_sleep))
+            sleep(dur_sleep)
             download_image(image_info[ii]['url_image'], image_path)
             print('Downloaded image {}.png ({}.png).'.format(image_info[ii]['code'], image_info[ii]['title']))
         if image_info[ii]['code_category_full'] is not None:
