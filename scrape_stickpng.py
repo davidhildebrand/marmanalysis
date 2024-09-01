@@ -282,8 +282,12 @@ if download_images:
     while len(os.listdir(asset_path)) < len(image_info):
         ii = choice(list(image_info.keys()))
         if image_info[ii]['code_category_full'] is None or image_info[ii]['code_category'] is None:
+            print('No category found for {}, skipping...'.format(ii))
             continue
-        if np.any([skip_categories[sc] in image_info[ii]['code_category_full'] for sc, _ in enumerate(skip_categories)]):
+        if np.any([skip_categories[sc] in image_info[ii]['code_category_full']
+                   for sc, _ in enumerate(skip_categories)]):
+            print('Blacklisted category or subcategory ({}) '
+                  'for {}, skipping...'.format(image_info[ii]['code_category_full'], ii))
             continue
         image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
         if not os.path.isfile(image_path):
