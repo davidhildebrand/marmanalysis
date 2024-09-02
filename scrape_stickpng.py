@@ -141,71 +141,85 @@ if scrape_site:
                 if url_cat.endswith('/') \
                 else url_cat + '/' + link + '?page=' + str(page_current)
             req = Request(url=link_url, headers={'User-Agent': 'Mozilla/5.0'})
-            sleep(randint(15, 70))
+            dur_sleep = randint(10, 70)
+            print('Waiting for {} sec...'.format(dur_sleep))
+            sleep(dur_sleep)
             link_page = urlopen(req, timeout=10).read().decode('utf8')
 
             # Update page counts using provided numbers.
             pattern_pageinfo = r'<section\s*id=pagination\s*data-pagination=\'([^\']*)\'></section>'
-            page_info = re.search(pattern_pageinfo, link_page)
             if re.search(pattern_pageinfo, link_page) is not None:
-                groups = re.search(pattern_pageinfo, link_page).groups()
-                if len(groups) != 1:
+                groups_pageinfo = re.search(pattern_pageinfo, link_page).groups()
+                if len(groups_pageinfo) != 1:
                     warn('Multiple page information entries found on page. Only the first will be used.')
-                page_info = groups[0]
+                page_info = groups_pageinfo[0]
                 page_info = json.loads(page_info)
                 n_pages = page_info['pages']
                 page_current = page_info['current']
+            else:
+                warn('Unable to interpret page information.')
             print('  page {}/{}'.format(page_current, n_pages))
 
             # Parse category code from URL.
             code_category = None
             code_subcategory = None
             code_full = None
-            pattern_catcode = r'' + url_cat + '(([^/?]*)/([^?]*))?.*'
+            pattern_catcode = r'' + url_cat + '(([^/?]*)/?([^?]*))?.*'
             if re.search(pattern_catcode, link_url) is not None:
-                groups = re.search(pattern_catcode, link_url).groups()
-                code_category = groups[1]
-                code_subcategory = groups[2]
-                code_full = groups[0]
+                groups_catcode = re.search(pattern_catcode, link_url).groups()
+                code_category = groups_catcode[1]
+                code_subcategory = groups_catcode[2] if groups_catcode[2] != '' else None
+                code_full = groups_catcode[0]
             else:
-                warn('Unable to parse category code from URL.')
+                warn('Unable to interpret category code from URL.')
 
             link_category = None
             link_subcategory = None
             pattern_catsect = r'(?<=<section\sid=info>)(.*?)(?=</section>)'
             if re.search(pattern_catsect, link_page) is not None:
-                groups = re.search(pattern_catsect, link_page).groups()
-                if len(groups) != 1:
+                groups_catsect = re.search(pattern_catsect, link_page).groups()
+                if len(groups_catsect) != 1:
                     warn('Multiple category information sections found on page. Only the first will be used.')
-                category_search_result = groups[0]
+                category_search_result = groups_catsect[0]
 
-# <a href=/cat>Categories</a><span>Bots and Robots</span></div>
-                pattern_catinfo0 = r'<div\s*class=breadcrumb><a\s*href=/cat>Categories</a>'
-                # pattern_catinfo1 = r'(<a\s*href=/cat/([^?>]*)[^>]*>([^<>]*)</a>)(<span>([^<>]*)</span>)?'
-                pattern_catinfo1 = r'(<a\s*href=/cat/([^?>]+)[^>]*>([^<>]+)</a>)*(<span>([^<>]*)</span>)?'
-                pattern_catinfo2 = r'(<span>([^<>]*)</span>)?'
-                if (re.search(pattern_catinfo0, category_search_result) is not None and
-                        re.search(pattern_catinfo1, category_search_result) is not None):
-                    category_items = re.findall(pattern_catinfo1, category_search_result)
-                    if len(category_items) > 0:
-                        link_category = category_items[0][2]
-                        if len(category_items) > 1:
-                            link_subcategory = ''
-                            for ci in range(1, len(category_items)):
-                                link_subcategory = category_items[ci][2] if link_subcategory == '' else(
-                                        link_subcategory + ', ' + category_items[ci][2])
-                                if category_items[ci][4] != '':
-                                    link_subcategory = link_subcategory + ', ' + category_items[ci][4]
-                    else:
-                        warn('Unrecognized category information found on page.')
+                pattern_catinfo = r'<div\s*class=breadcrumb><a\s*href=/cat>Categories</a>' + \
+                                  r'(<a\s*href=/cat/([^?>]+)[^>]*>([^<>]+)</a>)*(<span>([^<>]*)</span>)'
+                pattern_catlist = r'<a\s*href=/cat/([^?>]+)[^>]*>([^<>]+)</a>'
+                if re.search(pattern_catinfo, category_search_result) is not None:
+                    groups_catinfo = re.search(pattern_catinfo, category_search_result).groups()
+                    if groups_catinfo[0] is not None:
+                        category_items = re.findall(pattern_catlist, category_search_result)
+                        if len(category_items) > 0:
+                            link_category = category_items[0][1].replace(',', '')
+                            if category_items[0][0] != code_category:
+                                warn('Mismatched category code {} != {}'.format(category_items[0][0], code_category))
+                            if len(category_items) > 1:
+                                link_subcategory = ''
+                                for ci in range(1, len(category_items)):
+                                    link_subcategory = category_items[ci][1].replace(',', '') \
+                                        if link_subcategory == '' else \
+                                        link_subcategory + ', ' + category_items[ci][1].replace(',', '')
+                        else:
+                            warn('Unrecognized category information found on page.')
+                    if groups_catinfo[4] is not None:
+                        if link_category is not None and link_subcategory is None:
+                            link_subcategory = groups_catinfo[4].replace(',', '')
+                        elif link_category is not None and link_subcategory is not None:
+                            if isinstance(link_subcategory, str):
+                                link_subcategory = link_subcategory + ', ' + groups_catinfo[4].replace(',', '')
+                        elif link_category is None and link_subcategory is None:
+                            link_category = groups_catinfo[4].replace(',', '')
+                            link_subcategory = None
+                        else:
+                            warn('Unable to interpret category span information on page.')
 
             # Search for grid section containing links to relevant subcategory or image pages.
             pattern_gridsect = r'(?<=<section\sid=results\sclass="grid\sgrid-flexible\sclearfix">)(.*?)(?=</section>)'
             if re.search(pattern_gridsect, link_page) is not None:
-                groups = re.search(pattern_gridsect, link_page).groups()
-                if len(groups) != 1:
+                groups_gridsect = re.search(pattern_gridsect, link_page).groups()
+                if len(groups_gridsect) != 1:
                     warn('Multiple grid sections found on page. Only the first will be used.')
-                grid_search_result = groups[0]
+                grid_search_result = groups_gridsect[0]
 
                 # Match within-category pages (i.e. lists of subcategories) and add them to the queue.
                 pattern_subcat0 = r'<div\s*class=item><a\s*class=image\s*href=/cat/'
@@ -292,7 +306,7 @@ if download_images:
         image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
         if not os.path.isfile(image_path):
             dur_sleep = randint(10, 80)
-            print('Pausing for {}sec...'.format(dur_sleep))
+            print('Waiting for {} sec...'.format(dur_sleep))
             sleep(dur_sleep)
             download_image(image_info[ii]['url_image'], image_path)
             print('Downloaded image {}.png ({}.png).'.format(image_info[ii]['code'], image_info[ii]['title']))
