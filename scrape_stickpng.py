@@ -147,6 +147,7 @@ if scrape_site:
             link_page = urlopen(req, timeout=10).read().decode('utf8')
 
             # Update page counts using provided numbers.
+            page_info = []
             pattern_pageinfo = r'<section\s*id=pagination\s*data-pagination=\'([^\']*)\'></section>'
             if re.search(pattern_pageinfo, link_page) is not None:
                 groups_pageinfo = re.search(pattern_pageinfo, link_page).groups()
