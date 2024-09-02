@@ -102,14 +102,14 @@ def download_image(url, filename):
         out_file.write(data)
 
 
-def save_snapshot():
+def save_snapshot(savestr='_stickpng_image_info_partial'):
     now = datetime.now(timezone.utc)
     datetime_str = now.strftime('%Y%m%dd%H%M%StUTC')
-    infosave_filename = datetime_str + '_stickpng_image_info_partial.pickle'
+    infosave_filename = datetime_str + savestr + '.pickle'
     infosave_filepath = os.path.join(infosave_path, infosave_filename)
-    with open(infosave_filepath, 'wb') as file:
+    with open(infosave_filepath, 'wb') as pickle_file:
         pickle.dump([image_info, queue, n_pages, page_current, page_info],
-                    file,
+                    pickle_file,
                     protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -277,12 +277,12 @@ if scrape_site:
 
         # Save a snapshot of the collected information.
         if link_counter % 100 == 0 and link_counter > 0:
-            save_snapshot()
+            save_snapshot(savestr='_stickpng_image_info_partial')
 
         link_counter += 1
         queue.remove(link)
         queue = sorted(queue, key=queue_sort_function)
-    save_snapshot()
+    save_snapshot(savestr='_stickpng_image_info_full')
 
 
 if download_images:
