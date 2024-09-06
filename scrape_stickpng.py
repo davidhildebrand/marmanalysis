@@ -14,8 +14,9 @@ from urllib.request import Request, urlopen
 from warnings import warn
 
 
-scrape_site = False
+scrape_site = True
 download_images = True
+skipping = False
 
 
 url_base = 'https://www.stickpng.com/'
@@ -299,14 +300,15 @@ if download_images:
         if image_info[ii]['code_category_full'] is None or image_info[ii]['code_category'] is None:
             print('No category found for {}, skipping...'.format(ii))
             continue
-        if np.any([skip_categories[sc] in image_info[ii]['code_category_full']
-                   for sc, _ in enumerate(skip_categories)]):
-            print('Blacklisted category or subcategory ({}) '
-                  'for {}, skipping...'.format(image_info[ii]['code_category_full'], ii))
-            continue
+        if skipping:
+            if np.any([skip_categories[sc] in image_info[ii]['code_category_full']
+                       for sc, _ in enumerate(skip_categories)]):
+                print('Blacklisted category or subcategory ({}) '
+                      'for {}, skipping...'.format(image_info[ii]['code_category_full'], ii))
+                continue
         image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
         if not os.path.isfile(image_path):
-            dur_sleep = randint(10, 80)
+            dur_sleep = randint(10, 50)
             print('Waiting for {} sec...'.format(dur_sleep))
             sleep(dur_sleep)
             download_image(image_info[ii]['url_image'], image_path)
