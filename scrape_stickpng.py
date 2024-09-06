@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 from warnings import warn
 
 
-scrape_site = True
+scrape_site = False
 download_images = True
 skipping = False
 
@@ -142,7 +142,7 @@ if scrape_site:
                 if url_cat.endswith('/') \
                 else url_cat + '/' + link + '?page=' + str(page_current)
             req = Request(url=link_url, headers={'User-Agent': 'Mozilla/5.0'})
-            dur_sleep = randint(10, 70)
+            dur_sleep = randint(10, 60)
             print('Waiting for {} sec...'.format(dur_sleep))
             sleep(dur_sleep)
             link_page = urlopen(req, timeout=10).read().decode('utf8')
