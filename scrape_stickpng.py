@@ -14,8 +14,8 @@ from urllib.request import Request, urlopen
 from warnings import warn
 
 
-scrape_site = False
-download_images = True
+scrape_site = True
+download_images = False
 skipping = False
 
 
