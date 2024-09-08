@@ -288,7 +288,7 @@ if scrape_site:
 
 
 if download_images:
-    latest_snapshot = r'20240830d003444tUTC_stickpng_image_info_full.pickle'
+    latest_snapshot = r'20240908d203128tUTC_stickpng_image_info_full.pickle'
     with open(os.path.join(infosave_path, latest_snapshot), 'rb') as file:
         loaded_object = pickle.load(file)
     image_info = loaded_object[0]
@@ -308,7 +308,7 @@ if download_images:
                 continue
         image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
         if not os.path.isfile(image_path):
-            dur_sleep = randint(10, 50)
+            dur_sleep = randint(10, 40)
             print('Waiting for {} sec...'.format(dur_sleep))
             sleep(dur_sleep)
             download_image(image_info[ii]['url_image'], image_path)
