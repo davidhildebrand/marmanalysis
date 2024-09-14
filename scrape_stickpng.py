@@ -294,8 +294,11 @@ if download_images:
     image_info = loaded_object[0]
 
     # Download images.
-    # for ii in image_info:
     while len(os.listdir(asset_path)) < len(image_info):
+        if '.DS_Store' in os.listdir(asset_path):
+            os.remove(os.path.join(asset_path, '.DS_Store'))
+        if 'Thumbs.db' in os.listdir(asset_path):
+            os.remove(os.path.join(asset_path, 'Thumbs.db'))
         ii = choice(list(image_info.keys()))
         if image_info[ii]['code_category_full'] is None or image_info[ii]['code_category'] is None:
             print('No category found for {}, skipping...'.format(ii))
@@ -308,7 +311,7 @@ if download_images:
                 continue
         image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
         if not os.path.isfile(image_path):
-            dur_sleep = randint(10, 40)
+            dur_sleep = randint(10, 28)
             print('Waiting for {} sec...'.format(dur_sleep))
             sleep(dur_sleep)
             download_image(image_info[ii]['url_image'], image_path)
@@ -322,6 +325,10 @@ if download_images:
                                                                    image_info[ii]['title'].replace('/', '-'),
                                                                    image_info[ii]['code']))
 
+    for f in os.listdir(asset_path):
+        fn = os.path.splitext(f)[0]
+        if fn not in image_info:
+            print('Existing asset code {} not found in image_info record.'.format(fn))
 
 # full_category_codes = np.unique([image_info[ii]['code_category_full'] for ii in image_info])
 # for fcc in full_category_codes:
