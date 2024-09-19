@@ -301,7 +301,7 @@ if download_images:
             os.remove(os.path.join(asset_path, 'Thumbs.db'))
         ii = choice(list(image_info.keys()))
         if image_info[ii]['code_category_full'] is None or image_info[ii]['code_category'] is None:
-            print('No category found for {}, skipping...'.format(ii))
+            warn('No category found for {}, skipping...'.format(ii))
             continue
         if skipping:
             if np.any([skip_categories[sc] in image_info[ii]['code_category_full']
