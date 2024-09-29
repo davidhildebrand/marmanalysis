@@ -105,13 +105,13 @@ elif 'marmostor' in system_name:
     infosave_path = base_path + os.path.sep + 'info_saves'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 elif 'Obsidian' in system_name:
-    base_path = r'F:\Data\stickpng'
+    base_path = r'F:\Data\ImageDatasets\stickpng'
     asset_path = base_path + os.path.sep + r'assets'
     tree_path = base_path + os.path.sep + r'category_tree'
     infosave_path = base_path + os.path.sep + 'info_saves'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 elif 'Dobbin' in system_name:
-    base_path = r'D:\Data\stickpng'
+    base_path = r'D:\Data\ImageDatasets\stickpng'
     asset_path = base_path + os.path.sep + r'assets'
     tree_path = base_path + os.path.sep + r'category_tree'
     infosave_path = base_path + os.path.sep + 'info_saves'
