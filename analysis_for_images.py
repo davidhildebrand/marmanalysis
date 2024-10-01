@@ -989,6 +989,12 @@ if plot_eyecal and eyecal_data is not None:
 
 # %% Process stimulus information
 
+# Fix off-by-one issue caused by acqusition frame counter ('acqfr') 
+# indexed starting at 1 rather than 0.
+acqfr_keys = [c for c in stimlog.columns if 'acqfr' in c]
+for ak in acqfr_keys:
+    stimlog[ak] = stimlog[ak] - 1
+
 # Determine basic stimulus presentation information
 dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
 dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
