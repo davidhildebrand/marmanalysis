@@ -364,6 +364,37 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 150um ( | )
 # session_str = '185714tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow039p8mW_stimImagesFOBmin'
 
+# # 20240919d Left
+# date_str = '20240919d'
+# # -- PD-MT? 200um ( | acquisition ended before stimulus)
+# session_str = '170917tUTC_SP_depth200um_fov1272x1800um_res2p00x2p00umpx_fr04p330Hz_pow040p0mW_stimImagesSongFOBonly_withContinuation'
+# # -- PD? 200um ( | )
+# session_str = '180330tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow040p0mW_stimImagesSongFOBonly'
+
+# # 20240923d Left
+# date_str = '20240923d'
+# # -- PD? 200um ( | CHECK Z-drift?)
+# session_str = '164457tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow049p4mW_stimImagesSongFOBonly'
+
+# # 20240925d Left
+# date_str = '20240925d'
+# # -- PD-MT 200um ( | CHECK Z-drift?)
+# session_str = '171829tUTC_SP_depth200um_fov1272x1800um_res2p00x2p00umpx_fr04p330Hz_pow040p1mW_stimMultimodalImagesTones'
+# # -- PD? 200um ( | )
+# session_str = '181617tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow040p1mW_stimImagesSongFOBonly'
+# # -- PD? 200um ( | )
+# session_str = '184703tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow040p1mW_stimImagesFOBmin'
+
+# # 20240926d Left
+# date_str = '20240926d'
+# # -- PD? 200um ( | some struggles)
+# session_str = '152716tUTC_SP_depth200um_fov1060x1000um_res2p00x2p00umpx_fr09p147Hz_pow040p1mW_stimImagesFOBmin'
+# # -- PD? 200um ( | some struggles)
+# session_str = '160947tUTC_SP_depth200um_fov1060x1000um_res2p00x2p00umpx_fr09p147Hz_pow040p1mW_stimImagesSongFOBonly'
+# # -- PD-MT? 200um ( | check Z-drift?)
+# session_str = '171222tUTC_SP_depth260um_fov1060x1800um_res2p00x2p00umpx_fr05p196Hz_pow050p4mW_stimMultimodalImagesDotsGratingsTonesVocalizations'
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Larry
