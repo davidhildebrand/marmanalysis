@@ -1003,12 +1003,15 @@ n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 acqfr_dilation_factor = (dur_trial * md['framerate']) / (n_samp_trial - 1)
 
 # *** TODO: take only conds with image presentations
-if np.unique(stimlog[:]['stim_mode'].values).size != 1:
-    warn('More than one stimulus mode was presented and is not yet fully supported.')
-if np.unique(stimlog[:]['stim_class'].values).size != 1:
-    warn('More than one stimulus class was presented and is not yet fully supported.')
-if np.unique(stimlog[:]['stim_subclass'].values).size != 1:
-    warn('More than one stimulus subclass was presented and is not yet fully supported.')
+if not stimlog[:]['stim_mode'].isnull().any():
+    if np.unique(stimlog[:]['stim_mode'].values).size != 1:
+        warn('More than one stimulus mode was presented and is not yet fully supported.')
+if not stimlog[:]['stim_class'].isnull().any():
+    if np.unique(stimlog[:]['stim_class'].values).size != 1:
+        warn('More than one stimulus class was presented and is not yet fully supported.')
+if not stimlog[:]['stim_subclass'].isnull().any():
+    if np.unique(stimlog[:]['stim_subclass'].values).size != 1:
+        warn('More than one stimulus subclass was presented and is not yet fully supported.')
 
 n_metrics = len(metrics)
 n_conds = len(np.unique(stimlog['cond'].values))
