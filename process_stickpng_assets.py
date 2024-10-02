@@ -411,7 +411,7 @@ background_299_pinkn = background_299_pinkn.convert('RGBA')
 
 assets = {}
 asset_counter = 0
-# ii = list(image_info.keys())[0]
+# for ii in [list(image_info.keys())[0]]:
 for ii in image_info:
     if image_info[ii]['code_category_full'] is None or image_info[ii]['code_category'] is None:
         warn('No category found for {}, skipping...'.format(ii))
@@ -462,7 +462,9 @@ for ii in image_info:
 
     if 'image_size' in assets[ii]:
         if np.min(assets[ii]['image_size']) < min_dimension:
-            warn('Skipped {} because it is smaller than {} px in at least one dimension.'.format(ii, min_dimension))
+            print('Skipped {}... {} is less than minimum side {} px.'.format(ii,
+                                                                             np.min(assets[ii]['image_size']),
+                                                                             min_dimension))
             continue
 
     # ...at least according to PyTorch documentation, the normalization values are the same for all these models.
@@ -474,7 +476,9 @@ for ii in image_info:
     with Image.open(image_path) as image:
         assets[ii]['image_size'] = image.size
         if np.min(assets[ii]['image_size']) < min_dimension:
-            warn('Skipped {} because it is smaller than {} px in at least one dimension.'.format(ii, min_dimension))
+            print('Skipped {}... {} is less than minimum side {} px.'.format(ii,
+                                                                             np.min(assets[ii]['image_size']),
+                                                                             min_dimension))
             continue
         if has_transparency(image):
             assets[ii]['image_transparency'] = True
