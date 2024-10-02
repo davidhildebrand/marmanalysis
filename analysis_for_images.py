@@ -46,6 +46,9 @@ threshold_fsi = 1 / 3
 threshold_cellprob = 0.0
 threshold_Zscore = 0.5
 
+# Exclusion criteria
+exclude_by_movement = True
+
 # Plotting parameters
 plot_eyecal = False
 plt.rcParams['figure.dpi'] = 600
@@ -1096,6 +1099,8 @@ del m
 
 # Currently supported image sets:
 # 'FOBmin_MarmOnly', 'FOBmin', 'FOBmany', 'Song_etal_Wang_2022_FOBonly'
+
+trials_movement = []
 for c in range(n_conds):
     # stimlog[stimlog['cond'] == c]['stim_class']
     tmp_cond = None
@@ -1309,6 +1314,11 @@ for c in range(n_conds):
                 fr_end = int(fr_end)
             else:
                 raise ValueError('Non-integer acquisition frame index.')
+
+        # Identify trials (condition-repeat pairs) with movement (via suite2p badframes)
+        if np.any(np.isin(range(fr_start, fr_end + 1), s2p_badframes)):
+            trials_movement.append((c, t))
+        
         if fr_start < 0 and t == 0:
             # TODO exclude trials at start of imaging if ISI is too short
             warn('Period before first trial was shorter than inter-stimulus interval. ' +
@@ -1345,7 +1355,7 @@ for m in metrics:
 del m
 
 
-# %% Sort data table according to template, then define categories and conditions
+# %% Sort data table according to template, define categories and conditions, and perform exclusions
 
 sort_by_cond = lambda x: (np.where(template == x[1].category)[0][0]
                           if np.where(template == x[1].category)[0].size > 0
@@ -1383,6 +1393,38 @@ if n_conds != conditions.shape[0]:
     del u, c, mult
 
 
+# Exclude any trials where there was movement (via suite2p badframes)
+
+trials_exclude = []
+excluded = {}
+excluded_movement = {}
+
+if exclude_by_movement and len(trials_movement) > 0:
+    for cnd, rep in trials_movement:
+        trials_exclude.append((cnd, rep))
+        if cnd not in excluded_movement:
+            excluded_movement[cnd] = []
+        excluded_movement[cnd].append(rep)
+    print('Excluding {} trials due to movement (via suite2p badframes):'.format(len(trials_movement)))
+    for ek in excluded_movement:
+        print('  {}/{} excluded for {} ({})'.format(len(excluded_movement[ek]), n_reps,
+                                                      conditions[ek].decode(), condidx_to_cat[ek].decode()))
+    del ek
+
+for cnd, rep in trials_exclude:
+    for m in metrics:
+        data[cnd][m][:, rep, :] = np.nan
+    if cnd not in excluded:
+        excluded[cnd] = []
+    excluded[cnd].append(rep)
+del cnd, rep, m
+print('Overall, excluded {} trials:'.format(len(trials_movement)))
+for ek in excluded:
+    print('  {}/{} excluded for {} ({})'.format(len(excluded[ek]), n_reps,
+                                                conditions[ek].decode(), condidx_to_cat[ek].decode()))
+del ek
+
+
 # %% Plot across-stimulus population responses (similar to PSTH)
 #    across-stimulus mean of trial-averaged population (ROI-averaged) responses
 
@@ -1396,11 +1438,11 @@ else:
 for mi, m in enumerate(metrics):
     # ymin = np.min(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
     #                         for c in range(n_cats)]))
-    ymin = np.min(np.array([np.mean(np.mean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
+    ymin = np.min(np.array([np.nanmean(np.nanmean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
                             for c in categories]))
     # ymax = np.max(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
     #                         for c in range(n_cats)]))
-    ymax = np.max(np.array([np.mean(np.mean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
+    ymax = np.max(np.array([np.nanmean(np.nanmean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
                             for c in categories]))
     ax = axes[mi]
     ax.set_ylabel(metric_labels[m])
@@ -1417,13 +1459,15 @@ for mi, m in enumerate(metrics):
     ax.set_xlim((0, np.ceil(dur_trial) * md['framerate']))
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.plot(xs,
-            np.mean(np.mean(data[m], axis=(1, 2)), axis=0), 
+            np.nanmean(np.nanmean(data[m], axis=(1, 2)), axis=0), 
             label='All', 
             color='0', linestyle='dotted', linewidth=1, zorder=4)
     for cati, cat in enumerate(categories):
         n_cnd_in_cat = (data[cat_to_condidx[cat]]['cond'].shape[0])
         Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
         Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
+        Fmean = np.nanmean(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
+        Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
         ax.plot(xs, 
                 Fmean,  # 'o-', markersize=2,
                 label=template_labels[cat], 
@@ -1508,20 +1552,20 @@ for m in metrics:
     # Calculate across-stimulus, trial-averaged, frame-averaged mean responses
     #   Ordering of mean calculations matters here because the mean of a set is only the
     #   same as the mean of the mean of subsets if the subsets share the same sample size.
-    muR_F[m] = np.mean(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    muR_NF[m] = np.mean(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    muR_NFobj[m] = np.mean(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_F[m] = np.nanmean(np.nanmean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_NF[m] = np.nanmean(np.nanmean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_NFobj[m] = np.nanmean(np.nanmean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_O[m] = muR_NFobj[m]
-    muR_B[m] = np.mean(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_B[m] = np.nanmean(np.nanmean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 
     # Calculate across-stimulus, trial-averaged, frame-averaged standard deviations
     #   Take the mean across trials and frames (okay because same n_samp_stim in each), 
     #   then take std across stimulus conditions.
-    sigma_F[m] = np.std(np.mean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    sigma_NF[m] = np.std(np.mean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    sigma_NFobj[m] = np.std(np.mean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_F[m] = np.std(np.nanmean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_NF[m] = np.std(np.nanmean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_NFobj[m] = np.std(np.nanmean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     sigma_O[m] = sigma_NFobj[m]
-    sigma_B[m] = np.std(np.mean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    sigma_B[m] = np.std(np.nanmean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 
     # Create sorting index based on across-stimulus, trial-averaged, frame-averaged mean responses
     sort_idx_muR_F[m] = np.argsort(muR_F[m])[::-1]
@@ -1606,8 +1650,8 @@ del m, bool_same, bool_FposNFneg, bool_FnegNFpos
 resp_vect_cond = {}
 resp_vect_cat = {}
 for m in metrics:
-    resp_vect_cond[m] = np.mean(data[m][:, :, :, idx_stim], axis=(2, 3)).T
-    resp_vect_cat[m] = np.array([np.mean(np.mean(data[cat_to_condidx[c]][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    resp_vect_cond[m] = np.nanmean(data[m][:, :, :, idx_stim], axis=(2, 3)).T
+    resp_vect_cat[m] = np.array([np.nanmean(np.nanmean(data[cat_to_condidx[c]][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
                                  for c in categories]).T
 del m
 
@@ -1664,7 +1708,7 @@ for m in metrics:
         stats_df[m].at[r, 'centroid_px'] = np.average(stats_df[m].at[r, 'mask'], axis=0)
         stats_df[m].at[r, 'centroid_um'] = md['fov']['resolution_umpx'] * stats_df[m].at[r, 'centroid_px']
         
-        stats_df[m].at[r, 'resp_vect_cond'] = np.mean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
+        stats_df[m].at[r, 'resp_vect_cond'] = resp_vect_cond[m][r]  # np.nanmean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
         stats_df[m].at[r, 'peak_cond_idx'] = stats_df[m].loc[r]['resp_vect_cond'].argmax()
         stats_df[m].at[r, 'peak_cond'] = conditions[stats_df[m].at[r, 'peak_cond_idx']]
         stats_df[m].at[r, 'peak_cond_val'] = stats_df[m].loc[r]['resp_vect_cond'].max()
@@ -1761,8 +1805,8 @@ for r in range(n_plot_ROIs):
     fig.suptitle(r'ROI {} ($d^\prime_F$ {:0.2f}) across-stimulus mean responses'.format(ridx, dprime[dpm][ridx]))
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
     for mi, m in enumerate(metrics):
-        ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
-        ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
+        ymin = np.min(np.nanmean(data[m][:, ridx, :, :], axis=1))
+        ymax = np.max(np.nanmean(data[m][:, ridx, :, :], axis=1))
         for cati, cat in enumerate(categories):
             ax = axes[mi, cati]
             if mi == 0:
@@ -1787,11 +1831,11 @@ for r in range(n_plot_ROIs):
             n_cnd_in_cat = data[cat_to_condidx[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
                 ax.plot(xs,
-                        np.mean(data[cat_to_condidx[cat]][m][cnd, ridx, :, :], axis=0),
+                        np.nanmean(data[cat_to_condidx[cat]][m][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5,
                         color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
-            Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
-            Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
+            Fmean = np.nanmean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
+            Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
     fig.show()
@@ -1836,8 +1880,8 @@ for r in range(n_plot_ROIs):
     pr = r + 1
     
     # Summary plots of category averages
-    ymin = np.min(np.mean(data[m][:, ridx, :, :], axis=1))
-    ymax = np.max(np.mean(data[m][:, ridx, :, :], axis=1))
+    ymin = np.min(np.nanmean(data[m][:, ridx, :, :], axis=1))
+    ymax = np.max(np.nanmean(data[m][:, ridx, :, :], axis=1))
     ax = axes[pr, 0]
     ax.spines[:].set_visible(False)
     ax.set_xticks([])
@@ -1847,8 +1891,8 @@ for r in range(n_plot_ROIs):
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cati, cat in enumerate(categories):
-        Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
-        Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(len(cat_to_condidx[cat]))
+        Fmean = np.nanmean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
+        Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(len(cat_to_condidx[cat]))
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
                         facecolor=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
@@ -1863,7 +1907,7 @@ for r in range(n_plot_ROIs):
             ax.plot(xs, 
                     data[cnd][m][ridx, t, :],
                     color=str(np.linspace(0.4, 0.7, n_reps)[t]), linewidth=0.1)
-        Fmean = np.mean(data[cnd][m][ridx, :, :], axis=0)
+        Fmean = np.nanmean(data[cnd][m][ridx, :, :], axis=0)
         Fsem = np.std(data[cnd][m][ridx, :, :], axis=0) / np.sqrt(n_reps)
         ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
@@ -1932,6 +1976,7 @@ for cndi, cnd in enumerate(conds_focus):
     ax = axes[pr, cndi + 1]
     ax.axis('off')
     img_hm = ax.imshow(np.mean(data[cnd][m], axis=1)[sort_idx_dprime[m]],
+    img_hm = ax.imshow(np.nanmean(data[cnd][m], axis=1)[sort_idx_dprime[m]],
                        vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
     xlines = [dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate']]
     for xl in xlines:
@@ -2028,7 +2073,7 @@ ax_hm.set_xticks(xtick_minors, minor=True)
 ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
 plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
-img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
+img_hm = ax_hm.imshow(np.nanmean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 if threshold_dprime is not None:
     if threshold_dprime != 0:
@@ -2160,7 +2205,7 @@ ax_hm.set_xticks(xtick_minors, minor=True)
 ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
 plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
-# img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
+# img_hm = ax_hm.imshow(np.nanmean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_dprime[m]],
 #                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 img_hm = ax_hm.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_dprime[m]],
                       vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
@@ -2293,7 +2338,7 @@ ax_hm.set_xticks(xtick_minors, minor=True)
 ax_hm.set_xticklabels(xtick_minorlabels, minor=True)
 plt.setp(ax_hm.xaxis.get_majorticklabels(), rotation=90)
 ax_hm.tick_params(which='minor', length=0)
-# img_hm = ax_hm.imshow(np.mean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_muR_F[m]],
+# img_hm = ax_hm.imshow(np.nanmean(data[sort_idx_cond][m][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)[sort_idx_muR_F[m]],
 #                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
 img_hm = ax_hm.imshow(np.vstack(stats_df[m]['resp_vect_cat'].values)[sort_idx_muR_F[m]],
                       vmin=-0.5, vmax=0.5, aspect='auto', cmap='bwr', interpolation='none')
