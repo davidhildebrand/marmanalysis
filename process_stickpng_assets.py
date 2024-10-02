@@ -618,62 +618,8 @@ for ii in image_info:
             # if 'modvals' not in assets[ii]:
             #     assets[ii]['modvals'] = {}
 
-
-
-        # # AlexNet features conv1
-        # alexnet_hook00_conv1_conv2d = alexnet.features[0]
-        # h1 = alexnet_hook00_conv1_conv2d.register_forward_hook(get_activation('alexnet_hook00_conv1_conv2d'))
-        # alexnet_hook01_conv1_relu = alexnet.features[1]
-        # alexnet_hook01_conv1_relu.register_forward_hook(get_activation('alexnet_hook01_conv1_relu'))
-        # alexnet_hook02_conv1_maxpool2d = alexnet.features[2]
-        # alexnet_hook02_conv1_maxpool2d.register_forward_hook(get_activation('alexnet_hook02_conv1_maxpool2d'))
-        # # AlexNet features conv2
-        # alexnet_hook03_conv2_conv2d = alexnet.features[3]
-        # alexnet_hook03_conv2_conv2d.register_forward_hook(get_activation('alexnet_hook03_conv2_conv2d'))
-        # alexnet_hook04_conv2_relu = alexnet.features[4]
-        # alexnet_hook04_conv2_relu.register_forward_hook(get_activation('alexnet_hook04_conv2_relu'))
-        # alexnet_hook05_conv2_maxpool2d = alexnet.features[5]
-        # alexnet_hook05_conv2_maxpool2d.register_forward_hook(get_activation('alexnet_hook05_conv2_maxpool2d'))
-        # # AlexNet features conv3
-        # alexnet_hook06_conv3_conv2d = alexnet.features[6]
-        # alexnet_hook06_conv3_conv2d.register_forward_hook(get_activation('alexnet_hook06_conv3_conv2d'))
-        # alexnet_hook07_conv3_relu = alexnet.features[7]
-        # alexnet_hook07_conv3_relu.register_forward_hook(get_activation('alexnet_hook07_conv3_relu'))
-        # # AlexNet features conv4
-        # alexnet_hook08_conv4_conv2d = alexnet.features[8]
-        # alexnet_hook08_conv4_conv2d.register_forward_hook(get_activation('alexnet_hook08_conv4_conv2d'))
-        # alexnet_hook09_conv4_relu = alexnet.features[9]
-        # alexnet_hook09_conv4_relu.register_forward_hook(get_activation('alexnet_hook09_conv4_relu'))
-        # # AlexNet features conv5
-        # alexnet_hook10_conv5_conv2d = alexnet.features[10]
-        # alexnet_hook10_conv5_conv2d.register_forward_hook(get_activation('alexnet_hook10_conv5_conv2d'))
-        # alexnet_hook11_conv5_relu = alexnet.features[11]
-        # alexnet_hook11_conv5_relu.register_forward_hook(get_activation('alexnet_hook11_conv5_relu'))
-        # alexnet_hook12_conv5_maxpool2d = alexnet.features[12]
-        # alexnet_hook12_conv5_maxpool2d.register_forward_hook(get_activation('alexnet_hook12_conv5_maxpool2d'))
-        # # AlexNet avgpool
-        # alexnet_hook13_avgpool = alexnet.avgpool
-        # alexnet_hook13_avgpool.register_forward_hook(get_activation('alexnet_hook13_avgpool'))
-        # # AlexNet classifier fc6
-        # alexnet_hook14_fc6_dropout = alexnet.classifier[0]
-        # alexnet_hook14_fc6_dropout.register_forward_hook(get_activation('alexnet_hook14_fc6_dropout'))
-        # alexnet_hook15_fc6_linear = alexnet.classifier[1]
-        # alexnet_hook15_fc6_linear.register_forward_hook(get_activation('alexnet_hook15_fc6_linear'))
-        # alexnet_hook16_fc6_relu = alexnet.classifier[2]
-        # alexnet_hook16_fc6_relu.register_forward_hook(get_activation('alexnet_hook16_fc6_relu'))
-        # # AlexNet classifier fc7
-        # alexnet_hook17_fc7_dropout = alexnet.classifier[3]
-        # alexnet_hook17_fc7_dropout.register_forward_hook(get_activation('alexnet_hook17_fc7_dropout'))
-        # alexnet_hook18_fc7_linear = alexnet.classifier[4]
-        # alexnet_hook18_fc7_linear.register_forward_hook(get_activation('alexnet_hook18_fc7_linear'))
-        # alexnet_hook19_fc7_relu = alexnet.classifier[5]
-        # alexnet_hook19_fc7_relu.register_forward_hook(get_activation('alexnet_hook19_fc7_relu'))
-        # # AlexNet classifier fc8
-        # alexnet_hook20_fc8_linear = alexnet.classifier[6]
-        # alexnet_hook20_fc8_linear.register_forward_hook(get_activation('alexnet_hook20_fc8_linear'))
-
     if asset_counter % 100 == 0 and asset_counter > 0:
-        save_snapshot(savestr='_asset_modvals_partial')
+        save_snapshot(savestr='_asset_modvals_alexnet_partial')
     asset_counter += 1
 save_snapshot(savestr='_asset_modvals_full')
 
