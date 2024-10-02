@@ -1421,7 +1421,7 @@ for cnd, rep in trials_exclude:
         excluded[cnd] = []
     excluded[cnd].append(rep)
 del cnd, rep, m
-print('Overall, excluded {} trials:'.format(len(trials_movement)))
+print('Overall, {} trials excluded:'.format(len(trials_movement)))
 for ek in excluded:
     print('  {}/{} excluded for {} ({})'.format(len(excluded[ek]), n_reps,
                                                 conditions[ek].decode(), condidx_to_cat[ek].decode()))
