@@ -258,135 +258,137 @@ hooks['alexnet'] = {}
 for name, module in alexnet.named_modules():
     hooks['alexnet'][name] = module.register_forward_hook(get_activation(name))
 
-vgg11 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg11', weights='VGG11_Weights.IMAGENET1K_V1')
-hooks['vgg11'] = {}
-for name, module in vgg11.named_modules():
-    hooks['vgg11'][name] = module.register_forward_hook(get_activation(name))
+# vgg11 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg11', weights='VGG11_Weights.IMAGENET1K_V1')
+# hooks['vgg11'] = {}
+# for name, module in vgg11.named_modules():
+#     hooks['vgg11'][name] = module.register_forward_hook(get_activation(name))
+#
+# vgg11bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg11_bn', weights='VGG11_BN_Weights.IMAGENET1K_V1')
+# hooks['vgg11bn'] = {}
+# for name, module in vgg11bn.named_modules():
+#     hooks['vgg11bn'][name] = module.register_forward_hook(get_activation(name))
+#
+# vgg13 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg13', weights='VGG13_Weights.IMAGENET1K_V1')
+# hooks['vgg13'] = {}
+# for name, module in vgg13.named_modules():
+#     hooks['vgg13'][name] = module.register_forward_hook(get_activation(name))
+#
+# vgg13bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg13_bn', weights='VGG13_BN_Weights.IMAGENET1K_V1')
+# hooks['vgg13bn'] = {}
+# for name, module in vgg13bn.named_modules():
+#     hooks['vgg13bn'][name] = module.register_forward_hook(get_activation(name))
+#
+# vgg16 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg16', weights='VGG16_Weights.IMAGENET1K_V1')
+# hooks['vgg16'] = {}
+# for name, module in vgg16.named_modules():
+#     hooks['vgg16'][name] = module.register_forward_hook(get_activation(name))
+#
+# vgg16bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg16_bn', weights='VGG16_BN_Weights.IMAGENET1K_V1')
+# hooks['vgg16bn'] = {}
+# for name, module in vgg16bn.named_modules():
+#     hooks['vgg16bn'][name] = module.register_forward_hook(get_activation(name))
+#
+# vgg19 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg19', weights='VGG19_Weights.IMAGENET1K_V1')
+# hooks['vgg19'] = {}
+# for name, module in vgg19.named_modules():
+#     hooks['vgg19'][name] = module.register_forward_hook(get_activation(name))
+#
+# vgg19bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg19_bn', weights='VGG19_BN_Weights.IMAGENET1K_V1')
+# hooks['vgg19bn'] = {}
+# for name, module in vgg19bn.named_modules():
+#     hooks['vgg19bn'][name] = module.register_forward_hook(get_activation(name))
+#
+# googlenet = torch.hub.load('pytorch/vision:v0.19.1', 'googlenet', weights='GoogLeNet_Weights.IMAGENET1K_V1')
+# hooks['googlenet'] = {}
+# for name, module in googlenet.named_modules():
+#     hooks['googlenet'][name] = module.register_forward_hook(get_activation(name))
+#
+# inceptionv3 = torch.hub.load('pytorch/vision:v0.19.1', 'inception_v3', weights='Inception_V3_Weights.IMAGENET1K_V1')
+# inceptionv3.eval()
+# hooks['inceptionv3'] = {}
+# for name, module in inceptionv3.named_modules():
+#     hooks['inceptionv3'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnet18 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet18', weights='ResNet18_Weights.IMAGENET1K_V1')
+# hooks['resnet18'] = {}
+# for name, module in resnet18.named_modules():
+#     hooks['resnet18'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnet34 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet34', weights='ResNet34_Weights.IMAGENET1K_V1')
+# hooks['resnet34'] = {}
+# for name, module in resnet34.named_modules():
+#     hooks['resnet34'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnet50 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet50', weights='ResNet50_Weights.IMAGENET1K_V2')
+# hooks['resnet50'] = {}
+# for name, module in resnet50.named_modules():
+#     hooks['resnet50'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnet101 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet101', weights='ResNet101_Weights.IMAGENET1K_V2')
+# hooks['resnet101'] = {}
+# for name, module in resnet101.named_modules():
+#     hooks['resnet101'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnet152 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet152', weights='ResNet152_Weights.IMAGENET1K_V2')
+# hooks['resnet152'] = {}
+# for name, module in resnet152.named_modules():
+#     hooks['resnet152'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnext5032x4d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext50_32x4d', weights='ResNeXt50_32X4D_Weights.IMAGENET1K_V2')
+# hooks['resnext5032x4d'] = {}
+# for name, module in resnext5032x4d.named_modules():
+#     hooks['resnext5032x4d'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnext10132x8d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext101_32x8d', weights='ResNeXt101_32X8D_Weights.IMAGENET1K_V2')
+# hooks['resnext10132x8d'] = {}
+# for name, module in resnext10132x8d.named_modules():
+#     hooks['resnext10132x8d'][name] = module.register_forward_hook(get_activation(name))
+#
+# resnext10164x4d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext101_64x4d', weights='ResNeXt101_64X4D_Weights.IMAGENET1K_V1')
+# hooks['resnext10164x4d'] = {}
+# for name, module in resnext10164x4d.named_modules():
+#     hooks['resnext10164x4d'][name] = module.register_forward_hook(get_activation(name))
+#
+# wideresnet502 = torch.hub.load('pytorch/vision:v0.19.1', 'wide_resnet50_2', weights='Wide_ResNet50_2_Weights.IMAGENET1K_V2')
+# hooks['wideresnet502'] = {}
+# for name, module in wideresnet502.named_modules():
+#     hooks['wideresnet502'][name] = module.register_forward_hook(get_activation(name))
+#
+# wideresnet1012 = torch.hub.load('pytorch/vision:v0.19.1', 'wide_resnet101_2', weights='Wide_ResNet101_2_Weights.IMAGENET1K_V2')
+# hooks['wideresnet1012'] = {}
+# for name, module in wideresnet1012.named_modules():
+#     hooks['wideresnet1012'][name] = module.register_forward_hook(get_activation(name))
+#
+# densenet121 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet121', weights='DenseNet121_Weights.IMAGENET1K_V1')
+# hooks['densenet121'] = {}
+# for name, module in densenet121.named_modules():
+#     hooks['densenet121'][name] = module.register_forward_hook(get_activation(name))
+#
+# densenet161 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet161', weights='DenseNet161_Weights.IMAGENET1K_V1')
+# hooks['densenet161'] = {}
+# for name, module in densenet161.named_modules():
+#     hooks['densenet161'][name] = module.register_forward_hook(get_activation(name))
+#
+# densenet169 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet169', weights='DenseNet169_Weights.IMAGENET1K_V1')
+# hooks['densenet169'] = {}
+# for name, module in densenet169.named_modules():
+#     hooks['densenet169'][name] = module.register_forward_hook(get_activation(name))
+#
+# densenet201 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet201', weights='DenseNet201_Weights.IMAGENET1K_V1')
+# hooks['densenet201'] = {}
+# for name, module in densenet201.named_modules():
+#     hooks['densenet201'][name] = module.register_forward_hook(get_activation(name))
+#
+# squeezenet10 = torch.hub.load('pytorch/vision:v0.19.1', 'squeezenet1_0', weights='SqueezeNet1_0_Weights.IMAGENET1K_V1')
+# hooks['squeezenet10'] = {}
+# for name, module in squeezenet10.named_modules():
+#     hooks['squeezenet10'][name] = module.register_forward_hook(get_activation(name))
+#
+# squeezenet11 = torch.hub.load('pytorch/vision:v0.19.1', 'squeezenet1_1', weights='SqueezeNet1_1_Weights.IMAGENET1K_V1')
+# hooks['squeezenet11'] = {}
+# for name, module in squeezenet11.named_modules():
+#     hooks['squeezenet11'][name] = module.register_forward_hook(get_activation(name))
 
-vgg11bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg11_bn', weights='VGG11_BN_Weights.IMAGENET1K_V1')
-hooks['vgg11bn'] = {}
-for name, module in vgg11bn.named_modules():
-    hooks['vgg11bn'][name] = module.register_forward_hook(get_activation(name))
-
-vgg13 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg13', weights='VGG13_Weights.IMAGENET1K_V1')
-hooks['vgg13'] = {}
-for name, module in vgg13.named_modules():
-    hooks['vgg13'][name] = module.register_forward_hook(get_activation(name))
-
-vgg13bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg13_bn', weights='VGG13_BN_Weights.IMAGENET1K_V1')
-hooks['vgg13bn'] = {}
-for name, module in vgg13bn.named_modules():
-    hooks['vgg13bn'][name] = module.register_forward_hook(get_activation(name))
-
-vgg16 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg16', weights='VGG16_Weights.IMAGENET1K_V1')
-hooks['vgg16'] = {}
-for name, module in vgg16.named_modules():
-    hooks['vgg16'][name] = module.register_forward_hook(get_activation(name))
-
-vgg16bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg16_bn', weights='VGG16_BN_Weights.IMAGENET1K_V1')
-hooks['vgg16bn'] = {}
-for name, module in vgg16bn.named_modules():
-    hooks['vgg16bn'][name] = module.register_forward_hook(get_activation(name))
-
-vgg19 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg19', weights='VGG19_Weights.IMAGENET1K_V1')
-hooks['vgg19'] = {}
-for name, module in vgg19.named_modules():
-    hooks['vgg19'][name] = module.register_forward_hook(get_activation(name))
-
-vgg19bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg19_bn', weights='VGG19_BN_Weights.IMAGENET1K_V1')
-hooks['vgg19bn'] = {}
-for name, module in vgg19bn.named_modules():
-    hooks['vgg19bn'][name] = module.register_forward_hook(get_activation(name))
-
-googlenet = torch.hub.load('pytorch/vision:v0.19.1', 'googlenet', weights='GoogLeNet_Weights.IMAGENET1K_V1')
-hooks['googlenet'] = {}
-for name, module in googlenet.named_modules():
-    hooks['googlenet'][name] = module.register_forward_hook(get_activation(name))
-
-inceptionv3 = torch.hub.load('pytorch/vision:v0.19.1', 'inception_v3', weights='Inception_V3_Weights.IMAGENET1K_V1')
-hooks['inceptionv3'] = {}
-for name, module in inceptionv3.named_modules():
-    hooks['inceptionv3'][name] = module.register_forward_hook(get_activation(name))
-
-resnet18 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet18', weights='ResNet18_Weights.IMAGENET1K_V1')
-hooks['resnet18'] = {}
-for name, module in resnet18.named_modules():
-    hooks['resnet18'][name] = module.register_forward_hook(get_activation(name))
-
-resnet34 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet34', weights='ResNet34_Weights.IMAGENET1K_V1')
-hooks['resnet34'] = {}
-for name, module in resnet34.named_modules():
-    hooks['resnet34'][name] = module.register_forward_hook(get_activation(name))
-
-resnet50 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet50', weights='ResNet50_Weights.IMAGENET1K_V2')
-hooks['resnet50'] = {}
-for name, module in resnet50.named_modules():
-    hooks['resnet50'][name] = module.register_forward_hook(get_activation(name))
-
-resnet101 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet101', weights='ResNet101_Weights.IMAGENET1K_V2')
-hooks['resnet101'] = {}
-for name, module in resnet101.named_modules():
-    hooks['resnet101'][name] = module.register_forward_hook(get_activation(name))
-
-resnet152 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet152', weights='ResNet152_Weights.IMAGENET1K_V2')
-hooks['resnet152'] = {}
-for name, module in resnet152.named_modules():
-    hooks['resnet152'][name] = module.register_forward_hook(get_activation(name))
-
-resnext5032x4d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext50_32x4d', weights='ResNeXt50_32X4D_Weights.IMAGENET1K_V2')
-hooks['resnext5032x4d'] = {}
-for name, module in resnext5032x4d.named_modules():
-    hooks['resnext5032x4d'][name] = module.register_forward_hook(get_activation(name))
-
-resnext10132x8d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext101_32x8d', weights='ResNeXt101_32X8D_Weights.IMAGENET1K_V2')
-hooks['resnext10132x8d'] = {}
-for name, module in resnext10132x8d.named_modules():
-    hooks['resnext10132x8d'][name] = module.register_forward_hook(get_activation(name))
-
-resnext10164x4d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext101_64x4d', weights='ResNeXt101_64X4D_Weights.IMAGENET1K_V1')
-hooks['resnext10164x4d'] = {}
-for name, module in resnext10164x4d.named_modules():
-    hooks['resnext10164x4d'][name] = module.register_forward_hook(get_activation(name))
-
-wideresnet502 = torch.hub.load('pytorch/vision:v0.19.1', 'wide_resnet50_2', weights='Wide_ResNet50_2_Weights.IMAGENET1K_V2')
-hooks['wideresnet502'] = {}
-for name, module in wideresnet502.named_modules():
-    hooks['wideresnet502'][name] = module.register_forward_hook(get_activation(name))
-
-wideresnet1012 = torch.hub.load('pytorch/vision:v0.19.1', 'wide_resnet101_2', weights='Wide_ResNet101_2_Weights.IMAGENET1K_V2')
-hooks['wideresnet1012'] = {}
-for name, module in wideresnet1012.named_modules():
-    hooks['wideresnet1012'][name] = module.register_forward_hook(get_activation(name))
-
-densenet121 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet121', weights='DenseNet121_Weights.IMAGENET1K_V1')
-hooks['densenet121'] = {}
-for name, module in densenet121.named_modules():
-    hooks['densenet121'][name] = module.register_forward_hook(get_activation(name))
-
-densenet161 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet161', weights='DenseNet161_Weights.IMAGENET1K_V1')
-hooks['densenet161'] = {}
-for name, module in densenet161.named_modules():
-    hooks['densenet161'][name] = module.register_forward_hook(get_activation(name))
-
-densenet169 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet169', weights='DenseNet169_Weights.IMAGENET1K_V1')
-hooks['densenet169'] = {}
-for name, module in densenet169.named_modules():
-    hooks['densenet169'][name] = module.register_forward_hook(get_activation(name))
-
-densenet201 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet201', weights='DenseNet201_Weights.IMAGENET1K_V1')
-hooks['densenet201'] = {}
-for name, module in densenet201.named_modules():
-    hooks['densenet201'][name] = module.register_forward_hook(get_activation(name))
-
-squeezenet10 = torch.hub.load('pytorch/vision:v0.19.1', 'squeezenet1_0', weights='SqueezeNet1_0_Weights.IMAGENET1K_V1')
-hooks['squeezenet10'] = {}
-for name, module in squeezenet10.named_modules():
-    hooks['squeezenet10'][name] = module.register_forward_hook(get_activation(name))
-
-squeezenet11 = torch.hub.load('pytorch/vision:v0.19.1', 'squeezenet1_1', weights='SqueezeNet1_1_Weights.IMAGENET1K_V1')
-hooks['squeezenet11'] = {}
-for name, module in squeezenet11.named_modules():
-    hooks['squeezenet11'][name] = module.register_forward_hook(get_activation(name))
 
 # Load pinknoise backgrounds into memory
 background_224_pinkn = Image.open(os.path.join(base_path, 'backgrounds', 'background_224_pinknoise.png'))
