@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import pickle
 import re
+from scipy.stats import binned_statistic, kendalltau, spearmanr
 import socket
 from warnings import warn
 
@@ -2777,10 +2778,8 @@ del above_threshold, ROI_colors
 
 m = 'Fzsc'
 
-centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
+# centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
 centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
-# roipair_dist_px = np.array([np.linalg.norm(centroid_px[r0] - centroid_px[r1]) 
-#                             for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 roipair_dist_um = np.array([np.linalg.norm(centroid_um[r0] - centroid_um[r1]) 
                             for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
@@ -2794,7 +2793,6 @@ w_bin_um = 25
 n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
 bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
-from scipy.stats import binned_statistic
 bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='std', bins=bin_edges)
 bin_ns, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='count', bins=bin_edges)
@@ -2831,7 +2829,6 @@ m = 'Fzsc'
 
 roipair_corr_respvect = np.array([np.corrcoef(resp_vect_cond[m][r0], resp_vect_cond[m][r1])[0, 1]
                                   for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
-# import scipy
 # roipair_corr_respvect_sp = np.array([scipy.stats.pearsonr(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
 #                                      for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
@@ -2839,7 +2836,7 @@ w_bin_um = 25
 n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
 bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
-from scipy.stats import binned_statistic
+
 bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='std', bins=bin_edges)
 
@@ -2869,7 +2866,6 @@ if saving:
 
 m = 'Fzsc'
 
-from scipy.stats import binned_statistic, kendalltau, spearmanr
 response_rank_rho = np.array([spearmanr(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
                               for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 response_rank_tau = np.array([kendalltau(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
