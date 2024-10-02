@@ -2797,10 +2797,11 @@ bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statis
 bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='std', bins=bin_edges)
 bin_ns, _, _ = binned_statistic(roipair_dist_um, roipair_dprimediff, statistic='count', bins=bin_edges)
 
-# n_pairs_required = 100
-# bin_centers = bin_centers[bin_ns > n_pairs_required]
-# bin_medians = bin_medians[bin_ns > n_pairs_required]
-# bin_stds = bin_stds[bin_ns > n_pairs_required]
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 100
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
 
 fig_dprimediff = plt.figure()
 ax = fig_dprimediff.subplots(1, 1)
@@ -2839,6 +2840,12 @@ bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_
 
 bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='std', bins=bin_edges)
+
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 100
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
 
 fig_r = plt.figure()
 ax = fig_r.subplots(1, 1)
@@ -2879,6 +2886,12 @@ bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_
 bin_medians, _, _ = binned_statistic(roipair_dist_um, response_rank_rho, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roipair_dist_um, response_rank_rho, statistic='std', bins=bin_edges)
 
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 100
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
+
 fig_rho = plt.figure()
 ax = fig_rho.subplots(1, 1)
 ax.set_ylabel(r'Stimulus response Spearman rank correlation ($\rho$)')
@@ -2903,6 +2916,12 @@ if saving:
 
 bin_medians, _, _ = binned_statistic(roipair_dist_um, response_rank_tau, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roipair_dist_um, response_rank_tau, statistic='std', bins=bin_edges)
+
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 100
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
 
 fig_tau = plt.figure()
 ax = fig_tau.subplots(1, 1)
