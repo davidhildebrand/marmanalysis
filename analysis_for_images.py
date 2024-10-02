@@ -1461,6 +1461,8 @@ for mi, m in enumerate(metrics):
             label='All', 
             color='0', linestyle='dotted', linewidth=1, zorder=4)
     for cati, cat in enumerate(categories):
+        # if cat == b'blank':
+        #     continue
         n_cnd_in_cat = (data[cat_to_condidx[cat]]['cond'].shape[0])
         Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
         Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
