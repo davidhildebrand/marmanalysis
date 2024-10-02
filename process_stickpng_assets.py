@@ -545,8 +545,9 @@ for ii in image_info:
                 input_batch = input_batch.to(device)
                 alexnet.to(device)
                 with torch.no_grad():
-                    output = alexnet(input_batch)
-                assets[ii]['modvals']['alexnet']['bg_g'] = get_modvals_alexnet()
+                    _ = alexnet(input_batch)
+                assets[ii]['modvals']['alexnet']['bg_g'] = get_modvals_alexnet(activation)
+                del activation, tensor, input_batch
 
                 activation = {}
                 tensor = preprocess(image_224_pinkn)
@@ -554,8 +555,57 @@ for ii in image_info:
                 input_batch = input_batch.to(device)
                 alexnet.to(device)
                 with torch.no_grad():
-                    output = alexnet(input_batch)
-                assets[ii]['modvals']['alexnet']['bg_g'] = get_modvals_alexnet()
+                    _ = alexnet(input_batch)
+                assets[ii]['modvals']['alexnet']['bg_pn'] = get_modvals_alexnet(activation)
+                del activation, tensor, input_batch
+
+            # other_models = ['vgg11', 'vgg11bn', 'vgg13', 'vgg13bn', 'vgg16', 'vgg16bn', 'vgg19', 'vgg19bn',
+            #                 'googlenet', 'inceptionv3', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
+            #                 'resnext5032x4d', 'resnext10132x8d', 'resnext10164x4d', 'wideresnet502', 'wideresnet1012',
+            #                 'densenet121', 'densenet161', 'densenet169', 'densenet201', 'squeezenet10', 'squeezenet11']
+            other_models = []
+            for omod in other_models:
+                if omod not in assets[ii]['modvals']:
+                    assets[ii]['modvals'][omod] = {}
+
+                    activation = {}
+                    if omod != 'inceptionv3':
+                        tensor = preprocess(image_224_white)
+                    else:
+                        tensor = preprocess(image_299_white)
+                    input_batch = tensor.unsqueeze(0)
+                    input_batch = input_batch.to(device)
+                    exec('%s.to(device)' % omod)
+                    with torch.no_grad():
+                        exec('_ = %s(input_batch)' % omod)
+                    assets[ii]['modvals'][omod]['bg_w'] = get_modvals_generic(activation)
+                    del activation, tensor, input_batch
+
+                    activation = {}
+                    if omod != 'inceptionv3':
+                        tensor = preprocess(image_224_gray)
+                    else:
+                        tensor = preprocess(image_299_gray)
+                    input_batch = tensor.unsqueeze(0)
+                    input_batch = input_batch.to(device)
+                    exec('%s.to(device)' % omod)
+                    with torch.no_grad():
+                        exec('_ = %s(input_batch)' % omod)
+                    assets[ii]['modvals'][omod]['bg_g'] = get_modvals_generic(activation)
+                    del activation, tensor, input_batch
+
+                    activation = {}
+                    if omod != 'inceptionv3':
+                        tensor = preprocess(image_224_pinkn)
+                    else:
+                        tensor = preprocess(image_299_pinkn)
+                    input_batch = tensor.unsqueeze(0)
+                    input_batch = input_batch.to(device)
+                    exec('%s.to(device)' % omod)
+                    with torch.no_grad():
+                        exec('_ = %s(input_batch)' % omod)
+                    assets[ii]['modvals'][omod]['bg_pn'] = get_modvals_generic(activation)
+                    del activation, tensor, input_batch
 
         else:
             assets[ii]['transparency'] = False
