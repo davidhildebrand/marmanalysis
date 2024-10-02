@@ -442,23 +442,24 @@ for ii in image_info:
     if checksumming:
         calculate_sha256 = False
         calculate_md5 = False
-        if ii in assets:
-            if 'checksum_sha256' not in assets[ii]:
-                calculate_sha256 = True
-            if 'checksum_md5' not in assets[ii]:
-                calculate_md5 = True
-        h_sha256 = hashlib.sha256()
-        h_md5 = hashlib.md5()
-        with open(image_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(4096), b''):
-                if calculate_sha256:
-                    h_sha256.update(chunk)
-                if calculate_md5:
-                    h_md5.update(chunk)
-        if calculate_sha256:
-            assets[ii]['checksum_sha256'] = h_sha256.hexdigest()
-        if calculate_md5:
-            assets[ii]['checksum_md5'] = h_md5.hexdigest()
+        if 'checksum_sha256' not in assets[ii]:
+            calculate_sha256 = True
+        if 'checksum_md5' not in assets[ii]:
+            calculate_md5 = True
+        if calculate_sha256 or calculate_md5:
+            h_sha256 = hashlib.sha256()
+            h_md5 = hashlib.md5()
+            with open(image_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b''):
+                    if calculate_sha256:
+                        h_sha256.update(chunk)
+                    if calculate_md5:
+                        h_md5.update(chunk)
+            if calculate_sha256:
+                assets[ii]['checksum_sha256'] = h_sha256.hexdigest()
+            if calculate_md5:
+                assets[ii]['checksum_md5'] = h_md5.hexdigest()
+        del h_sha256, h_md5
 
     if 'image_size' in assets[ii]:
         if np.min(assets[ii]['image_size']) < min_dimension:
