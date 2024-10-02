@@ -1439,14 +1439,10 @@ if md['stim_locked_to_acqfr'] is True:
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
 for mi, m in enumerate(metrics):
-    # ymin = np.min(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
-    #                         for c in range(n_cats)]))
-    ymin = np.min(np.array([np.nanmean(np.nanmean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
-                            for c in categories]))
-    # ymax = np.max(np.array([np.mean(np.mean(data[data['cat'] == categories[c]][m], axis=(1, 2)), axis=0) 
-    #                         for c in range(n_cats)]))
-    ymax = np.max(np.array([np.nanmean(np.nanmean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0) 
-                            for c in categories]))
+    ymean = np.mean(np.array([np.mean(np.nanmean(data[cat_to_condidx[c]][m], axis=(1, 2)), axis=0)
+                              for c in categories]))
+    ymin = ymean
+    ymax = ymean
     ax = axes[mi]
     ax.set_ylabel(metric_labels[m])
     ax.tick_params(axis='both', which='major')
@@ -1460,7 +1456,6 @@ for mi, m in enumerate(metrics):
     ax.set_xticklabels(xticklabels)
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_xlim((0, np.ceil(dur_trial) * md['framerate']))
-    ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.plot(xs,
             np.mean(np.nanmean(data[m], axis=(1, 2)), axis=0), 
             label='All', 
@@ -1469,14 +1464,15 @@ for mi, m in enumerate(metrics):
         n_cnd_in_cat = (data[cat_to_condidx[cat]]['cond'].shape[0])
         Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
         Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
-        Fymin = np.min([Fymin, np.min(Fmean - Fsem)])
-        Fymax = np.min([Fymax, np.min(Fmean + Fsem)])
+        ymin = np.min([ymin, np.min(Fmean - Fsem)])
+        ymax = np.max([ymax, np.max(Fmean + Fsem)])
         ax.plot(xs, 
                 Fmean,  # 'o-', markersize=2,
                 label=template_labels[cat], 
                 color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
                         color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.1, zorder=2)
+    ax.set_ylim((ymin - 0.05 * np.abs(ymax - ymin), ymax + 0.05 * np.abs(ymax - ymin)))
     del cati, cat
     # ax.legend(frameon=False, loc=(0.02, 0.7), fontsize=6)
 fig_psth.show()
@@ -1815,8 +1811,9 @@ for r in range(n_plot_ROIs):
     fig.suptitle(r'ROI {} ($d^\prime_F$ {:0.2f}) across-stimulus mean responses'.format(ridx, dprime[dpm][ridx]))
     axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
     for mi, m in enumerate(metrics):
-        ymin = np.min(np.nanmean(data[m][:, ridx, :, :], axis=1))
-        ymax = np.max(np.nanmean(data[m][:, ridx, :, :], axis=1))
+        ymean = np.mean(np.nanmean(data[m][:, ridx, :, :], axis=1))
+        ymin = ymean
+        ymax = ymean
         for cati, cat in enumerate(categories):
             ax = axes[mi, cati]
             if mi == 0:
@@ -1837,7 +1834,6 @@ for r in range(n_plot_ROIs):
                 ax.set_xticklabels([])
                 ax.axis('off')
             ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
-            ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
             n_cnd_in_cat = data[cat_to_condidx[cat]]['cond'].shape[0]
             for cnd in range(n_cnd_in_cat):
                 ax.plot(xs,
@@ -1846,8 +1842,11 @@ for r in range(n_plot_ROIs):
                         color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
             Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
             Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
+            ymin = np.min([ymin, np.min(Fmean - Fsem)])
+            ymax = np.max([ymax, np.max(Fmean + Fsem)])
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
+            ax.set_ylim((ymin - 0.05 * np.abs(ymax - ymin), ymax + 0.05 * np.abs(ymax - ymin)))            
     fig.show()
 
     if saving:
@@ -1890,8 +1889,9 @@ for r in range(n_plot_ROIs):
     pr = r + 1
     
     # Summary plots of category averages
-    ymin = np.min(np.nanmean(data[m][:, ridx, :, :], axis=1))
-    ymax = np.max(np.nanmean(data[m][:, ridx, :, :], axis=1))
+    ymean = np.mean(np.nanmean(data[m][:, ridx, :, :], axis=1))
+    ymin = ymean
+    ymax = ymean
     ax = axes[pr, 0]
     ax.spines[:].set_visible(False)
     ax.set_xticks([])
@@ -1899,10 +1899,11 @@ for r in range(n_plot_ROIs):
     ax.set_ylabel(r'ROI {}' '\n' '$d^\prime_F$ {:0.2f}'.format(ridx, dprime[m][ridx]), 
                   horizontalalignment='right', rotation=0, fontsize=4)
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
-    ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cati, cat in enumerate(categories):
         Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
         Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(len(cat_to_condidx[cat]))
+        ymin = np.min([ymin, np.min(Fmean - Fsem)])
+        ymax = np.max([ymax, np.max(Fmean + Fsem)])
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
                         facecolor=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.6, zorder=2)
@@ -1912,15 +1913,18 @@ for r in range(n_plot_ROIs):
         ax = axes[pr, cndi + 1]
         ax.axis('off')
         ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
-        ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
         for t in range(n_reps):
             ax.plot(xs, 
                     data[cnd][m][ridx, t, :],
                     color=str(np.linspace(0.4, 0.7, n_reps)[t]), linewidth=0.1)
         Fmean = np.nanmean(data[cnd][m][ridx, :, :], axis=0)
-        Fsem = np.std(data[cnd][m][ridx, :, :], axis=0) / np.sqrt(n_reps)
+        Fsem = (np.nanstd(data[cnd][m][ridx, :, :], axis=0) / 
+                np.sqrt(n_reps - np.isnan(data[cnd][m][ridx, :, :]).any(axis=1).sum()))  # remove conditions with NaNs
+        ymin = np.min([ymin, np.min(Fmean - Fsem)])
+        ymax = np.max([ymax, np.max(Fmean + Fsem)])
         ax.plot(xs, Fmean, color='0.0', linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.0', alpha=0.6, zorder=2)
+    ax.set_ylim((ymin - 0.05 * np.abs(ymax - ymin), ymax + 0.05 * np.abs(ymax - ymin)))
 fig.show()
 
 if saving:
