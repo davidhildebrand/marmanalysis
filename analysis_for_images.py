@@ -1478,12 +1478,19 @@ for mi, m in enumerate(metrics):
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, 
                         color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), alpha=0.1, zorder=2)
     del cati, cat
-    ax.legend(frameon=False, loc=(.02, .7), fontsize=6)
+    # ax.legend(frameon=False, loc=(0.02, 0.7), fontsize=6)
 fig_psth.show()
+
+fig_psth_leg, ax_psth_leg = plt.subplots()
+ax_psth_leg.legend(*ax.get_legend_handles_labels(), frameon=False, loc='center')
+ax_psth_leg.axis('off')
+fig_psth_leg.show()
 
 if saving:
     sn = save_pfix + '_00_ResponsePlot_byCategory_PopulationPSTH'
     fig_psth.savefig(os.path.join(save_path, sn + save_ext),
+                     dpi=plt.rcParams['figure.dpi'], transparent=True)
+    fig_psth_leg.savefig(os.path.join(save_path, sn + '_Legend' + save_ext),
                      dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 del mi, m, xs, xticks, xticklabels
