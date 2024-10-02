@@ -1411,6 +1411,9 @@ if exclude_by_movement and len(trials_movement) > 0:
                                                       conditions[ek].decode(), condidx_to_cat[ek].decode()))
     del ek
 
+excluded_blinks = {}
+# TODO * * * add exclusion by blinks
+
 for cnd, rep in trials_exclude:
     for m in metrics:
         data[cnd][m][:, rep, :] = np.nan
@@ -1464,10 +1467,10 @@ for mi, m in enumerate(metrics):
             color='0', linestyle='dotted', linewidth=1, zorder=4)
     for cati, cat in enumerate(categories):
         n_cnd_in_cat = (data[cat_to_condidx[cat]]['cond'].shape[0])
-        Fmean = np.mean(np.mean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
-        Fsem = np.std(np.mean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
         Fmean = np.nanmean(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
         Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
+        Fymin = np.min([Fymin, np.min(Fmean - Fsem)])
+        Fymax = np.min([Fymax, np.min(Fmean + Fsem)])
         ax.plot(xs, 
                 Fmean,  # 'o-', markersize=2,
                 label=template_labels[cat], 
@@ -1975,8 +1978,98 @@ if threshold_dprime is not None:
 for cndi, cnd in enumerate(conds_focus):
     ax = axes[pr, cndi + 1]
     ax.axis('off')
-    img_hm = ax.imshow(np.mean(data[cnd][m], axis=1)[sort_idx_dprime[m]],
     img_hm = ax.imshow(np.nanmean(data[cnd][m], axis=1)[sort_idx_dprime[m]],
+                       vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
+    xlines = [dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate']]
+    for xl in xlines:
+        ax.axvline(x=xl, linestyle='dashed', linewidth=0.5, color='0.4')
+    if threshold_dprime is not None:
+        if threshold_dprime != 0:
+            ax.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
+            ax.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
+        else:
+            ax.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
+                       color='0.2', linestyle='dotted', linewidth=0.5)
+plots.set_plot_text_settings()
+fig_hm.show()
+
+fig_cb, ax_cb = plt.subplots()
+cbar = plt.colorbar(img_hm, ax=ax_cb)
+cbar.ax.set_yticks([-1, -0.5, 0, 0.5, 1.0])
+cbar.ax.set_yticklabels(['-1.0', '-0.5', '0', '0.5', '1'])
+cbar.set_label('Z-score')
+ax_cb.remove()
+plots.set_plot_text_settings()
+fig_cb.show()
+
+if saving:
+    sn = save_pfix + '_04_Heatmap_TrialAveragedSubset_sortDprime'
+    #    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
+    fig_hm.savefig(os.path.join(save_path, sn + save_ext),
+                   dpi=plt.rcParams['figure.dpi'], transparent=True)
+    fig_cb.savefig(os.path.join(save_path, sn + '_Colorbar' + save_ext),
+                   dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+del m, pr, cndi, cnd
+del ax, xl, xlines
+
+
+# %% Heatmap trial-averaged (median) responses... for a subset of conditions (e.g., faces)...
+#    ... for all ROIs
+#    ... sorted by dprime_F
+
+m = 'Fzsc'
+# bool_focus = (data['cat'] == b'face_mrm')
+bool_focus = bool_F
+conds_focus = np.where(bool_focus)[0]
+conds_focus = conds_focus[[i for i, _ in sorted(enumerate(data[bool_focus]['stimulus']), key=sort_by_cond)]]
+n_conds_focus = len(conds_focus)
+
+fig_hm = plt.figure()
+axes = fig_hm.subplots(nrows=2, ncols=(n_conds_focus + 1), height_ratios=[40, 790], sharey='row')
+fig_hm.subplots_adjust(hspace=0)
+fig_hm.suptitle('trial-averaged median responses, all ROIs')
+
+pr = 0
+ax = axes[pr, 0]
+ax.axis('off')
+for cndi, cnd in enumerate(conds_focus):
+    ax = axes[pr, cndi + 1]
+    ax.axis('off')
+    img_st = ax.imshow(plt.imread(data[cnd]['stimulus'].filepath))
+
+pr = 1
+ax_dp = axes[pr, 0]
+ax_dp.set_xlabel('$d^\prime_F$')
+ax_dp.set_axisbelow(True)
+ax_dp.barh(range(0, n_ROIs), dprime[m][sort_idx_dprime[m]], height=1.0, color='0.5')
+ax_dp.axvline(x=0, color='0.0', linewidth=0.5)
+ax_dp.spines['right'].set_visible(False)
+ax_dp.spines['left'].set_visible(False)
+ax_dp.grid(axis='x', linestyle='dashed', linewidth=0.5, color='0.8')
+for tick in ax_dp.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(False)
+    tick.tick2line.set_visible(False)
+    tick.label1.set_visible(False)
+    tick.label2.set_visible(False)
+for tick in ax_dp.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(4)
+if threshold_dprime is not None:
+    if threshold_dprime != 0:
+        ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] < -threshold_dprime)[0].min(),
+                      color='0.2', linestyle='dotted', linewidth=0.5)
+        ax_dp.axhline(np.where(dprime[m][sort_idx_dprime[m]] > threshold_dprime)[0].max(),
+                      color='0.2', linestyle='dotted', linewidth=0.5)
+    else:
+        ax_dp.axhline(np.where(np.isclose(dprime[m][sort_idx_dprime[m]], threshold_dprime, atol=0.05)),
+                      color='0.2', linestyle='dotted', linewidth=0.5)
+
+for cndi, cnd in enumerate(conds_focus):
+    ax = axes[pr, cndi + 1]
+    ax.axis('off')
+    img_hm = ax.imshow(np.nanmedian(data[cnd][m], axis=1)[sort_idx_dprime[m]],
                        vmin=-1.0, vmax=1.0, aspect='auto', cmap='bwr', interpolation='none')
     xlines = [dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate']]
     for xl in xlines:
