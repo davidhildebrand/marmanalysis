@@ -136,31 +136,42 @@ def get_activation(name):
     return hook
 
 
-def get_modvals_alexnet():
-    if 'activation' in locals():
+def get_modvals_alexnet(activ):
+    if activ != {} and activ is not None:
         d = {
-            '00_conv1_conv2d': activation['features.0'].cpu().numpy().squeeze(),
-            '01_conv1_relu': activation['features.1'].cpu().numpy().squeeze(),
-            '02_conv1_maxpool2d': activation['features.2'].cpu().numpy().squeeze(),
-            '03_conv2_conv2d': activation['features.3'].cpu().numpy().squeeze(),
-            '04_conv2_relu': activation['features.4'].cpu().numpy().squeeze(),
-            '05_conv2_maxpool2d': activation['features.5'].cpu().numpy().squeeze(),
-            '06_conv3_conv2d': activation['features.6'].cpu().numpy().squeeze(),
-            '07_conv3_relu': activation['features.7'].cpu().numpy().squeeze(),
-            '08_conv4_conv2d': activation['features.8'].cpu().numpy().squeeze(),
-            '09_conv4_relu': activation['features.9'].cpu().numpy().squeeze(),
-            '10_conv5_conv2d': activation['features.10'].cpu().numpy().squeeze(),
-            '11_conv5_relu': activation['features.11'].cpu().numpy().squeeze(),
-            '12_conv5_maxpool2d': activation['features.12'].cpu().numpy().squeeze(),
-            '13_avgpool': activation['avgpool'].cpu().numpy().squeeze(),
-            '14_fc6_dropout': activation['classifier.0'].cpu().numpy().squeeze(),
-            '15_fc6_linear': activation['classifier.1'].cpu().numpy().squeeze(),
-            '16_fc6_relu': activation['classifier.2'].cpu().numpy().squeeze(),
-            '17_fc7_dropout': activation['classifier.3'].cpu().numpy().squeeze(),
-            '18_fc7_linear': activation['classifier.4'].cpu().numpy().squeeze(),
-            '19_fc7_relu': activation['classifier.5'].cpu().numpy().squeeze(),
-            '20_fc8_linear': activation['classifier.6'].cpu().numpy().squeeze(),
+            '00_conv1_conv2d': activ['features.0'].cpu().numpy().squeeze(),
+            '01_conv1_relu': activ['features.1'].cpu().numpy().squeeze(),
+            '02_conv1_maxpool2d': activ['features.2'].cpu().numpy().squeeze(),
+            '03_conv2_conv2d': activ['features.3'].cpu().numpy().squeeze(),
+            '04_conv2_relu': activ['features.4'].cpu().numpy().squeeze(),
+            '05_conv2_maxpool2d': activ['features.5'].cpu().numpy().squeeze(),
+            '06_conv3_conv2d': activ['features.6'].cpu().numpy().squeeze(),
+            '07_conv3_relu': activ['features.7'].cpu().numpy().squeeze(),
+            '08_conv4_conv2d': activ['features.8'].cpu().numpy().squeeze(),
+            '09_conv4_relu': activ['features.9'].cpu().numpy().squeeze(),
+            '10_conv5_conv2d': activ['features.10'].cpu().numpy().squeeze(),
+            '11_conv5_relu': activ['features.11'].cpu().numpy().squeeze(),
+            '12_conv5_maxpool2d': activ['features.12'].cpu().numpy().squeeze(),
+            '13_avgpool': activ['avgpool'].cpu().numpy().squeeze(),
+            '14_fc6_dropout': activ['classifier.0'].cpu().numpy().squeeze(),
+            '15_fc6_linear': activ['classifier.1'].cpu().numpy().squeeze(),
+            '16_fc6_relu': activ['classifier.2'].cpu().numpy().squeeze(),
+            '17_fc7_dropout': activ['classifier.3'].cpu().numpy().squeeze(),
+            '18_fc7_linear': activ['classifier.4'].cpu().numpy().squeeze(),
+            '19_fc7_relu': activ['classifier.5'].cpu().numpy().squeeze(),
+            '20_fc8_linear': activ['classifier.6'].cpu().numpy().squeeze(),
         }
+    else:
+        warn('No activations found.')
+        d = {}
+    return d
+
+
+def get_modvals_generic(activ):
+    if activ != {} and activ is not None:
+        d = {}
+        for k in activ.keys():
+            d[k] = activ[k].cpu().numpy().squeeze()
     else:
         warn('No activations found.')
         d = {}
@@ -517,31 +528,9 @@ for ii in image_info:
                 input_batch = input_batch.to(device)
                 alexnet.to(device)
                 with torch.no_grad():
-                    output = alexnet(input_batch)
-                # assets[ii]['modvals']['alexnet']['bg_w'] = {
-                #     '00_conv1_conv2d': activation['features.0'].cpu().numpy().squeeze(),
-                #     '01_conv1_relu': activation['features.1'].cpu().numpy().squeeze(),
-                #     '02_conv1_maxpool2d': activation['features.2'].cpu().numpy().squeeze(),
-                #     '03_conv2_conv2d': activation['features.3'].cpu().numpy().squeeze(),
-                #     '04_conv2_relu': activation['features.4'].cpu().numpy().squeeze(),
-                #     '05_conv2_maxpool2d': activation['features.5'].cpu().numpy().squeeze(),
-                #     '06_conv3_conv2d': activation['features.6'].cpu().numpy().squeeze(),
-                #     '07_conv3_relu': activation['features.7'].cpu().numpy().squeeze(),
-                #     '08_conv4_conv2d': activation['features.8'].cpu().numpy().squeeze(),
-                #     '09_conv4_relu': activation['features.9'].cpu().numpy().squeeze(),
-                #     '10_conv5_conv2d': activation['features.10'].cpu().numpy().squeeze(),
-                #     '11_conv5_relu': activation['features.11'].cpu().numpy().squeeze(),
-                #     '12_conv5_maxpool2d': activation['features.12'].cpu().numpy().squeeze(),
-                #     '13_avgpool': activation['avgpool'].cpu().numpy().squeeze(),
-                #     '14_fc6_dropout': activation['classifier.0'].cpu().numpy().squeeze(),
-                #     '15_fc6_linear': activation['classifier.1'].cpu().numpy().squeeze(),
-                #     '16_fc6_relu': activation['classifier.2'].cpu().numpy().squeeze(),
-                #     '17_fc7_dropout': activation['classifier.3'].cpu().numpy().squeeze(),
-                #     '18_fc7_linear': activation['classifier.4'].cpu().numpy().squeeze(),
-                #     '19_fc7_relu': activation['classifier.5'].cpu().numpy().squeeze(),
-                #     '20_fc8_linear': activation['classifier.6'].cpu().numpy().squeeze(),
-                # }
-                assets[ii]['modvals']['alexnet']['bg_w'] = get_modvals_alexnet()
+                    _ = alexnet(input_batch)
+                assets[ii]['modvals']['alexnet']['bg_w'] = get_modvals_alexnet(activation)
+                del activation, tensor, input_batch
 
                 activation = {}
                 tensor = preprocess(image_224_gray)
