@@ -1462,12 +1462,12 @@ for mi, m in enumerate(metrics):
     ax.set_xlim((0, np.ceil(dur_trial) * md['framerate']))
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     ax.plot(xs,
-            np.nanmean(np.nanmean(data[m], axis=(1, 2)), axis=0), 
+            np.mean(np.nanmean(data[m], axis=(1, 2)), axis=0), 
             label='All', 
             color='0', linestyle='dotted', linewidth=1, zorder=4)
     for cati, cat in enumerate(categories):
         n_cnd_in_cat = (data[cat_to_condidx[cat]]['cond'].shape[0])
-        Fmean = np.nanmean(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
+        Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0)
         Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m], axis=(1, 2)), axis=0) / np.sqrt(n_cnd_in_cat)
         Fymin = np.min([Fymin, np.min(Fmean - Fsem)])
         Fymax = np.min([Fymax, np.min(Fmean + Fsem)])
@@ -1562,11 +1562,11 @@ for m in metrics:
     # Calculate across-stimulus, trial-averaged, frame-averaged mean responses
     #   Ordering of mean calculations matters here because the mean of a set is only the
     #   same as the mean of the mean of subsets if the subsets share the same sample size.
-    muR_F[m] = np.nanmean(np.nanmean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    muR_NF[m] = np.nanmean(np.nanmean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
-    muR_NFobj[m] = np.nanmean(np.nanmean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_F[m] = np.mean(np.nanmean(data[bool_F][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_NF[m] = np.mean(np.nanmean(data[bool_NF][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_NFobj[m] = np.mean(np.nanmean(data[bool_NFobj][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
     muR_O[m] = muR_NFobj[m]
-    muR_B[m] = np.nanmean(np.nanmean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    muR_B[m] = np.mean(np.nanmean(data[bool_B][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
 
     # Calculate across-stimulus, trial-averaged, frame-averaged standard deviations
     #   Take the mean across trials and frames (okay because same n_samp_stim in each), 
@@ -1661,7 +1661,7 @@ resp_vect_cond = {}
 resp_vect_cat = {}
 for m in metrics:
     resp_vect_cond[m] = np.nanmean(data[m][:, :, :, idx_stim], axis=(2, 3)).T
-    resp_vect_cat[m] = np.array([np.nanmean(np.nanmean(data[cat_to_condidx[c]][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
+    resp_vect_cat[m] = np.array([np.mean(np.nanmean(data[cat_to_condidx[c]][m][:, :, :, idx_stim], axis=(2, 3)), axis=0)
                                  for c in categories]).T
 del m
 
@@ -1844,7 +1844,7 @@ for r in range(n_plot_ROIs):
                         np.nanmean(data[cat_to_condidx[cat]][m][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5,
                         color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
-            Fmean = np.nanmean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
+            Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
             Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
@@ -1901,7 +1901,7 @@ for r in range(n_plot_ROIs):
     ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
     ax.set_ylim((ymin - 0.1 * np.abs(ymin), ymax + 0.1 * np.abs(ymax)))
     for cati, cat in enumerate(categories):
-        Fmean = np.nanmean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
+        Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
         Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(len(cat_to_condidx[cat]))
         ax.plot(xs, Fmean, color=colorsys.hsv_to_rgb(cati / n_cats, 1.0, 1.0), linewidth=1, zorder=3)
         ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem,
