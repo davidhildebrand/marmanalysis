@@ -1406,11 +1406,10 @@ if exclude_by_movement and len(trials_movement) > 0:
         if cnd not in excluded_movement:
             excluded_movement[cnd] = []
         excluded_movement[cnd].append(rep)
-    print('Excluding {} trials due to movement (via suite2p badframes):'.format(len(trials_movement)))
+    print('Excluding {} trials due to movement (via suite2p badframes).'.format(len(trials_movement)))
     for ek in excluded_movement:
         print('  {}/{} excluded for {} ({})'.format(len(excluded_movement[ek]), n_reps,
                                                       conditions[ek].decode(), condidx_to_cat[ek].decode()))
-    del ek
 
 excluded_blinks = {}
 # TODO * * * add exclusion by blinks
@@ -1421,12 +1420,11 @@ for cnd, rep in trials_exclude:
     if cnd not in excluded:
         excluded[cnd] = []
     excluded[cnd].append(rep)
-del cnd, rep, m
-print('Overall, {} trials excluded:'.format(len(trials_movement)))
+
+print('In total, {} trials excluded.'.format(len(trials_movement)))
 for ek in excluded:
     print('  {}/{} excluded for {} ({})'.format(len(excluded[ek]), n_reps,
                                                 conditions[ek].decode(), condidx_to_cat[ek].decode()))
-del ek
 
 
 # %% Plot across-stimulus population responses (similar to PSTH)
