@@ -2824,8 +2824,8 @@ ax.set_ylim((roipair_dprimediff.min() - np.abs(0.1 * roipair_dprimediff.min()),
              roipair_dprimediff.max() + np.abs(0.1 * roipair_dprimediff.max())))
 ax.scatter(roipair_dist_um, roipair_dprimediff, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
-            fmt='o', elinewidth=1, ecolor='b')
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
 fig_dprimediff.show()
 
 if saving:
@@ -2869,8 +2869,8 @@ ax.set_ylim((roipair_corr_respvect.min() - np.abs(0.1 * roipair_corr_respvect.mi
 
 ax.scatter(roipair_dist_um, roipair_corr_respvect, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
-            fmt='o', elinewidth=1, ecolor='b')
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
 plots.set_plot_text_settings()
 fig_r.show()
 
@@ -2915,8 +2915,8 @@ ax.set_ylim((response_rank_rho.min() - np.abs(0.1 * response_rank_rho.min()), 1)
 
 ax.scatter(roipair_dist_um, response_rank_rho, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
-            fmt='o', elinewidth=1, ecolor='b')
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
 plots.set_plot_text_settings()
 fig_rho.show()
 
@@ -2931,8 +2931,6 @@ bin_medians, _, _ = binned_statistic(roipair_dist_um, response_rank_tau, statist
 bin_stds, _, _ = binned_statistic(roipair_dist_um, response_rank_tau, statistic='std', bins=bin_edges)
 
 # Exclude any bins with less than 100 pairs
-n_pairs_required = 100
-bin_centers = bin_centers[bin_ns > n_pairs_required]
 bin_medians = bin_medians[bin_ns > n_pairs_required]
 bin_stds = bin_stds[bin_ns > n_pairs_required]
 
@@ -2947,8 +2945,8 @@ ax.set_ylim((response_rank_tau.min() - np.abs(0.1 * response_rank_tau.min()), 1)
 
 ax.scatter(roipair_dist_um, response_rank_tau, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
-            fmt='o', elinewidth=1, ecolor='b')
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
 # ax.plot(ddxs, ddys)
 plots.set_plot_text_settings()
 fig_tau.show()
