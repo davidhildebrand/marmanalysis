@@ -5,7 +5,6 @@ import colorsys
 from glob import glob
 import itertools
 import matplotlib.pyplot as plt
-# import matplotlib.image as mpimg
 import numpy as np
 import os
 import pandas as pd
@@ -23,7 +22,6 @@ import plots
 
 # TODO: add consistent pyplot theme handling for plots https://github.com/raybuhr/pyplot-themes
 #       including colorblind palette options https://personal.sron.nl/~pault/
-# TODO: exclude suite2p badframes
 # TODO: exclude based on eye tracking, at least when eyes are not open
 
 
