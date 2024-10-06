@@ -1276,20 +1276,25 @@ ax.set_ylabel('Preferred direction difference (' + deg_symbol + ')', fontsize=10
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major', labelsize=10)
-ax.set_xlim((0, 500))
+ax.set_xlim((0, 1000))
 ax.set_ylim((0, 180))
 
 # Plot all pairs of direction difference and distance difference
-ax.scatter(distprefs[:, 0], distprefs[:, 1], marker='.', s=1, edgecolor='none')
+ax.scatter(distprefs[:, 0], distprefs[:, 1], marker='.', s=0.5, color='k', edgecolor='None')
 
 # Plot median values for 25um distance bins
 # ax.scatter(bin_centers, bin_medians, marker='o', s=5, edgecolor='k', facecolor='w')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='k', markerfacecolor='w', markersize=5, capsize=0,
-            fmt='o', elinewidth=1, ecolor='k')
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
 # TODO investigate whether it is an issue that direction difference is only accurate to 1º
 
-ax.plot(ddxs, ddys)
+# ax.plot(ddxs, ddys)
+
+if saving:
+    sn = save_pfix + '_RelationshipPlot_TprefDiff_by_Distance'
+    f1.savefig(os.path.join(save_path, sn + save_ext),
+               dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 plt.show()
 
