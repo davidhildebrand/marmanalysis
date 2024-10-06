@@ -279,7 +279,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PDish 200um ( | )
 # session_str = '144500tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
 
-# # 20230517d
+# # 20230517d Right
 # date_str = '20230517d'
 # # -- PDish 200um ( | aniso stim)
 # session_str = '135600tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesFOBsel230517dAniso'
