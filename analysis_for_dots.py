@@ -55,7 +55,7 @@ if 'md' in locals():
 # %% Specify data locations
 
 # savepath_str = 'analysis'
-# save_path = r'F:\Data\analysis'
+# save_path = r''
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -90,17 +90,17 @@ dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 # # # Cashew
 # animal_str = 'Cashew'
 
-# # 20230728d (negligible fluid)
+# # 20230728d Right (negligible fluid)
 # date_str = '20230728d'
 # # -- MT 200um ( | drowsy, YouTube audio)
 # session_str = '153957tUTC_SP_depth200um_fov2190x2600um_res3p00x3p00umpx_fr05p381Hz_pow059p9mW_stimMovingDots16dirFF
 
-# # 20230806d (up to 250um fluid around MD and STS)
+# # 20230806d Right (up to 250um fluid around MD and STS)
 # date_str = '20230806d'
 # # -- MT 200um ( | )
 # session_str = '161055tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow059p9mW_stimMovingDots16dirFF
 
-# # 20230809d
+# # 20230809d Right
 # date_str = '20230809d'
 # # -- MT 200um ( | )
 # session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
@@ -110,32 +110,44 @@ dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 # # # Dali
 # animal_str = 'Dali'
 
-# # 20230622d
+# # 20230622d Right
 # date_str = '20230622d'
 # # -- MT? 300um ( | )
 # session_str = '165308tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow069p8mW_stimMovingDots8dirFF'
 
-# # 20230627d
+# # 20230627d Right
 # date_str = '20230627d'
 # # -- MT? 200um ( | )
 # session_str = '152654tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p3mW_stimMovingDots8dirFF'
 
-# # 20230704d
+# # 20230704d Right
 # date_str = '20230704d'
 # # -- MT? 200um ( | )
 # session_str = '160506tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p0mW_stimMovingDots16dirFF'
 
-# # 20230906d
+# # 20230906d Right
 # date_str = '20230906d'
 # # -- PD 200um ( | )
 # session_str = '180300tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow049p6mW_stimMovingDots16dirFF'
+
+# # 20240923d Left
+# date_str = '20240923d'
+# # -- aud? 200um ( | )
+# session_str = '180320tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow039p7mW_stimMultimodalTonesDotsGratingsFlashes'
+
+# # 20240926d Left
+# date_str = '20240926d'
+# # -- PD-MT? 200um ( | )
+# session_str = '171222tUTC_SP_depth260um_fov1060x1800um_res2p00x2p00umpx_fr05p196Hz_pow050p4mW_stimMultimodalImagesDotsGratingsTonesVocalizations'
+# # -- PD-MT? 200um ( | )
+# session_str = '171222tUTC_SP_depth260um_fov1060x1800um_res2p00x2p00umpx_fr05p196Hz_pow050p4mW_stimMultimodalImagesDotsGratingsTonesVocalizations'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Larry
 # animal_str = 'Larry'
 
-# # 20231007d
+# # 20231007d Right
 # date_str = '20231007d'
 # # -- MT 200um ( | movement exclusions needed)
 # session_str = '211856tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimMovingDots16dirFF'
