@@ -83,7 +83,7 @@ if 'md' in locals():
 # %% Specify data locations
 
 # savepath_str = 'analysis'
-# save_path = r'F:\Data\analysis'
+# save_path = r''
 save_ext = ['.png', '.svg']
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -247,24 +247,32 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PVandOBJ 200um ( | )
 # session_str = '181016tUTC_SP_depth200um_fov2190x2920um_res2p50x2p50umpx_fr03p355Hz_pow065p1mW_stimMultimodal'
 
+
+# # 20240130d
+# date_str = '20240130d'
+# # -- ? 200um ( | )
+# session_str = '172813tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow060p2mW_stimMultimodal'
+# # -- ? 200um ( | )
+# session_str = '192116tUTC_SP_depth200um_fov2555x2500um_res2p50x2p50umpx_fr03p349Hz_pow060p2mW_stimMultimodal
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Dali
 # animal_str = 'Dali'
 
-# # 20230509d
+# # 20230509d Right
 # date_str = '20230509d'
 # # -- PD-OBJ 250um ( | inattentive)
 # session_str = '181700tUTC_SP_depth250um_fov2190x2000um_res3p02x3p00umpx_fr06p952Hz_pow050p0mW_stimImagesSong230509dSel'
 
-# # 20230511d (~158um dura to glass)
+# # 20230511d Right (~158um dura to glass)
 # date_str = '20230511d'
 # # -- PD 200um ( | headpost loose)
 # session_str = '134800tUTC_SP_depth200um_fov2190x2000um_res3p02x3p02umpx_fr06p993Hz_pow050p0mW_stimImagesSong230509dSel'
 # # -- PD 300um ( | )
 # session_str = '150200tUTC_SP_depth300um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow065p0mW_stimImagesSong230509dSel'
 
-# # 20230515d
+# # 20230515d Right
 # date_str = '20230515d'
 # # -- PDish 200um ( | )
 # session_str = '135100tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
@@ -276,14 +284,14 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PDish 200um ( | aniso stim)
 # session_str = '135600tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230522d
+# # 20230522d Right
 # date_str = '20230522d'
 # # -- PD-OBJ ( | aniso stim, acquisition ended before stimulus)
 # session_str = '153415tUTC_SP_depth200um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow051p8mW_stimImagesFOBsel230517dAniso'
 # # -- PD-OBJ ( | ) *CHECK*
 # session_str = '170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel'
 
-# # 20230525d
+# # 20230525d Right
 # date_str = '20230525d'
 # # -- PD-OBJ 150um ( | aniso stim)
 # session_str = '155856tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow039p8mW_stimImagesFOBsel230517dAniso'
@@ -292,12 +300,12 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 250um ( | aniso stim)
 # session_str = '164300tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow052p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230606d
+# # 20230606d Right
 # date_str = '20230606d'
 # # -- PD-OBJ 300um ( | aniso stim)
 # session_str = '135543tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow091p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230608d
+# # 20230608d Right
 # date_str = '20230608d'
 # # -- PD-OBJ 350um ( | aniso stim)
 # session_str = '124502tUTC_SP_depth350um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow092p7mW_stimImagesFOBsel230517dAniso'
@@ -306,34 +314,34 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 450um ( | aniso stim)
 # session_str = '142713tUTC_SP_depth450um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow140p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230611d
+# # 20230611d Right
 # date_str = '20230611d'
 # # -- PD-OBJ 500um ( | aniso stim)
 # session_str = '155917tUTC_SP_depth500um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow149p9mW_stimImagesFOBsel230517dAniso'
 
-# # 20230615d
+# # 20230615d Right
 # date_str = '20230615d'
 # # -- PD-OBJ 200um ( | aniso stim)
 # session_str = '154218tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow040p2mW_stimImagesFOBsel230517dAniso'
 
-# # 20230618d
+# # 20230618d Right
 # date_str = '20230618d'
 # # -- PD-OBJ 300um ( | aniso stim)
 # session_str = '150314tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow069p9mW_stimImagesFOBsel230517dAniso'
 # # -- PD-OBJ 400um ( | aniso stim)
 # session_str = '154357tUTC_SP_depth400um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow121p8mW_stimImagesFOBsel230517dAniso'
 
-# # 20230704d
+# # 20230704d Right
 # date_str = '20230704d'
 # # -- PD-OBJ 200um ( | aniso stim)
 # session_str = '153542tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p0mW_stimImagesFOBminMarmAniso'
 
-# # 20230804d
+# # 20230804d Right
 # date_str = '20230804d'
 # # -- PD-OBJ 200um ( | )
 # session_str = '180205tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow059p7mW_stimImagesFOBmin'
 
-# # 20230810d
+# # 20230810d Right
 # date_str = '20230810d'
 # # -- PD 200um ( | )
 # session_str = '140728tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimImagesFOBmany'
@@ -342,7 +350,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD 300um ( | )
 # session_str = '152105tUTC_SP_depth300um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
 
-# # 20230831d
+# # 20230831d Right
 # date_str = '20230831d'
 # # -- PD 200um ( | )
 # session_str = '180939tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p485Hz_pow059p7mW_stimImagesFOBmin'
@@ -351,14 +359,14 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 300um ( | )
 # session_str = '190748tUTC_SP_depth300um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow080p0mW_stimImagesFOBmin'
 
-# # 20230906d
+# # 20230906d Right
 # date_str = '20230906d'
 # # -- PD 150um ( | )
 # session_str = '173359tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow030p2mW_stimImagesFOBmin'
 # # -- PD 250um ( | )
 # session_str = '181552tUTC_SP_depth250um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow080p4mW_stimImagesFOBmin'
 
-# # 20230910d
+# # 20230910d Right
 # date_str = '20230910d'
 # # -- PD-OBJ 200um ( | acquisition ended before stimulus)
 # session_str = '170833tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p481Hz_pow060p4mW_stimImagesFOBmany'
