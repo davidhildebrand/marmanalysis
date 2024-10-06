@@ -2966,6 +2966,39 @@ if saving:
                         dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
+# %% Playground for ANOVA testing and ZETA testing
+
+
+# for given ROI, bins containing all stim values across all trials
+
+# conds, rois, reps, frames
+
+r = 0
+
+reshape_test = data[m][:, r, :, idx_stim].swapaxes(0, 1).reshape(n_conds, n_samp_stim * n_reps)
+test = np.full((n_conds, n_samp_stim * n_reps), np.nan)
+for c in range(n_conds):
+    test[c,:] = np.ravel(data[m][c, r, :, idx_stim])
+
+np.allclose(np.nanmean(reshape_test, axis=1), np.nanmean(test, axis=1))
+
+    
+reshape_test2 = data[m][:, :, :, idx_stim].swapaxes(0, 1).reshape(n_ROIs, n_conds, n_samp_stim * n_reps)  # FAIL
+reshape_test2 = data[m][:, :, :, idx_stim].reshape(n_ROIs, n_conds, n_reps * n_samp_stim)  # FAIL
+reshape_test2 = np.vstack(np.moveaxis(data[m][:, :, :, idx_stim], [0, 1], [2, 3])).swapaxes(0, 2)
+test2 = np.full((n_ROIs, n_conds, n_samp_stim * n_reps), np.nan)
+for r in range(n_ROIs):
+    for c in range(n_conds):
+        # test2[r, c,:] = np.ravel(data[m][c, r, :, idx_stim])
+        test2[r, c,:] = data[m][c, r, :, idx_stim].flatten()
+
+
+np.allclose(np.nanmean(reshape_test2, axis=(0,1)), np.nanmean(test2, axis=(0,1)))
+
+above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
+
+
+
 # %% Plot stimulus images
 
 # n_subconds = len(cond_subset)
