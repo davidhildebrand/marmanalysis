@@ -3,7 +3,6 @@
 
 import colorsys
 import itertools
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -36,9 +35,7 @@ def rotate_coordinates(pts, degrees=0, origin=(0, 0), target=None):
 
 
 # % Define plotting function for histograms of selectivity metrics
-def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path: str = ''):
-    dpi = plt.rcParams['figure.dpi']
-
+def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path=''):
     f, ax1 = plt.subplots()
     plt.hist(fsis, bins=bins, range=(-1, 1), color='0.5')
     plt.xlim([-1, 1])
@@ -66,13 +63,15 @@ def plot_hist_fsi(fsis, threshold=1/3, bins=41, title: str = '', save_path: str 
     # set_plot_text_settings()
     f.tight_layout()
     f.show()
-    if save_path != '':
-        f.savefig(save_path, dpi=dpi, transparent=True)
+
+    if save_path != '' and save_path != [] and save_path is not None:
+        if isinstance(save_path, str):
+            save_path = [save_path]
+        for sp in save_path:
+            f.savefig(sp, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 def plot_hist_dprime(dprimes, threshold=0.2, bins=41, title: str = '', save_path: str = ''):
-    dpi = plt.rcParams['figure.dpi']
-
     f, ax1 = plt.subplots()
     plt.hist(dprimes, bins=bins, color='0.5')
     # plt.xlim([-1, 1])
@@ -100,8 +99,12 @@ def plot_hist_dprime(dprimes, threshold=0.2, bins=41, title: str = '', save_path
     # set_plot_text_settings()
     f.tight_layout()
     f.show()
-    if save_path != '':
-        f.savefig(save_path, dpi=dpi, transparent=True)
+    
+    if save_path != '' and save_path != [] and save_path is not None:
+        if isinstance(save_path, str):
+            save_path = [save_path]
+        for sp in save_path:
+            f.savefig(sp, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 def auto_level_s2p_image(image, target_median=5140):
@@ -126,7 +129,7 @@ def auto_level_s2p_image(image, target_median=5140):
 def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cbartitle='',
                       bgimage=None, size=None, flip='lr', rotate=-90, 
                       scale_bar=False, um_per_px=None,
-                      title: str = '', save_path: str = ''):
+                      title: str = '', save_path=''):
     n_rois = len(rois)
     n_colors = len(colors)
     assert n_rois == n_colors 
@@ -231,11 +234,15 @@ def plot_overlays_roi(rois, colors, alpha=1.0, colormap='hsv', colorlim=None, cb
         f.suptitle(title, fontsize=6)
     set_plot_text_settings()
     f.show()
-    if save_path != '':
-        f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
-        if linear_overlay:
-            save_path_cb = os.path.splitext(save_path)[0] + '_ColorBar' + os.path.splitext(save_path)[1]
-            f_cb.savefig(save_path_cb, dpi=plt.rcParams['figure.dpi'], transparent=True)
+    
+    if save_path != '' and save_path != [] and save_path is not None:
+        if isinstance(save_path, str):
+            save_path = [save_path]
+        for sp in save_path:
+            f.savefig(sp, dpi=plt.rcParams['figure.dpi'], transparent=True)
+            if linear_overlay:
+                sp_cb = os.path.splitext(sp)[0] + '_ColorBar' + os.path.splitext(sp)[1]
+                f_cb.savefig(sp_cb, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 def plot_overlays_img(rois, images, colors=None, alpha=1.0,
@@ -340,13 +347,18 @@ def plot_overlays_img(rois, images, colors=None, alpha=1.0,
         f.suptitle(title, fontsize=6)
     set_plot_text_settings()
     f.show()
+    
     if save_path != '':
-        f.savefig(save_path, dpi=plt.rcParams['figure.dpi'], transparent=True)
-
-
+        if save_path != '' and save_path != [] and save_path is not None:
+            if isinstance(save_path, str):
+                save_path = [save_path]
+            for sp in save_path:
+                f.savefig(sp, dpi=plt.rcParams['figure.dpi'], transparent=True)
+                
+                
 def plot_overlays_orig(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(512, 512),
                        circular=False, ref_image=None, title: str = '',
-                       n_neighbors=None, save_path: str = ''):
+                       n_neighbors=None, save_path=''):
     # plot_map(ROIs, Tprefs_norm, DSI, tuning_thresh=dsi_tuning_thresh, title=title_str,
     #          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
     # The values tuning and tuning_mag must be within [0,1].
@@ -395,7 +407,7 @@ def plot_overlays_orig(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(5
     if ref_image is not None:
         ilow, ihigh = np.percentile(ref_image, (1.0, 99.98))
         ref_f64 = util.img_as_float64(ref_image)
-        ref_rescale = exposure.rescale_intensity(ref_f64, in_range=(ilow, ihigh))
+        ref_rescale = ski_rescale_intensity(ref_f64, in_range=(ilow, ihigh))
         ref = ref_rescale
         canvas = np.stack((ref,)*3, axis=-1) # copy single channel to form RGB image
     else:
@@ -428,7 +440,9 @@ def plot_overlays_orig(regions, tuning, tuning_mag, tuning_thresh=0, fov_size=(5
     if title != '':
         ax.set_title(title, fontsize=2, color='w')
     f0.show()
+    
     if save_path != '':
+        from datetime import datetime
         now = datetime.now()
         dt = now.strftime('%Y%m%d') + 'd' + now.strftime('%H%M%S') + 't'
         save_name = dt + '_ROIplot_thresh' + \
