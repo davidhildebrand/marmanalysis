@@ -144,11 +144,11 @@ ops['maxregshiftNR'] = 5.0  # Max non-rigid pixel shift relative to rigid result
 # - Cell detection settings
 # Anatomical cell detection settings to use cellpose to detect ROIs (if anatomical_only > 0)
 #     Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
-ops['anatomical_only'] = 2
+ops['anatomical_only'] = 3
 if ops['anatomical_only'] > 0:
     if md['fov']['neurondiameter_px'] is not None:
         # Set estimated cell diameter (px) for cellpose.
-        ops['diameter'] = md['fov']['neurondiameter_px']
+        ops['diameter'] = md['fov']['neurondiameter_px'] - 1  # TODO * * * TEMPORARY HACK NEED PX SIZE EST 2pRAM
         print('Estimated diameter for cellpose anatomical ROI detection is {}px.'.format(md['fov']['neurondiameter_px']))
     else:
         # Set diameter to 0 for automatic estimation.
