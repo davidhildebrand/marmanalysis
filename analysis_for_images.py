@@ -1409,11 +1409,63 @@ if n_conds != conditions.shape[0]:
     del u, c, mult
 
 
-# Exclude any trials where there was movement (via suite2p badframes)
+# Exclude trials where with various problems
 
 trials_exclude = []
 excluded = {}
 excluded_movement = {}
+excluded_preacq = {}
+
+exclude_by_acqstart = True
+trials_preacq = []
+if exclude_by_acqstart:
+    tidx_acqstart = []
+    if np.where(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'] < n_samp_stim):
+        tidx_acqstart.append(np.where(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'] < n_samp_stim)[0].max())
+    if np.any(np.where(np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']) != 0)[0] < n_samp_isi):
+        tidx_acqstart.append(np.where(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i'] < n_samp_isi)[0].max())
+    if tidx_acqstart:
+        tidx_acqstart = max(tidx_acqstart)
+        warn('Acquisition frames for some trials were less than the expected number. '
+             'Assuming that stimulus was started before acquisition, '
+             'excluding first {} trials. '.format(tidx_acqstart) +
+             'Also adjusting acqfr values to start after excluded trials.')
+        if stimlog.iloc[tidx_acqstart]['acqfr_isi_f'] - stimlog.iloc[tidx_acqstart]['acqfr_isi_i'] > 0:
+            # Acquisition seems to have started during ISI period of last exluded trial.
+            acqfr_diff = stimlog.iloc[tidx_acqstart]['acqfr_isi_i']
+        elif stimlog.iloc[tidx_acqstart]['acqfr_stim_f'] - stimlog.iloc[tidx_acqstart]['acqfr_stim_i'] > 0:
+            # Acquisition seems to have started during stim period of last exluded trial.
+            acqfr_diff = stimlog.iloc[tidx_acqstart]['acqfr_stim_i']
+        if acqfr_diff.is_integer():
+            acqfr_diff = int(acqfr_diff)
+        else:
+            warn('Unexpectedly got non-integer value for an acqfr, rounding to int.')
+            acqfr_diff = int(acqfr_diff)
+
+        acqfr_keys = [c for c in stimlog.columns if 'acqfr' in c]
+        for ak in acqfr_keys:
+            stimlog[ak] = stimlog[ak] - acqfr_diff
+    
+    cond_count = {}
+    for t in range(tidx_acqstart):
+        cnd = stimlog.iloc[t]['cond']
+        if cnd in cond_count:
+            cond_count[cnd] += 1
+        else:
+            cond_count[cnd] = 1
+        rep = cond_count[cnd]
+        trials_preacq.append((cnd, cond_count[cnd]))
+    del cond_count
+    
+    for cnd, rep in trials_preacq:
+        trials_exclude.append((cnd, rep))
+        if cnd not in excluded_preacq:
+            excluded_preacq[cnd] = []
+        excluded_preacq[cnd].append(rep)
+    print('Excluding {} trials presumably presented before acquisition start.'.format(len(trials_preacq)))
+    for ek in excluded_preacq:
+        print('  {}/{} excluded for {} ({})'.format(len(excluded_preacq[ek]), n_reps,
+                                                      conditions[ek].decode(), condidx_to_cat[ek].decode()))
 
 if exclude_by_movement and len(trials_movement) > 0:
     for cnd, rep in trials_movement:
