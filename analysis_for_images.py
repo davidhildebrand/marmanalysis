@@ -1008,13 +1008,21 @@ for ak in acqfr_keys:
     stimlog[ak] = stimlog[ak] - 1
 
 # Determine basic stimulus presentation information
+#   For sessions using older stimulus code, the exact number of stimulus or ISI frames could
+#   vary slightly because the stim start was not locked to an acqusition frame increment.
 dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
 dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
 dur_trial = dur_isi + dur_stim + dur_isi
-n_samp_stim = int(np.floor(np.mean(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'])))
 # n_samp_stim = int(np.ceil(dur_stim * md['framerate']))
-n_samp_isi = int(np.min(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']))
+# n_samp_stim = int(np.floor(np.mean(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'])))
+n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).argmax()
 # n_samp_isi = int(np.round(dur_isi * md['framerate']))
+# n_samp_isi = int(np.min(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']))
+# n_samp_isi = np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).argmax()
+if np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][0] != 0:
+    n_samp_isi = np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][0]
+else:
+    n_samp_isi = np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][1]
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
 # Calculate the timing mismatch (contraction) introduced by rounding stim and/or isi frame samples down
