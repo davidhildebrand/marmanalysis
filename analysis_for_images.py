@@ -50,7 +50,7 @@ exclude_by_movement = True
 
 # Plotting parameters
 plot_eyecal = False
-plt.rcParams['figure.dpi'] = 600
+plt.rcParams['figure.dpi'] = 300
 
 # Metrics to consider for plots and calculations
 metrics = ['FdFF', 'Fzsc']
