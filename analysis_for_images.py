@@ -1045,8 +1045,7 @@ n_trials = len(stimlog)
 n_reps = int(len(stimlog) / n_conds)
 
 if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
-    raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
-                       'Handling this is not yet implemented.')
+    warn('Acquisition was started after stimulus, interrupted, or stopped before stimulus.')
 
 # Identify stimulus image set from file paths
 # *** TODO: make this work on a per-cond/image level
