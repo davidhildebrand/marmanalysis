@@ -79,7 +79,14 @@ if md['mrois']['overlap'] and md['mrois']['overlap_px'] is None:
 if md['n_planes'] != 1:
     RuntimeError('Handing multi-plane data is not yet implemented.')
 
-data = ScanImageTiffReader(source).data()  # initial order: frames, y/h/rows, x/w/cols, z/planes
+try:
+    with ScanImageTiffReader(source) as tif:
+        data = tif.data()  # initial order: frames, y/h/rows, x/w/cols, z/planes
+except:
+    warn('ScanImageTiffReader failed to load the data, trying with tifffile.')
+    import tifffile
+    data = tifffile.imread(source)  # initial order: frames, y/h/rows, x/w/cols, z/planes
+
 if data.ndim == 4:
     # Assume data consists of multiple 3-D volumes sampled across time.
     data = np.swapaxes(data, 1, 2)  # yields: frames, x/w/cols, y/h/rows, z/planes
