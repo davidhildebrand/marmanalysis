@@ -91,7 +91,7 @@ save_ext = ['.png', '.svg']
 # # # Cadbury
 animal_str = 'Cadbury'
 
-# # 20220909d
+# # 20220909d Right ribo-jGCaMP8s
 # date_str = '20220909d'
 # -- PD 200um (acquisition ended before stimulus)
 # session_str = '174325tUTC_SP_depth200um_fov0600x0600um_res1p04x1p00umpx_fr09p608Hz_pow050p2mW_stimImagesSongFOBonly_AbortedAfterManyTrials'
@@ -102,7 +102,7 @@ animal_str = 'Cadbury'
 # md['fov']['h_px'] = 600
 # dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
-# # 20221016d
+# # 20221016d Right ribo-jGCaMP8s
 # date_str = '20221016d_olds2p'
 date_str = '20221016d'
 # -- PD (good | fixation spot on before every stimulus, not sure about background stability)
@@ -116,26 +116,26 @@ md['fov']['h_px'] = 730
 # dirstr_suite2p = 'suite2p_old*'
 dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
-# # 20230510d (300-400um fluid)
+# # 20230510d Right ribo-jGCaMP8s (300-400um fluid)
 # date_str = '20230510d'
 # # -- PD (bad | z drift, two stims only, imaging ended before stimulus)
 # session_str = '141055tUTC_SP_depth200um_fov2190x2000um_res3p00x3p02umpx_fr06p993Hz_pow059p9mW_stimImagesSong2imTest'
 # # -- OBJ? (okay? | half FOV dim) *some interesting object responses, look again*
 # session_str = '155713tUTC_SP_depth200um_fov2190x2000um_res3p00x3p02umpx_fr06p993Hz_pow059p9mW_stimImagesSong230509dSel'
 
-# # 20230809d (negligible fluid)
+# # 20230809d Right ribo-jGCaMP8s (negligible fluid)
 # date_str = '20230809d'
 # # -- OBJ (okay? | movement exclusions needed, half FOV dim)
 # session_str = '173936tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimImagesFOBmin'
 
-# # 20231001d (~430um fluid)
+# # 20231001d Right ribo-jGCaMP8s (~430um fluid)
 # date_str = '20231001d'
 # # -- PD (not very bright, movement exclusions needed, duplicate cond issue) ... but maybe look more closely later
 # session_str = '190608tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow060p3mW_stimImagesFOBmany'
 # # -- PD (not very bright, movement exclusions needed) ... but maybe look more closely later
 # session_str = '200422tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p3mW_stimImagesFOBmin'
 
-# # 20231003d (~140um fluid)
+# # 20231003d Right ribo-jGCaMP8s (~140um fluid)
 # date_str = '20231003d'
 # # -- PD 200um ( movement exclusions needed)
 # session_str = '142836tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow070p3mW_stimImagesFOBmin'
@@ -154,7 +154,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- OBJ 200um ( )
 # session_str = '173850tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
 
-# # 20231007d (~120um fluid)
+# # 20231007d Right ribo-jGCaMP8s (~120um fluid)
 # date_str = '20231007d'
 # # -- OBJ 200um (decent/good? | )
 # session_str = '153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany'
@@ -169,7 +169,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD 200um ( | eyetrack crashed)
 # session_str = '180407tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p359Hz_pow080p2mW_stimMultimodal'
 
-# # 20231018d
+# # 20231018d Right ribo-jGCaMP8s
 # date_str = '20231018d'
 # # -- OBJ 200um ( )
 # session_str = '185135tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow061p2mW_stimImagesFOBmin'
@@ -183,7 +183,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # # Cashew
 # animal_str = 'Cashew'
 
-# # 20230728d (negligible fluid)
+# # 20230728d Right ribo-jGCaMP8s (negligible fluid)
 # date_str = '20230728d'
 # # -- PD 200um ( | aniso, headpost loose)
 # session_str = '135645tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow059p9mW_stimImagesFOBminAniso'
@@ -194,16 +194,16 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD 200um ( | drowsy, YouTube audio)
 # session_str = '150131tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow059p9mW_stimImagesFOBmin'
 
-# # 20230804d
+# # 20230804d Right ribo-jGCaMP8s
 # date_str = '20230804d'
 # # -- PD 200um (aborted | juice and eyetracking issues)
 # session_str = '150809tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow059p7mW_stimImagesFOBmany_Aborted
-# # -- PD+OBJ 200um ( | )
+# # -- PD+OBJ 200um (regions/holes without signal, small cluster of object-responsive cells)
 # session_str = '154547tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow059p7mW_stimImagesFOBmany'
 # # -- PD 200um ( | )
 # session_str = '164834tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow059p7mW_stimImagesFOBmin'
 
-# # 20230809d (~372um fluid PD, ~538um fluid OBJ)
+# # 20230809d Right ribo-jGCaMP8s (~372um fluid PD, ~538um fluid OBJ)
 # date_str = '20230809d'
 # # -- PD 200um ( | )
 # session_str = '143713tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow059p6mW_stimImagesFOBmin'
@@ -214,7 +214,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- MTish 200um ( | )
 # session_str = '161136tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimImagesFOBmin'
 
-# # 20230810d (~400um fluid PD)
+# # 20230810d Right ribo-jGCaMP8s (~400um fluid PD)
 # date_str = '20230810d'
 # # -- PD 200um ( | )
 # session_str = '165302tUTC_SP_depth200um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmin'
@@ -223,24 +223,25 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # # Curly
 # animal_str = 'Curly'
-# # 20231103d
+
+# # 20231103d Right ribo-jGCaMP8s
 # date_str = '20231103d'
 # # -- MTish 200um ( | )
 # session_str = '162355tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow049p9mW_stimImagesFOBmin'
 # # -- PDish 200um ( | )
 # session_str = '165202tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow049p9mW_stimImagesFOBmin'
 
-# # 20231110d
+# # 20231110d Right ribo-jGCaMP8s
 # date_str = '20231110d'
 # # -- MTadjacent 200um ( | )
 # session_str = '170315tUTC_SP_depth200um_fov2555x2500um_res2p50x2p50umpx_fr03p349Hz_pow059p9mW_stimMultimodal'
 
-# # 20231113d
+# # 20231113d Right ribo-jGCaMP8s
 # date_str = '20231113d'
 # # -- MTish 200um ( | )
 # session_str = '185712tUTC_SP_depth200um_fov2190x2000um_res2p50x2p50umpx_fr04p853Hz_pow059p8mW_stimMultimodal'
 
-# # 20231117d
+# # 20231117d Right ribo-jGCaMP8s
 # date_str = '20231117d'
 # # -- OBJ 200um ( | )
 # session_str = '165535tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow059p9mW_stimMultimodal'
@@ -248,7 +249,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # session_str = '181016tUTC_SP_depth200um_fov2190x2920um_res2p50x2p50umpx_fr03p355Hz_pow065p1mW_stimMultimodal'
 
 
-# # 20240130d
+# # 20240130d Right ribo-jGCaMP8s
 # date_str = '20240130d'
 # # -- ? 200um ( | )
 # session_str = '172813tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow060p2mW_stimMultimodal'
@@ -260,38 +261,38 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # # Dali
 # animal_str = 'Dali'
 
-# # 20230509d Right
+# # 20230509d Right ribo-jGCaMP8s
 # date_str = '20230509d'
 # # -- PD-OBJ 250um ( | inattentive)
 # session_str = '181700tUTC_SP_depth250um_fov2190x2000um_res3p02x3p00umpx_fr06p952Hz_pow050p0mW_stimImagesSong230509dSel'
 
-# # 20230511d Right (~158um dura to glass)
+# # 20230511d Right ribo-jGCaMP8s (~158um dura to glass)
 # date_str = '20230511d'
 # # -- PD 200um ( | headpost loose)
 # session_str = '134800tUTC_SP_depth200um_fov2190x2000um_res3p02x3p02umpx_fr06p993Hz_pow050p0mW_stimImagesSong230509dSel'
 # # -- PD 300um ( | )
 # session_str = '150200tUTC_SP_depth300um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow065p0mW_stimImagesSong230509dSel'
 
-# # 20230515d Right
+# # 20230515d Right ribo-jGCaMP8s
 # date_str = '20230515d'
 # # -- PDish 200um ( | )
 # session_str = '135100tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
 # # -- PDish 200um ( | )
 # session_str = '144500tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesSong230509dSel'
 
-# # 20230517d Right
+# # 20230517d Right ribo-jGCaMP8s
 # date_str = '20230517d'
 # # -- PDish 200um ( | aniso stim)
 # session_str = '135600tUTC_SP_depth200um_fov2628x2600um_res3p02x3p00umpx_fr04p484Hz_pow050p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230522d Right
+# # 20230522d Right ribo-jGCaMP8s
 # date_str = '20230522d'
 # # -- PD-OBJ ( | aniso stim, acquisition ended before stimulus)
 # session_str = '153415tUTC_SP_depth200um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow051p8mW_stimImagesFOBsel230517dAniso'
 # # -- PD-OBJ ( | ) *CHECK*
 # session_str = '170053tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow051p8mW_stimImagesSong230509dSel'
 
-# # 20230525d Right
+# # 20230525d Right ribo-jGCaMP8s
 # date_str = '20230525d'
 # # -- PD-OBJ 150um ( | aniso stim)
 # session_str = '155856tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow039p8mW_stimImagesFOBsel230517dAniso'
@@ -300,12 +301,12 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 250um ( | aniso stim)
 # session_str = '164300tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow052p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230606d Right
+# # 20230606d Right ribo-jGCaMP8s
 # date_str = '20230606d'
 # # -- PD-OBJ 300um ( | aniso stim)
 # session_str = '135543tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow091p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230608d Right
+# # 20230608d Right ribo-jGCaMP8s
 # date_str = '20230608d'
 # # -- PD-OBJ 350um ( | aniso stim)
 # session_str = '124502tUTC_SP_depth350um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow092p7mW_stimImagesFOBsel230517dAniso'
@@ -314,34 +315,34 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 450um ( | aniso stim)
 # session_str = '142713tUTC_SP_depth450um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow140p0mW_stimImagesFOBsel230517dAniso'
 
-# # 20230611d Right
+# # 20230611d Right ribo-jGCaMP8s
 # date_str = '20230611d'
 # # -- PD-OBJ 500um ( | aniso stim)
 # session_str = '155917tUTC_SP_depth500um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow149p9mW_stimImagesFOBsel230517dAniso'
 
-# # 20230615d Right
+# # 20230615d Right ribo-jGCaMP8s
 # date_str = '20230615d'
 # # -- PD-OBJ 200um ( | aniso stim)
 # session_str = '154218tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow040p2mW_stimImagesFOBsel230517dAniso'
 
-# # 20230618d Right
+# # 20230618d Right ribo-jGCaMP8s
 # date_str = '20230618d'
 # # -- PD-OBJ 300um ( | aniso stim)
 # session_str = '150314tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow069p9mW_stimImagesFOBsel230517dAniso'
 # # -- PD-OBJ 400um ( | aniso stim)
 # session_str = '154357tUTC_SP_depth400um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow121p8mW_stimImagesFOBsel230517dAniso'
 
-# # 20230704d Right
+# # 20230704d Right ribo-jGCaMP8s
 # date_str = '20230704d'
 # # -- PD-OBJ 200um ( | aniso stim)
 # session_str = '153542tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p0mW_stimImagesFOBminMarmAniso'
 
-# # 20230804d Right
+# # 20230804d Right ribo-jGCaMP8s
 # date_str = '20230804d'
 # # -- PD-OBJ 200um ( | )
 # session_str = '180205tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow059p7mW_stimImagesFOBmin'
 
-# # 20230810d Right
+# # 20230810d Right ribo-jGCaMP8s
 # date_str = '20230810d'
 # # -- PD 200um ( | )
 # session_str = '140728tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimImagesFOBmany'
@@ -350,7 +351,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD 300um ( | )
 # session_str = '152105tUTC_SP_depth300um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow070p3mW_stimImagesFOBmin'
 
-# # 20230831d Right
+# # 20230831d Right ribo-jGCaMP8s
 # date_str = '20230831d'
 # # -- PD 200um ( | )
 # session_str = '180939tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p485Hz_pow059p7mW_stimImagesFOBmin'
@@ -359,14 +360,14 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 300um ( | )
 # session_str = '190748tUTC_SP_depth300um_fov1825x1825um_res2p50x2p50umpx_fr06p363Hz_pow080p0mW_stimImagesFOBmin'
 
-# # 20230906d Right
+# # 20230906d Right ribo-jGCaMP8s
 # date_str = '20230906d'
 # # -- PD 150um ( | )
 # session_str = '173359tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow030p2mW_stimImagesFOBmin'
 # # -- PD 250um ( | )
 # session_str = '181552tUTC_SP_depth250um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow080p4mW_stimImagesFOBmin'
 
-# # 20230910d Right
+# # 20230910d Right ribo-jGCaMP8s
 # date_str = '20230910d'
 # # -- PD-OBJ 200um ( | acquisition ended before stimulus)
 # session_str = '170833tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p481Hz_pow060p4mW_stimImagesFOBmany'
@@ -375,19 +376,19 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-OBJ 150um ( | )
 # session_str = '185714tUTC_SP_depth150um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow039p8mW_stimImagesFOBmin'
 
-# # 20240919d Left
+# # 20240919d Left ribo-jGCaMP8s
 # date_str = '20240919d'
 # # -- PD-MT? 200um ( | acquisition ended before stimulus)
 # session_str = '170917tUTC_SP_depth200um_fov1272x1800um_res2p00x2p00umpx_fr04p330Hz_pow040p0mW_stimImagesSongFOBonly_withContinuation'
 # # -- PD? 200um ( | )
 # session_str = '180330tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow040p0mW_stimImagesSongFOBonly'
 
-# # 20240923d Left
+# # 20240923d Left ribo-jGCaMP8s
 # date_str = '20240923d'
 # # -- PD? 200um ( | CHECK Z-drift?)
 # session_str = '164457tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow049p4mW_stimImagesSongFOBonly'
 
-# # 20240925d Left
+# # 20240925d Left ribo-jGCaMP8s
 # date_str = '20240925d'
 # # -- PD-MT 200um ( | CHECK Z-drift?)
 # session_str = '171829tUTC_SP_depth200um_fov1272x1800um_res2p00x2p00umpx_fr04p330Hz_pow040p1mW_stimMultimodalImagesTones'
@@ -396,7 +397,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD? 200um ( | )
 # session_str = '184703tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow040p1mW_stimImagesFOBmin'
 
-# # 20240926d Left
+# # 20240926d Left ribo-jGCaMP8s
 # date_str = '20240926d'
 # # -- PD? 200um ( | some struggles)
 # session_str = '152716tUTC_SP_depth200um_fov1060x1000um_res2p00x2p00umpx_fr09p147Hz_pow040p1mW_stimImagesFOBmin'
@@ -411,7 +412,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # # Larry
 # animal_str = 'Larry'
 
-# # 20231007d
+# # 20231007d Right ribo-jGCaMP8s
 # date_str = '20231007d'
 # # -- MD 200um ( | movement exclusions needed)
 # session_str = '203704tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow049p8mW_stimImagesFOBmin'
@@ -422,12 +423,29 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PV 200um ( | )
 # session_str = '221343tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p1mW_stimImagesFOBmin'
 
-# # 20231008d
+# # 20231008d Right ribo-jGCaMP8s
 # date_str = '20231008d'
 # # -- MTish 200um ( | )
 # session_str = '203515tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow079p8mW_stimMultimodal'
 # # -- MDish 200um ( | )
 # session_str = '211620tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p347Hz_pow079p8mW_stimMultimodal'
+
+# # 20241101d Left soma-jGCaMP8s
+# date_str = '20241101d'
+# # -- PD 200um ( | )
+# session_str = '151230tUTC_SP_depth200um_fov2220x2220um_res3p00x3p00umpx_fr06p280Hz_pow024p8mW_stimImagesSongFOBonly'
+
+# # 20241104d Left soma-jGCaMP8s
+# date_str = '20241104d'
+# # -- PD sessions defunct because ROI was misconfigured.
+
+# # 20241105d Left soma-jGCaMP8s
+# date_str = '20241105d'
+# # -- PD 200um Multimodal_Images[Song230509dSel]_Tones[440,1760,7040,28160] ( | )
+# session_str = '152611tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
+# # -- PD 200um Multimodal_Images[FOBmany230728d]_Dots[FF8dir]_Tones[440,1760,7040,28160] (same ROI/FOV)
+# session_str = '165344tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
