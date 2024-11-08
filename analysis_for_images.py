@@ -1444,7 +1444,7 @@ exclude_by_acqstart = True
 trials_preacq = []
 if exclude_by_acqstart:
     tidx_acqstart = []
-    if np.where(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'] < n_samp_stim):
+    if np.where(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'] < n_samp_stim)[0].size > 0:
         tidx_acqstart.append(np.where(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'] < n_samp_stim)[0].max())
     if np.any(np.where(np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']) != 0)[0] < n_samp_isi):
         tidx_acqstart.append(np.where(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i'] < n_samp_isi)[0].max())
@@ -1460,7 +1460,7 @@ if exclude_by_acqstart:
         elif stimlog.iloc[tidx_acqstart]['acqfr_stim_f'] - stimlog.iloc[tidx_acqstart]['acqfr_stim_i'] > 0:
             # Acquisition seems to have started during stim period of last exluded trial.
             acqfr_diff = stimlog.iloc[tidx_acqstart]['acqfr_stim_i']
-        if acqfr_diff.is_integer():
+        if float(acqfr_diff).is_integer():
             acqfr_diff = int(acqfr_diff)
         else:
             warn('Unexpectedly got non-integer value for an acqfr, rounding to int.')
@@ -1470,26 +1470,26 @@ if exclude_by_acqstart:
         for ak in acqfr_keys:
             stimlog[ak] = stimlog[ak] - acqfr_diff
     
-    cond_count = {}
-    for t in range(tidx_acqstart):
-        cnd = stimlog.iloc[t]['cond']
-        if cnd in cond_count:
-            cond_count[cnd] += 1
-        else:
-            cond_count[cnd] = 1
-        rep = cond_count[cnd]
-        trials_preacq.append((cnd, cond_count[cnd]))
-    del cond_count
+        cond_count = {}
+        for t in range(tidx_acqstart):
+            cnd = stimlog.iloc[t]['cond']
+            if cnd in cond_count:
+                cond_count[cnd] += 1
+            else:
+                cond_count[cnd] = 1
+            rep = cond_count[cnd]
+            trials_preacq.append((cnd, cond_count[cnd]))
+        del cond_count
     
-    for cnd, rep in trials_preacq:
-        trials_exclude.append((cnd, rep))
-        if cnd not in excluded_preacq:
-            excluded_preacq[cnd] = []
-        excluded_preacq[cnd].append(rep)
-    print('Excluding {} trials presumably presented before acquisition start.'.format(len(trials_preacq)))
-    for ek in excluded_preacq:
-        print('  {}/{} excluded for {} ({})'.format(len(excluded_preacq[ek]), n_reps,
-                                                      conditions[ek].decode(), condidx_to_cat[ek].decode()))
+        for cnd, rep in trials_preacq:
+            trials_exclude.append((cnd, rep))
+            if cnd not in excluded_preacq:
+                excluded_preacq[cnd] = []
+            excluded_preacq[cnd].append(rep)
+        print('Excluding {} trials presumably presented before acquisition start.'.format(len(trials_preacq)))
+        for ek in excluded_preacq:
+            print('  {}/{} excluded for {} ({})'.format(len(excluded_preacq[ek]), n_reps,
+                                                          conditions[ek].decode(), condidx_to_cat[ek].decode()))
 
 if exclude_by_movement and len(trials_movement) > 0:
     for cnd, rep in trials_movement:
