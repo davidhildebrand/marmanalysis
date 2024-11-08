@@ -1036,7 +1036,13 @@ for ak in acqfr_keys:
 dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
 dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
 dur_trial = dur_isi + dur_stim + dur_isi
-n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).argmax()
+if md['stim_locked_to_acqfr']:
+    n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).argmax()
+else:
+    if np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).nonzero()[0][0] != 0:
+        n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).nonzero()[0][0]
+    else:
+        n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).nonzero()[0][1]
 if np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][0] != 0:
     n_samp_isi = np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][0]
 else:
