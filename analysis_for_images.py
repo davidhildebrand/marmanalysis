@@ -1504,7 +1504,10 @@ if exclude_by_movement and len(trials_movement) > 0:
 
 excluded_blinks = {}
 # TODO * * * add exclusion by blinks
+# stimlog['ai_stim_f'] - stimlog['ai_stim_i']
+# eyetrk_data
 
+# Set excluded trial data table values to NaN.
 for cnd, rep in trials_exclude:
     for m in metrics:
         data[cnd][m][:, rep, :] = np.nan
@@ -1524,7 +1527,7 @@ for ek in excluded:
 fig_psth = plt.figure()
 fig_psth.suptitle('across-stimulus mean of trial-averaged population responses')
 axes = fig_psth.subplots(nrows=n_metrics, ncols=1)
-if md['stim_locked_to_acqfr'] is True:
+if md['stim_locked_to_acqfr']:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
