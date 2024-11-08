@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import pickle
 import re
+from scipy.optimize import curve_fit, least_squares
 from scipy.stats import binned_statistic, kendalltau, spearmanr
 import socket
 from warnings import warn
