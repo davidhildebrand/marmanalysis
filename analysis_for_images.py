@@ -3008,6 +3008,8 @@ result_shuff = least_squares(dirdist_objective,
                              # bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
                              max_nfev=1000000)
 
+# *** TODO remove least_squares or curve_fit depending on which ends up being used.
+
 # def dir_dist_dep_exp_equation_cf(x, C, A, k):
 #     # based on Pattadkal et al Priebe 2022 bioRxiv
 #     #     https://doi.org/10.1101/2022.06.23.497220
