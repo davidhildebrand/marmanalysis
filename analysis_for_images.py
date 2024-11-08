@@ -2937,20 +2937,26 @@ roipair_corr_respvect = np.array([np.corrcoef(resp_vect_cond[m][r0], resp_vect_c
                                   for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 # roipair_corr_respvect_sp = np.array([scipy.stats.pearsonr(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
 #                                      for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+roipair_corr_respvect_shuff = roipair_corr_respvect.copy()
+np.random.shuffle(roipair_corr_respvect_shuff)
 
 w_bin_um = 25
 n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
 bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
-
 bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statistic='std', bins=bin_edges)
+bin_medians_shuff, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect_shuff, statistic='median', bins=bin_edges)
+bin_stds_shuff, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect_shuff, statistic='std', bins=bin_edges)
 
 # Exclude any bins with less than 100 pairs
 n_pairs_required = 100
 bin_centers = bin_centers[bin_ns > n_pairs_required]
 bin_medians = bin_medians[bin_ns > n_pairs_required]
 bin_stds = bin_stds[bin_ns > n_pairs_required]
+bin_medians_shuff = bin_medians_shuff[bin_ns > n_pairs_required]
+bin_stds_shuff = bin_stds_shuff[bin_ns > n_pairs_required]
+
 
 fig_r = plt.figure()
 ax = fig_r.subplots(1, 1)
@@ -2958,13 +2964,83 @@ ax.set_ylabel(r'Stimulus response Pearson correlation ($\it{r}$)')
 ax.set_xlabel('Distance (µm)')
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
-ax.set_xlim((0, roipair_dist_um.max() + 1))
+# ax.set_xlim((0, roipair_dist_um.max() + 1))
+ax.set_xlim((0, 500))
 ax.set_ylim((roipair_corr_respvect.min() - np.abs(0.1 * roipair_corr_respvect.min()), 1))
+# ax.set_ylim((-0.0, 0.8))
 
 ax.scatter(roipair_dist_um, roipair_corr_respvect, marker='.', s=0.5, color='k', edgecolor='None')
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
             fmt='o', elinewidth=1, ecolor='r')
+
+def dir_dist_dep_exp_equation(params, x):
+    # based on Pattadkal et al Priebe 2022 bioRxiv
+    #     https://doi.org/10.1101/2022.06.23.497220
+    # y: fitted direction difference
+    # x: distance between cells
+    C = params[0]  # saturation value
+    A = params[1]  # start value
+    k = params[2]  # decay space constant
+    y = C - (A * np.exp(-k * x))
+    return y
+
+def dirdist_objective(params, xs, measured_dirdiff):
+    predicted_dirdiff = dir_dist_dep_exp_equation(params, xs)
+    mse = np.square(np.subtract(predicted_dirdiff, measured_dirdiff)).mean()
+    return mse
+
+# params = [C, A, k]
+guess = [0.28, -0.21, 0.014]
+result = least_squares(dirdist_objective ,
+                       guess, 
+                       args=(bin_centers, bin_medians), 
+                       xtol=1e-10, ftol=1e-10, gtol=1e-12,
+                       bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
+                       max_nfev=100000)
+
+guess_shuff = [0.3, -0, 0.0]
+result_shuff = least_squares(dirdist_objective, 
+                             guess_shuff, 
+                             args=(bin_centers, bin_medians_shuff), 
+                             xtol=1e-10, ftol=1e-10, gtol=1e-12,
+                             # bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
+                             max_nfev=1000000)
+
+# def dir_dist_dep_exp_equation_cf(x, C, A, k):
+#     # based on Pattadkal et al Priebe 2022 bioRxiv
+#     #     https://doi.org/10.1101/2022.06.23.497220
+#     # y: fitted direction difference
+#     # x: distance between cells
+#     y = C - (A * np.exp(-k * x))
+#     return y
+
+# cf = curve_fit(dir_dist_dep_exp_equation_cf, xdata=bin_centers, ydata=bin_medians) # dirdist_objective, 
+                       # args=(bin_centers, bin_medians))
+                       # xtol=1e-10, ftol=1e-10, gtol=1e-12,
+                       # bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
+                       # max_nfev=100000)
+
+fit = result['x']  # cf[0
+C_f = fit[0]
+A_f = fit[1]
+k_f = fit[2]
+
+ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.max(bin_edges) + 1))
+ddys = C_f - (A_f * np.exp(-k_f * ddxs))
+
+fit_shuff = result_shuff['x']
+C_f_s = fit_shuff[0]
+A_f_s = fit_shuff[1]
+k_f_s = fit_shuff[2]
+
+ddys_shuff = C_f_s - (A_f_s * np.exp(-k_f_s * ddxs))
+
+if result_shuff['success']:
+    ax.plot(ddxs, ddys_shuff, 'k')
+if result['success']:
+    ax.plot(ddxs, ddys, 'r')
+
 plots.set_plot_text_settings()
 fig_r.show()
 
