@@ -477,6 +477,7 @@ filestr_eyecal_log = '*_EyeTrackingCalibration.log'
 filestr_eyecal_aidata = '*_EyeTrackingCalibration_AIdata.p'
 if 'dirstr_suite2p' not in locals():
     dirstr_suite2p = 'suite2p*'
+dirstr_suite2p_pref = 'suite2p_cellpose3_d[0-9]+px_pt-3p5_ft1p5'
 dirstr_suite2p_plane = 'plane0'
 
 
@@ -710,9 +711,13 @@ else:
 
 dirlist_suite2p = [d for d in glob(os.path.join(session_path, dirstr_suite2p)) if os.path.isdir(d)]
 if len(dirlist_suite2p) > 0:
+    dirlist_suite2p_idx = 0
     if len(dirlist_suite2p) > 1:
-        warn('Found multiple suite2p folders, using the first one: {}'.format(os.path.basename(dirlist_suite2p[0])))
-    s2p_path = dirlist_suite2p[0]
+        if np.any([re.match(dirstr_suite2p_pref, os.path.basename(d)) is not None for d in dirlist_suite2p]):
+            dirlist_suite2p_idx = np.where([re.match(dirstr_suite2p_pref, os.path.basename(d)) is not None 
+                                             for d in dirlist_suite2p])[0][0]
+        warn('Found multiple suite2p folders, using: {}'.format(os.path.basename(dirlist_suite2p[dirlist_suite2p_idx])))
+    s2p_path = dirlist_suite2p[dirlist_suite2p_idx]
     s2p_plane_path = os.path.join(s2p_path, dirstr_suite2p_plane)
     if not os.path.isdir(s2p_plane_path):
         raise RuntimeError('Could not load suite2p plane0 folder.')
