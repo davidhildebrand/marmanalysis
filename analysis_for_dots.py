@@ -62,7 +62,7 @@ if 'md' in locals():
 # # # Cadbury
 animal_str = 'Cadbury'
 
-# # 20221016d
+# # 20221016d Right ribo-jGCaMP8s
 date_str = '20221016d'
 # -- MT 200um (good)
 session_str = '163736tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p362Hz_pow059p0mW_stimMovingDots8dirFF'
@@ -75,12 +75,12 @@ md['fov']['h_px'] = 730
 # dirstr_suite2p = 'suite2p_old*'
 dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 
-# # 20231001d (~430um fluid)
+# # 20231001d Right ribo-jGCaMP8s (~430um fluid)
 # date_str = '20231001d'
 # -- MT 200um (| movement exclusions needed)
 # session_str = '205309tUTC_SP_depth200um_fov1460x1200um_res2p00x2p00umpx_fr07p685Hz_pow060p3mW_stimMovingDots16dirFF'
 
-# # 20231007d (~120um fluid)
+# # 20231007d Right ribo-jGCaMP8s (~120um fluid)
 # date_str = '20231007d'
 # # -- PD 200um ( | eyetrack crashed) ... PD but included dot stims
 # session_str = '180407tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p359Hz_pow080p2mW_stimMultimodal'
@@ -90,17 +90,17 @@ dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 # # # Cashew
 # animal_str = 'Cashew'
 
-# # 20230728d Right (negligible fluid)
+# # 20230728d Right ribo-jGCaMP8s (negligible fluid)
 # date_str = '20230728d'
 # # -- MT 200um ( | drowsy, YouTube audio)
 # session_str = '153957tUTC_SP_depth200um_fov2190x2600um_res3p00x3p00umpx_fr05p381Hz_pow059p9mW_stimMovingDots16dirFF
 
-# # 20230806d Right (up to 250um fluid around MD and STS)
+# # 20230806d Right ribo-jGCaMP8s (up to 250um fluid around MD and STS)
 # date_str = '20230806d'
 # # -- MT 200um ( | )
 # session_str = '161055tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow059p9mW_stimMovingDots16dirFF
 
-# # 20230809d Right
+# # 20230809d Right ribo-jGCaMP8s
 # date_str = '20230809d'
 # # -- MT 200um ( | )
 # session_str = '162517tUTC_SP_depth200um_fov1460x1460um_res2p00x2p00umpx_fr06p364Hz_pow049p8mW_stimMovingDots16dirFF'
@@ -110,32 +110,32 @@ dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 # # # Dali
 # animal_str = 'Dali'
 
-# # 20230622d Right
+# # 20230622d Right ribo-jGCaMP8s
 # date_str = '20230622d'
 # # -- MT? 300um ( | )
 # session_str = '165308tUTC_SP_depth300um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow069p8mW_stimMovingDots8dirFF'
 
-# # 20230627d Right
+# # 20230627d Right ribo-jGCaMP8s
 # date_str = '20230627d'
 # # -- MT? 200um ( | )
 # session_str = '152654tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p3mW_stimMovingDots8dirFF'
 
-# # 20230704d Right
+# # 20230704d Right ribo-jGCaMP8s
 # date_str = '20230704d'
 # # -- MT? 200um ( | )
 # session_str = '160506tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p0mW_stimMovingDots16dirFF'
 
-# # 20230906d Right
+# # 20230906d Right ribo-jGCaMP8s
 # date_str = '20230906d'
 # # -- PD 200um ( | )
 # session_str = '180300tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow049p6mW_stimMovingDots16dirFF'
 
-# # 20240923d Left
+# # 20240923d Left ribo-jGCaMP8s
 # date_str = '20240923d'
 # # -- aud? 200um ( | )
 # session_str = '180320tUTC_SP_depth200um_fov0742x0700um_res1p00x1p00umpx_fr04p734Hz_pow039p7mW_stimMultimodalTonesDotsGratingsFlashes'
 
-# # 20240926d Left
+# # 20240926d Left ribo-jGCaMP8s
 # date_str = '20240926d'
 # # -- PD-MT? 200um ( | )
 # session_str = '171222tUTC_SP_depth260um_fov1060x1800um_res2p00x2p00umpx_fr05p196Hz_pow050p4mW_stimMultimodalImagesDotsGratingsTonesVocalizations'
@@ -147,12 +147,23 @@ dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 # # # Larry
 # animal_str = 'Larry'
 
-# # 20231007d Right
+# # 20231007d Right ribo-jGCaMP8s
 # date_str = '20231007d'
 # # -- MT 200um ( | movement exclusions needed)
 # session_str = '211856tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_pow060p1mW_stimMovingDots16dirFF'
 # # -- MT 200um ( | )
 # session_str = '213733tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p365Hz_pow060p1mW_stimMovingDots16dirFF'
+
+# # 20241101d Left soma-jGCaMP8s
+# date_str = '20241101d'
+# # -- MT 200um ( | )
+# session_str = '161123tUTC_SP_depth200um_fov1184x1184um_res2p00x2p00umpx_fr09p733Hz_pow030p1mW_stimMovingDots8dirFF'
+
+# # 20241104d Left soma-jGCaMP8s
+# date_str = '20241104d'
+# # -- MT 200um ( | )
+# session_str = '163451tUTC_SP_depth200um_fov3626x3626um_res3p50x3p50umpx_fr03p236Hz_pow029p5mW_stimMultimodal'
+# session_str = '173725tUTC_Max15_depth400um_fov3626x3626um_res3p50x3p50umpx_fr03p236Hz_pow279p8mW_stimMultimodal'
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
