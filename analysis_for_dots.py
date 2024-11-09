@@ -1240,11 +1240,29 @@ def dir_dist_dep_exp_equation(params, x):
     y = C - (A * np.exp(-k * x))
     return y
 
+def dir_dist_dep_exp_equation_wcos(params, x):
+    # based on Pattadkal et al Priebe 2022 bioRxiv
+    #     https://doi.org/10.1101/2022.06.23.497220
+    # y: fitted direction difference
+    # x: distance between cells
+    C = params[0]  # saturation value
+    A = params[1]  # start value
+    k = params[2]  # decay space constant
+    B = params[3]
+    d = params[4]
+    e = params[5]
+    y = C - (A * np.exp(-k * x)) - B * np.cos((x + d) / e)
+    return y
+
 def dirdist_objective(params, xs, measured_dirdiff):
     predicted_dirdiff = dir_dist_dep_exp_equation(params, xs)
     mse = np.square(np.subtract(predicted_dirdiff, measured_dirdiff)).mean()
     return mse
 
+def dirdist_objective_wcos(params, xs, measured_dirdiff):
+    predicted_dirdiff = dir_dist_dep_exp_equation_wcos(params, xs)
+    mse = np.square(np.subtract(predicted_dirdiff, measured_dirdiff)).mean()
+    return mse
 
 # Calculate median values for 25 um distance bins
 w_bin_um = 25
@@ -1257,16 +1275,45 @@ bin_stds, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statis
 # TODO convert all this to take radians like other functions, then convert to deg
 
 # params = [C, A, k]
-guess = [70, 80, 0.018]
+# guess = [70, 80, 0.018]
+guess = [70, 50, 0.03]
 # result = scipy_minimize(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), method='L-BFGS-B')
 # result = scipy_minimize(dirdist_objective, guess, args=(bin_centers, bin_medians), method='Nelder-Mead')  # , method='L-BFGS-B')
-result = scipy_leastsquares(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), max_nfev=10000)
+# result = scipy_leastsquares(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), max_nfev=10000)
+result = scipy_leastsquares(dirdist_objective, guess, args=(bin_centers, bin_medians), max_nfev=100000)
 fit = result['x']
 C_f = fit[0]
 A_f = fit[1]
 k_f = fit[2]
-ddxs = np.linspace(0, np.round(np.max(bin_edges)))
+ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
 ddys = C_f - (A_f * np.exp(-k_f * ddxs))
+
+# params = [C, A, k]
+# guess = [70, 80, 0.018]
+# guess = [70, 50, 0.03]
+# guess = [70, 50, 0.03, 8, 50, 10]
+# guess = [70, 50, 0.03, 8, 20, 80]
+# maybe find model with chirp or damping?
+guess0 = [70.99, 57.46, 0.01294, 6.581, -3.221, 60]
+guess1 = [7.099e+01, 5.746e+01, 1.294e-02, 6.581e+00, -3.221e+00, 7.514e+01]
+guess2 = [7.101e+01, 6.917e+01, 1.599e-02, 3.525e+00, -9.966e+01, 5.435e+01]
+result = scipy_leastsquares(dirdist_objective_wcos, guess, 
+                            args=(bin_centers, bin_medians), 
+                            xtol=1e-10,
+                            ftol=1e-12,
+                            #bounds=([50, 0, 0.01, 1, 0, 10], [90, 40, 0.05, 30, 1000, 300]),
+                            max_nfev=1000000000)
+fit = result['x']
+C_f = fit[0]
+A_f = fit[1]
+k_f = fit[2]
+B_f = fit[3]
+d_f = fit[4]
+e_f = fit[5]
+ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
+ddys = C_f - (A_f * np.exp(-k_f * ddxs)) - B_f * np.cos((ddxs + d_f) / e_f)
+
+
 
 # Jagruti paper
 # Error bars represent the angular standard deviation.
@@ -1301,14 +1348,17 @@ ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             fmt='o', elinewidth=1, ecolor='r')
 # TODO investigate whether it is an issue that direction difference is only accurate to 1º
 
-# ax.plot(ddxs, ddys)
+# ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
+# ddys = C_f - (A_f * np.exp(-k_f * ddxs)) - 8 * np.cos((ddxs + 20) / 80)
+if result['success']:
+    ax.plot(ddxs, ddys, 'r')
+
+plt.show()
 
 if saving:
     sn = save_pfix + '_RelationshipPlot_TprefDiff_by_Distance'
     f1.savefig(os.path.join(save_path, sn + save_ext),
                dpi=plt.rcParams['figure.dpi'], transparent=True)
-
-plt.show()
 
 
 
