@@ -1159,6 +1159,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                         save_path=sp)
 
 
+# %% Plot preferred direction difference relative to distance for every ROI pair
 
 
 # TODO *** note that the >= might not be general (e.g. with FSI)
@@ -1168,7 +1169,7 @@ tuning_tuned = Tprefs[tuned_index]
 tuning_mag_tuned = DSI[tuned_index]
 
 if Tprefs_norm.max() > 1:
-    warn(UserWarning('Provided tuning index has out-of-range values > 1.'))
+    warn('Provided tuning index has out-of-range values > 1.')
 
 assert len(ROIs_tuned) == len(tuning_tuned) == len(tuning_mag_tuned)
 n_regions_tuned = len(ROIs_tuned)
