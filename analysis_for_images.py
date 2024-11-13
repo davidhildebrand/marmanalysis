@@ -1939,19 +1939,23 @@ for r in range(n_plot_ROIs):
                 ax.axis('off')
             ax.axvspan(dur_isi * md['framerate'], (dur_isi + dur_stim) * md['framerate'], color='0.9', zorder=0)
             n_cnd_in_cat = data[cat_to_condidx[cat]]['cond'].shape[0]
+            ymin_cnd = ymean
+            ymax_cnd = ymean
             for cnd in range(n_cnd_in_cat):
                 ax.plot(xs,
                         np.nanmean(data[cat_to_condidx[cat]][m][cnd, ridx, :, :], axis=0),
                         linewidth=0.5, markersize=0.5,
                         color=str(np.linspace(0.4, 0.7, n_cnd_in_cat)[cnd]), zorder=1)
+                ymin_cnd = np.min([ymin_cnd, np.min(np.nanmean(data[cat_to_condidx[cat]][m][cnd, ridx, :, :], axis=0))])
+                ymax_cnd = np.max([ymax_cnd, np.max(np.nanmean(data[cat_to_condidx[cat]][m][cnd, ridx, :, :], axis=0))])
             Fmean = np.mean(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0)
             Fsem = np.std(np.nanmean(data[cat_to_condidx[cat]][m][:, ridx, :, :], axis=1), axis=0) / np.sqrt(n_cnd_in_cat)
-            ymin = np.min([ymin, np.min(Fmean - Fsem)])
-            ymax = np.max([ymax, np.max(Fmean + Fsem)])
+            ymin = np.min([ymin, np.min(Fmean - Fsem), ymin_cnd])
+            ymax = np.max([ymax, np.max(Fmean + Fsem), ymax_cnd])
             ax.plot(xs, Fmean, color='0.0', zorder=3)
             ax.fill_between(xs, Fmean - Fsem, Fmean + Fsem, facecolor='0.2', alpha=0.6, zorder=2)
             ax.set_ylim((ymin - 0.05 * np.abs(ymax - ymin), ymax + 0.05 * np.abs(ymax - ymin)))            
-    fig.show()
+    plt.show()
 
     if saving:
         sn = save_pfix + '_02_ResponsePlot_dprime{:0.2f}_'.format(dprime[dpm][ridx]).replace('.', 'p') + \
