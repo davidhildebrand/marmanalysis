@@ -759,8 +759,10 @@ F0_filt_win_sec = 60  # sec
 F0_filt_win_frames = round(F0_filt_win_sec * md['framerate'])  # frames
 F0 = filters.calculate_baselines(Frois, framerate=md['framerate'], window=F0_filt_win_sec, method='meanbw')
 
+filters.plot_example_baselines(Frois, rois=2, frames=1000, 
+                               framerate=md['framerate'], window=F0_filt_win_sec)
+
 # Compute dF/F and z-scored dF/F
-FdF = Frois - F0
 FdFF_raw = (Frois - F0) / F0
 Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Frois - F0, axis=1)[:, np.newaxis]
 
