@@ -1906,11 +1906,14 @@ if md['stim_locked_to_acqfr'] is True:
     xs = acqfr_dilation_factor * (np.arange(n_samp_trial) - n_samp_isi) + (dur_isi * md['framerate'])
 else:
     xs = acqfr_dilation_factor * np.arange(n_samp_trial)
+
+# for r in range(n_ROIs):
+#     ridx = sort_idx_dprime[dpm][r]
 for r in range(n_plot_ROIs):
     ridx = sort_idx_dprime[dpm][plot_ROI_subset[r]]
     fig = plt.figure()
     fig.suptitle(r'ROI {} ($d^\prime_F$ {:0.2f}) across-stimulus mean responses'.format(ridx, dprime[dpm][ridx]))
-    axes = fig.subplots(nrows=n_metrics, ncols=n_cats)
+    axes = fig.subplots(nrows=n_metrics, ncols=n_cats, sharey='row')
     for mi, m in enumerate(metrics):
         ymean = np.mean(np.nanmean(data[m][:, ridx, :, :], axis=1))
         ymin = ymean
