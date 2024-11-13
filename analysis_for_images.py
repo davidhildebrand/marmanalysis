@@ -249,7 +249,6 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PVandOBJ 200um ( | )
 # session_str = '181016tUTC_SP_depth200um_fov2190x2920um_res2p50x2p50umpx_fr03p355Hz_pow065p1mW_stimMultimodal'
 
-
 # # 20240130d Right ribo-jGCaMP8s
 # date_str = '20240130d'
 # # -- ? 200um ( | )
@@ -407,7 +406,6 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- PD-MT? 200um ( | check Z-drift?)
 # session_str = '171222tUTC_SP_depth260um_fov1060x1800um_res2p00x2p00umpx_fr05p196Hz_pow050p4mW_stimMultimodalImagesDotsGratingsTonesVocalizations'
 
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Larry
@@ -433,7 +431,7 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # 20241101d Left soma-jGCaMP8s
 # date_str = '20241101d'
-# # -- PD 200um ( | )
+# # -- PD 200um stimImagesSongFOBonly ( | )
 # session_str = '151230tUTC_SP_depth200um_fov2220x2220um_res3p00x3p00umpx_fr06p280Hz_pow024p8mW_stimImagesSongFOBonly'
 
 # # 20241104d Left soma-jGCaMP8s
@@ -442,9 +440,9 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # 20241105d Left soma-jGCaMP8s
 # date_str = '20241105d'
-# # -- PD 200um Multimodal_Images[Song230509dSel]_Tones[440,1760,7040,28160] ( | )
+# # -- PD 200um stimMultimodal_Images[Song230509dSel]_Tones[440,1760,7040,28160] ( | )
 # session_str = '152611tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
-# # -- PD 200um Multimodal_Images[FOBmany230728d]_Dots[FF8dir]_Tones[440,1760,7040,28160] (same ROI/FOV)
+# # -- PD 200um stimMultimodal_Images[FOBmany230728d]_Dots[FF8dir]_Tones[440,1760,7040,28160] (same ROI/FOV)
 # session_str = '165344tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
 
 
