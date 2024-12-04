@@ -286,13 +286,13 @@ class StimulusDots(object):
 # %% Find files and load data
 
 system_name = socket.gethostname()
-if 'Galactica' in system_name:
+if 'galactica' in system_name.lower():
     base_path = r'/Users/davidh/Data/Freiwald/suite2p_results'
     stim_path = r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets'
-elif 'Obsidian' in system_name:
+elif 'obsidian' in system_name.lower():
     base_path = r'F:\Data'
     stim_path = r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets'
-elif 'Dobbin' in system_name:
+elif 'dobbin' in system_name.lower():
     base_path = r'D:\Data'
     stim_path = r'C:\Users\DavidH\Sync\Freiwald\MarmoScope\Stimulus\Sets'
 else:
