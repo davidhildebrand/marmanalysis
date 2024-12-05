@@ -46,12 +46,16 @@ threshold_fsi = 1 / 3
 threshold_cellprob = 0.0
 threshold_Zscore = 0.5
 
-# Exclusion criteria
+## Exclusion criteria
 exclude_by_movement = True
 
-# Plotting parameters
+## Plotting parameters
 plot_eyecal = False
 plt.rcParams['figure.dpi'] = 300
+
+## Data handling parameters
+# Fix off-by-one issue caused by acqusition frame counter ('acqfr') index starting at 1 rather than 0.
+correct_acqfr_index = True
 
 # Metrics to consider for plots and calculations
 metrics = ['FdFF', 'Fzsc']
@@ -1025,11 +1029,11 @@ if plot_eyecal and eyecal_data is not None:
 
 # %% Process stimulus information
 
-# Fix off-by-one issue caused by acqusition frame counter ('acqfr') 
-# indexed starting at 1 rather than 0.
-acqfr_keys = [c for c in stimlog.columns if 'acqfr' in c]
-for ak in acqfr_keys:
-    stimlog[ak] = stimlog[ak] - 1
+# Fix off-by-one issue caused by acqusition frame counter ('acqfr') index starting at 1 rather than 0.
+if correct_acqfr_index:
+    acqfr_keys = [c for c in stimlog.columns if 'acqfr' in c]
+    for ak in acqfr_keys:
+        stimlog[ak] = stimlog[ak] - 1
 
 # Determine basic stimulus presentation information
 #   For sessions using older stimulus code, the exact number of stimulus or ISI frames could
