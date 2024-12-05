@@ -60,6 +60,7 @@ if 'md' in locals():
 
 # savepath_str = 'analysis'
 # save_path = r''
+save_ext = ['.png', '.svg']
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -176,6 +177,8 @@ if 'save_path' not in locals():
     save_path = ''
 if 'savepath_str' not in locals():
     savepath_str = ''
+if isinstance(save_ext, str):
+    save_ext = [save_ext]
 if 'stimimage_path' not in locals():
     stimimage_path = ''
 
@@ -186,7 +189,6 @@ else:
     session_abbrev_str = ''
     title_str = animal_str + '_' + date_str + '_' + session_str
 save_pfix = animal_str + date_str + session_abbrev_str
-save_ext = '.png'
 
 filestr_metadata = '*_metadata.pickle'
 filestr_image_data = '*_00001.tif'
@@ -199,6 +201,7 @@ filestr_eyecal_log = '*_EyeTrackingCalibration.log'
 filestr_eyecal_aidata = '*_EyeTrackingCalibration_AIdata.p'
 if 'dirstr_suite2p' not in locals():
     dirstr_suite2p = 'suite2p*'
+dirstr_suite2p_pref = 'suite2p_cellpose3_d[0-9]+px_pt-3p5_ft1p5'
 dirstr_suite2p_plane = 'plane0'
 
 
@@ -306,7 +309,7 @@ else:
 date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
 
-if savepath_str != "" and save_path == '':
+if savepath_str != '' and save_path == '':
     save_path = os.path.join(session_path, savepath_str)
     os.makedirs(save_path, exist_ok=True)
 if save_path == '':
@@ -464,9 +467,13 @@ else:
 
 dirlist_suite2p = [d for d in glob(os.path.join(session_path, dirstr_suite2p)) if os.path.isdir(d)]
 if len(dirlist_suite2p) > 0:
+    dirlist_suite2p_idx = 0
     if len(dirlist_suite2p) > 1:
-        warn('Found multiple suite2p folders, using the first one: {}'.format(os.path.basename(dirlist_suite2p[0])))
-    s2p_path = dirlist_suite2p[0]
+        if np.any([re.match(dirstr_suite2p_pref, os.path.basename(d)) is not None for d in dirlist_suite2p]):
+            dirlist_suite2p_idx = np.where([re.match(dirstr_suite2p_pref, os.path.basename(d)) is not None
+                                             for d in dirlist_suite2p])[0][0]
+        warn('Found multiple suite2p folders, using: {}'.format(os.path.basename(dirlist_suite2p[dirlist_suite2p_idx])))
+    s2p_path = dirlist_suite2p[dirlist_suite2p_idx]
     s2p_plane_path = os.path.join(s2p_path, dirstr_suite2p_plane)
     if not os.path.isdir(s2p_plane_path):
         raise RuntimeError('Could not load suite2p plane0 folder.')
@@ -783,13 +790,22 @@ if correct_acqfr_index:
         stimlog[ak] = stimlog[ak] - 1
 
 # Determine basic stimulus presentation information
+#   For sessions using older stimulus code, the exact number of stimulus or ISI frames could
+#   vary slightly because the stim start was not locked to an acqusition frame increment.
 dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
 dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
 dur_trial = dur_isi + dur_stim + dur_isi
-n_samp_stim = int(np.floor(np.mean(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'])))
-# n_samp_stim = int(np.ceil(dur_stim * md['framerate']))
-n_samp_isi = int(np.min(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']))
-# n_samp_isi = int(np.round(dur_isi * md['framerate']))
+if md['stim_locked_to_acqfr']:
+    n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).argmax()
+else:
+    if np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).nonzero()[0][0] != 0:
+        n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).nonzero()[0][0]
+    else:
+        n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).nonzero()[0][1]
+if np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][0] != 0:
+    n_samp_isi = np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][0]
+else:
+    n_samp_isi = np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][1]
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
 
 # Calculate the timing mismatch (contraction) introduced by rounding stim and/or isi frame samples down
@@ -805,8 +821,7 @@ n_trials = len(stimlog)
 n_reps = int(len(stimlog) / n_conds)
 
 if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
-    raise RuntimeError('Imaging was interrupted or stopped before stimulus. ' +
-                       'Handling this is not yet implemented.')
+    warn('Acquisition was started after stimulus, interrupted, or stopped before stimulus.')
 
 
 # %% Organize fluorescence signals into a structured array data table
@@ -836,6 +851,8 @@ del m
 
 # Currently supported dot subclasses:
 # 'translation'  # ... rotation and optic flow and etc possible
+
+trials_movement = []
 for c in range(n_conds):
     tmp_cond = None
     tmp_class = None
@@ -937,6 +954,11 @@ for c in range(n_conds):
                 fr_end = int(fr_end)
             else:
                 raise ValueError('Non-integer acquisition frame index.')
+
+        # Identify trials (condition-repeat pairs) with movement (via suite2p badframes)
+        if np.any(np.isin(range(fr_start, fr_end + 1), s2p_badframes)):
+            trials_movement.append((c, t))
+
         if fr_start < 0 and t == 0:
             # TODO exclude trials at start of imaging if ISI is too short
             warn('Period before first trial was shorter than inter-stimulus interval. ' +
@@ -964,7 +986,7 @@ for c in range(n_conds):
     for m in metrics:
         if np.any(np.isnan(data[c][m])):
             warn('Some {} values in cond {} are NaNs'.format(m, c))
-del c, tmp_cond, tmp_class, tmp_subclass, tmp_settings
+del tmp_cond, tmp_class, tmp_subclass, tmp_settings
 
 # Sanity check for NaN values after loading data
 for m in metrics:
@@ -973,7 +995,7 @@ for m in metrics:
 del m
 
 
-# %% Sort data table according to template, then define categories and conditions
+# %% Sort data table according to template, define categories and conditions, and perform exclusions
 
 sort_by_cond = lambda x: (x[1].dir,
                           x[1].coherence,
@@ -1014,9 +1036,94 @@ if n_conds != conditions.shape[0]:
     warn('Some different stimulus conditions were combined into the same condition.' +
          'May not be able to handle that yet...')
     del u, c, mult
-    
-    
-#%% Organize and average fluorescence traces
+
+
+# Exclude trials where with various problems
+
+trials_exclude = []
+excluded = {}
+excluded_movement = {}
+excluded_preacq = {}
+
+exclude_by_acqstart = True
+trials_preacq = []
+if exclude_by_acqstart:
+    tidx_acqstart = []
+    if np.where(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'] < n_samp_stim)[0].size > 0:
+        tidx_acqstart.append(np.where(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i'] < n_samp_stim)[0].max())
+    if np.any(np.where(np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']) != 0)[0] < n_samp_isi):
+        tidx_acqstart.append(np.where(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i'] < n_samp_isi)[0].max())
+    if tidx_acqstart:
+        tidx_acqstart = max(tidx_acqstart)
+        warn('Acquisition frames for some trials were less than the expected number. '
+             'Assuming that stimulus was started before acquisition, '
+             'excluding first {} trials. '.format(tidx_acqstart) +
+             'Also adjusting acqfr values to start after excluded trials.')
+        if stimlog.iloc[tidx_acqstart]['acqfr_isi_f'] - stimlog.iloc[tidx_acqstart]['acqfr_isi_i'] > 0:
+            # Acquisition seems to have started during ISI period of last exluded trial.
+            acqfr_diff = stimlog.iloc[tidx_acqstart]['acqfr_isi_i']
+        elif stimlog.iloc[tidx_acqstart]['acqfr_stim_f'] - stimlog.iloc[tidx_acqstart]['acqfr_stim_i'] > 0:
+            # Acquisition seems to have started during stim period of last exluded trial.
+            acqfr_diff = stimlog.iloc[tidx_acqstart]['acqfr_stim_i']
+        if float(acqfr_diff).is_integer():
+            acqfr_diff = int(acqfr_diff)
+        else:
+            warn('Unexpectedly got non-integer value for an acqfr, rounding to int.')
+            acqfr_diff = int(acqfr_diff)
+
+        acqfr_keys = [c for c in stimlog.columns if 'acqfr' in c]
+        for ak in acqfr_keys:
+            stimlog[ak] = stimlog[ak] - acqfr_diff
+
+        cond_count = {}
+        for t in range(tidx_acqstart):
+            cnd = stimlog.iloc[t]['cond']
+            if cnd in cond_count:
+                cond_count[cnd] += 1
+            else:
+                cond_count[cnd] = 1
+            rep = cond_count[cnd]
+            trials_preacq.append((cnd, cond_count[cnd]))
+        del cond_count
+
+        for cnd, rep in trials_preacq:
+            trials_exclude.append((cnd, rep))
+            if cnd not in excluded_preacq:
+                excluded_preacq[cnd] = []
+            excluded_preacq[cnd].append(rep)
+        print('Excluding {} trials presumably presented before acquisition start.'.format(len(trials_preacq)))
+        for ek in excluded_preacq:
+            print('  {}/{} excluded for {} ({})'.format(len(excluded_preacq[ek]), n_reps,
+                                                        conditions[ek].decode(), condidx_to_cat[ek].decode()))
+
+if exclude_by_movement and len(trials_movement) > 0:
+    for cnd, rep in trials_movement:
+        trials_exclude.append((cnd, rep))
+        if cnd not in excluded_movement:
+            excluded_movement[cnd] = []
+        excluded_movement[cnd].append(rep)
+    print('Excluding {} trials due to movement (via suite2p badframes).'.format(len(trials_movement)))
+    for ek in excluded_movement:
+        print('  {}/{} excluded for {} ({})'.format(len(excluded_movement[ek]), n_reps,
+                                                    conditions[ek].decode(), condidx_to_cat[ek].decode()))
+
+excluded_blinks = {}
+# TODO * * * add exclusion by blinks
+# stimlog['ai_stim_f'] - stimlog['ai_stim_i']
+# eyetrk_data
+
+# Set excluded trial data table values to NaN.
+for cnd, rep in trials_exclude:
+    for m in metrics:
+        data[cnd][m][:, rep, :] = np.nan
+    if cnd not in excluded:
+        excluded[cnd] = []
+    excluded[cnd].append(rep)
+
+print('In total, {} trials excluded.'.format(len(trials_movement)))
+for ek in excluded:
+    print('  {}/{} excluded for {} ({})'.format(len(excluded[ek]), n_reps,
+                                                conditions[ek].decode(), condidx_to_cat[ek].decode()))
 
 # # F__by_cond = [roi, cond, t, F]
 # FdFF_by_cond = np.full([n_ROIs, n_conds, n_trials, n_samp_isi+n_samp_stim+n_samp_isi], np.nan)
@@ -1197,8 +1304,7 @@ for r in range(n_ROIs_tuned):
     # last_roi_theta = np.radians(tuning_tuned[r])
 
 # direction difference (deg) vs distance (um)
-# import scipy
-# mport itertools
+# import itertools
 # roi_dists = scipy.spatial.distance.cdist(roi_centers, roi_centers, 'euclidean')
 # roi_tuning_diffs = np.array([abs(a - b) % 180 for (a, b) in itertools.product(tuning_tuned_deg, tuning_tuned_deg)])
 # roi_tuning_diffs = np.array([abs(a - b) % 180 for (a, b) in itertools.permutations(tuning_tuned, 2)])
