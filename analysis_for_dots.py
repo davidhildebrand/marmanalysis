@@ -11,11 +11,8 @@ import os
 import pandas as pd
 import pickle
 import re
-# from scipy.optimize import minimize as scipy_minimize
-from scipy.optimize import least_squares as scipy_leastsquares
-from scipy.stats import binned_statistic as scipy_binned_statistic
-# from scipy.signal import find_peaks as find_peaks
-# from skimage import exposure, util
+from scipy.optimize import least_squares
+from scipy.stats import binned_statistic
 import socket
 from warnings import warn
 
@@ -1276,18 +1273,18 @@ w_bin_um = 25
 n_bins = int(np.ceil(distprefs[:, 0].max() / w_bin_um))
 bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
 bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
-bin_medians, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
-bin_stds, _, _ = scipy_binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
+bin_medians, _, _ = binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
 
 # TODO convert all this to take radians like other functions, then convert to deg
 
 # params = [C, A, k]
 # guess = [70, 80, 0.018]
 guess = [70, 50, 0.03]
-# result = scipy_minimize(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), method='L-BFGS-B')
-# result = scipy_minimize(dirdist_objective, guess, args=(bin_centers, bin_medians), method='Nelder-Mead')  # , method='L-BFGS-B')
-# result = scipy_leastsquares(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), max_nfev=10000)
-result = scipy_leastsquares(dirdist_objective, guess, args=(bin_centers, bin_medians), max_nfev=100000)
+# result = minimize(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), method='L-BFGS-B')
+# result = minimize(dirdist_objective, guess, args=(bin_centers, bin_medians), method='Nelder-Mead')  # , method='L-BFGS-B')
+# result = least_squares(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), max_nfev=10000)
+result = least_squares(dirdist_objective, guess, args=(bin_centers, bin_medians), max_nfev=100000)
 fit = result['x']
 C_f = fit[0]
 A_f = fit[1]
@@ -1304,7 +1301,7 @@ ddys = C_f - (A_f * np.exp(-k_f * ddxs))
 guess0 = [70.99, 57.46, 0.01294, 6.581, -3.221, 60]
 guess1 = [7.099e+01, 5.746e+01, 1.294e-02, 6.581e+00, -3.221e+00, 7.514e+01]
 guess2 = [7.101e+01, 6.917e+01, 1.599e-02, 3.525e+00, -9.966e+01, 5.435e+01]
-result = scipy_leastsquares(dirdist_objective_wcos, guess, 
+result = least_squares(dirdist_objective_wcos, guess,
                             args=(bin_centers, bin_medians), 
                             xtol=1e-10,
                             ftol=1e-12,
