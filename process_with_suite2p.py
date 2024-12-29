@@ -73,7 +73,8 @@ db['look_one_level_down'] = False
 db['move_bin'] = False  # Move binary file from 'fast_disk' to 'save_folder'.
 ppext = os.path.splitext(os.path.basename(source_preproc))[1]
 if ppext == '.h5' or ppext == '.hdf5':
-    db['h5py'] = [os.path.join(source_path, source_preproc)]
+    # db['h5py'] = [os.path.join(source_path, source_preproc)]
+    db['h5py'] = os.path.join(source_path, source_preproc)
     db['h5py_key'] = 'data'
 elif ppext == '.tif' or ppext == '.tiff':
     db['tiff_list'] = [source_preproc]
