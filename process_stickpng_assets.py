@@ -65,8 +65,8 @@ skiplist = [
 ]
 
 
-# based on https://stackoverflow.com/questions/43864101/python-pil-check-if-image-is-transparent
 def has_transparency(img):
+    # based on https://stackoverflow.com/questions/43864101/python-pil-check-if-image-is-transparent
     if img.mode == 'LA':
         img = image.convert('RGBA')
     if img.info.get('transparency', None) is not None:
@@ -80,50 +80,6 @@ def has_transparency(img):
         if img.getextrema()[3][0] < 255:
             return True
     return False
-
-
-def generate_pinknoise_image(size=(512, 512), intensity=128):
-    # Ported from MATLAB function 'pinkinoiseimage' used by Xindong Song
-    # https://github.com/x-song-x/fluffy-goggles/blob/master/XinStimEx/XinStimEx_Vis_FacePatch_Trail.m
-    beta = 1
-    fhh = np.ceil((size[0] / 2) + 1).astype(int)
-    fhw = np.ceil((size[1] / 2) + 1).astype(int)
-    fhimagea = np.arange(0, fhh)[:,np.newaxis] @ np.ones([1, fhw])
-    fhimageb = np.ones([fhh, 1]) @ np.arange(0, fhw)[np.newaxis,:]
-    fhimagef = (fhimagea ** 2 + fhimageb ** 2) ** (1/2)
-    np.seterr(divide='ignore')
-    fhimagefbeta = fhimagef ** (-beta)
-    np.seterr(divide='warn')
-    fhimagefbeta[0,0] = 0
-    fhimageagl1 = np.random.rand(fhh, fhw) * 2 * np.pi
-    fhimageagl1[-1,0] = 0
-    fhimageagl1[0,-1] = 0
-    fhimageagl1[-1,-1] = 0
-    fhimageagl2 = np.random.rand(fhh, fhw) * 2 * np.pi
-    fhimagecomp1 = np.empty(fhimageagl1.shape, dtype=complex)
-    fhimagecomp1.real = fhimagefbeta * np.cos(fhimageagl1)
-    fhimagecomp1.imag = fhimagefbeta * np.sin(fhimageagl1)
-    fhimagecomp2 = np.empty(fhimageagl2.shape, dtype=complex)
-    fhimagecomp2.real = fhimagefbeta * np.cos(fhimageagl2)
-    fhimagecomp2.imag = fhimagefbeta * np.sin(fhimageagl2)
-    fimagecomp = np.concatenate((fhimagecomp1,
-                                np.fliplr(np.concatenate((np.conj(fhimagecomp1[0,1:-1][np.newaxis,:]),
-                                                          fhimagecomp2[1:-1,1:-1],
-                                                          np.conj(fhimagecomp1[-1,1:-1][np.newaxis,:]))))), 1)
-    fimagecomp = np.concatenate((fimagecomp,
-                                 np.conj(np.flipud(np.concatenate((fhimagecomp1[1:-1,0][:,np.newaxis],
-                                                                  np.fliplr(fimagecomp[1:-1,1::])), 1)))))
-    imagetmp = np.fft.ifft2(fimagecomp)
-    imagemax = np.max(imagetmp)
-    imagemin = np.min(imagetmp)
-    imagemaxn = np.abs(imagemax / (255 - intensity))
-    imageminn = np.abs(imagemin / (intensity - 0))
-    imageampn = np.max([imagemaxn, imageminn])
-    img_pink = (imagetmp.real / imageampn) + intensity
-    # img_pink = skimage.exposure.rescale_intensity(img_pink, in_range=(0, 255), out_range=(-1, 1))
-    if img_pink.size != size:
-        img_pink = img_pink[:size[0], :size[1]]
-    return img_pink
 
 
 # Create hook for extracting intermediate layer output
@@ -225,20 +181,6 @@ else:
 with open(os.path.join(infosave_path, image_info_file), 'rb') as file:
     loaded_object = pickle.load(file)
 image_info = loaded_object[0]
-
-
-# # How background pink noise images were created (now loaded to keep background consistent)
-# background_224_pinkn = Image.fromarray(generate_pinknoise_image(size=(224, 224), intensity=128).T.astype(int))
-# background_224_pinkn = background_224_pinkn.convert('RGB')
-# background_224_pinkn.save(os.path.join(base_path, 'backgrounds', 'background_224_pinknoise.png'))
-#
-# background_299_pinkn = Image.fromarray(generate_pinknoise_image(size=(299, 299), intensity=128).T.astype(int))
-# background_299_pinkn = background_299_pinkn.convert('RGB')
-# background_299_pinkn.save(os.path.join(base_path, 'backgrounds', 'background_299_pinknoise.png'))
-#
-# background_512_pinkn = Image.fromarray(generate_pinknoise_image(size=(512, 512), intensity=128).T.astype(int))
-# background_512_pinkn = background_512_pinkn.convert('RGB')
-# background_512_pinkn.save(os.path.join(base_path, 'backgrounds', 'background_512_pinknoise.png'))
 
 
 # Model implementations from...
@@ -390,13 +332,6 @@ for name, module in alexnet.named_modules():
 #     hooks['squeezenet11'][name] = module.register_forward_hook(get_activation(name))
 
 
-# Load pinknoise backgrounds into memory
-background_224_pinkn = Image.open(os.path.join(base_path, 'backgrounds', 'background_224_pinknoise.png'))
-background_224_pinkn = background_224_pinkn.convert('RGBA')
-background_299_pinkn = Image.open(os.path.join(base_path, 'backgrounds', 'background_299_pinknoise.png'))
-background_299_pinkn = background_299_pinkn.convert('RGBA')
-
-
 # from Bao et al Tsao 2020 Nature
 # " Decoding accuracy for 40 images using object spaces built by responses of different layers of AlexNet
 #  ... There are multiple points for each layer because we performed PCA before and after pooling, activation,
@@ -491,18 +426,11 @@ for ii in image_info:
             if image_224.size[0] != image_224.size[1]:
                 image_224 = ImageOps.pad(image_224, size=(np.max(image_224.size[:2]),) * 2, color=(255, 255, 255, 0))
             background_224_white = Image.new('RGBA', image_224.size, (255,) * 3)
-            background_224_gray = Image.new('RGBA', image_224.size, (128,) * 3)
-            # background_224_pinkn = Image.fromarray(generate_pinknoise_image(size=image_224.size, intensity=128).T.astype(int))
-            # background_224_pinkn = background_224_pinkn.convert('RGBA')
-            # with Image.open(os.path.join(base_path, 'backgrounds', 'background_224_pinknoise.png')) as pinkn_224:
-            #     background_224_pinkn = pinkn_224
-            # background_224_pinkn = background_224_pinkn.convert('RGBA')
+            # background_224_gray = Image.new('RGBA', image_224.size, (128,) * 3)
             composite_224_white = Image.alpha_composite(background_224_white, image_224)
-            composite_224_gray = Image.alpha_composite(background_224_gray, image_224)
-            composite_224_pinkn = Image.alpha_composite(background_224_pinkn, image_224)
+            # composite_224_gray = Image.alpha_composite(background_224_gray, image_224)
             image_224_white = composite_224_white.convert('RGB')
-            image_224_gray = composite_224_gray.convert('RGB')
-            image_224_pinkn = composite_224_pinkn.convert('RGB')
+            # image_224_gray = composite_224_gray.convert('RGB')
 
             resize_ratio_299 = np.min((299 / image.size[0], 299 / image.size[1]))
             image_299 = image.resize(np.round(resize_ratio_299 * np.array(image.size)).astype(int),
@@ -510,18 +438,11 @@ for ii in image_info:
             if image_299.size[0] != image_299.size[1]:
                 image_299 = ImageOps.pad(image_299, size=(np.max(image_299.size[:2]),) * 2, color=(255, 255, 255, 0))
             background_299_white = Image.new('RGBA', image_299.size, (255,) * 3)
-            background_299_gray = Image.new('RGBA', image_299.size, (128,) * 3)
-            # background_299_pinkn = Image.fromarray(generate_pinknoise_image(size=image_299.size, intensity=128).T.astype(int))
-            # background_299_pinkn = background_299_pinkn.convert('RGBA')
-            # with Image.open(os.path.join(base_path, 'backgrounds', 'background_299_pinknoise.png')) as pinkn_299:
-            #     background_299_pinkn = pinkn_299
-            # background_299_pinkn = background_299_pinkn.convert('RGBA')
+            # background_299_gray = Image.new('RGBA', image_299.size, (128,) * 3)
             composite_299_white = Image.alpha_composite(background_299_white, image_299)
-            composite_299_gray = Image.alpha_composite(background_299_gray, image_299)
-            composite_299_pinkn = Image.alpha_composite(background_299_pinkn, image_299)
+            # composite_299_gray = Image.alpha_composite(background_299_gray, image_299)
             image_299_white = composite_299_white.convert('RGB')
-            image_299_gray = composite_299_gray.convert('RGB')
-            image_299_pinkn = composite_299_pinkn.convert('RGB')
+            # image_299_gray = composite_299_gray.convert('RGB')
 
             if 'modvals' not in assets[ii]:
                 assets[ii]['modvals'] = {}
@@ -539,25 +460,15 @@ for ii in image_info:
                 assets[ii]['modvals']['alexnet']['bg_w'] = get_modvals_alexnet(activation)
                 del activation, tensor, input_batch
 
-                activation = {}
-                tensor = preprocess(image_224_gray)
-                input_batch = tensor.unsqueeze(0)
-                input_batch = input_batch.to(device)
-                alexnet.to(device)
-                with torch.no_grad():
-                    _ = alexnet(input_batch)
-                assets[ii]['modvals']['alexnet']['bg_g'] = get_modvals_alexnet(activation)
-                del activation, tensor, input_batch
-
-                activation = {}
-                tensor = preprocess(image_224_pinkn)
-                input_batch = tensor.unsqueeze(0)
-                input_batch = input_batch.to(device)
-                alexnet.to(device)
-                with torch.no_grad():
-                    _ = alexnet(input_batch)
-                assets[ii]['modvals']['alexnet']['bg_pn'] = get_modvals_alexnet(activation)
-                del activation, tensor, input_batch
+                # activation = {}
+                # tensor = preprocess(image_224_gray)
+                # input_batch = tensor.unsqueeze(0)
+                # input_batch = input_batch.to(device)
+                # alexnet.to(device)
+                # with torch.no_grad():
+                #     _ = alexnet(input_batch)
+                # assets[ii]['modvals']['alexnet']['bg_g'] = get_modvals_alexnet(activation)
+                # del activation, tensor, input_batch
 
             # other_models = ['vgg11', 'vgg11bn', 'vgg13', 'vgg13bn', 'vgg16', 'vgg16bn', 'vgg19', 'vgg19bn',
             #                 'googlenet', 'inceptionv3', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
@@ -581,32 +492,18 @@ for ii in image_info:
                     assets[ii]['modvals'][omod]['bg_w'] = get_modvals_generic(activation)
                     del activation, tensor, input_batch
 
-                    activation = {}
-                    if omod != 'inceptionv3':
-                        tensor = preprocess(image_224_gray)
-                    else:
-                        tensor = preprocess(image_299_gray)
-                    input_batch = tensor.unsqueeze(0)
-                    input_batch = input_batch.to(device)
-                    exec('%s.to(device)' % omod)
-                    with torch.no_grad():
-                        exec('_ = %s(input_batch)' % omod)
-                    assets[ii]['modvals'][omod]['bg_g'] = get_modvals_generic(activation)
-                    del activation, tensor, input_batch
-
-                    activation = {}
-                    if omod != 'inceptionv3':
-                        tensor = preprocess(image_224_pinkn)
-                    else:
-                        tensor = preprocess(image_299_pinkn)
-                    input_batch = tensor.unsqueeze(0)
-                    input_batch = input_batch.to(device)
-                    exec('%s.to(device)' % omod)
-                    with torch.no_grad():
-                        exec('_ = %s(input_batch)' % omod)
-                    assets[ii]['modvals'][omod]['bg_pn'] = get_modvals_generic(activation)
-                    del activation, tensor, input_batch
-
+                    # activation = {}
+                    # if omod != 'inceptionv3':
+                    #     tensor = preprocess(image_224_gray)
+                    # else:
+                    #     tensor = preprocess(image_299_gray)
+                    # input_batch = tensor.unsqueeze(0)
+                    # input_batch = input_batch.to(device)
+                    # exec('%s.to(device)' % omod)
+                    # with torch.no_grad():
+                    #     exec('_ = %s(input_batch)' % omod)
+                    # assets[ii]['modvals'][omod]['bg_g'] = get_modvals_generic(activation)
+                    # del activation, tensor, input_batch
         else:
             assets[ii]['transparency'] = False
             warn('No transparency found for {} and undecided how to handle, skipping for now...'.format(ii))
@@ -622,13 +519,6 @@ for ii in image_info:
         save_snapshot(savestr='_asset_modvals_alexnet_partial')
     asset_counter += 1
 save_snapshot(savestr='_asset_modvals_full')
-
-
-# Close pinknoise background images
-background_224_pinkn.close()
-background_299_pinkn.close()
-
-
 
 
 # def calculate_sha256_hash(file_path):
