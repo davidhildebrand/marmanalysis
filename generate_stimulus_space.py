@@ -15,8 +15,11 @@ from torchvision import transforms, models
 from warnings import warn
 
 
-image_info_file = r'20240908d203128tUTC_stickpng_image_info_full.pickle'
-min_dimension = 299
+image_path = r'TsaoStimuli\500Stimuli'
+
+# min_dimension = 299
+min_dimension = 224
+pad_color = 255
 
 checksumming = True
 skipping = False
@@ -41,17 +44,27 @@ def has_transparency(img):
     return False
 
 
-# Create hook for extracting intermediate layer output
-# based on https://discuss.pytorch.org/t/how-can-i-extract-intermediate-layer-output-from-loaded-cnn-model/77301/3
-#     and https://discuss.pytorch.org/t/how-can-l-load-my-best-model-as-a-feature-extractor-evaluator/17254/14
 activation = {}
 def get_activation(name):
+    """
+    Create hook for extracting intermediate layer feature values ('unit responses') from a model.
+        based on https://discuss.pytorch.org/t/how-can-i-extract-intermediate-layer-output-from-loaded-cnn-model/77301/3
+        and https://discuss.pytorch.org/t/how-can-l-load-my-best-model-as-a-feature-extractor-evaluator/17254/14
+    """
     def hook(model, input, output):
         activation[name] = output.detach()
     return hook
 
 
-def get_modvals_alexnet(activ):
+def relu_inplace_to_false(module):
+    # based on https://stackoverflow.com/questions/74124725/setting-relu-inplace-to-false
+    for layer in module._modules.values():
+        if isinstance(layer, torch.nn.ReLU):
+            layer.inplace = False
+        relu_inplace_to_false(layer)
+
+
+def get_alexnet_unit_responses(activ):
     if activ != {} and activ is not None:
         d = {
             '00_conv1_conv2d': activ['features.0'].cpu().numpy().squeeze(),
@@ -82,7 +95,7 @@ def get_modvals_alexnet(activ):
     return d
 
 
-def get_modvals_generic(activ):
+def get_generic_model_unit_responses(activ):
     if activ != {} and activ is not None:
         d = {}
         for k in activ.keys():
@@ -93,7 +106,7 @@ def get_modvals_generic(activ):
     return d
 
 
-def save_snapshot(savestr='_asset_modvals'):
+def save_snapshot(savestr='_asset_unit_responses'):
     now = datetime.now(timezone.utc)
     datetime_str = now.strftime('%Y%m%dd%H%M%StUTC')
     infosave_filename = datetime_str + savestr + '.pickle'
@@ -104,29 +117,17 @@ def save_snapshot(savestr='_asset_modvals'):
 
 system_name = socket.gethostname()
 if 'Galactica' in system_name:
-    base_path = r'/Users/davidh/Data/Freiwald/ImageDatasets/stickpng'
-    asset_path = base_path + os.path.sep + 'assets'
-    tree_path = base_path + os.path.sep + 'category_tree'
-    infosave_path = base_path + os.path.sep + 'info_saves'
+    base_path = r'/Users/davidh/Data/Freiwald/ImageDatasets'
     device = 'cpu'
     # device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 elif 'marmostor' in system_name:
-    base_path = r'/marmostor/DavidH/ImageDatasets/stickpng'
-    asset_path = base_path + os.path.sep + 'assets'
-    tree_path = base_path + os.path.sep + 'category_tree'
-    infosave_path = base_path + os.path.sep + 'info_saves'
+    base_path = r'/marmostor/DavidH/ImageDatasets'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 elif 'Obsidian' in system_name:
-    base_path = r'F:\Data\ImageDatasets\stickpng'
-    asset_path = base_path + os.path.sep + 'assets'
-    tree_path = base_path + os.path.sep + 'category_tree'
-    infosave_path = base_path + os.path.sep + 'info_saves'
+    base_path = r'F:\Data\ImageDatasets'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 elif 'Dobbin' in system_name:
-    base_path = r'D:\Data\ImageDatasets\stickpng'
-    asset_path = base_path + os.path.sep + 'assets'
-    tree_path = base_path + os.path.sep + 'category_tree'
-    infosave_path = base_path + os.path.sep + 'info_saves'
+    base_path = r'D:\Data\ImageDatasets'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 else:
     base_path = None
@@ -136,159 +137,25 @@ else:
     device = 'cpu'
     warn('Unknown system name, paths not set.')
 
+asset_path = base_path + os.path.sep + image_path
+# tree_path = base_path + os.path.sep + 'category_tree'
+infosave_path = base_path + os.path.sep + 'info_saves'
 
-with open(os.path.join(infosave_path, image_info_file), 'rb') as file:
-    loaded_object = pickle.load(file)
-image_info = loaded_object[0]
 
-
-# Model implementations from...
+# Model implementation from...
 # alexnet: https://pytorch.org/hub/pytorch_vision_alexnet/
-# vgg-nets: https://pytorch.org/hub/pytorch_vision_vgg/
-# googlenet: https://pytorch.org/hub/pytorch_vision_googlenet/
-# inceptionv3: https://pytorch.org/hub/pytorch_vision_inception_v3/
-# resnet: https://pytorch.org/hub/pytorch_vision_resnet/
-# resnext: https://pytorch.org/hub/pytorch_vision_resnext/
-# wide_resnet: https://pytorch.org/hub/pytorch_vision_wide_resnet/
-# densenet: https://pytorch.org/hub/pytorch_vision_densenet/
+# https://github.com/pytorch/vision/blob/main/torchvision/models/alexnet.py
+# https://arxiv.org/pdf/1404.5997
+# https://proceedings.neurips.cc/paper_files/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf
 
 hooks = {}
-
 alexnet = torch.hub.load('pytorch/vision:v0.19.1', 'alexnet', weights='AlexNet_Weights.IMAGENET1K_V1')
 hooks['alexnet'] = {}
 for name, module in alexnet.named_modules():
+    if name == '':
+        continue
+    relu_inplace_to_false(module)
     hooks['alexnet'][name] = module.register_forward_hook(get_activation(name))
-
-# vgg11 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg11', weights='VGG11_Weights.IMAGENET1K_V1')
-# hooks['vgg11'] = {}
-# for name, module in vgg11.named_modules():
-#     hooks['vgg11'][name] = module.register_forward_hook(get_activation(name))
-#
-# vgg11bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg11_bn', weights='VGG11_BN_Weights.IMAGENET1K_V1')
-# hooks['vgg11bn'] = {}
-# for name, module in vgg11bn.named_modules():
-#     hooks['vgg11bn'][name] = module.register_forward_hook(get_activation(name))
-#
-# vgg13 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg13', weights='VGG13_Weights.IMAGENET1K_V1')
-# hooks['vgg13'] = {}
-# for name, module in vgg13.named_modules():
-#     hooks['vgg13'][name] = module.register_forward_hook(get_activation(name))
-#
-# vgg13bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg13_bn', weights='VGG13_BN_Weights.IMAGENET1K_V1')
-# hooks['vgg13bn'] = {}
-# for name, module in vgg13bn.named_modules():
-#     hooks['vgg13bn'][name] = module.register_forward_hook(get_activation(name))
-#
-# vgg16 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg16', weights='VGG16_Weights.IMAGENET1K_V1')
-# hooks['vgg16'] = {}
-# for name, module in vgg16.named_modules():
-#     hooks['vgg16'][name] = module.register_forward_hook(get_activation(name))
-#
-# vgg16bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg16_bn', weights='VGG16_BN_Weights.IMAGENET1K_V1')
-# hooks['vgg16bn'] = {}
-# for name, module in vgg16bn.named_modules():
-#     hooks['vgg16bn'][name] = module.register_forward_hook(get_activation(name))
-#
-# vgg19 = torch.hub.load('pytorch/vision:v0.19.1', 'vgg19', weights='VGG19_Weights.IMAGENET1K_V1')
-# hooks['vgg19'] = {}
-# for name, module in vgg19.named_modules():
-#     hooks['vgg19'][name] = module.register_forward_hook(get_activation(name))
-#
-# vgg19bn = torch.hub.load('pytorch/vision:v0.19.1', 'vgg19_bn', weights='VGG19_BN_Weights.IMAGENET1K_V1')
-# hooks['vgg19bn'] = {}
-# for name, module in vgg19bn.named_modules():
-#     hooks['vgg19bn'][name] = module.register_forward_hook(get_activation(name))
-#
-# googlenet = torch.hub.load('pytorch/vision:v0.19.1', 'googlenet', weights='GoogLeNet_Weights.IMAGENET1K_V1')
-# hooks['googlenet'] = {}
-# for name, module in googlenet.named_modules():
-#     hooks['googlenet'][name] = module.register_forward_hook(get_activation(name))
-#
-# inceptionv3 = torch.hub.load('pytorch/vision:v0.19.1', 'inception_v3', weights='Inception_V3_Weights.IMAGENET1K_V1')
-# inceptionv3.eval()
-# hooks['inceptionv3'] = {}
-# for name, module in inceptionv3.named_modules():
-#     hooks['inceptionv3'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnet18 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet18', weights='ResNet18_Weights.IMAGENET1K_V1')
-# hooks['resnet18'] = {}
-# for name, module in resnet18.named_modules():
-#     hooks['resnet18'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnet34 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet34', weights='ResNet34_Weights.IMAGENET1K_V1')
-# hooks['resnet34'] = {}
-# for name, module in resnet34.named_modules():
-#     hooks['resnet34'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnet50 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet50', weights='ResNet50_Weights.IMAGENET1K_V2')
-# hooks['resnet50'] = {}
-# for name, module in resnet50.named_modules():
-#     hooks['resnet50'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnet101 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet101', weights='ResNet101_Weights.IMAGENET1K_V2')
-# hooks['resnet101'] = {}
-# for name, module in resnet101.named_modules():
-#     hooks['resnet101'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnet152 = torch.hub.load('pytorch/vision:v0.19.1', 'resnet152', weights='ResNet152_Weights.IMAGENET1K_V2')
-# hooks['resnet152'] = {}
-# for name, module in resnet152.named_modules():
-#     hooks['resnet152'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnext5032x4d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext50_32x4d', weights='ResNeXt50_32X4D_Weights.IMAGENET1K_V2')
-# hooks['resnext5032x4d'] = {}
-# for name, module in resnext5032x4d.named_modules():
-#     hooks['resnext5032x4d'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnext10132x8d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext101_32x8d', weights='ResNeXt101_32X8D_Weights.IMAGENET1K_V2')
-# hooks['resnext10132x8d'] = {}
-# for name, module in resnext10132x8d.named_modules():
-#     hooks['resnext10132x8d'][name] = module.register_forward_hook(get_activation(name))
-#
-# resnext10164x4d = torch.hub.load('pytorch/vision:v0.19.1', 'resnext101_64x4d', weights='ResNeXt101_64X4D_Weights.IMAGENET1K_V1')
-# hooks['resnext10164x4d'] = {}
-# for name, module in resnext10164x4d.named_modules():
-#     hooks['resnext10164x4d'][name] = module.register_forward_hook(get_activation(name))
-#
-# wideresnet502 = torch.hub.load('pytorch/vision:v0.19.1', 'wide_resnet50_2', weights='Wide_ResNet50_2_Weights.IMAGENET1K_V2')
-# hooks['wideresnet502'] = {}
-# for name, module in wideresnet502.named_modules():
-#     hooks['wideresnet502'][name] = module.register_forward_hook(get_activation(name))
-#
-# wideresnet1012 = torch.hub.load('pytorch/vision:v0.19.1', 'wide_resnet101_2', weights='Wide_ResNet101_2_Weights.IMAGENET1K_V2')
-# hooks['wideresnet1012'] = {}
-# for name, module in wideresnet1012.named_modules():
-#     hooks['wideresnet1012'][name] = module.register_forward_hook(get_activation(name))
-#
-# densenet121 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet121', weights='DenseNet121_Weights.IMAGENET1K_V1')
-# hooks['densenet121'] = {}
-# for name, module in densenet121.named_modules():
-#     hooks['densenet121'][name] = module.register_forward_hook(get_activation(name))
-#
-# densenet161 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet161', weights='DenseNet161_Weights.IMAGENET1K_V1')
-# hooks['densenet161'] = {}
-# for name, module in densenet161.named_modules():
-#     hooks['densenet161'][name] = module.register_forward_hook(get_activation(name))
-#
-# densenet169 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet169', weights='DenseNet169_Weights.IMAGENET1K_V1')
-# hooks['densenet169'] = {}
-# for name, module in densenet169.named_modules():
-#     hooks['densenet169'][name] = module.register_forward_hook(get_activation(name))
-#
-# densenet201 = torch.hub.load('pytorch/vision:v0.19.1', 'densenet201', weights='DenseNet201_Weights.IMAGENET1K_V1')
-# hooks['densenet201'] = {}
-# for name, module in densenet201.named_modules():
-#     hooks['densenet201'][name] = module.register_forward_hook(get_activation(name))
-#
-# squeezenet10 = torch.hub.load('pytorch/vision:v0.19.1', 'squeezenet1_0', weights='SqueezeNet1_0_Weights.IMAGENET1K_V1')
-# hooks['squeezenet10'] = {}
-# for name, module in squeezenet10.named_modules():
-#     hooks['squeezenet10'][name] = module.register_forward_hook(get_activation(name))
-#
-# squeezenet11 = torch.hub.load('pytorch/vision:v0.19.1', 'squeezenet1_1', weights='SqueezeNet1_1_Weights.IMAGENET1K_V1')
-# hooks['squeezenet11'] = {}
-# for name, module in squeezenet11.named_modules():
-#     hooks['squeezenet11'][name] = module.register_forward_hook(get_activation(name))
 
 
 # from Bao et al Tsao 2020 Nature
@@ -303,207 +170,142 @@ for name, module in alexnet.named_modules():
 #   decoding accuracy, motivating our use of the object space generated by this layer throughout the paper."
 
 
+image_files = [f for f in os.listdir(asset_path) if filetype.is_image(os.path.join(asset_path, f))]
+
 assets = {}
 asset_counter = 0
-# for ii in [list(image_info.keys())[0]]:
-for ii in image_info:
-    if image_info[ii]['code_category_full'] is None or image_info[ii]['code_category'] is None:
-        warn('No category found for {}, skipping...'.format(ii))
-        continue
+
+for i in image_files:
     if skipping:
-        if np.any([skiplist[s] in image_info[ii]['code_category_full']
-                   for s, _ in enumerate(skiplist)]):
-            print('Blacklisted category or subcategory ({}) '
-                  'for {}, skipping...'.format(image_info[ii]['code_category_full'], ii))
+        if i in skiplist:
+            print('Skipped {}... skiplisted.'.format(i))
             continue
 
-    if ii not in assets:
-        assets[ii] = {
-            'code': image_info[ii]['code'],
-            'title': image_info[ii]['title'],
-            'category': image_info[ii]['code_category'],
-            'categorysub': image_info[ii]['code_subcategory'],
-            'categoryfull': image_info[ii]['code_category_full'],
-            'readable_title': image_info[ii]['name'],
-            'readable_category': image_info[ii]['category'],
-            'readable_subcategory': image_info[ii]['subcategory'],
-            'url_info': image_info[ii]['url_info'],
-            'url_image': image_info[ii]['url_image'],
+    if i not in assets:
+        assets[i] = {
+            'filename': i,
+            'filepath': os.path.join(asset_path, i),
+            # 'code': image_info[ii]['code'],
+            # 'title': image_info[ii]['title'],
+            # 'category': image_info[ii]['code_category'],
+            # 'categorysub': image_info[ii]['code_subcategory'],
+            # 'categoryfull': image_info[ii]['code_category_full'],
+            # 'readable_title': image_info[ii]['name'],
+            # 'readable_category': image_info[ii]['category'],
+            # 'readable_subcategory': image_info[ii]['subcategory'],
+            # 'url_info': image_info[ii]['url_info'],
+            # 'url_image': image_info[ii]['url_image'],
         }
-
-    image_path = os.path.join(asset_path, image_info[ii]['code'] + '.png')
 
     if checksumming:
         calculate_sha256 = False
         calculate_md5 = False
-        if 'checksum_sha256' not in assets[ii]:
+        if 'checksum_sha256' not in assets[i]:
             calculate_sha256 = True
-        if 'checksum_md5' not in assets[ii]:
+        if 'checksum_md5' not in assets[i]:
             calculate_md5 = True
         if calculate_sha256 or calculate_md5:
             h_sha256 = hashlib.sha256()
             h_md5 = hashlib.md5()
-            with open(image_path, 'rb') as f:
+            with open(assets[i]['filepath'], 'rb') as f:
                 for chunk in iter(lambda: f.read(4096), b''):
                     if calculate_sha256:
                         h_sha256.update(chunk)
                     if calculate_md5:
                         h_md5.update(chunk)
             if calculate_sha256:
-                assets[ii]['checksum_sha256'] = h_sha256.hexdigest()
+                assets[i]['checksum_sha256'] = h_sha256.hexdigest()
             if calculate_md5:
-                assets[ii]['checksum_md5'] = h_md5.hexdigest()
+                assets[i]['checksum_md5'] = h_md5.hexdigest()
         del h_sha256, h_md5
 
-    if 'image_size' in assets[ii]:
-        if np.min(assets[ii]['image_size']) < min_dimension:
-            print('Skipped {}... {} is less than minimum side {} px.'.format(ii,
-                                                                             np.min(assets[ii]['image_size']),
+    if 'image_size' in assets[i]:
+        if np.min(assets[i]['image_size']) < min_dimension:
+            print('Skipped {}... {} is less than minimum side {} px.'.format(i,
+                                                                             np.min(assets[i]['image_size']),
                                                                              min_dimension))
             continue
 
-    # ...at least according to PyTorch documentation, the normalization values are the same for all these models.
     preprocess = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    with Image.open(image_path) as image:
-        assets[ii]['image_size'] = image.size
-        if np.min(assets[ii]['image_size']) < min_dimension:
-            print('Skipped {}... {} is less than minimum side {} px.'.format(ii,
-                                                                             np.min(assets[ii]['image_size']),
-                                                                             min_dimension))
-            continue
-        if has_transparency(image):
-            assets[ii]['image_transparency'] = True
-            image = image.convert('RGBA')
+    with Image.open(assets[i]['filepath']) as loaded_image:
+        padded = False
 
-            resize_ratio_224 = np.min((224 / image.size[0], 224 / image.size[1]))
-            image_224 = image.resize(np.round(resize_ratio_224 * np.array(image.size)).astype(int),
-                                     resample=Image.Resampling.BICUBIC)
-            if image_224.size[0] != image_224.size[1]:
-                image_224 = ImageOps.pad(image_224, size=(np.max(image_224.size[:2]),) * 2, color=(255, 255, 255, 0))
-            background_224_white = Image.new('RGBA', image_224.size, (255,) * 3)
-            # background_224_gray = Image.new('RGBA', image_224.size, (128,) * 3)
-            composite_224_white = Image.alpha_composite(background_224_white, image_224)
-            # composite_224_gray = Image.alpha_composite(background_224_gray, image_224)
-            image_224_white = composite_224_white.convert('RGB')
-            # image_224_gray = composite_224_gray.convert('RGB')
+        assets[i]['image_size'] = loaded_image.size
+        if np.min(assets[i]['image_size']) < min_dimension:
+            warn('{} will be upsampled, side size {} less than minimum {} px.'.format(i,
+                                                                                      np.min(assets[i]['image_size']),
+                                                                                      min_dimension))
 
-            resize_ratio_299 = np.min((299 / image.size[0], 299 / image.size[1]))
-            image_299 = image.resize(np.round(resize_ratio_299 * np.array(image.size)).astype(int),
-                                     resample=Image.Resampling.BICUBIC)
-            if image_299.size[0] != image_299.size[1]:
-                image_299 = ImageOps.pad(image_299, size=(np.max(image_299.size[:2]),) * 2, color=(255, 255, 255, 0))
-            background_299_white = Image.new('RGBA', image_299.size, (255,) * 3)
-            # background_299_gray = Image.new('RGBA', image_299.size, (128,) * 3)
-            composite_299_white = Image.alpha_composite(background_299_white, image_299)
-            # composite_299_gray = Image.alpha_composite(background_299_gray, image_299)
-            image_299_white = composite_299_white.convert('RGB')
-            # image_299_gray = composite_299_gray.convert('RGB')
-
-            if 'modvals' not in assets[ii]:
-                assets[ii]['modvals'] = {}
-
-            if 'alexnet' not in assets[ii]['modvals']:
-                assets[ii]['modvals']['alexnet'] = {}
-
-                activation = {}
-                tensor = preprocess(image_224_white)
-                input_batch = tensor.unsqueeze(0)
-                input_batch = input_batch.to(device)
-                alexnet.to(device)
-                with torch.no_grad():
-                    _ = alexnet(input_batch)
-                assets[ii]['modvals']['alexnet']['bg_w'] = get_modvals_alexnet(activation)
-                del activation, tensor, input_batch
-
-                # activation = {}
-                # tensor = preprocess(image_224_gray)
-                # input_batch = tensor.unsqueeze(0)
-                # input_batch = input_batch.to(device)
-                # alexnet.to(device)
-                # with torch.no_grad():
-                #     _ = alexnet(input_batch)
-                # assets[ii]['modvals']['alexnet']['bg_g'] = get_modvals_alexnet(activation)
-                # del activation, tensor, input_batch
-
-            # other_models = ['vgg11', 'vgg11bn', 'vgg13', 'vgg13bn', 'vgg16', 'vgg16bn', 'vgg19', 'vgg19bn',
-            #                 'googlenet', 'inceptionv3', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
-            #                 'resnext5032x4d', 'resnext10132x8d', 'resnext10164x4d', 'wideresnet502', 'wideresnet1012',
-            #                 'densenet121', 'densenet161', 'densenet169', 'densenet201', 'squeezenet10', 'squeezenet11']
-            other_models = []
-            for omod in other_models:
-                if omod not in assets[ii]['modvals']:
-                    assets[ii]['modvals'][omod] = {}
-
-                    activation = {}
-                    if omod != 'inceptionv3':
-                        tensor = preprocess(image_224_white)
-                    else:
-                        tensor = preprocess(image_299_white)
-                    input_batch = tensor.unsqueeze(0)
-                    input_batch = input_batch.to(device)
-                    exec('%s.to(device)' % omod)
-                    with torch.no_grad():
-                        exec('_ = %s(input_batch)' % omod)
-                    assets[ii]['modvals'][omod]['bg_w'] = get_modvals_generic(activation)
-                    del activation, tensor, input_batch
-
-                    # activation = {}
-                    # if omod != 'inceptionv3':
-                    #     tensor = preprocess(image_224_gray)
-                    # else:
-                    #     tensor = preprocess(image_299_gray)
-                    # input_batch = tensor.unsqueeze(0)
-                    # input_batch = input_batch.to(device)
-                    # exec('%s.to(device)' % omod)
-                    # with torch.no_grad():
-                    #     exec('_ = %s(input_batch)' % omod)
-                    # assets[ii]['modvals'][omod]['bg_g'] = get_modvals_generic(activation)
-                    # del activation, tensor, input_batch
+        if has_transparency(loaded_image):
+            assets[i]['image_transparency'] = True
         else:
-            assets[ii]['transparency'] = False
-            warn('No transparency found for {} and undecided how to handle, skipping for now...'.format(ii))
-            continue
-            # image = image.convert('RGB')
-            # if image.size[0] != image.size[1]:
-            #     image = ImageOps.pad(image, size=(np.max(image.size[:2]),) * 2, color=(255,) * 3)
-            #
-            # if 'modvals' not in assets[ii]:
-            #     assets[ii]['modvals'] = {}
+            assets[i]['image_transparency'] = False
+
+        loaded_image = loaded_image.convert('RGBA')
+        if type(pad_color) == int:
+            padding_color = (pad_color,) * 3 + (0,)
+        elif type(pad_color) == tuple:
+            if len(pad_color) == 3:
+                padding_color = pad_color + (0,)
+        if 'padding_color' not in locals():
+            warn('Padding color not recognized, using white.')
+            padding_color = (255,) * 3 + (0,)
+
+        resize_ratio = np.min((min_dimension / loaded_image.size[0], min_dimension / loaded_image.size[1]))
+        if resize_ratio != 1.0:
+            loaded_image = loaded_image.resize(np.round(resize_ratio * np.array(loaded_image.size)).astype(int),
+                                               resample=Image.Resampling.BICUBIC)
+
+        if loaded_image.size[0] != loaded_image.size[1]:
+            loaded_image = ImageOps.pad(loaded_image,
+                                        size=(np.max(loaded_image.size[:2]),) * 2,
+                                        color=padding_color)
+            padded = True
+
+        if assets[i]['image_transparency'] or padded:
+            loaded_image = Image.alpha_composite(Image.new('RGBA', loaded_image.size, (255,) * 3),
+                                                 loaded_image)
+
+        image = loaded_image.convert('RGB')
+
+        if 'unit_responses' not in assets[i]:
+            assets[i]['unit_responses'] = {}
+
+        if 'alexnet' not in assets[i]['unit_responses']:
+            assets[i]['unit_responses']['alexnet'] = {}
+
+            activation = {}
+            tensor = preprocess(image)
+            input_batch = tensor.unsqueeze(0)
+            input_batch = input_batch.to(device)
+            alexnet.to(device)
+            with torch.no_grad():
+                model_output = alexnet(input_batch)
+            assets[i]['unit_responses']['alexnet'] = get_alexnet_unit_responses(activation)
+
+            for k in assets[i]['unit_responses']['alexnet'].keys():
+                print('{}: shape = {}, mean = {}'.format(k,
+                                                         assets[i]['unit_responses']['alexnet'][k].shape,
+                                                         np.mean(assets[i]['unit_responses']['alexnet'][k])))
+            # del activation, tensor, input_batch, model_output
+
+            # probabilities = torch.nn.functional.softmax(model_output[0], dim=0)
+            # print(probabilities)
+            # with open(r'F:\Data\ImageDatasets\imagenet_classes.txt', 'r') as f:
+            #     categories = [s.strip() for s in f.readlines()]
+            # # Show top categories per image
+            # top5_prob, top5_catid = torch.topk(probabilities, 5)
+            # for ii in range(top5_prob.size(0)):
+            #     print(categories[top5_catid[ii]], top5_prob[ii].item())
 
     if asset_counter % 100 == 0 and asset_counter > 0:
-        save_snapshot(savestr='_asset_modvals_alexnet_partial')
+        save_snapshot(savestr='_asset_unit_responses_alexnet_partial')
     asset_counter += 1
-save_snapshot(savestr='_asset_modvals_full')
-
-
-# def calculate_sha256_hash(file_path):
-#     hash_sha256 = hashlib.sha256()
-#     with open(file_path, 'rb') as f:
-#         for chunk in iter(lambda: f.read(4096), b''):
-#             hash_sha256.update(chunk)
-#     return hash_sha256.hexdigest()
-#
-#
-# def calculate_md5_hash(file_path):
-#     hash_md5 = hashlib.md5()
-#     with open(file_path, 'rb') as f:
-#         for chunk in iter(lambda: f.read(4096), b''):
-#             hash_md5.update(chunk)
-#     return hash_md5.hexdigest()
-#
-#
-# def checksum_file(file_path):
-#     h_sha256 = hashlib.sha256()
-#     h_md5 = hashlib.md5()
-#     with open(file_path, 'rb') as f:
-#         for chunk in iter(lambda: f.read(4096), b''):
-#             h_sha256.update(chunk)
-#             h_md5.update(chunk)
-#     return h_sha256.hexdigest(), h_md5.hexdigest()
+save_snapshot(savestr='_asset_unit_responses_full')
 
 
 # # AlexNet features conv1
