@@ -72,7 +72,7 @@ else:
 with open(os.path.join(base_path, 'imagenet_classes.txt'), 'r') as f:
     categories = [s.strip() for s in f.readlines()]
 
-model = torch.hub.load('pytorch/vision:v0.10.0', 'alexnet', pretrained=True)
+model = torch.hub.load('pytorch/vision:v0.19.1', 'alexnet', pretrained=True)
 fc6 = model.classifier[1]  # output from 'fc6' (1): Linear(in_features=9216, out_features=4096, bias=True)
 fc6.register_forward_hook(get_activation('fc6'))
 fc6relu = model.classifier[2]
