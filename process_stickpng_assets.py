@@ -505,7 +505,7 @@ for ii in image_info:
                     # assets[ii]['modvals'][omod]['bg_g'] = get_modvals_generic(activation)
                     # del activation, tensor, input_batch
         else:
-            assets[ii]['transparency'] = False
+            assets[ii]['image_transparency'] = False
             warn('No transparency found for {} and undecided how to handle, skipping for now...'.format(ii))
             continue
             # image = image.convert('RGB')
