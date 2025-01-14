@@ -178,7 +178,7 @@ if np.any(np.isnan(volume)):
 final_dtype = np.uint16
 if np.any(volume < np.iinfo(final_dtype).min):
     warn('Intensity values below the minimum ({} < {}), '.format(np.min(volume), np.iinfo(final_dtype).min) +
-         'adjusting by adding minimum value to all pixels.')
+         'adjusted by adding absolute value of minimum value to all pixels.')
     volume = volume + np.abs(np.min(volume))
 if np.any(volume > np.iinfo(final_dtype).max):
     warn('Intensity values above maximum ({} > {}) clipped.'.format(np.max(volume), np.iinfo(final_dtype).max))
