@@ -214,7 +214,8 @@ print(pca_fc6_X_r_df.head())
 
 fig, ax = plt.subplots(figsize=(10,10))
 ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=np.random.rand(len(pca_fc6_X_r_df), 3))
-plt.title('Visualizing Original Data Follow PCA')
+# plt.title('Visualizing Original Data Follow PCA')
+plt.title('PC1-2 for Stimulus Image AlexNet Features')
 # sns.despine()
 fig.show()
 
