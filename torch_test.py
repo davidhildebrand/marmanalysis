@@ -88,6 +88,41 @@ image_files = [f for f in os.listdir(collated_stim_path)
 image_files.sort()
 n_images = len(image_files)
 
+image_dotcolors = np.full([n_images, 3], np.nan)
+image_edgecolors = np.full([n_images, 3], np.nan)
+for ii, image_name in enumerate(image_files):
+    if 'Freiwald' in image_name:
+        print('frei: {}'.format(image_name))
+        image_dotcolors[ii] = np.array([0.5, 0.5, 0])
+        if '_Head_' in image_name:
+            image_edgecolors[ii] = np.array([1.0, 0, 0])
+        elif '_Objects_' in image_name:
+            image_edgecolors[ii] = np.array([0, 1.0, 0])
+        elif '_Body_' in image_name:
+            image_edgecolors[ii] = np.array([0, 0, 1.0])
+        else:
+            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+    elif 'Song' in image_name:
+        print('song: {}'.format(image_name))
+        image_dotcolors[ii] = np.array([0, 0.5, 0.5])
+        if 'm' in image_name:
+            image_edgecolors[ii] = np.array([1.0, 0, 0])
+        elif 'o' in image_name or 'u' in image_name:
+            image_edgecolors[ii] = np.array([0, 1.0, 0])
+        elif 'b' in image_name:
+            image_edgecolors[ii] = np.array([0, 0, 1.0])
+        else:
+            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+    else:
+        print('unknown: {}'.format(image_name))
+        image_dotcolors[ii] = np.array([0.5, 0, 0.5])
+        image_edgecolors[ii] = np.array([0.5, 0, 0.5])
+
+    # if '_Marm_Body_' in image_name:
+    # elif '_Marm_Head' in image_name:
+    # elif '_Objects_' in image_name:
+
+
 background_intensity = 128
 fc6_features = np.full([n_images, 4096], np.nan)
 fc6relu_features = np.full([n_images, 4096], np.nan)
@@ -213,7 +248,9 @@ pca_fc6_X_r_df = pd.DataFrame(pca_fc6_X_r, columns=['PCA1', 'PCA2'])  # , index=
 print(pca_fc6_X_r_df.head())
 
 fig, ax = plt.subplots(figsize=(10,10))
-ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=np.random.rand(len(pca_fc6_X_r_df), 3))
+# ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=np.random.rand(len(pca_fc6_X_r_df), 3))
+# ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=image_dotcolors)
+ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
 # plt.title('Visualizing Original Data Follow PCA')
 plt.title('PC1-2 for Stimulus Image AlexNet Features')
 # sns.despine()
