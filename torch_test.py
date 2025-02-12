@@ -88,41 +88,6 @@ image_files = [f for f in os.listdir(collated_stim_path)
 image_files.sort()
 n_images = len(image_files)
 
-image_dotcolors = np.full([n_images, 3], np.nan)
-image_edgecolors = np.full([n_images, 3], np.nan)
-for ii, image_name in enumerate(image_files):
-    if 'Freiwald' in image_name:
-        print('frei: {}'.format(image_name))
-        image_dotcolors[ii] = np.array([0.5, 0.5, 0])
-        if '_Head_' in image_name:
-            image_edgecolors[ii] = np.array([1.0, 0, 0])
-        elif '_Objects_' in image_name:
-            image_edgecolors[ii] = np.array([0, 1.0, 0])
-        elif '_Body_' in image_name:
-            image_edgecolors[ii] = np.array([0, 0, 1.0])
-        else:
-            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
-    elif 'Song' in image_name:
-        print('song: {}'.format(image_name))
-        image_dotcolors[ii] = np.array([0, 0.5, 0.5])
-        if 'm' in image_name:
-            image_edgecolors[ii] = np.array([1.0, 0, 0])
-        elif 'o' in image_name or 'u' in image_name:
-            image_edgecolors[ii] = np.array([0, 1.0, 0])
-        elif 'b' in image_name:
-            image_edgecolors[ii] = np.array([0, 0, 1.0])
-        else:
-            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
-    else:
-        print('unknown: {}'.format(image_name))
-        image_dotcolors[ii] = np.array([0.5, 0, 0.5])
-        image_edgecolors[ii] = np.array([0.5, 0, 0.5])
-
-    # if '_Marm_Body_' in image_name:
-    # elif '_Marm_Head' in image_name:
-    # elif '_Objects_' in image_name:
-
-
 background_intensity = 128
 fc6_features = np.full([n_images, 4096], np.nan)
 fc6relu_features = np.full([n_images, 4096], np.nan)
@@ -247,10 +212,54 @@ plt.show()
 pca_fc6_X_r_df = pd.DataFrame(pca_fc6_X_r, columns=['PCA1', 'PCA2'])  # , index=df.index)
 print(pca_fc6_X_r_df.head())
 
+
+minfob = os.listdir('/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/FOBmin/Images/20230728d/')
+newstim = os.listdir('/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/Chen/short_nonameadd')
+
+image_dotcolors = np.full([n_images, 3], np.nan)
+image_edgecolors = np.full([n_images, 3], np.nan)
+for ii, image_name in enumerate(image_files):
+    if 'Freiwald' in image_name:
+        print('frei: {}'.format(image_name))
+        image_dotcolors[ii] = np.array([1.0, 1.0, 0])
+        if '_Head_' in image_name:
+            image_edgecolors[ii] = np.array([1.0, 0, 0])
+        elif '_Objects_' in image_name:
+            image_edgecolors[ii] = np.array([0, 1.0, 0])
+        elif '_Body_' in image_name:
+            image_edgecolors[ii] = np.array([0, 0, 1.0])
+        else:
+            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+    elif 'Song' in image_name:
+        print('song: {}'.format(image_name))
+        image_dotcolors[ii] = np.array([0, 1.0, 1.0])
+        if '_m' in image_name:
+            image_edgecolors[ii] = np.array([1.0, 0, 0])
+        elif '_o' in image_name or 'u' in image_name:
+            image_edgecolors[ii] = np.array([0, 1.0, 0])
+        elif '_b' in image_name:
+            image_edgecolors[ii] = np.array([0, 0, 1.0])
+        else:
+            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+    else:
+        print('unknown: {}'.format(image_name))
+        image_dotcolors[ii] = np.array([0.5, 0, 0.5])
+        image_edgecolors[ii] = np.array([0.5, 0, 0.5])
+    if image_name in minfob:
+        image_dotcolors[ii] = np.array([1.0, 0, 1.0])
+    if image_name in newstim:
+        image_dotcolors[ii] = np.array([0.4, 0.4, 0.4])
+
+image_names = [i.replace('.png','').replace('FreiwaldFOB2012_','').replace('FreiwaldFOB2018_','').replace('Song_','').replace('_erode3px','').replace('Objects_','').replace('Head_','') for i in image_files]
+
 fig, ax = plt.subplots(figsize=(10,10))
+plt.rcParams['figure.dpi'] = 600
+plt.rcParams.update({'font.size': 1})
 # ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=np.random.rand(len(pca_fc6_X_r_df), 3))
 # ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=image_dotcolors)
-ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
+ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=40, alpha=1.0, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
+for i, txt in enumerate(image_names):
+    ax.annotate(txt, (pca_fc6_X_r_df.values[i,0], pca_fc6_X_r_df.values[i,1]), horizontalalignment='center')
 # plt.title('Visualizing Original Data Follow PCA')
 plt.title('PC1-2 for Stimulus Image AlexNet Features')
 # sns.despine()
