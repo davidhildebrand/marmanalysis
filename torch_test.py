@@ -230,6 +230,7 @@ for ii, image_name in enumerate(image_files):
             image_edgecolors[ii] = np.array([0, 0, 1.0])
         else:
             image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+        image_dotcolors[ii] = image_edgecolors[ii]
     elif 'Song' in image_name:
         print('song: {}'.format(image_name))
         image_dotcolors[ii] = np.array([0, 1.0, 1.0])
@@ -241,25 +242,27 @@ for ii, image_name in enumerate(image_files):
             image_edgecolors[ii] = np.array([0, 0, 1.0])
         else:
             image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+        image_dotcolors[ii] = image_edgecolors[ii]
     else:
         print('unknown: {}'.format(image_name))
         image_dotcolors[ii] = np.array([0.5, 0, 0.5])
         image_edgecolors[ii] = np.array([0.5, 0, 0.5])
-    if image_name in minfob:
-        image_dotcolors[ii] = np.array([1.0, 0, 1.0])
-    if image_name in newstim:
-        image_dotcolors[ii] = np.array([0.4, 0.4, 0.4])
+    # if image_name in minfob:
+    #     image_dotcolors[ii] = np.array([0.5, 0.5, 0.5])
+    if image_name not in newstim:
+        image_dotcolors[ii] = np.array([0.5, 0.5, 0.5])
+        image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
 
 image_names = [i.replace('.png','').replace('FreiwaldFOB2012_','').replace('FreiwaldFOB2018_','').replace('Song_','').replace('_erode3px','').replace('Objects_','').replace('Head_','') for i in image_files]
 
 fig, ax = plt.subplots(figsize=(10,10))
-plt.rcParams['figure.dpi'] = 600
-plt.rcParams.update({'font.size': 1})
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams.update({'font.size': 10})
 # ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=np.random.rand(len(pca_fc6_X_r_df), 3))
 # ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=image_dotcolors)
-ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=40, alpha=1.0, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
-for i, txt in enumerate(image_names):
-    ax.annotate(txt, (pca_fc6_X_r_df.values[i,0], pca_fc6_X_r_df.values[i,1]), horizontalalignment='center')
+ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=40, alpha=0.8, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
+# for i, txt in enumerate(image_names):
+#     ax.annotate(txt, (pca_fc6_X_r_df.values[i,0], pca_fc6_X_r_df.values[i,1]), horizontalalignment='center')
 # plt.title('Visualizing Original Data Follow PCA')
 plt.title('PC1-2 for Stimulus Image AlexNet Features')
 # sns.despine()
