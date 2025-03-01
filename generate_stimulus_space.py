@@ -236,6 +236,9 @@ for image_dir in image_dirs:
             }
             if checksumming:
                 assets[i]['md5'] = image_file_md5
+        else:
+            print('Skipped {}... already processed ({}).'.format(i_f, i))
+            continue
 
         if 'image_size' in assets[i]:
             if np.min(assets[i]['image_size']) < min_dimension:
@@ -325,142 +328,162 @@ for image_dir in image_dirs:
         image_counter += 1
     save_record()
 
-fc6_linear = np.array([assets[i]['unit_responses']['alexnet']['15_fc6_linear'] for i in assets])
-fc6_relu = np.array([assets[i]['unit_responses']['alexnet']['16_fc6_relu'] for i in assets])
-fc7_linear = np.array([assets[i]['unit_responses']['alexnet']['18_fc7_linear'] for i in assets])
-fc7_relu = np.array([assets[i]['unit_responses']['alexnet']['19_fc7_relu'] for i in assets])
-fc8_linear = np.array([assets[i]['unit_responses']['alexnet']['20_fc8_linear'] for i in assets])
 
-
-
-
-
+import colorsys
 from sklearn.decomposition import PCA
 import pandas as pd
-
-pca_fc6_linear_2c = PCA(n_components=2)
-pca_fc6_linear_50c = PCA(n_components=50)
-
-pca_fc6_linear_2c_X_r = pca_fc6_linear_2c.fit_transform(fc6_linear)
-pca_fc6_linear_50c_X_r = pca_fc6_linear_50c.fit_transform(fc6_linear)
-
-pca_fc6_linear_2c_explvar = pd.DataFrame(
-    data=zip(range(1, len(pca_fc6_linear_2c.explained_variance_ratio_) + 1),
-             pca_fc6_linear_2c.explained_variance_ratio_,
-             pca_fc6_linear_2c.explained_variance_ratio_.cumsum()),
-    columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
-    ).set_index('PCA').mul(100).round(1)
-# print(pca_fc6_linear_2c_explvar)
-
-
-pca_fc6_linear_50c_explvar = pd.DataFrame(
-    data=zip(range(1, len(pca_fc6_linear_50c.explained_variance_ratio_) + 1),
-             pca_fc6_linear_50c.explained_variance_ratio_,
-             pca_fc6_linear_50c.explained_variance_ratio_.cumsum()),
-    columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
-    ).set_index('PCA').mul(100).round(1)
-# print(pca_fc6_linear_50c_explvar)
-
-loadings_pca_fc6_linear_2c = pca_fc6_linear_2c.components_
-
-pca_fc6_X_r_df = pd.DataFrame(pca_fc6_linear_2c_X_r, columns=['PCA1', 'PCA2'])  # , index=df.index)
-print(pca_fc6_X_r_df.head())
-
-
-
 import matplotlib.pyplot as plt
-import seaborn as sns
+
+
+fc6 = np.array([assets[i]['unit_responses']['alexnet']['15_fc6_linear'] for i in assets])
+fc6relu = np.array([assets[i]['unit_responses']['alexnet']['16_fc6_relu'] for i in assets])
+fc7 = np.array([assets[i]['unit_responses']['alexnet']['18_fc7_linear'] for i in assets])
+fc7relu = np.array([assets[i]['unit_responses']['alexnet']['19_fc7_relu'] for i in assets])
+fc8 = np.array([assets[i]['unit_responses']['alexnet']['20_fc8_linear'] for i in assets])
+
+template = np.array(['Tsao15901', 'Tsao1593', 'Tsao500', 'SongSqCrop', 'SongSq', 'Song', 'FOBsel230517dAniso', 'FOBsel230517d', 'FOBmany230728d'])
+sort_by_tmpl = lambda x: (np.where(template == x)[0][0])
+
+stimset_labels = np.array([assets[i]['filename'].split('_')[0] for i in assets])
+n_stimsets = len(np.unique(stimset_labels))
+zorder_to_labels = {k: v for k, v in enumerate(sorted(np.unique(stimset_labels), key=sort_by_tmpl))}
+labels_to_zorder = {v: k for k, v in enumerate(sorted(np.unique(stimset_labels), key=sort_by_tmpl))}
+stimset_zorder = np.array([labels_to_zorder[stimset_labels[n]] for n in range(len(stimset_labels))])
+stimset_colors = np.array([colorsys.hsv_to_rgb(z / n_stimsets, 1.0, 1.0) for z in stimset_zorder])
+
+pca_fc6_2c = PCA(n_components=2)
+pca_fc6_50c = PCA(n_components=50)
+
+pca_fc6_2c_X_r = pca_fc6_2c.fit_transform(fc6)
+pca_fc6_50c_X_r = pca_fc6_50c.fit_transform(fc6)
+
+print(pca_fc6_2c.explained_variance_ratio_)
+pca_fc6_2c_explvar = pd.DataFrame(
+    data=zip(range(1, len(pca_fc6_2c.explained_variance_ratio_) + 1),
+             pca_fc6_2c.explained_variance_ratio_,
+             pca_fc6_2c.explained_variance_ratio_.cumsum()),
+    columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
+    ).set_index('PCA').mul(100).round(1)
+print(pca_fc6_2c_explvar)
+
+print(pca_fc6_50c.explained_variance_ratio_)
+pca_fc6_50c_explvar = pd.DataFrame(
+    data=zip(range(1, len(pca_fc6_50c.explained_variance_ratio_) + 1),
+             pca_fc6_50c.explained_variance_ratio_,
+             pca_fc6_50c.explained_variance_ratio_.cumsum()),
+    columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
+    ).set_index('PCA').mul(100).round(1)
+print(pca_fc6_50c_explvar)
+
 fig, ax = plt.subplots(figsize=(8,8))
+ax.bar(x=pca_fc6_2c_explvar.index, height=pca_fc6_2c_explvar['Explained Variance (%)'], label='Explained Variance', width=0.9)
+ax.plot(pca_fc6_2c_explvar['Total Explained Variance (%)'], label='Total Explained Variance', marker='o')
+plt.ylim(0, 100)
+plt.ylabel('Explained Variance (%)')
+plt.xlabel('PCA')
+plt.grid(True, axis='y')
+plt.title('Explained Variance')
+plt.legend()
+plt.show()
 
-ax = sns.heatmap(
-    pca_fc6.components_,
-    cmap='coolwarm',
-    yticklabels=[f'PCA{x}' for x in range(1, pca_fc6.n_components_ + 1)],
-    xticklabels=list(pca_fc6_explvar.columns),
-    linewidths=1,
-    annot=True,
-    fmt=',.2f',
-    cbar_kws={"shrink": 0.8, "orientation": 'horizontal'}
-    )
-ax.set_aspect("equal")
-plt.title('Loading for Each Variable and Component', weight='bold')
+fig, ax = plt.subplots(figsize=(8,8))
+ax.bar(x=pca_fc6_50c_explvar.index, height=pca_fc6_50c_explvar['Explained Variance (%)'], label='Explained Variance', width=0.9)
+ax.plot(pca_fc6_50c_explvar['Total Explained Variance (%)'], label='Total Explained Variance', marker='o')
+plt.ylim(0, 100)
+plt.ylabel('Explained Variance (%)')
+plt.xlabel('PCA')
+plt.grid(True, axis='y')
+plt.title('Explained Variance')
+plt.legend()
 plt.show()
 
 
-loadings_fc6_pc1 = loadings_fc6[0]
-loadings_fc6_pc2 = loadings_fc6[1]
-fig, ax = plt.subplots(figsize=(10, 8))
-plt.scatter(
-    x=loadings_fc6_pc1,  # loadings_fc6['PC1'],
-    y=loadings_fc6_pc2,  # loadings_fc6['PC2'],
-)
+# # Difficult to interpret loadings from AlexNet features
+# pca_fc6_2c_loadings = pd.DataFrame(pca_fc6_2c.components_.T, columns=['PC1', 'PC2'])
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# n_vars = 20
+# fig, ax = plt.subplots(figsize=(8,4))
+# ax = sns.heatmap(
+#     pca_fc6_2c.components_[:, :n_vars],
+#     cmap='coolwarm',
+#     yticklabels=[f'PC{x}' for x in range(1, pca_fc6_2c.n_components_ + 1)],
+#     xticklabels=[f'{x}' for x in range(0, n_vars)],
+#     linewidths=1,
+#     annot=True,
+#     fmt=',.2f',
+#     cbar_kws={"shrink": 0.8, "orientation": 'horizontal'}
+#     )
+# ax.set_aspect("equal")
+# plt.title('Loading for Each Variable and Component', weight='bold')
+# plt.show()
+#
+# fig, ax = plt.subplots(figsize=(10, 8))
+# plt.scatter(x=pca_fc6_2c_loadings['PC1'], y=pca_fc6_2c_loadings['PC2'])
+# plt.axvline(x=0, c="black", label="x=0")
+# plt.axhline(y=0, c="black", label="y=0")
+# for label, x_val, y_val in zip(pca_fc6_2c_loadings.index, pca_fc6_2c_loadings['PC1'], pca_fc6_2c_loadings['PC2']):  # loadings_fc6['PC1'], loadings_fc6['PC2']):
+#     plt.annotate(label, (x_val, y_val), textcoords="offset points", xytext=(0, 10), ha='center')
+# plt.title('Visualizing PC1 and PC2 Loadings', weight='bold')
+# ax.spines[['right', 'top']].set_visible(False)
+# plt.show()
 
-plt.axvline(x=0, c="black", label="x=0")
-plt.axhline(y=0, c="black", label="y=0")
+pca_fc6_2c_X_r_df = pd.DataFrame(pca_fc6_2c_X_r, columns=[f'PC{x}' for x in range(1, pca_fc6_2c.n_components_ + 1)])
+pca_fc6_50c_X_r_df = pd.DataFrame(pca_fc6_50c_X_r, columns=[f'PC{x}' for x in range(1, pca_fc6_50c.n_components_ + 1)])
+# print(pca_fc6_50c_X_r_df.head())
 
-for label, x_val, y_val in zip(range(len(loadings_fc6)), loadings_fc6_pc1, loadings_fc6_pc2):  # loadings_fc6['PC1'], loadings_fc6['PC2']):
-    plt.annotate(label, (x_val, y_val), textcoords="offset points", xytext=(0, 10), ha='center')
-
-plt.title('Visualizing PCA1 and PCA2 Loadings', weight='bold')
-ax.spines[['right', 'top', ]].set_visible(False)
-plt.show()
-
-
-
-
-
-
-minfob = os.listdir('/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/FOBmin/Images/20230728d/')
-newstim = os.listdir('/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/Chen/short_nonameadd')
-
-image_dotcolors = np.full([n_images, 3], np.nan)
-image_edgecolors = np.full([n_images, 3], np.nan)
-for ii, image_name in enumerate(image_files):
-    if 'Freiwald' in image_name:
-        print('frei: {}'.format(image_name))
-        image_dotcolors[ii] = np.array([1.0, 1.0, 0])
-        if '_Head_' in image_name:
-            image_edgecolors[ii] = np.array([1.0, 0, 0])
-        elif '_Objects_' in image_name:
-            image_edgecolors[ii] = np.array([0, 1.0, 0])
-        elif '_Body_' in image_name:
-            image_edgecolors[ii] = np.array([0, 0, 1.0])
-        else:
-            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
-        image_dotcolors[ii] = image_edgecolors[ii]
-    elif 'Song' in image_name:
-        print('song: {}'.format(image_name))
-        image_dotcolors[ii] = np.array([0, 1.0, 1.0])
-        if '_m' in image_name:
-            image_edgecolors[ii] = np.array([1.0, 0, 0])
-        elif '_o' in image_name or 'u' in image_name:
-            image_edgecolors[ii] = np.array([0, 1.0, 0])
-        elif '_b' in image_name:
-            image_edgecolors[ii] = np.array([0, 0, 1.0])
-        else:
-            image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
-        image_dotcolors[ii] = image_edgecolors[ii]
-    else:
-        print('unknown: {}'.format(image_name))
-        image_dotcolors[ii] = np.array([0.5, 0, 0.5])
-        image_edgecolors[ii] = np.array([0.5, 0, 0.5])
-    # if image_name in minfob:
-    #     image_dotcolors[ii] = np.array([0.5, 0.5, 0.5])
-    if image_name not in newstim:
-        image_dotcolors[ii] = np.array([0.5, 0.5, 0.5])
-        image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
-
-image_names = [i.replace('.png','').replace('FreiwaldFOB2012_','').replace('FreiwaldFOB2018_','').replace('Song_','').replace('_erode3px','').replace('Objects_','').replace('Head_','') for i in image_files]
+# minfob = os.listdir('/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/FOBmin/Images/20230728d/')
+# newstim = os.listdir('/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/Chen/short_nonameadd')
+#
+# image_dotcolors = np.full([n_images, 3], np.nan)
+# image_edgecolors = np.full([n_images, 3], np.nan)
+# for ii, image_name in enumerate(image_files):
+#     if 'Freiwald' in image_name:
+#         print('frei: {}'.format(image_name))
+#         image_dotcolors[ii] = np.array([1.0, 1.0, 0])
+#         if '_Head_' in image_name:
+#             image_edgecolors[ii] = np.array([1.0, 0, 0])
+#         elif '_Objects_' in image_name:
+#             image_edgecolors[ii] = np.array([0, 1.0, 0])
+#         elif '_Body_' in image_name:
+#             image_edgecolors[ii] = np.array([0, 0, 1.0])
+#         else:
+#             image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+#         image_dotcolors[ii] = image_edgecolors[ii]
+#     elif 'Song' in image_name:
+#         print('song: {}'.format(image_name))
+#         image_dotcolors[ii] = np.array([0, 1.0, 1.0])
+#         if '_m' in image_name:
+#             image_edgecolors[ii] = np.array([1.0, 0, 0])
+#         elif '_o' in image_name or 'u' in image_name:
+#             image_edgecolors[ii] = np.array([0, 1.0, 0])
+#         elif '_b' in image_name:
+#             image_edgecolors[ii] = np.array([0, 0, 1.0])
+#         else:
+#             image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+#         image_dotcolors[ii] = image_edgecolors[ii]
+#     else:
+#         print('unknown: {}'.format(image_name))
+#         image_dotcolors[ii] = np.array([0.5, 0, 0.5])
+#         image_edgecolors[ii] = np.array([0.5, 0, 0.5])
+#     # if image_name in minfob:
+#     #     image_dotcolors[ii] = np.array([0.5, 0.5, 0.5])
+#     if image_name not in newstim:
+#         image_dotcolors[ii] = np.array([0.5, 0.5, 0.5])
+#         image_edgecolors[ii] = np.array([0.5, 0.5, 0.5])
+#
+# image_names = [i.replace('.png','').replace('FreiwaldFOB2012_','').replace('FreiwaldFOB2018_','').replace('Song_','').replace('_erode3px','').replace('Objects_','').replace('Head_','') for i in image_files]
 
 fig, ax = plt.subplots(figsize=(10,10))
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams.update({'font.size': 10})
-# ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=np.random.rand(len(pca_fc6_X_r_df), 3))
-# ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=20, alpha=0.5, c=image_dotcolors)
-ax.scatter(data=pca_fc6_X_r_df, x='PCA1', y='PCA2', s=40, alpha=0.8, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
+# ax.scatter(data=pca_fc6_50c_X_r_df, x='PC1', y='PC2', s=40, alpha=0.8)  #, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
+# ax.scatter(data=pca_fc6_50c_X_r_df, x='PC1', y='PC2', s=40, alpha=0.8, c=stimset_colors, label=stimset_labels)  # , zorder=stimset_zorder)  # linewidths=2)
+for z in np.unique(stimset_zorder):
+    ax.scatter(data=pca_fc6_50c_X_r_df.iloc[np.where(stimset_zorder==z)], x='PC1', y='PC2', s=10, alpha=0.9, c=stimset_colors[np.where(stimset_zorder==z)], label=zorder_to_labels[z])  # , zorder=stimset_zorder)  # linewidths=2)
 # for i, txt in enumerate(image_names):
 #     ax.annotate(txt, (pca_fc6_X_r_df.values[i,0], pca_fc6_X_r_df.values[i,1]), horizontalalignment='center')
-# plt.title('Visualizing Original Data Follow PCA')
-plt.title('PC1-2 for Stimulus Image AlexNet Features')
+plt.title('PCA of Stimulus Image AlexNet Features')
+plt.legend()
 # sns.despine()
 fig.show()
