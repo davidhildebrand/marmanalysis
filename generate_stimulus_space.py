@@ -480,7 +480,25 @@ plt.rcParams.update({'font.size': 10})
 # ax.scatter(data=pca_fc6_50c_X_r_df, x='PC1', y='PC2', s=40, alpha=0.8)  #, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
 # ax.scatter(data=pca_fc6_50c_X_r_df, x='PC1', y='PC2', s=40, alpha=0.8, c=stimset_colors, label=stimset_labels)  # , zorder=stimset_zorder)  # linewidths=2)
 for z in np.unique(stimset_zorder):
+    if zorder_to_labels[z] == 'Tsao15901' or zorder_to_labels[z] == 'Tsao1593':
+        continue
     ax.scatter(data=pca_fc6_50c_X_r_df.iloc[np.where(stimset_zorder==z)], x='PC1', y='PC2', s=10, alpha=0.9, c=stimset_colors[np.where(stimset_zorder==z)], label=zorder_to_labels[z])  # , zorder=stimset_zorder)  # linewidths=2)
+# for i, txt in enumerate(image_names):
+#     ax.annotate(txt, (pca_fc6_X_r_df.values[i,0], pca_fc6_X_r_df.values[i,1]), horizontalalignment='center')
+plt.title('PCA of Stimulus Image AlexNet Features')
+plt.legend()
+# sns.despine()
+fig.show()
+
+fig, ax = plt.subplots(figsize=(10,10))
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams.update({'font.size': 10})
+# ax.scatter(data=pca_fc6_2c_X_r_df, x='PC1', y='PC2', s=40, alpha=0.8)  #, c=image_dotcolors, edgecolors=image_edgecolors, linewidths=2)
+# ax.scatter(data=pca_fc6_2c_X_r_df, x='PC1', y='PC2', s=40, alpha=0.8, c=stimset_colors, label=stimset_labels)  # , zorder=stimset_zorder)  # linewidths=2)
+for z in np.unique(stimset_zorder):
+    if zorder_to_labels[z] == 'Tsao15901' or zorder_to_labels[z] == 'Tsao1593':
+        continue
+    ax.scatter(data=pca_fc6_2c_X_r_df.iloc[np.where(stimset_zorder==z)], x='PC1', y='PC2', s=10, alpha=0.9, c=stimset_colors[np.where(stimset_zorder==z)], label=zorder_to_labels[z])  # , zorder=stimset_zorder)  # linewidths=2)
 # for i, txt in enumerate(image_names):
 #     ax.annotate(txt, (pca_fc6_X_r_df.values[i,0], pca_fc6_X_r_df.values[i,1]), horizontalalignment='center')
 plt.title('PCA of Stimulus Image AlexNet Features')
