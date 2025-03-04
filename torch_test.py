@@ -49,7 +49,7 @@ system_name = socket.gethostname()
 if 'Galactica' in system_name or 'galactica' in system_name:
     base_path = r'/Users/davidh/Data/Freiwald/'
     stim_path = r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets'
-    collated_stim_path = os.path.join(base_path, 'stims')
+    collated_stim_path = os.path.join(base_path, 'ImageDatasets', 'stims')
     device = 'cpu'
     # device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 elif 'Obsidian' in system_name:
@@ -60,7 +60,7 @@ elif 'Obsidian' in system_name:
 elif 'Dobbin' in system_name:
     base_path = r'D:\Data'
     stim_path = r'C:\Users\DavidH\Sync\Freiwald\MarmoScope\Stimulus\Sets'
-    collated_stim_path = os.path.join(base_path, 'stims')
+    collated_stim_path = os.path.join(base_path, 'ImageDatasets', 'stims')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 else:
     base_path = None
@@ -69,7 +69,7 @@ else:
     device = 'cpu'
 
 # Read ImageNet categories
-with open(os.path.join(base_path, 'imagenet_classes.txt'), 'r') as f:
+with open(os.path.join(base_path, 'ImageDatasets', 'imagenet_classes.txt'), 'r') as f:
     categories = [s.strip() for s in f.readlines()]
 
 model = torch.hub.load('pytorch/vision:v0.19.1', 'alexnet', pretrained=True)
