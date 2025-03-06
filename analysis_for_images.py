@@ -1135,24 +1135,6 @@ for m in metrics:
 del m
 
 
-# 'cond': None,
-# 'stim_mode': None,
-# 'stim_class': None,
-# 'stim_subclass': None,
-
-# 'image': None,
-# 'image_path': None,
-
-# 'units': None,
-# 'pos': None,
-# 'size': None,
-# 'ori': None,
-# 'color': None,
-# 'colorSpace': None,
-# 'contrast': None,
-# 'opacity': None,
-# 'texRes': None,
-
 # Currently supported image sets:
 # 'FOBmin_MarmOnly', 'FOBmin', 'FOBmany', 'Song_etal_Wang_2022_FOBonly'
 
