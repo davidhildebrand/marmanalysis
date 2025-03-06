@@ -203,7 +203,7 @@ def mpfi_baseline_filter(x, fs, p_rank=10, filtered_cutoff=120):
     return x_bw
 
 
-def calculate_baselines(f_rois, framerate=6.364, window=60, method='meanbw', **extras):
+def calculate_baselines(f_rois, framerate=6.364, window=60, method='medianbw', **extras):
     """
     Calculate the baselines for all ROIs.
 
