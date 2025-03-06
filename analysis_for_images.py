@@ -633,8 +633,9 @@ if len(filelist_stimulus_log) > 0:
     else:
         sl = None
     if sl is not None:
-        stimlog = parsers.create_stimulus_record(trials=len(sl))
-        stimlog.update(sl)
+        # stimlog = parsers.create_stimulus_record(trials=len(sl))
+        # stimlog.update(sl)
+        stimlog = parsers.convert_stimulus_record(sl)
     else:
         stimlog = None
     del pkls, hdf5s, csvs, sl
