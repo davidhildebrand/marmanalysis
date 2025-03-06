@@ -140,20 +140,20 @@ def save_snapshot(savestr='asset_record_snapshot'):
 
 
 system_name = socket.gethostname()
-if 'Galactica' in system_name:
+if 'galactica' in system_name.lower():
     base_path = r'/Users/davidh/Data/Freiwald/ImageDatasets'
     stimulus_path = r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/StimSpace'
     device = 'cpu'
     # device = 'mps' if torch.backends.mps.is_available() else 'cpu'
-elif 'marmostor' in system_name:
+elif 'marmostor' in system_name.lower():
     base_path = r'/marmostor/DavidH/ImageDatasets'
     stimulus_path = r'/FreiwaldSync/MarmoScope/Stimulus/Sets/StimSpace'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-elif 'Obsidian' in system_name:
+elif 'obsidian' in system_name.lower():
     base_path = r'F:\Data\ImageDatasets'
     stimulus_path = base_path
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-elif 'Dobbin' in system_name:
+elif 'dobbin' in system_name.lower():
     base_path = r'D:\Data\ImageDatasets'
     stimulus_path = base_path
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
