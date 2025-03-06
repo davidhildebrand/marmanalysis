@@ -511,6 +511,10 @@ class StimulusImage(object):
         return self.yaw < other.yaw
 
 
+def round_to_quarter(num):
+    return round(num * 4) / 4
+
+
 # %% Find files and load data
 
 system_name = socket.gethostname()
@@ -1041,8 +1045,9 @@ if correct_acqfr_index:
 # Determine basic stimulus presentation information
 #   For sessions using older stimulus code, the exact number of stimulus or ISI frames could
 #   vary slightly because the stim start was not locked to an acqusition frame increment.
-dur_stim = np.round(np.mean(stimlog['dur_stim'].values), 2)
-dur_isi = np.round(np.min(stimlog['dur_isi_pre'].values), 2)
+# Note that 'round_to_quarter' use here assumes specified stimulus duration was in multiples of 0.25 sec.
+dur_stim = round_to_quarter(np.mean(stimlog['dur_stim'].values))
+dur_isi = round_to_quarter(np.min(stimlog['dur_isi_pre'].values))
 dur_trial = dur_isi + dur_stim + dur_isi
 if md['stim_locked_to_acqfr']:
     n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).argmax()
