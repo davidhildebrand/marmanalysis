@@ -404,16 +404,42 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
 
                         'image': None,
                         'image_path': None,
+                        'image_name': None,
+                        'image_mask': None,
+                        'image_units': None,
+                        'image_pos': None,
+                        'image_size': None,
+                        'image_anchor': None,
+                        'image_ori': None,
+                        'image_color': None,
+                        'image_colorSpace': None,
+                        'image_contrast': None,
+                        'image_opacity': None,
+                        'image_interpolate': None,
+                        'image_flipHoriz': None,
+                        'image_flipVert': None,
+                        'image_texRes': None,
+                        'image_maskParams': None,
 
-                        'units': None,
-                        'pos': None,
-                        'size': None,
-                        'ori': None,
-                        'color': None,
-                        'colorSpace': None,
-                        'contrast': None,
-                        'opacity': None,
-                        'texRes': None,
+                        'movie': None,
+                        'movie_path': None,
+                        'movie_name': None,
+                        'movie_fps': None,
+                        'movie_movieLib': None,
+                        'movie_units': None,
+                        'movie_size': None,
+                        'movie_pos': None,
+                        'movie_ori': None,
+                        'movie_anchor': None,
+                        'movie_color': None,
+                        'movie_colorSpace': None,
+                        'movie_flipHoriz': None,
+                        'movie_flipVert': None,
+                        'movie_opacity': None,
+                        'movie_contrast': None,
+                        'movie_volume': None,
+                        'movie_loop': None,
+                        'movie_interpolate': None,
 
                         'grating_tex': None,
                         'grating_mask': None,
@@ -436,6 +462,7 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
                         'dots_opticflow_dir': None,
                         'dots_rotation_dir': None,
                         'dots_nDots': None,
+                        'dots_nElements': None,
                         'dots_coherence': None,
                         'dots_fieldPos': None,
                         'dots_fieldSize': None,
@@ -445,6 +472,7 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
                         'dots_dir': None,
                         'dots_speed': None,
                         'dots_color': None,
+                        'dots_colorSpace': None,
                         'dots_opacity': None,
                         'dots_contrast': None,
                         'dots_signalDots': None,
@@ -466,12 +494,270 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
     return log
 
 
+def convert_stimulus_record(log_input) -> pd.DataFrame:
+    log = create_stimulus_record(trials=len(log_input))
+    # log.update(log_input)
+
+    # if session_log is not None:
+    #     log_session = parse_log_stim_image(session_log)
+
+    copy_keys = [
+        't_isi_i',
+        't_isi_f',
+        'acqfr_isi_i',
+        'acqfr_isi_f',
+        'dispfr_isi_i',
+        'dispfr_isi_f',
+
+        't_fix_i',
+        't_fix_f',
+        'acqfr_fix_i',
+        'acqfr_fix_f',
+        'dispfr_fix_i',
+        'dispfr_fix_f',
+
+        't_stim_i',
+        't_stim_f',
+        'acqfr_stim_i',
+        'acqfr_stim_f',
+        'dispfr_stim_i',
+        'dispfr_stim_f',
+
+        'cond',
+        'stim_mode',
+        'stim_class',
+        'stim_subclass',
+    ]
+    for k in copy_keys:
+        if k in log_input.columns:
+            log[k] = log_input[k]
+        # else:
+        #     warn('Expected log key {} not found in input log.'.format(k))
+
+
+    keys_namechange = {
+        # new_key_name: old_key_name,
+        'trial': 'trial_n',
+        'ai_isi_i': 'AIshape_isi_i',
+        'ai_isi_f': 'AIshape_isi_f',
+        'ai_fix_i': 'AIshape_fix_i',
+        'ai_fix_f': 'AIshape_fix_f',
+        'ai_stim_i': 'AIshape_stim_i',
+        'ai_stim_f': 'AIshape_stim_f',
+    }
+    for k, v in keys_namechange.items():
+        if k not in log_input.columns:
+            if v in log_input.columns:
+                log[k] = log_input[v]
+        else:
+            log[k] = log_input[k]
+
+
+    if 'dur_isi_pre' in log_input.columns:
+        log['dur_isi_pre'] = log_input['dur_isi_pre']
+    else:
+        if 't_isi_i' in log.columns and 't_isi_f' in log.columns:
+            log['dur_isi_pre'] = log['t_isi_f'] - log['t_isi_i']
+    if 'dur_stim' in log_input.columns:
+        log['dur_stim'] = log_input['dur_stim']
+    else:
+        if not log_input['stim_dur'].isnull().all():
+            log['dur_stim'] = log_input['stim_dur']
+        elif 't_stim_i' in log_input.columns and 't_stim_f' in log_input.columns:
+            log['dur_stim'] = log_input['t_stim_f'] - log_input['t_stim_i']
+        else:
+            warn('No stimulus duration information available.')
+    if 'dur_isi_post' in log_input.columns:
+        log['dur_isi_post'] = log_input['dur_isi_post']
+    else:
+        if 'dur_isi_pre' in log.columns:
+            log['dur_isi_post'] = log['dur_isi_pre'].shift(-1)
+
+
+    trials_image = (log_input['stim_mode'] == 'visual') & (log_input['stim_class'] == 'image')
+    keys_image = {
+        'image': 'image',
+        'image_path': 'image_path',
+        'image_name': 'image_name',
+        'image_mask': 'mask',
+        'image_maskParams': 'maskParams',
+        'image_units': 'units',
+        'image_pos': 'pos',
+        'image_size': 'size',
+        'image_anchor': 'anchor',
+        'image_ori': 'ori',
+        'image_color': 'color',
+        'image_colorSpace': 'colorSpace',
+        'image_contrast': 'contrast',
+        'image_opacity': 'opacity',
+        'image_interpolate': 'interpolate',
+        'image_flipHoriz': 'flipHoriz',
+        'image_flipVert': 'flipVert',
+        'image_texRes': 'texRes',
+    }
+    for k, v in keys_image.items():
+        if k not in log_input.columns:
+            if v in log_input.columns:
+                log.loc[trials_image, k] = log_input.loc[trials_image, v]
+        else:
+            log.loc[trials_image, k] = log_input.loc[trials_image, k]
+    log.loc[trials_image, 'stim_mode'] = 'visual'
+    log.loc[trials_image, 'stim_class'] = 'image'
+
+
+    trials_movie = (log_input['stim_mode'] == 'visual') & (log_input['stim_class'] == 'video')
+    keys_movie = {
+        'movie': 'video',
+        'movie_path': 'video_path',
+        'movie_name': 'name',
+        'movie_fps': 'video_fps',
+        'movie_movieLib': 'movieLib',
+        'movie_units': 'units',
+        'movie_pos': 'pos',
+        'movie_size': 'size',
+        'movie_anchor': 'anchor',
+        'movie_ori': 'ori',
+        'movie_color': 'color',
+        'movie_colorSpace': 'colorSpace',
+        'movie_contrast': 'contrast',
+        'movie_opacity': 'opacity',
+        'movie_interpolate': 'interpolate',
+        'movie_flipHoriz': 'flipHoriz',
+        'movie_flipVert': 'flipVert',
+        'movie_volume': 'volume',
+        'movie_loop': 'loop',
+        'movie_interpolate': 'interpolate',
+    }
+    for k, v in keys_movie.items():
+        if k not in log_input.columns:
+            if v in log_input.columns:
+                log.loc[trials_movie, k] = log_input.loc[trials_movie, v]
+        else:
+            log.loc[trials_movie, k] = log_input.loc[trials_movie, k]
+    log.loc[trials_movie, 'stim_mode'] = 'visual'
+    log.loc[trials_movie, 'stim_class'] = 'movie'
+
+
+    trials_grating_drifting = (log_input['stim_mode'] == 'visual') & (log_input['stim_class'] == 'moving_grating')
+    trials_grating_static =  (log_input['stim_mode'] == 'visual') & (log_input['stim_class'] == 'static_grating')
+    trials_grating = (trials_grating_drifting | trials_grating_static)
+    keys_grating = {
+        'grating_tex': 'grating_tex',
+        'grating_ori': 'grating_dir',
+        'grating_sf': 'grating_spatial_freq',
+        'grating_tf': 'grating_temp_freq',
+        'grating_contrast': 'grating_contrast',
+        'grating_mask': 'mask',
+        'grating_maskParams': 'maskParams',
+        'grating_units': 'units',
+        'grating_anchor': 'anchor',
+        'grating_pos': 'pos',
+        'grating_size': 'size',
+        'grating_phase': 'phase',
+        'grating_texRes': 'texRes',
+        'grating_color': 'color',
+        'grating_colorSpace': 'colorSpace',
+        'grating_opacity': 'opacity',
+        'grating_interpolate': 'interpolate',
+    }
+    for k, v in keys_grating.items():
+        if k not in log_input.columns:
+            if v in log_input.columns:
+                log.loc[trials_grating, k] = log_input.loc[trials_grating, v]
+        else:
+            log.loc[trials_grating, k] = log_input.loc[trials_grating, k]
+    log.loc[trials_grating, 'stim_mode'] = 'visual'
+    log.loc[trials_grating, 'stim_class'] = 'grating'
+    log.loc[trials_grating_drifting, 'stim_subclass'] = 'drifting'
+    log.loc[trials_grating_static, 'stim_subclass'] = 'static'
+
+
+    trials_dots = (log_input['stim_mode'] == 'visual') & (log_input['stim_class'] == 'dots')
+    trials_dots_translation = trials_dots & (log_input['stim_subclass'] == 'translation')
+    trials_dots_xintrinsic = trials_dots & (log_input['stim_subclass'] == 'xintrinsic')
+    trials_dots_rotation =  trials_dots & (log_input['stim_subclass'] == 'rotation')
+    trials_dots_opticflow =  trials_dots & (log_input['stim_subclass'] == 'opticflow')
+    trials_dots_static =  trials_dots & (log_input['stim_subclass'] == 'static')
+    keys_dots = {
+        'dots_nDots': 'nDots',
+        'dots_nElements': 'nElements',
+        'dots_coherence': 'coherence',
+        'dots_fieldPos': 'fieldPos',
+        'dots_fieldSize': 'fieldSize',
+        'dots_fieldShape': 'fieldShape',
+        'dots_dotSize': 'dotSize',
+        'dots_dotLife': 'dotLife',
+        'dots_speed': 'speed',
+        'dots_color': 'color',
+        'dots_colorSpace': 'colorSpace',
+        'dots_contrast': 'contrast',
+        'dots_opacity': 'opacity',
+        'dots_signalDots': 'signalDots',
+        'dots_noiseDots': 'noiseDots',
+    }
+    for k, v in keys_dots.items():
+        if k not in log_input.columns:
+            if v in log_input.columns:
+                log.loc[trials_dots, k] = log_input.loc[trials_dots, v]
+        else:
+            log.loc[trials_dots, k] = log_input.loc[trials_dots, k]
+    log.loc[trials_dots, 'stim_mode'] = 'visual'
+    log.loc[trials_dots, 'stim_class'] = 'dots'
+    log.loc[trials_dots_translation, 'stim_subclass'] = 'translation'
+    log.loc[trials_dots_xintrinsic, 'stim_subclass'] = 'xintrinsic'
+    log.loc[trials_dots_rotation, 'stim_subclass'] = 'rotation'
+    log.loc[trials_dots_opticflow, 'stim_subclass'] = 'opticflow'
+    log.loc[trials_dots_static, 'stim_subclass'] = 'static'
+    if 'dots_translation_dir' in log_input.columns:
+        log.loc[trials_dots_translation, 'dots_dir'] = log_input.loc[trials_dots_translation, 'dots_translation_dir']
+    elif 'dots_dir' in log_input.columns:
+        log.loc[trials_dots_translation, 'dots_dir'] = log_input.loc[trials_dots_translation, 'dots_dir']
+    if 'dots_xintrinsic_dir' in log_input.columns:
+        log.loc[trials_dots_xintrinsic, 'dots_dir'] = log_input.loc[trials_dots_xintrinsic, 'dots_xintrinsic_dir']
+    elif 'dots_dir' in log_input.columns:
+        log.loc[trials_dots_xintrinsic, 'dots_dir'] = log_input.loc[trials_dots_xintrinsic, 'dots_dir']
+    if 'dots_rotation_dir' in log_input.columns:
+        log.loc[trials_dots_rotation, 'dots_dir'] = log_input.loc[trials_dots_rotation, 'dots_rotation_dir']
+    elif 'dots_dir' in log_input.columns:
+        log.loc[trials_dots_rotation, 'dots_dir'] = log_input.loc[trials_dots_rotation, 'dots_dir']
+    if 'dots_opticflow_dir' in log_input.columns:
+        log.loc[trials_dots_opticflow, 'dots_dir'] = log_input.loc[trials_dots_opticflow, 'dots_opticflow_dir']
+    elif 'dots_dir' in log_input.columns:
+        log.loc[trials_dots_opticflow, 'dots_dir'] = log_input.loc[trials_dots_opticflow, 'dots_dir']
+
+    trials_flash = (log_input['stim_mode'] == 'visual') & (log_input['stim_class'] == 'flash')
+    if 'flash_type' in log_input.columns:
+        log.loc[trials_flash, 'flash_type'] = log_input.loc[trials_flash, 'flash_type']
+
+    trials_auditory = (log_input['stim_mode'] == 'audio') | (log_input['stim_mode'] == 'auditory')
+    trials_tone = trials_auditory & (log_input['stim_class'] == 'tone')
+    trials_vocalization = (trials_auditory &
+                           ((log_input['stim_class'] == 'vocal') | (log_input['stim_class'] == 'vocalization')))
+    keys_auditory = {
+        'freq': 'f',
+        'lev': 'lev',
+        'ampmod_freq': 'sAM_fm',
+        'voc_path': 'voc_path',
+    }
+    for k, v in keys_auditory.items():
+        if k not in log_input.columns:
+            if v in log_input.columns:
+                log.loc[trials_auditory, k] = log_input.loc[trials_auditory, v]
+        else:
+            log.loc[trials_auditory, k] = log_input.loc[trials_auditory, k]
+    log.loc[trials_auditory, 'stim_mode'] = 'auditory'
+    log.loc[trials_vocalization, 'stim_class'] = 'tone'
+    log.loc[trials_vocalization, 'stim_class'] = 'vocalization'
+
+    return log
+
+
 def parse_log_stim_image(session_log) -> pd.DataFrame:
     """
     Parse the session log file output of the original stimulus_image.py script into newer DataFrame format.
     """
     
-    # TODO * * * also handle 'Keypress: q' and/or 'stimulus aborted' such as in Cadbury 20220909d
+    # TODO *** also handle 'Keypress: q' and/or 'stimulus aborted' such as in Cadbury 20220909d
 
     lines = session_log.splitlines()
 
@@ -641,15 +927,15 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
                     log.at[trial, 'stim_subclass'] = None
                     log.at[trial, 'image'] = g[7]
                     log.at[trial, 'image_path'] = g[8]
-                    log.at[trial, 'units'] = g[9]
-                    log.at[trial, 'pos'] = np.fromstring(g[10], sep=' ')
-                    log.at[trial, 'size'] = np.fromstring(g[11], sep=' ')
-                    log.at[trial, 'ori'] = float(g[12])
-                    log.at[trial, 'color'] = np.fromstring(g[13], sep=' ')
-                    log.at[trial, 'colorSpace'] = g[14]
-                    log.at[trial, 'contrast'] = float(g[15])
-                    log.at[trial, 'opacity'] = float(g[16])
-                    log.at[trial, 'texRes'] = int(g[17])
+                    log.at[trial, 'image_units'] = g[9]
+                    log.at[trial, 'image_pos'] = np.fromstring(g[10], sep=' ')
+                    log.at[trial, 'image_size'] = np.fromstring(g[11], sep=' ')
+                    log.at[trial, 'image_ori'] = float(g[12])
+                    log.at[trial, 'image_color'] = np.fromstring(g[13], sep=' ')
+                    log.at[trial, 'image_colorSpace'] = g[14]
+                    log.at[trial, 'image_contrast'] = float(g[15])
+                    log.at[trial, 'image_opacity'] = float(g[16])
+                    log.at[trial, 'image_texRes'] = int(g[17])
                 case 'end':
                     if times_stim is None and 'time_stim_i' in locals():
                         log.at[trial, 'dur_stim'] = t - time_stim_i
