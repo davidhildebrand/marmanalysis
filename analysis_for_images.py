@@ -769,7 +769,7 @@ n_ROIs, n_frames = Frois.shape
 # Calculate baseline fluorescence (F0)
 F0_filt_win_sec = 60  # sec
 F0_filt_win_frames = round(F0_filt_win_sec * md['framerate'])  # frames
-F0 = filters.calculate_baselines(Frois, framerate=md['framerate'], window=F0_filt_win_sec, method='meanbw')
+F0 = filters.calculate_baselines(Frois, framerate=md['framerate'], window=F0_filt_win_sec, method='medianbw')
 
 filters.plot_example_baselines(Frois, rois=2, frames=1000, 
                                framerate=md['framerate'], window=F0_filt_win_sec)
