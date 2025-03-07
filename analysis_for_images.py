@@ -1121,7 +1121,7 @@ dlist = [('cond', 'S8'),
          ('pitch', 'i2'),
          ('yaw', 'i2'),
          ('roll', 'i2'),
-         ('imagename', np.unicode_, 256)]
+         ('imagename', np.str_, 256)]
 
 for m in metrics:
     dlist.append((m, 'f8', (n_ROIs, n_reps, n_samp_trial)))
