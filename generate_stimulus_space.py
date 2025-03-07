@@ -16,19 +16,19 @@ from warnings import warn
 
 
 image_dirs = [
-              r'FOBmany230728d',
-              r'FOBmany240312d',
-              r'FOBmin230728d',
-              r'FOBsel230517d',
-              r'FOBsel230517dAniso',
-              r'Song',
-              r'Song230509dSel',
-              r'SongSq',
-              r'SongSqCrop',
-              r'Tsao500',
-              r'Tsao1593',
-              r'Tsao15901',
-              ]
+    r'FOBmany230728d',
+    r'FOBmany240312d',
+    r'FOBmin230728d',
+    r'FOBsel230517d',
+    r'FOBsel230517dAniso',
+    r'Song',
+    r'Song230509dSel',
+    r'SongSq',
+    r'SongSqCrop',
+    r'Tsao500',
+    # r'Tsao1593',
+    # r'Tsao15901',
+]
 
 min_dimension = 224
 pad_color = 255
