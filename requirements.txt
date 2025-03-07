@@ -1,3 +1,4 @@
+filetype
 h5py
 imagesize
 matplotlib
@@ -5,6 +6,7 @@ numpy
 oasis-deconv
 opencv-python
 pandas
+pillow
 python-magic
 pyplot-themes @ git+https://github.com/idroz/pyplot-themes@e6e8ff
 scanimage-tiff-reader
@@ -14,3 +16,5 @@ scikit-learn  # sklearn
 # seaborn
 suite2p
 tifffile
+torch
+torchvision
