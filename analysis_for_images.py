@@ -449,6 +449,118 @@ date_str = '20241105d'
 # # -- PD 200um stimMultimodal_Images[FOBmany230728d]_Dots[FF8dir]_Tones[440,1760,7040,28160] (same ROI/FOV)
 session_str = '165344tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
 
+# # 20241107d Left soma-jGCaMP8s
+# date_str = '20241107d'
+# # -- PD 400um stimMultimodal_Images[FOBmin]DotsGratingsTones
+# session_str = '183744tUTC_Max15_depth400um_fov2590x2000um_res2p50x2p50umpx_fr04p161Hz_pow270p3mW_stimMultimodal'
+
+# # 20241112d Left soma-jGCaMP8s
+# date_str = '20241112d'
+# # -- PD 400um stimMultimodal_Images[Song230509dSel]DotsGratingsTones
+# session_str = '153057tUTC_Max15_depth400um_fov2590x2000um_res2p50x2p50umpx_fr04p161Hz_pow279p9mW_stimMultimodal'
+# # -- PD 200um stimMultimodal_Movies[compilations]Tones
+# session_str = '172606tUTC_SP_depth200um_fov1184x1184um_res2p00x2p00umpx_fr09p733Hz_pow029p9mW_stimMultimodal'
+# # -- PD 200um stimImages_Images[SongFOBonly]
+# session_str = '181544tUTC_SP_depth200um_fov1184x1184um_res2p00x2p00umpx_fr09p733Hz_pow029p9mW_stimImagesSongFOBonly'
+# # -- PD 200um stimImages_Images[FOBmin]
+# session_str = '190421tUTC_SP_depth200um_fov1184x1184um_res2p00x2p00umpx_fr09p733Hz_pow029p9mW_stimImagesFOBmin'
+# # -- MT 450um stimMultimodal_DotsGratings
+# session_str = '203013tUTC_Max15_depth450um_fov3626x3626um_res3p50x3p50umpx_fr03p236Hz_pow299p7mW_stimMultimodal'
+
+# # 20241218d Left soma-jGCaMP8s
+# date_str = '20241218d'
+# # -- MT 200um stimMovingDots16dirFF
+# session_str = '153342tUTC_SP_depth200um_fov0740x0740um_res1p00x1p00umpx_fr06p283Hz_pow030p4mW_stimMovingDots16dirFF'
+# # -- MT 150um stimMovingDots16dirFF
+# session_str = '155459tUTC_SP_depth150um_fov0740x0740um_res1p00x1p00umpx_fr06p283Hz_pow025p3mW_stimMovingDots16dirFF'
+
+# # 20241227d Left soma-jGCaMP8s
+# date_str = '20241227d'
+# # -- MT 150um stimMultimodal_MovingDots16dirFF_DriftingGratings_StaticGratings_Tones
+# session_str = '170445tUTC_SP_depth150um_fov0740x0740um_res1p00x1p00umpx_fr06p282Hz_pow015p2mW_stimMultimodal'
+# # -- MT 150um stimMovingDots16dirFF
+# session_str = '174301tUTC_SP_depth150um_fov0740x0740um_res1p00x1p00umpx_fr06p282Hz_pow015p2mW_stimMovingDots16dirFF'
+# # -- MT 200um stimMovingDots16dirFF
+# session_str = '175431tUTC_SP_depth200um_fov0740x0740um_res1p00x1p00umpx_fr06p282Hz_pow019p9mW_stimMovingDots16dirFF'
+# # -- MT 400um stimMultimodal_Waffle20240714d_withoutMovies_withoutImages
+# session_str = '185957tUTC_Max15_depth400um_fov3108x3108um_res3p00x3p00umpx_fr03p236Hz_pow299p7mW_stimMultimodal'
+
+# # 20241230d Left soma-jGCaMP8s
+# date_str = '20241230d'
+# # -- PD 250um stimImages_Images[SongFOBonly]
+# session_str = '183201tUTC_SP_depth250um_fov2072x1600um_res2p00x2p00umpx_fr04p159Hz_pow025p6mW_stimImagesSongFOBonly'
+
+# # 20250207d Left soma-jGCaMP8s
+# date_str = '20250207d'
+# # -- PD depth series
+# 160551tUTC_SP_depth000um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow010p2mW
+# 160658tUTC_SP_depth050um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow012p2mW_stimNone
+# 160757tUTC_SP_depth100um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow016p9mW_stimNone
+# 160905tUTC_SP_depth150um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow021p0mW_stimNone
+# 161003tUTC_SP_depth200um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow027p2mW_stimNone
+# 161109tUTC_SP_depth250um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow034p5mW_stimNone
+# 161208tUTC_SP_depth300um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow044p8mW_stimNone
+# 161316tUTC_SP_depth350um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow056p9mW_stimNone
+# 161644tUTC_SP_depth400um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow073p3mW_stimNone
+# 161748tUTC_SP_depth450um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow094p4mW_stimNone
+# 161845tUTC_SP_depth500um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow120p6mW_stimNone
+
+# # 20250208d Left soma-jGCaMP8s
+# date_str = '20250208d'
+# # -- MT 350um stimMultimodal_DotsGratings
+# session_str = '170208tUTC_Max15_depth350um_fov3108x3300um_res3p00x3p00umpx_fr03p052Hz_pow299p8mW_stimMultimodal'
+# # -- MT 350um stimMultimodal_DotsGratings
+# session_str = '185747tUTC_Max15_depth350um_fov1184x1176um_res2p00x2p00umpx_fr09p796Hz_pow250p2mW_stimMultimodal'
+
+# # 20250209d Left soma-jGCaMP8s
+# date_str = '20250209d'
+# # -- PD 370um stimMultimodal_DotsGratingsTones *** candidate for checking suite3d 3D registration
+# session_str = '170622tUTC_Max15_depth370um_fov1184x1176um_res2p00x2p00umpx_fr09p796Hz_pow260p1mW_stimMultimodal'
+
+# # 20250211d Left soma-jGCaMP8s
+# date_str = '20250211d'
+# # -- PD 200um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '155930tUTC_SP_depth200um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow027p6mW_stimMultimodal'
+# # -- PD 250um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '162846tUTC_SP_depth250um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow034p9mW_stimMultimodal'
+# # -- PD 300um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '170118tUTC_SP_depth300um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow043p9mW_stimMultimodal'
+# # -- PD 350um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '174037tUTC_SP_depth350um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow057p0mW_stimMultimodal'
+# # -- PD 400um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '181128tUTC_SP_depth400um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow073p5mW_stimMultimodal'
+# # -- PD 450um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '183949tUTC_SP_depth450um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow093p9mW_stimMultimodal'
+# # -- PD 500um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '191033tUTC_SP_depth500um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow120p7mW_stimMultimodal'
+
+# # 20250212d Left soma-jGCaMP8s
+# date_str = '20250212d'
+# # -- PD 150um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '145026tUTC_SP_depth150um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow020p6mW_stimMultimodal'
+# # -- PD 125um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '151459tUTC_SP_depth125um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow019p0mW_stimMultimodal'
+# # -- PD 100um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '154711tUTC_SP_depth100um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow016p1mW_stimMultimodal'
+# # -- PD 175um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '161925tUTC_SP_depth175um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow023p8mW_stimMultimodal'
+# # -- PD 225um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '164827tUTC_SP_depth225um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow030p6mW_stimMultimodal'
+# # -- PD 275um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '171822tUTC_SP_depth275um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow038p3mW_stimMultimodal'
+# # -- PD 325um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '175006tUTC_SP_depth325um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow050p4mW_stimMultimodal'
+# # -- PD 375um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '182444tUTC_SP_depth375um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow065p4mW_stimMultimodal'
+
+# # 20250213d Left soma-jGCaMP8s
+# date_str = '20250213d'
+# # -- PD 370um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '153924tUTC_Max15_depth370um_fov1184x1176um_res2p00x2p00umpx_fr09p796Hz_pow280p1mW_stimMultimodal'
+# # -- PD 390um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '165527tUTC_Max15_depth390um_fov1184x1176um_res2p00x2p00umpx_fr09p796Hz_pow259p6mW_stimMultimodal'
+# # -- MT 360um stimMultimodal_Images[MergeFOBminSong]DotsTones
+# session_str = '175226tUTC_Max15_depth360um_fov1184x1176um_res2p00x2p00umpx_fr09p796Hz_pow280p1mW_stimMultimodal'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
