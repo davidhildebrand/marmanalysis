@@ -603,7 +603,7 @@ pathstr_stim = r'/FreiwaldSync/MarmoScope/Stimulus/Sets'
 class StimulusImage(object):
     """Representation of stimulus images."""
 
-    def __init__(self, condition, category, orientation, identity=None, filename=None, filepath=None):
+    def __init__(self, condition, category, orientation, identity=None, filename=None, filepath=None, checksum=None):
         self.condition = condition
         self.category = category
         self.identity = identity
@@ -613,6 +613,7 @@ class StimulusImage(object):
         self.orientation = orientation
         self.filename = filename
         self.filepath = filepath
+        self.checksum = checksum
 
     def __repr__(self):
         return str((self.condition, self.category, self.identity, self.orientation, self.filename))
@@ -1212,6 +1213,9 @@ for c in range(n_conds):
     tmp_pitch = np.iinfo(np.int16).min
     tmp_yaw = np.iinfo(np.int16).min
     tmp_roll = np.iinfo(np.int16).min
+    tmp_imagename = None
+    tmp_imagepath = None
+    tmp_checksum = None
 
     if np.unique(stimlog[stimlog['cond'] == c]['image'].values).size != 1:
         warn('Different images associated with condition {}.'.format(c))
@@ -1417,7 +1421,8 @@ for c in range(n_conds):
     data[c]['imagepath'] = tmp_imagepath
     data[c]['checksum'] = tmp_checksum
     data[c]['stimulus'] = StimulusImage(tmp_cond, tmp_cat, (tmp_pitch, tmp_yaw, tmp_roll),
-                                        identity=tmp_id, filename=tmp_imagename, filepath=tmp_imagepath)
+                                        identity=tmp_id, filename=tmp_imagename, 
+                                        filepath=tmp_imagepath, checksum=tmp_checksum)
     for t in range(n_reps):
         fr_start = stimlog[stimlog['cond'] == c].iloc[t]['acqfr_stim_i'] - n_samp_isi
         if isinstance(fr_start, float):
