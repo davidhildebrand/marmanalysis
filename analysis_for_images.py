@@ -47,7 +47,8 @@ threshold_cellprob = 0.0
 threshold_Zscore = 0.5
 
 ## Exclusion criteria
-exclude_by_movement = True
+exclude_for_movement = True
+# exclude_for_blinking = True
 
 ## Plotting parameters
 plot_eyecal = False
@@ -1553,7 +1554,7 @@ if exclude_by_acqstart:
             print('  {}/{} excluded for {} ({})'.format(len(excluded_preacq[ek]), n_reps,
                                                           conditions[ek].decode(), condidx_to_cat[ek].decode()))
 
-if exclude_by_movement and len(trials_movement) > 0:
+if exclude_for_movement and len(trials_movement) > 0:
     for cnd, rep in trials_movement:
         trials_exclude.append((cnd, rep))
         if cnd not in excluded_movement:
