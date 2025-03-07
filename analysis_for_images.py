@@ -1193,10 +1193,6 @@ for m in metrics:
     data[m] = np.nan
 del m
 
-
-# Currently supported image sets:
-# 'FOBmin_MarmOnly', 'FOBmin', 'FOBmany', 'Song_etal_Wang_2022_FOBonly'
-
 trials_movement = []
 for c in range(n_conds):
     tmp_cond = None
