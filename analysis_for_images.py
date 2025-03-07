@@ -570,8 +570,6 @@ if 'savepath_str' not in locals():
     savepath_str = ''
 if isinstance(save_ext, str):
     save_ext = [save_ext]
-if 'stimimage_path' not in locals():
-    stimimage_path = ''
 
 if session_str.find('_') != -1:
     session_abbrev_str = session_str[0:session_str.find('_')]
@@ -594,6 +592,7 @@ if 'dirstr_suite2p' not in locals():
     dirstr_suite2p = 'suite2p*'
 dirstr_suite2p_pref = 'suite2p_cellpose3_d[0-9]+px_pt-3p5_ft1p5'
 dirstr_suite2p_plane = 'plane0'
+pathstr_stim = r'/FreiwaldSync/MarmoScope/Stimulus/Sets'
 
 
 # %% Define functions and classes
@@ -642,35 +641,6 @@ elif 'dobbin' in system_name.lower():
 else:
     base_path = None
     stim_path = None
-
-if 'stimImagesSongFOBonly' in session_str:
-    dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_FOBonly'.replace('|', os.path.sep)
-elif 'stimImagesSong2imTest' in session_str:
-    dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_selected20230509d'.replace('|', os.path.sep)
-elif 'stimImagesSong230509dSel' in session_str:
-    dirstr_stimset = 'Song_etal_Wang_2022_NatCommun|480288_equalized_RGBA_selected20230509d'.replace('|', os.path.sep)
-elif 'stimImagesFOBmin' in session_str:
-    dirstr_stimset = 'FOBmin|Images|20230728d'.replace('|', os.path.sep)
-elif 'stimImagesFOBmany' in session_str:
-    dirstr_stimset = 'FOBmany|Images|20230728d'.replace('|', os.path.sep)
-elif 'stimImagesFOBsel230517dAniso' in session_str:
-    dirstr_stimset = 'MarmosetFOB2018|20230517d|Scaled512x512_MaskEroded3_SHINEdLum_RGBA_reorg_subset_aniso'.replace('|', os.path.sep)
-elif 'stimImagesFOBsel230517d' in session_str:
-    dirstr_stimset = 'MarmosetFOB2018|20230517d|Scaled512x512_MaskEroded3_SHINEdLum_RGBA_reorg_subset'.replace('|', os.path.sep)
-elif 'stimMultimodal' in session_str:
-    warn('Displaying multimodal stimulus images not supported yet.')
-    dirstr_stimset = None
-else:
-    warn('Could not determine stimulus set from session name.')
-    dirstr_stimset = None
-
-if dirstr_stimset is not None:
-    stimimage_path = os.path.join(stim_path, dirstr_stimset)
-    if not os.path.isdir(stimimage_path):
-        warn('Could not find stimulus image source path.')
-        stimimage_path = None
-else:
-    stimimage_path = None
 
 date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
@@ -1188,7 +1158,7 @@ if not stimlog['stim_class'].isnull().any():
 #     if np.unique(stimlog['stim_subclass'].values).size != 1:
 #         warn('More than one stimulus subclass was presented.')
 
-trials_image = (log_input['stim_mode'] == 'visual') & (log_input['stim_class'] == 'image')
+trials_image = (stimlog['stim_mode'] == 'visual') & (stimlog['stim_class'] == 'image')
 stimlog = stimlog[trials_image]
 
 n_metrics = len(metrics)
@@ -1198,30 +1168,6 @@ n_reps = int(len(stimlog) / n_conds)
 
 if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
     warn('Acquisition was started after stimulus, interrupted, or stopped before stimulus.')
-
-# Identify stimulus image set from file paths
-# *** TODO: make this work on a per-cond/image level
-if np.unique([os.path.dirname(p) for p in stimlog['image_path'].values]).size == 1:
-    image_dirpath = os.path.dirname(stimlog.iloc[0]['image_path'])
-    if 'FOBmin_MarmOnly' in image_dirpath or 'MinFOB_MarmOnly' in image_dirpath:
-        image_set = 'FOBmin'
-    elif 'FOBmin' in image_dirpath or 'MinFOB' in image_dirpath:
-        image_set = 'FOBmin'
-    elif 'FOBmany' in image_dirpath:
-        image_set = 'FOBmany'
-    elif 'MarmosetFOB2018' in image_dirpath:
-        image_set = 'FOBmin'
-    elif '480288_equalized_RGBA_FOBonly' in image_dirpath:
-        image_set = 'Song_etal_Wang_2022_FOBonly'
-    elif '480288_equalized_RGBA_selected20230509d' in image_dirpath:
-        image_set = 'Song_etal_Wang_2022_FOBonly'
-    else:
-        warn('Image set not recognized from image paths. Set to last directory in path.')
-        image_set = os.path.split(os.path.dirname(stimlog.iloc[0]['image_path']))[-1]
-else:
-    # *** TODO: default to images without category separation in this case
-    warn('Images are not all from the same set.')
-    image_set = None
 
 
 # %% Organize fluorescence signals into a structured array data table
@@ -1252,22 +1198,43 @@ del m
 
 trials_movement = []
 for c in range(n_conds):
-    # stimlog[stimlog['cond'] == c]['stim_class']
     tmp_cond = None
     tmp_cat = None
     tmp_id = None
     tmp_pitch = np.iinfo(np.int16).min
     tmp_yaw = np.iinfo(np.int16).min
     tmp_roll = np.iinfo(np.int16).min
-    if np.unique(stimlog[stimlog['cond'] == c]['image'].values).size == 1:
-        tmp_imagename = np.unique(stimlog[stimlog['cond'] == c]['image'].values)[0]
-        imn = os.path.splitext(tmp_imagename)[0]
+
+    if np.unique(stimlog[stimlog['cond'] == c]['image'].values).size != 1:
+        warn('Different images associated with condition {}.'.format(c))
+    tmp_imagename = np.unique(stimlog[stimlog['cond'] == c]['image'].values)[0]
+    imn = os.path.splitext(tmp_imagename)[0]
+
+    if np.unique(stimlog[stimlog['cond'] == c]['image_path'].values).size != 1:
+        warn('Different image paths associated with condition {}.'.format(c))
+    tmp_imagepath = np.unique(stimlog[stimlog['cond'] == c]['image_path'].values)[0]
+    tmp_imagepath = os.path.normpath(tmp_imagepath.replace(pathstr_stim, stim_path))
+    tmp_imagepath = os.path.join(tmp_imagepath, tmp_imagename) \
+        if os.path.isfile(os.path.join(tmp_imagepath, tmp_imagename)) else None
+
+
+    tmp_imagedirpath = os.path.dirname(tmp_imagepath)
+    if 'FOBmin_MarmOnly' in tmp_imagedirpath or 'MinFOB_MarmOnly' in tmp_imagedirpath:
+        image_set = 'FOBmin'
+    elif 'FOBmin' in tmp_imagedirpath or 'MinFOB' in tmp_imagedirpath:
+        image_set = 'FOBmin'
+    elif 'FOBmany' in tmp_imagedirpath:
+        image_set = 'FOBmany'
+    elif 'MarmosetFOB2018' in tmp_imagedirpath:
+        image_set = 'FOBmin'
+    elif '480288_equalized_RGBA_FOBonly' in tmp_imagedirpath:
+        image_set = 'Song_etal_Wang_2022_FOBonly'
+    elif '480288_equalized_RGBA_selected20230509d' in tmp_imagedirpath:
+        image_set = 'Song_etal_Wang_2022_FOBonly'
     else:
-        warn('Not all images were the same for condition {}.'.format(c))
-        tmp_imagename = ''
-        imn = ''
-    tmp_imagepath = os.path.join(stimimage_path, tmp_imagename) \
-        if os.path.isfile(os.path.join(stimimage_path, tmp_imagename)) else None
+        warn('Image set not recognized from path. Set to last directory in path.')
+        image_set = os.path.split(os.path.dirname(tmp_imagepath))[-1]
+
     if image_set == 'FOBmin' or image_set == 'FOBmany':
         pattern_imn = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?' + \
                       r'([^_]*erode[^_]*)?_?(inverted)?$'
