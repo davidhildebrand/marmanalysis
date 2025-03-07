@@ -1218,172 +1218,138 @@ for c in range(n_conds):
     tmp_imagepath = os.path.join(tmp_imagepath, tmp_imagename) \
         if os.path.isfile(os.path.join(tmp_imagepath, tmp_imagename)) else None
 
-    tmp_imagedirpath = os.path.dirname(tmp_imagepath)
-    if 'FOBmin_MarmOnly' in tmp_imagedirpath or 'MinFOB_MarmOnly' in tmp_imagedirpath:
-        image_set = 'FOBmin'
-    elif 'FOBmin' in tmp_imagedirpath or 'MinFOB' in tmp_imagedirpath:
-        image_set = 'FOBmin'
-    elif 'FOBmany' in tmp_imagedirpath:
-        image_set = 'FOBmany'
-    elif 'MarmosetFOB2018' in tmp_imagedirpath:
-        image_set = 'FOBmin'
-    elif '480288_equalized_RGBA_FOBonly' in tmp_imagedirpath:
-        image_set = 'Song_etal_Wang_2022_FOBonly'
-    elif '480288_equalized_RGBA_selected20230509d' in tmp_imagedirpath:
-        image_set = 'Song_etal_Wang_2022_FOBonly'
-    else:
-        warn(r'Image set not recognized from path ({}).\n'.format(tmp_imagepath) + 
-             'Set to last directory in path.')
-        image_set = os.path.split(os.path.dirname(tmp_imagepath))[-1]
+    pattern_frei = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?' + \
+                   r'([^_]*erode[^_]*)?_?(inverted)?$'
+    pattern_song = r'^(Song_(etal_Wang_2022_NatCommun)?(_selected20230509d)?)?_?' + \
+                   r'([aobmufps]{1})([0-9]{1,2})$'
 
-    if image_set == 'FOBmin' or image_set == 'FOBmany':
-        pattern_imn = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?' + \
-                      r'([^_]*erode[^_]*)?_?(inverted)?$'
-        if re.match(pattern_imn, imn) is not None:
-            sp = re.match(pattern_imn, imn).group(4)
-            ct = re.match(pattern_imn, imn).group(5)
-            di = re.match(pattern_imn, imn).group(6)
-            nm = re.match(pattern_imn, imn).group(7)
-            ed = 'e' if re.match(pattern_imn, imn).group(8) is not None else ''
-            if nm.isnumeric():
-                nm = float(nm)
-                if nm.is_integer():
-                    nm = int(nm)
+    # Freiwald stimuli
+    if re.match(pattern_frei, imn) is not None:
+        sp = re.match(pattern_frei, imn).group(4)
+        ct = re.match(pattern_frei, imn).group(5)
+        di = re.match(pattern_frei, imn).group(6)
+        nm = re.match(pattern_frei, imn).group(7)
+        ed = 'e' if re.match(pattern_frei, imn).group(8) is not None else ''
+        if nm.isnumeric():
+            nm = float(nm)
+            if nm.is_integer():
+                nm = int(nm)
+            else:
+                warn('View index in filename incorrect ({}). '.format(tmp_imagename) +
+                     'Expected integer, not float.')
+        iv = re.match(pattern_frei, imn).group(9) is not None
+        match sp:
+            case 'Human':
+                if ct == 'Head':
+                    tmp_cond = bytes('fh{:02}{}'.format(nm, ed), 'ascii')
+                    tmp_cat = b'face_hum'
+                    tmp_id = bytes('Hum{:02}{}'.format(nm, ed), 'ascii')
+                    tmp_pitch = 0
+                    tmp_roll = 0
+                    tmp_yaw = 0
+            case 'MacaqueRhesus':
+                if ct == 'Head':
+                    tmp_cond = bytes('fr{:02}{}'.format(nm, ed), 'ascii')
+                    tmp_cat = b'face_rhe'
+                    tmp_id = bytes('Rhe{:02}{}'.format(nm, ed), 'ascii')
+                    tmp_pitch = 0
+                    tmp_roll = 0
+                    tmp_yaw = 0
+            case 'Marm':
+                if ct == 'Head':
+                    if iv is True:
+                        nm = 9
+                    tmp_cond = bytes('fm{}{:02}{}'.format(di[0:3], nm, ed), 'ascii')
+                    tmp_cat = b'face_mrm'
+                    tmp_id = bytes(di[0:8], 'ascii')
+                    match nm:
+                        case 1:
+                            tmp_pitch = 0
+                            tmp_yaw = 0
+                            tmp_roll = 0
+                        case 2:
+                            tmp_pitch = 0
+                            tmp_yaw = 180
+                            tmp_roll = 0
+                        case 3:
+                            tmp_pitch = 0
+                            tmp_yaw = 0
+                            tmp_roll = -45
+                        case 4:
+                            tmp_pitch = 0
+                            tmp_yaw = 0
+                            tmp_roll = 45
+                        case 5:
+                            tmp_pitch = 0
+                            tmp_yaw = -90
+                            tmp_roll = 0
+                        case 6:
+                            tmp_pitch = 0
+                            tmp_yaw = -45
+                            tmp_roll = 0
+                        case 7:
+                            tmp_pitch = 0
+                            tmp_yaw = 45
+                            tmp_roll = 0
+                        case 8:
+                            tmp_pitch = 0
+                            tmp_yaw = 90
+                            tmp_roll = 0
+                        case 9:
+                            tmp_pitch = 0
+                            tmp_yaw = 0
+                            tmp_roll = 180
+                        case _:
+                            warn('Could not recognize pitch, yaw, or roll of head image from filename.')
+                            tmp_pitch = None
+                            tmp_yaw = None
+                            tmp_roll = None
+                if ct == 'Body':
+                    tmp_cond = bytes('bm{}{:02}{}'.format(di[0:3], nm, ed), 'ascii')
+                    tmp_cat = b'body_mrm'
+                    tmp_id = bytes(di[0:8], 'ascii')
+            case 'Objects':
+                pattern_ct = r'^([^0-9]+)([0-9])$'
+                if re.match(pattern_ct, ct) is not None:
+                    ct_p1 = re.match(pattern_ct, ct).group(1)
+                    ct_p2 = re.match(pattern_ct, ct).group(2)
+                    ct = ct_p1
+                    if ct_p2.isnumeric():
+                        ct_p2 = float(ct_p2)
+                        if ct_p2.is_integer():
+                            ct_p2 = int(ct_p2)
+                        else:
+                            warn('Object identity index in filename incorrect ({}). '.format(tmp_imagename) +
+                                 'Expected integer, not float.')
                 else:
-                    warn('View index in filename incorrect ({}). '.format(tmp_imagename) +
-                         'Expected integer, not float.')
-            iv = re.match(pattern_imn, imn).group(9) is not None
-            match sp:
-                case 'Human':
-                    if ct == 'Head':
-                        tmp_cond = bytes('fh{:02}{}'.format(nm, ed), 'ascii')
-                        tmp_cat = b'face_hum'
-                        tmp_id = bytes('Hum{:02}{}'.format(nm, ed), 'ascii')
-                        tmp_pitch = 0
-                        tmp_roll = 0
-                        tmp_yaw = 0
-                case 'MacaqueRhesus':
-                    if ct == 'Head':
-                        tmp_cond = bytes('fr{:02}{}'.format(nm, ed), 'ascii')
-                        tmp_cat = b'face_rhe'
-                        tmp_id = bytes('Rhe{:02}{}'.format(nm, ed), 'ascii')
-                        tmp_pitch = 0
-                        tmp_roll = 0
-                        tmp_yaw = 0
-                case 'Marm':
-                    if ct == 'Head':
-                        if iv is True:
-                            nm = 9
-                        tmp_cond = bytes('fm{}{:02}{}'.format(di[0:3], nm, ed), 'ascii')
-                        tmp_cat = b'face_mrm'
-                        tmp_id = bytes(di[0:8], 'ascii')
-                        match nm:
-                            case 1:
-                                tmp_pitch = 0
-                                tmp_yaw = 0
-                                tmp_roll = 0
-                            case 2:
-                                tmp_pitch = 0
-                                tmp_yaw = 180
-                                tmp_roll = 0
-                            case 3:
-                                tmp_pitch = 0
-                                tmp_yaw = 0
-                                tmp_roll = -45
-                            case 4:
-                                tmp_pitch = 0
-                                tmp_yaw = 0
-                                tmp_roll = 45
-                            case 5:
-                                tmp_pitch = 0
-                                tmp_yaw = -90
-                                tmp_roll = 0
-                            case 6:
-                                tmp_pitch = 0
-                                tmp_yaw = -45
-                                tmp_roll = 0
-                            case 7:
-                                tmp_pitch = 0
-                                tmp_yaw = 45
-                                tmp_roll = 0
-                            case 8:
-                                tmp_pitch = 0
-                                tmp_yaw = 90
-                                tmp_roll = 0
-                            case 9:
-                                tmp_pitch = 0
-                                tmp_yaw = 0
-                                tmp_roll = 180
-                            case _:
-                                warn('Could not recognize pitch, yaw, or roll of head image from filename.')
-                                tmp_pitch = None
-                                tmp_yaw = None
-                                tmp_roll = None
-                    if ct == 'Body':
-                        tmp_cond = bytes('bm{}{:02}{}'.format(di[0:3], nm, ed), 'ascii')
-                        tmp_cat = b'body_mrm'
-                        tmp_id = bytes(di[0:8], 'ascii')
-                case 'Objects':
-                    pattern_ct = r'^([^0-9]+)([0-9])$'
-                    if re.match(pattern_ct, ct) is not None:
-                        ct_p1 = re.match(pattern_ct, ct).group(1)
-                        ct_p2 = re.match(pattern_ct, ct).group(2)
-                        ct = ct_p1
-                        if ct_p2.isnumeric():
-                            ct_p2 = float(ct_p2)
-                            if ct_p2.is_integer():
-                                ct_p2 = int(ct_p2)
-                            else:
-                                warn('Object identity index in filename incorrect ({}). '.format(tmp_imagename) +
-                                     'Expected integer, not float.')
-                    else:
-                        warn('Could not recognize object details from filename.')
-                        ct_p2 = 0
-                    if 'Manmade' in ct:
-                        tmp_cond = bytes('om{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
-                        tmp_cat = b'obj'
-                    elif 'FruitVeg' in ct:
-                        tmp_cond = bytes('vf{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
-                        tmp_cat = b'food'
-                    elif 'MultipartGeon' in ct:
-                        tmp_cond = bytes('og{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
-                        tmp_id = bytes('Geon{:01}'.format(ct_p2), 'ascii')
-                        tmp_cat = b'obj'
-                    elif 'Pairwise' in ct:
-                        tmp_cond = bytes('op{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
-                        tmp_cat = b'obj'
-                    elif 'String' in ct:
-                        tmp_cond = bytes('os{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
-                        tmp_cat = b'obj'
-                    else:
-                        warn('Could not recognize category of object image from filename.')
-                case _:
-                    warn('Could not recognize type of image from filename.')
-        elif imn == 'blank':
-            tmp_cond = bytes('blank', 'ascii')
-            tmp_cat = b'blank'
-        elif 'Cartoon' in imn:
-            pattern_ctn = r'^[^_]*Cartoon_([0-9]+)_?[^_]*_?(inverted)?$'
-            if re.match(pattern_ctn, imn) is not None:
-                nm = re.match(pattern_ctn, imn).group(1)
-                tmp_cond = bytes('fcm{:04}'.format(nm), 'ascii')
-                tmp_cat = b'face_ctn'
-                tmp_id = bytes(nm, 'ascii')
-                tmp_pitch = 0
-                tmp_yaw = 0
-                tmp_roll = 0
-        else:
-            warn('Could not recognize category or condition of image from filename.')
-            tmp_cond = None
-            tmp_cat = None
-    elif image_set == 'Song_etal_Wang_2022_FOBonly':
-        pattern_zerocheck = r'^([aobmufps]{1})([0-9]{1})$'
-        if re.match(pattern_zerocheck, imn) is not None:
-            tg = re.match(pattern_zerocheck, imn).group(1)
-            ng = re.match(pattern_zerocheck, imn).group(2)
-            lfc = '{}{}'.format(tg, ng.zfill(2))
-        else:
-            lfc = imn
+                    warn('Could not recognize object details from filename.')
+                    ct_p2 = 0
+                if 'Manmade' in ct:
+                    tmp_cond = bytes('om{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
+                    tmp_cat = b'obj'
+                elif 'FruitVeg' in ct:
+                    tmp_cond = bytes('vf{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
+                    tmp_cat = b'food'
+                elif 'MultipartGeon' in ct:
+                    tmp_cond = bytes('og{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
+                    tmp_id = bytes('Geon{:01}'.format(ct_p2), 'ascii')
+                    tmp_cat = b'obj'
+                elif 'Pairwise' in ct:
+                    tmp_cond = bytes('op{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
+                    tmp_cat = b'obj'
+                elif 'String' in ct:
+                    tmp_cond = bytes('os{:01}{:03}{}'.format(ct_p2, nm, ed), 'ascii')
+                    tmp_cat = b'obj'
+                else:
+                    warn('Could not recognize category of object image from filename.')
+            case _:
+                warn('Could not recognize type of image from filename.')
+
+    # Song_etal_Wang_2022_NatCommun stimuli
+    elif re.match(pattern_song, imn) is not None:
+        tg = re.match(pattern_song, imn).group(4)
+        ng = re.match(pattern_song, imn).group(5)
+        lfc = 'S{}{}'.format(tg, ng.zfill(2))
         tmp_cond = bytes(lfc, 'ascii')
         match imn[0]:
             case 'a':
@@ -1410,6 +1376,27 @@ for c in range(n_conds):
                 tmp_cat = b'scram_s'
             case _:
                 tmp_cat = None
+            
+    elif imn == 'blank':
+        tmp_cond = bytes('blank', 'ascii')
+        tmp_cat = b'blank'
+        
+    elif 'Cartoon' in imn:
+        pattern_ctn = r'^[^_]*Cartoon_([0-9]+)_?[^_]*_?(inverted)?$'
+        if re.match(pattern_ctn, imn) is not None:
+            nm = re.match(pattern_ctn, imn).group(1)
+            tmp_cond = bytes('fcm{:04}'.format(nm), 'ascii')
+            tmp_cat = b'face_ctn'
+            tmp_id = bytes(nm, 'ascii')
+            tmp_pitch = 0
+            tmp_yaw = 0
+            tmp_roll = 0
+   
+    else:
+        warn('Could not recognize category or condition of image from filename ({}).'.format(imn))
+        tmp_cond = None
+        tmp_cat = None
+    
     data[c]['cond'] = tmp_cond
     data[c]['cat'] = tmp_cat
     data[c]['id'] = tmp_id
