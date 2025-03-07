@@ -3,6 +3,7 @@
 
 import colorsys
 from glob import glob
+import hashlib
 import itertools
 import matplotlib.pyplot as plt
 import numpy as np
@@ -627,6 +628,14 @@ def round_to_quarter(num):
     return round(num * 4) / 4
 
 
+def get_md5_checksum(file):
+    hl_md5 = hashlib.md5()
+    with open(file, 'rb') as f:
+        for chnk in iter(lambda: f.read(4096), b''):
+            hl_md5.update(chnk)
+    return hl_md5.hexdigest()
+
+
 # %% Find files and load data
 
 system_name = socket.gethostname()
@@ -1181,6 +1190,7 @@ dlist = [
     ('roll', 'i2'),
     ('imagename', np.str_, 256),
     ('imagepath', np.str_, 256),
+    ('checksum', np.str_, 32),
 ]
 
 for m in metrics:
@@ -1214,6 +1224,9 @@ for c in range(n_conds):
     tmp_imagepath = os.path.normpath(tmp_imagepath.replace(pathstr_stim, stim_path))
     tmp_imagepath = os.path.join(tmp_imagepath, tmp_imagename) \
         if os.path.isfile(os.path.join(tmp_imagepath, tmp_imagename)) else None
+
+    if tmp_imagepath is not None:
+        tmp_checksum = get_md5_checksum(tmp_imagepath)
 
     pattern_frei = r'^(Freiwald(FOB)?([0-9]*)?)?_?([^_]+)_([^_]+)_?([^_]+)?_([0-9]+)_?' + \
                    r'([^_]*erode[^_]*)?_?(inverted)?$'
@@ -1402,6 +1415,7 @@ for c in range(n_conds):
     data[c]['roll'] = tmp_roll
     data[c]['imagename'] = tmp_imagename
     data[c]['imagepath'] = tmp_imagepath
+    data[c]['checksum'] = tmp_checksum
     data[c]['stimulus'] = StimulusImage(tmp_cond, tmp_cat, (tmp_pitch, tmp_yaw, tmp_roll),
                                         identity=tmp_id, filename=tmp_imagename, filepath=tmp_imagepath)
     for t in range(n_reps):
