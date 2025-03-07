@@ -1351,7 +1351,7 @@ for c in range(n_conds):
         ng = re.match(pattern_song, imn).group(5)
         lfc = 'S{}{}'.format(tg, ng.zfill(2))
         tmp_cond = bytes(lfc, 'ascii')
-        match imn[0]:
+        match tg:
             case 'a':
                 tmp_cat = b'animal'
             case 'o':
