@@ -449,6 +449,7 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
                         'grating_pos': None,
                         'grating_size': None,
                         'grating_sf': None,
+                        'grating_tf': None,
                         'grating_ori': None,
                         'grating_phase': None,
                         'grating_texRes': None,
