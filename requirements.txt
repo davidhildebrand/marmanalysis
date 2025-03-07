@@ -1,5 +1,6 @@
 filetype
 h5py
+hashlib
 imagesize
 matplotlib
 numpy
