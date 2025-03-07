@@ -715,8 +715,6 @@ if len(filelist_stimulus_log) > 0:
     else:
         sl = None
     if sl is not None:
-        # stimlog = parsers.create_stimulus_record(trials=len(sl))
-        # stimlog.update(sl)
         stimlog = parsers.convert_stimulus_record(sl)
     else:
         stimlog = None
@@ -1172,14 +1170,17 @@ if len(np.unique(stimlog['acqfr_stim_i'])) != len(stimlog['acqfr_stim_i']):
 
 # %% Organize fluorescence signals into a structured array data table
 
-dlist = [('cond', 'S8'),
-         ('stimulus', object),
-         ('cat', 'S8'),
-         ('id', 'S8'),
-         ('pitch', 'i2'),
-         ('yaw', 'i2'),
-         ('roll', 'i2'),
-         ('imagename', np.str_, 256)]
+dlist = [
+    ('cond', 'S8'),
+    ('stimulus', object),
+    ('cat', 'S8'),
+    ('id', 'S8'),
+    ('pitch', 'i2'),
+    ('yaw', 'i2'),
+    ('roll', 'i2'),
+    ('imagename', np.str_, 256),
+    ('imagepath', np.str_, 256),
+]
 
 for m in metrics:
     dlist.append((m, 'f8', (n_ROIs, n_reps, n_samp_trial)))
@@ -1217,7 +1218,6 @@ for c in range(n_conds):
     tmp_imagepath = os.path.join(tmp_imagepath, tmp_imagename) \
         if os.path.isfile(os.path.join(tmp_imagepath, tmp_imagename)) else None
 
-
     tmp_imagedirpath = os.path.dirname(tmp_imagepath)
     if 'FOBmin_MarmOnly' in tmp_imagedirpath or 'MinFOB_MarmOnly' in tmp_imagedirpath:
         image_set = 'FOBmin'
@@ -1232,7 +1232,8 @@ for c in range(n_conds):
     elif '480288_equalized_RGBA_selected20230509d' in tmp_imagedirpath:
         image_set = 'Song_etal_Wang_2022_FOBonly'
     else:
-        warn('Image set not recognized from path. Set to last directory in path.')
+        warn(r'Image set not recognized from path ({}).\n'.format(tmp_imagepath) + 
+             'Set to last directory in path.')
         image_set = os.path.split(os.path.dirname(tmp_imagepath))[-1]
 
     if image_set == 'FOBmin' or image_set == 'FOBmany':
@@ -1416,6 +1417,7 @@ for c in range(n_conds):
     data[c]['yaw'] = tmp_yaw
     data[c]['roll'] = tmp_roll
     data[c]['imagename'] = tmp_imagename
+    data[c]['imagepath'] = tmp_imagepath
     data[c]['stimulus'] = StimulusImage(tmp_cond, tmp_cat, (tmp_pitch, tmp_yaw, tmp_roll),
                                         identity=tmp_id, filename=tmp_imagename, filepath=tmp_imagepath)
     for t in range(n_reps):
