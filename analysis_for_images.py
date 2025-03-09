@@ -89,6 +89,9 @@ if 'md' in locals():
 
 # %% Specify data locations
 
+# AlexNet unit response values
+stimspace_file = r'20250227d_asset_record_stopTsao500.pkl'
+
 # savepath_str = 'analysis'
 # save_path = r''
 save_ext = ['.png', '.svg']
@@ -658,6 +661,7 @@ else:
 
 date_path = os.path.join(base_path, animal_str, date_str)
 session_path = os.path.join(base_path, animal_str, date_str, session_str)
+stimspace_path = os.path.join(stim_path, 'StimSpace')
 
 if savepath_str != '' and save_path == '':
     save_path = os.path.join(session_path, savepath_str)
@@ -3261,6 +3265,105 @@ np.allclose(np.nanmean(reshape_test2, axis=(0,1)), np.nanmean(test2, axis=(0,1))
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
 
 
+# %% Playground for stimulus space testing
+
+m = 'Fzsc'
+
+from sklearn.decomposition import PCA
+
+if os.path.exists(os.path.join(stimspace_path, stimspace_file)):
+    with open(os.path.join(stimspace_path, stimspace_file), 'rb') as pickle_file:
+        assets = pickle.load(pickle_file)
+
+stimvals_fc6 = np.array([assets[ic]['unit_responses']['alexnet']['15_fc6_linear'] for ic in data['checksum']])
+stim_colors = np.zeros(data['cond'].shape, dtype=int)
+stim_colors[bool_O] = 1
+stim_colors[bool_B] = 2
+stim_colors = np.array([colorsys.hsv_to_rgb(sc / 3, 1.0, 1.0) for sc in stim_colors])
+
+pca_fc6_2c = PCA(n_components=2)
+pca_fc6_40c = PCA(n_components=40)
+
+stimvals_fc6_pca2 = pca_fc6_2c.fit_transform(stimvals_fc6)
+stimvals_fc6_pca40 = pca_fc6_40c.fit_transform(stimvals_fc6)
+
+# pca_fc6_2c_explvar = pd.DataFrame(
+#     data=zip(range(1, len(pca_fc6_2c.explained_variance_ratio_) + 1),
+#              pca_fc6_2c.explained_variance_ratio_,
+#              pca_fc6_2c.explained_variance_ratio_.cumsum()),
+#     columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
+#     ).set_index('PCA').mul(100).round(1)
+# print(pca_fc6_2c_explvar)
+
+# fig, ax = plt.subplots(figsize=(8,8))
+# ax.bar(x=pca_fc6_2c_explvar.index, height=pca_fc6_2c_explvar['Explained Variance (%)'], label='Explained Variance', width=0.9)
+# ax.plot(pca_fc6_2c_explvar['Total Explained Variance (%)'], label='Total Explained Variance', marker='o')
+# plt.ylim(0, 100)
+# plt.ylabel('Explained Variance (%)')
+# plt.xlabel('PC')
+# plt.grid(True, axis='y')
+# plt.title('Explained Variance')
+# plt.legend()
+# plt.show()
+
+# pca_fc6_50c_explvar = pd.DataFrame(
+#     data=zip(range(1, len(pca_fc6_40c.explained_variance_ratio_) + 1),
+#              pca_fc6_40c.explained_variance_ratio_,
+#              pca_fc6_40c.explained_variance_ratio_.cumsum()),
+#     columns=['PCA', 'Explained Variance (%)', 'Total Explained Variance (%)']
+#     ).set_index('PCA').mul(100).round(1)
+# print(pca_fc6_50c_explvar)
+
+# fig, ax = plt.subplots(figsize=(8,8))
+# ax.bar(x=pca_fc6_50c_explvar.index, height=pca_fc6_50c_explvar['Explained Variance (%)'], label='Explained Variance', width=0.9)
+# ax.plot(pca_fc6_50c_explvar['Total Explained Variance (%)'], label='Total Explained Variance', marker='o')
+# plt.ylim(0, 100)
+# plt.ylabel('Explained Variance (%)')
+# plt.xlabel('PC')
+# plt.grid(True, axis='y')
+# plt.title('Explained Variance')
+# plt.legend()
+# plt.show()
+
+# Center stimulus space on blank image (if available).
+if np.sum(bool_blank) > 1:
+    stimvals_fc6_pca2 = stimvals_fc6_pca2 - np.mean(stimvals_fc6_pca2[bool_blank], axis=0)
+    stimvals_fc6_pca40 = stimvals_fc6_pca40 - np.mean(stimvals_fc6_pca40[bool_blank], axis=0)
+elif np.sum(bool_blank) == 1:
+    stimvals_fc6_pca2 = stimvals_fc6_pca2 - stimvals_fc6_pca2[bool_blank]
+    stimvals_fc6_pca40 = stimvals_fc6_pca40 - stimvals_fc6_pca40[bool_blank]
+
+stimvals_fc6_pca2_df = pd.DataFrame(stimvals_fc6_pca2, columns=[f'PC{x}' for x in range(1, pca_fc6_2c.n_components_ + 1)])
+stimvals_fc6_pca40_df = pd.DataFrame(stimvals_fc6_pca40, columns=[f'PC{x}' for x in range(1, pca_fc6_40c.n_components_ + 1)])
+
+r_arrow = resp_vect_cond[m]
+r_bar = np.mean(resp_vect_cond[m], axis=1)
+F = stimvals_fc6_pca2
+
+P_sta = np.array([(r_arrow[r] - r_bar[r]).T @ F for r in range(n_ROIs)])
+P_lin = np.array([(r_arrow[r] - r_bar[r]).T @ F @ np.linalg.inv(F.T @ F) for r in range(n_ROIs)])
+
+# P_lin = (r_arrow - r_bar) * F * (F.T * F)^-1
+#  r_arrow: 1 x n response to a set of n stimuli
+#  r_bar: mean response
+#  F: n stim x d pca params
+
+fig, ax = plt.subplots(figsize=(10,10))
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams.update({'font.size': 10})
+# for r in range(n_ROIs):
+#     ax.plot([0, P_sta[r,0]], [0, P_sta[r,1]], alpha=0.1, color='k', zorder=0)
+ax.quiver([0, P_sta[dprime[m].argmax(),0]], [0, P_sta[dprime[m].argmax(),1]],  # scale_units='xy', scale=0.001, 
+          alpha=0.5, color=(1,0,0), label='Psta_dprime_max', zorder=1)
+ax.quiver([0, P_lin[dprime[m].argmax(),0]], [0, P_lin[dprime[m].argmax(),1]],  # scale_units='xy', scale=0.001, 
+          alpha=0.5, color=(1,0,0), label='Plin_dprime_max', zorder=1)
+ax.scatter(data=stimvals_fc6_pca2_df[bool_blank], x='PC1', y='PC2', s=40, alpha=0.8, c='k', label='blank', zorder=1)
+ax.scatter(data=stimvals_fc6_pca2_df[bool_F], x='PC1', y='PC2', s=40, alpha=1.0, c=stim_colors[bool_F], label='F', zorder=1)
+ax.scatter(data=stimvals_fc6_pca2_df[bool_O], x='PC1', y='PC2', s=40, alpha=1.0, c=stim_colors[bool_O], label='O', zorder=1)
+ax.scatter(data=stimvals_fc6_pca2_df[bool_B], x='PC1', y='PC2', s=40, alpha=1.0, c=stim_colors[bool_B], label='B', zorder=1)
+plt.title('PCA of Stimulus Image AlexNet Features')
+plt.legend()
+fig.show()
 
 # %% Plot stimulus images
 
