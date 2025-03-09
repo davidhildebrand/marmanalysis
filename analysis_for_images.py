@@ -594,7 +594,10 @@ if 'dirstr_suite2p' not in locals():
     dirstr_suite2p = 'suite2p*'
 dirstr_suite2p_pref = 'suite2p_cellpose3_d[0-9]+px_pt-3p5_ft1p5'
 dirstr_suite2p_plane = 'plane0'
-pathstr_stim = r'/FreiwaldSync/MarmoScope/Stimulus/Sets'
+pattern_pathstr_stim = r'/FreiwaldSync/MarmoScope/Stimulus/(Sets|Images)'
+pathstr_subs = [
+    ('Song_etal_Wang_2020_NatCommun', 'Song_etal_Wang_2022_NatCommun'),
+]
 
 
 # %% Define functions and classes
@@ -1225,7 +1228,12 @@ for c in range(n_conds):
     if np.unique(stimlog[stimlog['cond'] == c]['image_path'].values).size != 1:
         warn('Different image paths associated with condition {}.'.format(c))
     tmp_imagepath = np.unique(stimlog[stimlog['cond'] == c]['image_path'].values)[0]
-    tmp_imagepath = os.path.normpath(tmp_imagepath.replace(pathstr_stim, stim_path))
+    if 'pathstr_subs' in locals():
+        for st, su in pathstr_subs:
+            tmp_imagepath = tmp_imagepath.replace(st, su)
+        del st, su
+    tmp_imagepath = re.sub(pattern_pathstr_stim, re.escape(stim_path), tmp_imagepath)
+    tmp_imagepath = os.path.normpath(os.path.dirname(tmp_imagepath))
     tmp_imagepath = os.path.join(tmp_imagepath, tmp_imagename) \
         if os.path.isfile(os.path.join(tmp_imagepath, tmp_imagename)) else None
 
