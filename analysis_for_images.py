@@ -1681,6 +1681,8 @@ del mi, m, xs, xticks, xticklabels
 # %% Define booleans for face and non-face 'super categories'
 
 #   *** TODO: Also consider yaw and roll...
+bool_blank = np.logical_or.reduce([data['cond'] == c for c in conditions 
+                                   if 'blank' in c.decode()])
 bool_F = np.logical_or.reduce([data['cat'] == c for c in categories
                                if 'face' in c.decode() 
                                and 'blank' not in c.decode() and 'scram' not in c.decode()
