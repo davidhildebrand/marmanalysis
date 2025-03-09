@@ -1906,7 +1906,7 @@ for m in metrics:
         stats_df[m].at[r, 'centroid_px'] = np.average(stats_df[m].at[r, 'mask'], axis=0)
         stats_df[m].at[r, 'centroid_um'] = md['fov']['resolution_umpx'] * stats_df[m].at[r, 'centroid_px']
         
-        stats_df[m].at[r, 'resp_vect_cond'] = resp_vect_cond[m][r]  # np.nanmean(data[m][:, r, :, :][:, :, idx_stim], axis=(1, 2))
+        stats_df[m].at[r, 'resp_vect_cond'] = resp_vect_cond[m][r]
         stats_df[m].at[r, 'peak_cond_idx'] = stats_df[m].loc[r]['resp_vect_cond'].argmax()
         stats_df[m].at[r, 'peak_cond'] = conditions[stats_df[m].at[r, 'peak_cond_idx']]
         stats_df[m].at[r, 'peak_cond_val'] = stats_df[m].loc[r]['resp_vect_cond'].max()
