@@ -96,7 +96,7 @@ save_ext = ['.png', '.svg']
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Cadbury
-# animal_str = 'Cadbury'
+animal_str = 'Cadbury'
 
 # # 20220909d Right ribo-jGCaMP8s
 # date_str = '20220909d'
@@ -111,17 +111,17 @@ save_ext = ['.png', '.svg']
 
 # # 20221016d Right ribo-jGCaMP8s
 # date_str = '20221016d_olds2p'
-# date_str = '20221016d'
+date_str = '20221016d'
 # # -- PD (good | fixation spot on before every stimulus, not sure about background stability)
-# session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
-# md = dict()
-# md['framerate'] = 6.364
-# md['fov'] = dict()
-# md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
-# md['fov']['w_px'] = 730
-# md['fov']['h_px'] = 730
-# # dirstr_suite2p = 'suite2p_old*'
-# dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
+session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
+md = dict()
+md['framerate'] = 6.364
+md['fov'] = dict()
+md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
+md['fov']['w_px'] = 730
+md['fov']['h_px'] = 730
+# dirstr_suite2p = 'suite2p_old*'
+dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # 20230510d Right ribo-jGCaMP8s (300-400um fluid)
 # date_str = '20230510d'
@@ -415,7 +415,7 @@ save_ext = ['.png', '.svg']
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Larry
-animal_str = 'Larry'
+# animal_str = 'Larry'
 
 # # 20231007d Right ribo-jGCaMP8s
 # date_str = '20231007d'
@@ -445,11 +445,11 @@ animal_str = 'Larry'
 # # -- PD sessions defunct because ROI was misconfigured.
 
 # # 20241105d Left soma-jGCaMP8s
-date_str = '20241105d'
+# date_str = '20241105d'
 # # -- PD 200um stimMultimodal_Images[Song230509dSel]_Tones[440,1760,7040,28160] ( | )
 # session_str = '152611tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
 # # -- PD 200um stimMultimodal_Images[FOBmany230728d]_Dots[FF8dir]_Tones[440,1760,7040,28160] (same ROI/FOV)
-session_str = '165344tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
+# session_str = '165344tUTC_SP_depth200um_fov1480x1480um_res2p00x2p00umpx_fr06p282Hz_pow029p9mW_stimMultimodal'
 
 # # 20241107d Left soma-jGCaMP8s
 # date_str = '20241107d'
