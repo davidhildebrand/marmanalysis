@@ -12,7 +12,7 @@ import pandas as pd
 import pickle
 import re
 from scipy.optimize import curve_fit, least_squares
-from scipy.stats import binned_statistic, kendalltau, spearmanr
+from scipy.stats import binned_statistic, f_oneway, kendalltau, spearmanr
 import socket
 from warnings import warn
 
@@ -105,6 +105,7 @@ animal_str = 'Cadbury'
 # date_str = '20220909d'
 # -- PD 200um (acquisition ended before stimulus)
 # session_str = '174325tUTC_SP_depth200um_fov0600x0600um_res1p04x1p00umpx_fr09p608Hz_pow050p2mW_stimImagesSongFOBonly_AbortedAfterManyTrials'
+# md = dict()
 # md['framerate'] = 9.608
 # md['fov'] = dict()
 # md['fov']['resolution_umpx'] = np.array([1.0, 1.0])
