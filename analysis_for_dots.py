@@ -170,6 +170,22 @@ dirstr_suite2p = 'suite2p_cellpose2_d7px_pt-3p5_ft1p5'
 # session_str = '163451tUTC_SP_depth200um_fov3626x3626um_res3p50x3p50umpx_fr03p236Hz_pow029p5mW_stimMultimodal'
 # session_str = '173725tUTC_Max15_depth400um_fov3626x3626um_res3p50x3p50umpx_fr03p236Hz_pow279p8mW_stimMultimodal'
 
+# # 20241218d Left soma-jGCaMP8s
+# date_str = '20241218d'
+# # -- MT 200um ( | )
+# session_str = '153342tUTC_SP_depth200um_fov0740x0740um_res1p00x1p00umpx_fr06p283Hz_pow030p4mW_stimMovingDots16dirFF'
+# # -- MT 150um ( | )
+# session_str = '155459tUTC_SP_depth150um_fov0740x0740um_res1p00x1p00umpx_fr06p283Hz_pow025p3mW_stimMovingDots16dirFF'
+
+# # 20241227d Left soma-jGCaMP8s
+# date_str = '20241227d'
+# # -- MT 150um ( | )
+# session_str = '170445tUTC_SP_depth150um_fov0740x0740um_res1p00x1p00umpx_fr06p282Hz_pow015p2mW_stimMultimodal'
+# # -- MT 150um ( | )
+# session_str = '174301tUTC_SP_depth150um_fov0740x0740um_res1p00x1p00umpx_fr06p282Hz_pow015p2mW_stimMovingDots16dirFF'
+# # -- MT 200um ( | )
+# session_str = '175431tUTC_SP_depth200um_fov0740x0740um_res1p00x1p00umpx_fr06p282Hz_pow019p9mW_stimMovingDots16dirFF'
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
