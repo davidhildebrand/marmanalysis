@@ -1236,6 +1236,7 @@ if correct_acqfr_index:
     for ak in acqfr_keys:
         stimlog[ak] = stimlog[ak] - 1
 
+
 # Determine basic stimulus presentation information
 #   For sessions using older stimulus code, the exact number of stimulus or ISI frames could
 #   vary slightly because the stim start was not locked to an acqusition frame increment.
@@ -1255,6 +1256,9 @@ if np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][0] 
 else:
     n_samp_isi = np.bincount(stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).nonzero()[0][1]
 n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
+
+idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
+
 
 # Calculate the timing mismatch (contraction) introduced by rounding stim and/or isi frame samples down
 acqfr_dilation_factor = (dur_trial * md['framerate']) / (n_samp_trial - 1)
@@ -1864,8 +1868,6 @@ condidx_to_supcat = {icnd: scat for scat, icndlist in supcat_to_condidx.items() 
 
 
 # %% Compute statistics for each ROI
-
-idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
 # Calculate across-stimulus, trial-averaged response means and standard deviations for each ROI
 muR_F = {}
