@@ -1710,6 +1710,51 @@ for ek in excluded:
                                                 conditions[ek].decode(), condidx_to_cat[ek].decode()))
 
 
+# %% Define and identify responsive cells
+
+m = 'Fzsc'
+
+p_anova = np.full((n_ROIs), np.nan)
+for r in range(n_ROIs):
+    _, p_anova[r] = f_oneway(*[data[m][c, r, :, idx_stim].flatten() for c in range(n_conds)], nan_policy='omit')
+
+# import zetapy
+# samp_stim_i = stimlog['acqfr_stim_i'].values
+# p_zeta = np.array([zetapy.zetatstest(np.arange(n_frames).astype(float), Fzsc_raw[r], samp_stim_i.astype(float))[0] for r in range(n_ROIs)])
+
+# p.sum(p_anova < threshold_alpha)
+# np.sum(p_zeta < threshold_alpha)
+
+# np.where((np.abs(dprime[m]) >= threshold_dprime) & (p_anova < threshold_alpha))[0]
+
+# Other approaches for measuring/approximating tuning
+
+# if normalize == 'dF/F':
+#     Ftest_cond = FdFF_by_cond_meanRstim
+#     Ftest_cat = FdFF_by_cat_meanRstim
+# elif normalize == 'Zscore':
+#     Ftest_cond = Fzsc_by_cond_meanRstim
+#     Ftest_cat = Fzsc_by_cat_meanRstim
+#
+# if tuning == 't-test':
+#     t_test_cond = scipy.stats.ttest_1samp(Ftest_cond, 0, axis=2)
+#     p_vals_cond = t_test_cond[1]
+#     p_vals_min_cond = np.min(p_vals_cond, axis=1)
+#     tuning_index = 1 - p_vals_min_cond
+#     t_test_cat = scipy.stats.ttest_1samp(Ftest_cat, 0, axis=2)
+#     p_vals_cat = t_test_cat[1]
+#     p_vals_min_cat = np.min(p_vals_cat, axis=1)
+#     tuning_index_cat = 1 - p_vals_min_cat
+# elif tuning == 'percentile':
+#     first_quantile_all_conds = np.percentile(Ftest_cond, percentile, axis=2)
+#     first_quantile_max_cond = np.max(first_quantile_all_conds, axis = 1)
+#     tuning_index_cond = first_quantile_max_cond
+#     first_quantile_all_cats = np.percentile(Ftest_cat, percentile, axis=2)
+#     first_quantile_max_cat = np.max(first_quantile_all_cats, axis = 1)
+#     tuning_index_cat = first_quantile_max_cat
+
+del m
+
 # %% Plot across-stimulus population responses (similar to PSTH)
 #    across-stimulus mean of trial-averaged population (ROI-averaged) responses
 
@@ -3080,11 +3125,6 @@ del above_threshold, ROI_colors
 
 # %% Generate simulated data for discontinuous boundary
 
-p_anova = np.full((n_ROIs), np.nan)
-
-for r in range(n_ROIs):
-    _, p_anova[r] = f_oneway(*[data[m][c, r, :, idx_stim].flatten() for c in range(n_conds)], nan_policy='omit')
-
 # centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
 centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
 left_of_cent = np.array([centroid_um[r, 0] >= (md['fov']['w_um'] / 2) for r in range(n_ROIs)])
@@ -3412,28 +3452,6 @@ if saving:
     for se in save_ext:
         fig_tau.savefig(os.path.join(save_path, sn + se),
                         dpi=plt.rcParams['figure.dpi'], transparent=True)
-
-
-# %% Playground for ANOVA testing and ZETA testing
-
-
-m = 'Fzsc'
-
-p_anova = np.full((n_ROIs), np.nan)
-
-for r in range(n_ROIs):
-    _, p_anova[r] = f_oneway(*[data[m][c, r, :, idx_stim].flatten() for c in range(n_conds)], nan_policy='omit')
-
-samp_stim_i = stimlog['acqfr_stim_i'].values
-
-# import zetapy
-
-# p_zeta = np.array([zetapy.zetatstest(np.arange(n_frames).astype(float), Fzsc_raw[r], samp_stim_i.astype(float))[0] for r in range(n_ROIs)])
-
-# p.sum(p_anova < threshold_alpha)
-# np.sum(p_zeta < threshold_alpha)
-
-# np.where((np.abs(dprime[m]) >= threshold_dprime) & (p_anova < threshold_alpha))[0]
 
 
 # %% Playground for stimulus space testing
@@ -3836,30 +3854,3 @@ if saving:
     for se in save_ext:
         fig_r.savefig(os.path.join(save_path, sn + se),
                       dpi=plt.rcParams['figure.dpi'], transparent=True)
-
-
-# %% Other approaches for measuring/approximating tuning
-
-# if normalize == 'dF/F':
-#     Ftest_cond = FdFF_by_cond_meanRstim
-#     Ftest_cat = FdFF_by_cat_meanRstim
-# elif normalize == 'Zscore':
-#     Ftest_cond = Fzsc_by_cond_meanRstim
-#     Ftest_cat = Fzsc_by_cat_meanRstim
-#
-# if tuning == 't-test':
-#     t_test_cond = scipy.stats.ttest_1samp(Ftest_cond, 0, axis=2)
-#     p_vals_cond = t_test_cond[1]
-#     p_vals_min_cond = np.min(p_vals_cond, axis=1)
-#     tuning_index = 1 - p_vals_min_cond
-#     t_test_cat = scipy.stats.ttest_1samp(Ftest_cat, 0, axis=2)
-#     p_vals_cat = t_test_cat[1]
-#     p_vals_min_cat = np.min(p_vals_cat, axis=1)
-#     tuning_index_cat = 1 - p_vals_min_cat
-# elif tuning == 'percentile':
-#     first_quantile_all_conds = np.percentile(Ftest_cond, percentile, axis=2)
-#     first_quantile_max_cond = np.max(first_quantile_all_conds, axis = 1)
-#     tuning_index_cond = first_quantile_max_cond
-#     first_quantile_all_cats = np.percentile(Ftest_cat, percentile, axis=2)
-#     first_quantile_max_cat = np.max(first_quantile_all_cats, axis = 1)
-#     tuning_index_cat = first_quantile_max_cat
