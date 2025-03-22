@@ -3078,6 +3078,107 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 del above_threshold, ROI_colors
 
 
+# %% Generate simulated data for discontinuous boundary
+
+p_anova = np.full((n_ROIs), np.nan)
+
+for r in range(n_ROIs):
+    _, p_anova[r] = f_oneway(*[data[m][c, r, :, idx_stim].flatten() for c in range(n_conds)], nan_policy='omit')
+
+# centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
+centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
+left_of_cent = np.array([centroid_um[r, 0] >= (md['fov']['w_um'] / 2) for r in range(n_ROIs)])
+
+data_sim = np.full(dprime[m].shape, np.nan)
+data_sim[left_of_cent] = 0.8 + np.random.normal(0, 0.1, data_sim[left_of_cent].shape)
+data_sim[~left_of_cent] = -0.8 + np.random.normal(0, 0.1, data_sim[~left_of_cent].shape)
+
+
+# %% Overlay ROI masks over imaging data... pseudocolored by simulated data values..
+
+m = 'Fzsc'
+
+ROI_colors = data_sim
+
+# ...for all ROIs
+sn = save_pfix + '_ROIplot_ColorByDataSim_AllROIs'
+sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
+plots.plot_overlays_roi(ROIs, 
+                        ROI_colors, alpha=1.0, colormap='bwr', colorlim=1.0, 
+                        bgimage=plots.auto_level_s2p_image(fov_image), 
+                        flip=None, rotate=0,
+                        # flip='lr', rotate=-90,
+                        title=r'simulated value',
+                        save_path=sp)
+
+# ...only for ROIs with ANOVA alpha < threshold
+above_threshold = np.where(p_anova < threshold_alpha)[0]
+sn = save_pfix + '_ROIplot_ColorByDataSim' + \
+    '_threshAlpha{:0.2f}'.format(threshold_alpha).replace('.', 'p')
+sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
+plots.plot_overlays_roi(ROIs[above_threshold], 
+                        ROI_colors[above_threshold], alpha=1.0, colormap='bwr', colorlim=1.0, 
+                        bgimage=plots.auto_level_s2p_image(fov_image), 
+                        flip=None, rotate=0,
+                        # flip='lr', rotate=-90,
+                        title=r'simulated value' + '\n' +
+                              r'ANOVA $\alpha$ $<$ {:0.2f}'.format(threshold_alpha),
+                        save_path=sp)
+
+del above_threshold, ROI_colors
+
+# %% Compare ROI simulated data values with respect to distance
+
+m = 'Fzsc'
+
+# centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
+centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
+roipair_dist_um = np.array([np.linalg.norm(centroid_um[r0] - centroid_um[r1]) 
+                            for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+
+if np.any(roipair_dist_um > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
+    warn('Distance between some ROIs exceeds expected FOV diagonal.')
+    
+roipair_simdiff = np.array([np.abs(data_sim[r0] - data_sim[r1])
+                             for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+
+w_bin_um = 25
+n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_simdiff, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_simdiff, statistic='std', bins=bin_edges)
+bin_ns, _, _ = binned_statistic(roipair_dist_um, roipair_simdiff, statistic='count', bins=bin_edges)
+
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 100
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
+
+fig_simdiff = plt.figure()
+ax = fig_simdiff.subplots(1, 1)
+ax.set_ylabel(r'$\Delta$ simulated value', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major')
+# ax.set_xlim((0, roipair_dist_um.max() + 1))
+ax.set_xlim((0, 1000))
+ax.set_ylim((0,  # roipair_simdiff.min() - np.abs(0.1 * roipair_simdiff.min()), 
+             roipair_simdiff.max() + np.abs(0.1 * roipair_simdiff.max())))
+ax.scatter(roipair_dist_um, roipair_simdiff, marker='.', s=0.5, color='k', edgecolor='None')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
+fig_simdiff.show()
+
+if saving:
+    sn = save_pfix + '_RelationshipPlot_DataSimDiff_by_Distance'
+    for se in save_ext:
+        fig_simdiff.savefig(os.path.join(save_path, sn + se),
+                               dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+
 # %% Compare ROI dprime_F values with respect to distance
 
 m = 'Fzsc'
@@ -3156,24 +3257,6 @@ bin_medians = bin_medians[bin_ns > n_pairs_required]
 bin_stds = bin_stds[bin_ns > n_pairs_required]
 bin_medians_shuff = bin_medians_shuff[bin_ns > n_pairs_required]
 bin_stds_shuff = bin_stds_shuff[bin_ns > n_pairs_required]
-
-
-fig_r = plt.figure()
-ax = fig_r.subplots(1, 1)
-ax.set_ylabel(r'Stimulus response Pearson correlation ($\it{r}$)')
-ax.set_xlabel('Distance (µm)')
-ax.spines[['right', 'top']].set_visible(False)
-ax.tick_params(axis='both', which='major')
-# ax.set_xlim((0, roipair_dist_um.max() + 1))
-ax.set_xlim((0, 500))
-ax.set_ylim((roipair_corr_respvect.min() - np.abs(0.1 * roipair_corr_respvect.min()), 1))
-# ax.set_ylim((-0.0, 0.8))
-
-ax.scatter(roipair_dist_um, roipair_corr_respvect, marker='.', s=0.5, color='k', edgecolor='None')
-ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
-            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
-            fmt='o', elinewidth=1, ecolor='r')
-
 
 # params = [C, A, k]
 guess = [0.28, -0.21, 0.014]
