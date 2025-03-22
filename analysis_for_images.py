@@ -2025,20 +2025,20 @@ del ROIs_tuned_idx, n_ROIs_tuned
 
 # %% Plot histograms of ROI tuning
 
-sn = save_pfix + '_01_Histogram_FSI_fromFdFF'
+sn = save_pfix + '_Histogram_FSI_fromFdFF'
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_hist_fsi(FSI['FdFF'], threshold=threshold_fsi,
                     title='FSIs calculated from FdFF values', save_path=sp)
-sn = save_pfix + '_01_Histogram_FSI_fromZscr'
+sn = save_pfix + '_Histogram_FSI_fromZscr'
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_hist_fsi(FSI['Fzsc'], threshold=threshold_fsi,
                     title='FSIs calculated from z-scored values', save_path=sp)
 
-sn = save_pfix + '_01_Histogram_Dprime_fromFzsc'
+sn = save_pfix + '_Histogram_Dprime_fromFzsc'
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_hist_dprime(dprime['Fzsc'], threshold=threshold_dprime,
                        title=r'$d^\prime_F$ calculated from Fzsc values', save_path=sp)
-sn = save_pfix + '_01_Histogram_Dprime_fromFdFF'
+sn = save_pfix + '_Histogram_Dprime_fromFdFF'
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_hist_dprime(dprime['FdFF'], threshold=threshold_dprime,
                        title=r'$d^\prime_F$ calculated from FdFF values', save_path=sp)
@@ -2122,7 +2122,7 @@ for r in range(n_plot_ROIs):
     plt.show()
 
     if saving:
-        sn = save_pfix + '_02_ResponsePlot_dprime{:0.2f}_'.format(dprime[dpm][ridx]).replace('.', 'p') + \
+        sn = save_pfix + '_ResponsePlot_dprime{:0.2f}_'.format(dprime[dpm][ridx]).replace('.', 'p') + \
             'ROI{}'.format(ridx)
         for se in save_ext:
             fig.savefig(os.path.join(save_path, sn + se),
@@ -2201,7 +2201,7 @@ for r in range(n_plot_ROIs):
 fig.show()
 
 if saving:
-    sn = save_pfix + '_03_ResponsePlot_TrialAveraged_ROIsSelectedSubset'
+    sn = save_pfix + '_ResponsePlot_TrialAveraged_ROIsSelectedSubset'
     for se in save_ext:
         fig.savefig(os.path.join(save_path, sn + se),
                     dpi=plt.rcParams['figure.dpi'], transparent=True)
@@ -2290,7 +2290,7 @@ plots.set_plot_text_settings()
 fig_cb.show()
 
 if saving:
-    sn = save_pfix + '_04_Heatmap_TrialMeanAveragedSubset_sortDprime'
+    sn = save_pfix + '_Heatmap_TrialMeanAveragedSubset_sortDprime'
     #    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
     for se in save_ext:
         fig_hm.savefig(os.path.join(save_path, sn + se),
@@ -2382,7 +2382,7 @@ plots.set_plot_text_settings()
 fig_cb.show()
 
 if saving:
-    sn = save_pfix + '_04_Heatmap_TrialMedianAveragedSubset_sortDprime'
+    sn = save_pfix + '_Heatmap_TrialMedianAveragedSubset_sortDprime'
     #    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
     for se in save_ext:
         fig_hm.savefig(os.path.join(save_path, sn + se),
@@ -2518,7 +2518,7 @@ plots.set_plot_text_settings()
 fig_cb.show()
 
 if saving:
-    sn = save_pfix + '_05_Heatmap_byCondition_sortDprime'
+    sn = save_pfix + '_Heatmap_byCondition_sortDprime'
     #    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
     for se in save_ext:
         fig_hm.savefig(os.path.join(save_path, sn + se),
@@ -2653,7 +2653,7 @@ plots.set_plot_text_settings()
 fig_cb.show()
 
 if saving:
-    sn = save_pfix + '_06_Heatmap_byCategory_sortDprime'
+    sn = save_pfix + '_Heatmap_byCategory_sortDprime'
     #    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
     for se in save_ext:
         fig_hm.savefig(os.path.join(save_path, sn + se),
@@ -2769,7 +2769,7 @@ plots.set_plot_text_settings()
 fig_cb.show()
 
 if saving:
-    sn = save_pfix + '_07_Heatmap_byCategory_sortMeanFace'
+    sn = save_pfix + '_Heatmap_byCategory_sortMeanFace'
     #     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
     for se in save_ext:
         fig_hm.savefig(os.path.join(save_path, sn + se),
@@ -2799,7 +2799,7 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0) if not np.isnan(h) else 
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_08_ROIplot_ColorByCategoryOfPeakCondition' + \
+sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs[above_threshold], 
@@ -2812,7 +2812,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_08_ROIplot_ColorByCategoryOfPeakCondition' + \
+sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs[above_threshold], 
@@ -2825,7 +2825,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |mean Z-score| >= threshold
 above_threshold = np.where(stats_df[m]['peak_cond_val'] >= threshold_Zscore)[0]
-sn = save_pfix + '_08_ROIplot_ColorByCategoryOfPeakCondition' + \
+sn = save_pfix + '_ROIplot_ColorByCategoryOfPeakCondition' + \
     '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs[above_threshold], 
@@ -2857,7 +2857,7 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0) if not np.isnan(h) else 
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_09_ROIplot_ColorByPeakCategory' + \
+sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs[above_threshold], 
@@ -2870,7 +2870,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_09_ROIplot_ColorByPeakCategory' + \
+sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs[above_threshold], 
@@ -2883,7 +2883,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |mean Z-score| >= threshold
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
-sn = save_pfix + '_09_ROIplot_ColorByPeakCategory' + \
+sn = save_pfix + '_ROIplot_ColorByPeakCategory' + \
     '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs[above_threshold], 
@@ -2911,7 +2911,7 @@ ROI_colors[ROI_colors > 1] = 1
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_10_ROIplot_ColorByRelativeResponseStrength' + \
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
     '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
@@ -2925,7 +2925,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_10_ROIplot_ColorByRelativeResponseStrength' + \
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
     '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
@@ -2939,7 +2939,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
 
 # ...only for ROIs with |mean Z-score| >= threshold
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
-sn = save_pfix + '_10_ROIplot_ColorByRelativeResponseStrength' + \
+sn = save_pfix + '_ROIplot_ColorByRelativeResponseStrength' + \
     '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
     '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
@@ -2975,7 +2975,7 @@ ROI_images = np.array([data[stats_df[m]['peak_cond_idx'][ir]]['stimulus'].filepa
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_11_ROIplot_OverlayImageColorByPeakCategory' + \
+sn = save_pfix + '_ROIplot_OverlayImageColorByPeakCategory' + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_img(ROIs[above_threshold], 
@@ -2989,7 +2989,7 @@ plots.plot_overlays_img(ROIs[above_threshold],
 
 # ...only for ROIs with |FSI| >= threshold
 above_threshold = np.where(np.abs(FSI[m]) >= threshold_fsi)[0]
-sn = save_pfix + '_11_ROIplot_OverlayImageColorByPeakCategory' + \
+sn = save_pfix + '_ROIplot_OverlayImageColorByPeakCategory' + \
     '_threshFSI{:0.2f}'.format(threshold_fsi).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_img(ROIs[above_threshold],
@@ -3003,7 +3003,7 @@ plots.plot_overlays_img(ROIs[above_threshold],
 
 # ...only for ROIs with |mean Z-score| >= threshold
 above_threshold = np.where(stats_df[m]['peak_cat_val'] > threshold_Zscore)[0]
-sn = save_pfix + '_11_ROIplot_OverlayImageColorByPeakCategory' + \
+sn = save_pfix + '_ROIplot_OverlayImageColorByPeakCategory' + \
     '_threshZ{:0.2f}'.format(threshold_Zscore).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_img(ROIs[above_threshold],
@@ -3025,7 +3025,7 @@ m = 'Fzsc'
 ROI_colors = dprime[m]
 
 # ...for all ROIs
-sn = save_pfix + '_12_ROIplot_ColorByDprimeVal_AllROIs'
+sn = save_pfix + '_ROIplot_ColorByDprimeVal_AllROIs'
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs, 
                         ROI_colors, alpha=1.0, colormap='bwr', colorlim=1.0, 
@@ -3036,7 +3036,7 @@ plots.plot_overlays_roi(ROIs,
 
 # ...only for ROIs with |dprime_F| >= threshold
 above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
-sn = save_pfix + '_12_ROIplot_ColorByDprimeVal' + \
+sn = save_pfix + '_ROIplot_ColorByDprimeVal' + \
     '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
 sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
 plots.plot_overlays_roi(ROIs[above_threshold], 
@@ -3095,7 +3095,7 @@ ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
 fig_dprimediff.show()
 
 if saving:
-    sn = save_pfix + '_13_RelationshipPlot_DprimeDiff_by_Distance'
+    sn = save_pfix + '_RelationshipPlot_DprimeDiff_by_Distance'
     for se in save_ext:
         fig_dprimediff.savefig(os.path.join(save_path, sn + se),
                                dpi=plt.rcParams['figure.dpi'], transparent=True)
@@ -3219,7 +3219,7 @@ plots.set_plot_text_settings()
 fig_r.show()
 
 if saving:
-    sn = save_pfix + '_14_RelationshipPlot_StimulusResponsePearsonCorr_by_Distance'
+    sn = save_pfix + '_RelationshipPlot_StimulusResponsePearsonCorr_by_Distance'
     for se in save_ext:
         fig_r.savefig(os.path.join(save_path, sn + se),
                       dpi=plt.rcParams['figure.dpi'], transparent=True)
@@ -3265,7 +3265,7 @@ plots.set_plot_text_settings()
 fig_rho.show()
 
 if saving:
-    sn = save_pfix + '_15_RelationshipPlot_StimulusResponseSpearmanRankCorr_by_Distance'
+    sn = save_pfix + '_RelationshipPlot_StimulusResponseSpearmanRankCorr_by_Distance'
     for se in save_ext:
         fig_rho.savefig(os.path.join(save_path, sn + se),
                         dpi=plt.rcParams['figure.dpi'], transparent=True)
@@ -3296,7 +3296,7 @@ plots.set_plot_text_settings()
 fig_tau.show()
 
 if saving:
-    sn = save_pfix + '_15_RelationshipPlot_StimulusResponseKendallRankCorr_by_Distance'
+    sn = save_pfix + '_RelationshipPlot_StimulusResponseKendallRankCorr_by_Distance'
     for se in save_ext:
         fig_tau.savefig(os.path.join(save_path, sn + se),
                         dpi=plt.rcParams['figure.dpi'], transparent=True)
