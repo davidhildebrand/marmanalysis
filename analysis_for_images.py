@@ -608,6 +608,83 @@ pathstr_subs = [
 # %% Define functions and classes
 
 
+def round_to_quarter(num):
+    return round(num * 4) / 4
+
+
+def get_md5_checksum(file):
+    hl_md5 = hashlib.md5()
+    with open(file, 'rb') as f:
+        for chnk in iter(lambda: f.read(4096), b''):
+            hl_md5.update(chnk)
+    return hl_md5.hexdigest()
+
+
+def angle_between_vectors(v1, v2, degrees=False):
+    """
+    Calculates the angle between two vectors.
+
+    Args:
+        v1 (np.ndarray): The first vector.
+        v2 (np.ndarray): The second vector.
+
+    Returns:
+        float: The angle between the vectors.
+    """
+    v1 = np.array(v1)
+    v2 = np.array(v2)
+
+    if np.linalg.norm(v1) == 0 or np.linalg.norm(v2) == 0:
+      raise ValueError("Cannot calculate angle with a zero vector")
+    
+    cos_theta = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)  # Ensure value is within valid range
+    theta = np.arccos(cos_theta)
+    if degrees:
+        theta = np.degrees(theta)
+    return theta
+
+
+def signed_angle_2d(v1, v2, degrees=False):
+    """
+    Calculate the signed angle between two 2D vectors.
+
+    Args:
+        v1 (np.ndarray): The first vector (2D).
+        v2 (np.ndarray): The second vector (2D).
+
+    Returns:
+        float: The signed angle, ranging from -pi to pi.
+               Positive angle indicates counter-clockwise rotation from v1 to v2.
+               Negative angle indicates clockwise rotation.
+    """
+    theta = np.arctan2(v2[1], v2[0]) - np.arctan2(v1[1], v1[0])
+    if degrees:
+        theta = np.degrees(theta)
+    return theta
+
+
+def clockwise_angle(v1, v2, degrees=False):
+    """
+    Calculates the clockwise angle between two 2D vectors.
+
+    Args:
+        v1: The first vector as a numpy array (x, y).
+        v2: The second vector as a numpy array (x, y).
+
+    Returns:
+        The clockwise angle between v1 and v2.
+    """
+    dot_product = np.dot(v1, v2)
+    determinant = np.linalg.det(np.array([v1, v2]))
+    theta = np.arctan2(determinant, dot_product)
+    if theta < 0:
+        theta = 2 * np.pi + theta
+    if degrees:
+        theta = np.degrees(theta)
+    return theta 
+
+
 class StimulusImage(object):
     """Representation of stimulus images."""
 
@@ -631,18 +708,6 @@ class StimulusImage(object):
 
     def __lt__(self, other):
         return self.yaw < other.yaw
-
-
-def round_to_quarter(num):
-    return round(num * 4) / 4
-
-
-def get_md5_checksum(file):
-    hl_md5 = hashlib.md5()
-    with open(file, 'rb') as f:
-        for chnk in iter(lambda: f.read(4096), b''):
-            hl_md5.update(chnk)
-    return hl_md5.hexdigest()
 
 
 # %% Find files and load data
