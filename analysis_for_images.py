@@ -946,7 +946,19 @@ Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Fr
 
 # %% Estimate SNR
 
-# v_noiselev = np.median(np.abs(np.diff(FdFF_raw)), axis=1) / np.sqrt(md['framerate'])
+# Standardized noise v
+# Based on Rupprecht et al Helmchen, Friedrich 2021 Nat Neurosci https://doi.org/10.1038/s41593-021-00895-5
+# In the shot noise limited case, the mean fluorescence F0 scales with N, which is the number of photons collected by
+# the detector per second, and the fluorescence baseline fluctuations σF scale with √N. Thus, the ΔF/F baseline noise
+# σΔF/F = σF/F0 scales with 1/√N. If the fluorescence signal is sampled at frame rate fr and the number of
+# photons collected per frame reduces to N/fr, thus σΔF/F scales with √fr. To define a noise measure that is
+# independent of frame rate, we, therefore, normalized σΔF/F for this shot noise effect and defined the standardized
+# noise ν as:
+# ν = σΔF/F × √fr
+# The units for ν are %·Hz−1/2, which, for the purpose of readability, we omit in the text. When computed for ΔF/F data
+# in this way, ν is quantitatively comparable across datasets. A value of ν = 1 indicates a very low noise level,
+# whereas ν = 8 indicates a high noise level, independent of frame rate.
+v_noiselev = np.median(np.abs(np.diff(FdFF_raw)), axis=1) / np.sqrt(md['framerate'])
 
 # # Deconvolve fluorescence signals.
 # from oasis.oasis_methods import oasisAR1
