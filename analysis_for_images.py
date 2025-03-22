@@ -3496,13 +3496,13 @@ stimvals_fc6_pca40 = pca_fc6_40c.fit_transform(stimvals_fc6)
 # plt.legend()
 # plt.show()
 
-# Center stimulus space on blank image (if available).
-if np.sum(bool_blank) > 1:
-    stimvals_fc6_pca2 = stimvals_fc6_pca2 - np.mean(stimvals_fc6_pca2[bool_blank], axis=0)
-    stimvals_fc6_pca40 = stimvals_fc6_pca40 - np.mean(stimvals_fc6_pca40[bool_blank], axis=0)
-elif np.sum(bool_blank) == 1:
-    stimvals_fc6_pca2 = stimvals_fc6_pca2 - stimvals_fc6_pca2[bool_blank]
-    stimvals_fc6_pca40 = stimvals_fc6_pca40 - stimvals_fc6_pca40[bool_blank]
+# # Center stimulus space on blank image (if available).
+# if np.sum(bool_blank) > 1:
+#     stimvals_fc6_pca2 = stimvals_fc6_pca2 - np.mean(stimvals_fc6_pca2[bool_blank], axis=0)
+#     stimvals_fc6_pca40 = stimvals_fc6_pca40 - np.mean(stimvals_fc6_pca40[bool_blank], axis=0)
+# elif np.sum(bool_blank) == 1:
+#     stimvals_fc6_pca2 = stimvals_fc6_pca2 - stimvals_fc6_pca2[bool_blank]
+#     stimvals_fc6_pca40 = stimvals_fc6_pca40 - stimvals_fc6_pca40[bool_blank]
 
 stimvals_fc6_pca2_df = pd.DataFrame(stimvals_fc6_pca2, columns=[f'PC{x}' for x in range(1, pca_fc6_2c.n_components_ + 1)])
 stimvals_fc6_pca40_df = pd.DataFrame(stimvals_fc6_pca40, columns=[f'PC{x}' for x in range(1, pca_fc6_40c.n_components_ + 1)])
