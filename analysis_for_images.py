@@ -3210,8 +3210,8 @@ bin_stds = bin_stds[bin_ns > n_pairs_required]
 
 fig_dprimediff = plt.figure()
 ax = fig_dprimediff.subplots(1, 1)
-ax.set_ylabel(r'$|\Delta d^\prime_F|$')
-ax.set_xlabel('Distance (µm)')
+ax.set_ylabel(r'$|\Delta d^\prime_F|$', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roipair_dist_um.max() + 1))
@@ -3306,8 +3306,24 @@ k_f_s = fit_shuff[2]
 
 ddys_shuff = C_f_s - (A_f_s * np.exp(-k_f_s * ddxs))
 
+fig_r = plt.figure()
+ax = fig_r.subplots(1, 1)
+ax.set_ylabel(r'Stimulus response Pearson correlation ($\it{r}$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major')
+# ax.set_xlim((0, roipair_dist_um.max() + 1))
+ax.set_xlim((0, 1000))
+ax.set_ylim((-0.2, 0.80))  # (roipair_corr_respvect.min() - np.abs(0.1 * roipair_corr_respvect.min()), 1))
+# ax.set_ylim((-0.0, 0.8))
+
+ax.scatter(roipair_dist_um, roipair_corr_respvect, marker='.', s=0.5, alpha=0.5, color='k', edgecolor='None')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
+
 if result_shuff['success']:
-    ax.plot(ddxs, ddys_shuff, 'k')
+    ax.plot(ddxs, ddys_shuff, 'b')
 if result['success']:
     ax.plot(ddxs, ddys, 'r')
 
@@ -3346,8 +3362,8 @@ bin_stds = bin_stds[bin_ns > n_pairs_required]
 
 fig_rho = plt.figure()
 ax = fig_rho.subplots(1, 1)
-ax.set_ylabel(r'Stimulus response Spearman rank correlation ($\rho$)')
-ax.set_xlabel('Distance (µm)')
+ax.set_ylabel(r'Stimulus response Spearman rank correlation ($\rho$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roipair_dist_um.max() + 1))
@@ -3376,8 +3392,8 @@ bin_stds = bin_stds[bin_ns > n_pairs_required]
 
 fig_tau = plt.figure()
 ax = fig_tau.subplots(1, 1)
-ax.set_ylabel(r'Stimulus response Kendall rank correlation ($\tau$)')
-ax.set_xlabel('Distance (µm)')
+ax.set_ylabel(r'Stimulus response Kendall rank correlation ($\tau$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, roipair_dist_um.max() + 1))
