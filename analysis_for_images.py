@@ -3838,36 +3838,6 @@ if saving:
                       dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
-# %% Plot stimulus images
-
-# n_subconds = len(cond_subset)
-
-# if n_conds % 20 == 0:
-#     n_cols = 20
-#     n_rows = int(n_subconds / 20)
-# else:
-#     n_cols = 20
-#     n_rows = round(n_subconds / 20)
-
-# fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows,
-#                         figsize=(n_cols * 512 / plt.rcParams['figure.dpi'], n_rows * 512 / plt.rcParams['figure.dpi']),
-#                         layout='constrained')
-# for row in range(n_rows):
-#     for col in range(n_cols):
-#         i = col + (row * n_cols)
-#         ax = axs[row, col]
-#         ax.set_yticklabels([])
-#         ax.set_xticklabels([])
-#         ax.axis('off')
-#         imp = os.path.join(stimimage_path, data[cond_idx[i]]['imagename'])
-#         ax.imshow(plt.imread(imp))
-# if saving:
-#     sn = save_pfix + '_StimulusImages'
-#     for se in save_ext:
-#         fig.savefig(os.path.join(save_path, sn + se),
-#                     dpi=plt.rcParams['figure.dpi'], transparent=True)
-
-
 # %% Other approaches for measuring/approximating tuning
 
 # if normalize == 'dF/F':
