@@ -685,6 +685,22 @@ def clockwise_angle(v1, v2, degrees=False):
     return theta 
 
 
+def distance_dependence_exponential(params, x):
+    # Based on Pattadkal et al Priebe 2024 Neuron https://doi.org/10.1016/j.neuron.2023.11.005
+    # y: fitted direction difference
+    # x: distance between cells
+    C = params[0]  # saturation value
+    A = params[1]  # start value
+    k = params[2]  # decay space constant
+    y = C - (A * np.exp(-k * x))
+    return y
+
+def distance_dependence_objective(params, xs, measured):
+    predicted = distance_dependence_exponential(params, xs)
+    mse = np.square(np.subtract(predicted, measured)).mean()
+    return mse
+
+
 class StimulusImage(object):
     """Representation of stimulus images."""
 
@@ -3158,25 +3174,10 @@ ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
             fmt='o', elinewidth=1, ecolor='r')
 
-def dir_dist_dep_exp_equation(params, x):
-    # based on Pattadkal et al Priebe 2022 bioRxiv
-    #     https://doi.org/10.1101/2022.06.23.497220
-    # y: fitted direction difference
-    # x: distance between cells
-    C = params[0]  # saturation value
-    A = params[1]  # start value
-    k = params[2]  # decay space constant
-    y = C - (A * np.exp(-k * x))
-    return y
-
-def dirdist_objective(params, xs, measured_dirdiff):
-    predicted_dirdiff = dir_dist_dep_exp_equation(params, xs)
-    mse = np.square(np.subtract(predicted_dirdiff, measured_dirdiff)).mean()
-    return mse
 
 # params = [C, A, k]
 guess = [0.28, -0.21, 0.014]
-result = least_squares(dirdist_objective ,
+result = least_squares(distance_dependence_objective,
                        guess, 
                        args=(bin_centers, bin_medians), 
                        xtol=1e-10, ftol=1e-10, gtol=1e-12,
@@ -3184,7 +3185,7 @@ result = least_squares(dirdist_objective ,
                        max_nfev=100000)
 
 guess_shuff = [0.3, -0, 0.0]
-result_shuff = least_squares(dirdist_objective, 
+result_shuff = least_squares(distance_dependence_objective,
                              guess_shuff, 
                              args=(bin_centers, bin_medians_shuff), 
                              xtol=1e-10, ftol=1e-10, gtol=1e-12,
@@ -3201,7 +3202,7 @@ result_shuff = least_squares(dirdist_objective,
 #     y = C - (A * np.exp(-k * x))
 #     return y
 
-# cf = curve_fit(dir_dist_dep_exp_equation_cf, xdata=bin_centers, ydata=bin_medians) # dirdist_objective, 
+# cf = curve_fit(dir_dist_dep_exp_equation_cf, xdata=bin_centers, ydata=bin_medians)
                        # args=(bin_centers, bin_medians))
                        # xtol=1e-10, ftol=1e-10, gtol=1e-12,
                        # bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
