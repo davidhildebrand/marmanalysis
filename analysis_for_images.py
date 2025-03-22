@@ -1754,6 +1754,8 @@ del mi, m, xs, xticks, xticklabels
 #   *** TODO: Also consider yaw and roll...
 bool_blank = np.logical_or.reduce([data['cat'] == c for c in categories
                                    if 'blank' in c.decode()])
+if not bool_blank:
+    bool_blank = np.full(data['cond'].shape, False)
 bool_F = np.logical_or.reduce([data['cat'] == c for c in categories
                                if 'face' in c.decode() 
                                and 'blank' not in c.decode() and 'scram' not in c.decode()
