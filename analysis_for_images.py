@@ -3507,34 +3507,336 @@ stimvals_fc6_pca40 = pca_fc6_40c.fit_transform(stimvals_fc6)
 stimvals_fc6_pca2_df = pd.DataFrame(stimvals_fc6_pca2, columns=[f'PC{x}' for x in range(1, pca_fc6_2c.n_components_ + 1)])
 stimvals_fc6_pca40_df = pd.DataFrame(stimvals_fc6_pca40, columns=[f'PC{x}' for x in range(1, pca_fc6_40c.n_components_ + 1)])
 
-r_arrow = resp_vect_cond[m]
-r_bar = np.mean(resp_vect_cond[m], axis=1)
-F = stimvals_fc6_pca2
+# r_arrow = resp_vect_cond[m]
+# r_bar = np.mean(resp_vect_cond[m], axis=1)
+# F = stimvals_fc6_pca2
 
-P_sta = np.array([(r_arrow[r] - r_bar[r]).T @ F for r in range(n_ROIs)])
-P_lin = np.array([(r_arrow[r] - r_bar[r]).T @ F @ np.linalg.inv(F.T @ F) for r in range(n_ROIs)])
+# P_sta = np.array([(r_arrow[r] - r_bar[r]).T @ F for r in range(n_ROIs)])
+# P_lin = np.array([(r_arrow[r] - r_bar[r]).T @ F @ np.linalg.inv(F.T @ F) for r in range(n_ROIs)])
 
-# P_lin = (r_arrow - r_bar) * F * (F.T * F)^-1
-#  r_arrow: 1 x n response to a set of n stimuli
-#  r_bar: mean response
-#  F: n stim x d pca params
+r_arrow_pca2 = resp_vect_cond[m]
+r_bar_pca2 = np.mean(resp_vect_cond[m], axis=1)
+F_pca2 = stimvals_fc6_pca2
 
-fig, ax = plt.subplots(figsize=(10,10))
-plt.rcParams['figure.dpi'] = 300
-plt.rcParams.update({'font.size': 10})
+P_sta_pca2 = np.array([(r_arrow_pca2[r] - r_bar_pca2[r]).T @ F_pca2 for r in range(n_ROIs)])
+P_lin_pca2 = np.array([(r_arrow_pca2[r] - r_bar_pca2[r]).T @ F_pca2 @ np.linalg.inv(F_pca2.T @ F_pca2) 
+                       for r in range(n_ROIs)])
+
+r_arrow_pca40 = resp_vect_cond[m]
+r_bar_pca40 = np.mean(resp_vect_cond[m], axis=1)
+F_pca40 = stimvals_fc6_pca40
+
+P_sta_pca40 = np.array([(r_arrow_pca40[r] - r_bar_pca40[r]).T @ F_pca40 for r in range(n_ROIs)])
+P_lin_pca40 = np.array([(r_arrow_pca40[r] - r_bar_pca40[r]).T @ F_pca40 @ np.linalg.inv(F_pca40.T @ F_pca40) 
+                        for r in range(n_ROIs)])
+
+weighted_pca2_centers = np.array([np.mean(np.array([resp_vect_cond[m][r][s] * stimvals_fc6_pca2[s] for s in range(n_conds)]), axis=0) for r in range(n_ROIs)])
+weighted_pca2_centers_df = pd.DataFrame(weighted_pca2_centers, columns=[f'PC{x}' for x in range(1, pca_fc6_2c.n_components_ + 1)])
+
+weighted_pca40_centers = np.array([np.mean(np.array([resp_vect_cond[m][r][s] * stimvals_fc6_pca40[s] for s in range(n_conds)]), axis=0) for r in range(n_ROIs)])
+weighted_pca40_centers_df = pd.DataFrame(weighted_pca40_centers, columns=[f'PC{x}' for x in range(1, pca_fc6_40c.n_components_ + 1)])
+
+facevals_fc6_pca2 = stimvals_fc6_pca2[bool_F]
+facevals_fc6_pca40 = stimvals_fc6_pca40[bool_F]
+facevals_fc6_pca2_df = pd.DataFrame(facevals_fc6_pca2, columns=[f'PC{x}' for x in range(1, pca_fc6_2c.n_components_ + 1)])
+facevals_fc6_pca40_df = pd.DataFrame(facevals_fc6_pca40, columns=[f'PC{x}' for x in range(1, pca_fc6_40c.n_components_ + 1)])
+
+facevect_fc6_pca2 = np.mean(facevals_fc6_pca2, axis=0)
+facevect_fc6_pca40 = np.mean(facevals_fc6_pca40, axis=0)
+
+fig_stimspace, ax = plt.subplots(figsize=(10,10))
+# plt.rcParams['figure.dpi'] = 300
+# plt.rcParams.update({'font.size': 10})
+# max_length = np.max([np.linalg.norm(P_lin[r]) for r in range(n_ROIs)])
 # for r in range(n_ROIs):
-#     ax.plot([0, P_sta[r,0]], [0, P_sta[r,1]], alpha=0.1, color='k', zorder=0)
-ax.quiver([0, P_sta[dprime[m].argmax(),0]], [0, P_sta[dprime[m].argmax(),1]],  # scale_units='xy', scale=0.001, 
-          alpha=0.5, color=(1,0,0), label='Psta_dprime_max', zorder=1)
-ax.quiver([0, P_lin[dprime[m].argmax(),0]], [0, P_lin[dprime[m].argmax(),1]],  # scale_units='xy', scale=0.001, 
-          alpha=0.5, color=(1,0,0), label='Plin_dprime_max', zorder=1)
+#     ax.plot([0, P_lin[r,0] * 1000 / P_lin.max()], [0, P_lin[r,1] * 1000 / P_lin.max()],  # alpha=0.1, 
+#             color=colorsys.hsv_to_rgb(clockwise_angle(facevect_fc6_pca2, P_lin[r]) / (2 * np.pi), 
+#                                       np.linalg.norm(P_lin[r]) / max_length, 
+#                                       1.0), 
+#             zorder=0)
+max_length = np.max([np.linalg.norm(P_sta_pca2[r]) for r in range(n_ROIs)])
+ax.scatter(data=weighted_pca2_centers_df, s=40, x='PC1', y='PC2', alpha=0.2, c='k', label='weighted_pca_pos', zorder=0)
+# for r in range(n_ROIs):
+#     ax.plot([0, P_sta_pca2[r,0]], [0, P_sta_pca2[r,1]],  # alpha=0.1, 
+#             color=colorsys.hsv_to_rgb(clockwise_angle(facevect_fc6_pca2, P_sta_pca2[r]) / (2 * np.pi), 
+#                                       np.linalg.norm(P_sta_pca2[r]) / max_length, 
+#                                       1.0), 
+#             zorder=0)
+# # ax.quiver([0, P_sta[dprime[m].argmax(),0]], [0, P_sta[dprime[m].argmax(),1]],  # scale_units='xy', scale=0.001, 
+# #           alpha=0.5, color=(1,0,0), label='Psta_dprime_max', zorder=1)
+# ax.quiver([0, P_lin_pca2[dprime[m].argmax(),0]], [0, P_lin_pca2[dprime[m].argmax(),1]], 
+#           alpha=0.5, color=(1,0,0), label='Plin_dprime_max', zorder=1)
+# ax.quiver([0, facevect_fc6_pca2[0]], [0, facevect_fc6_pca2[1]], 
+#           alpha=0.8, color=(1,0,0), label='face vect', zorder=1)
+# ax.quiver([0, P_lin_pca2[dprime[m].argmin(),0]], [0, P_lin_pca2[dprime[m].argmin(),1]], 
+#           alpha=0.5, color=(0.5,0.5,0.5), label='Plin_dprime_min', zorder=1)
 ax.scatter(data=stimvals_fc6_pca2_df[bool_blank], x='PC1', y='PC2', s=40, alpha=0.8, c='k', label='blank', zorder=1)
-ax.scatter(data=stimvals_fc6_pca2_df[bool_F], x='PC1', y='PC2', s=40, alpha=1.0, c=stim_colors[bool_F], label='F', zorder=1)
-ax.scatter(data=stimvals_fc6_pca2_df[bool_O], x='PC1', y='PC2', s=40, alpha=1.0, c=stim_colors[bool_O], label='O', zorder=1)
-ax.scatter(data=stimvals_fc6_pca2_df[bool_B], x='PC1', y='PC2', s=40, alpha=1.0, c=stim_colors[bool_B], label='B', zorder=1)
+ax.scatter(data=stimvals_fc6_pca2_df[bool_F], x='PC1', y='PC2', s=40, linewidths=1, edgecolors='k', 
+           alpha=1.0, c=stim_colors[bool_F], label='F', zorder=1)
+ax.scatter(data=stimvals_fc6_pca2_df[bool_O], x='PC1', y='PC2', s=40, linewidths=1, edgecolors='k',  
+           alpha=1.0, c=stim_colors[bool_O], label='O', zorder=1)
+ax.scatter(data=stimvals_fc6_pca2_df[bool_B], x='PC1', y='PC2', s=40, linewidths=1, edgecolors='k', 
+           alpha=1.0, c=stim_colors[bool_B], label='B', zorder=1)
 plt.title('PCA of Stimulus Image AlexNet Features')
 plt.legend()
-fig.show()
+plt.axis('square')
+fig_stimspace.show()
+
+
+# %% Overlay ROI masks over imaging data... pseudocolored by stimulus space vector angle...
+
+m = 'Fzsc'
+
+# max_length = np.max([np.linalg.norm(P_sta[r]) for r in range(n_ROIs)])
+# ROI_colors = np.array([colorsys.hsv_to_rgb(clockwise_angle(facevect_fc6_pca2, P_sta[r]) / (2 * np.pi), 
+#                                            1.0, 
+#                                            np.linalg.norm(P_sta[r]) / max_length)
+#                        for r in range(n_ROIs)])
+max_length = np.max([np.linalg.norm(P_lin_pca2[r]) for r in range(n_ROIs)])
+med_length = np.median([np.linalg.norm(P_lin_pca2[r]) for r in range(n_ROIs)])
+
+ROI_colors = np.array([colorsys.hsv_to_rgb(clockwise_angle(facevect_fc6_pca2, P_lin_pca2[r]) / (2 * np.pi), 
+                                           1.0, 
+                                           np.linalg.norm(P_lin_pca2[r]) / (0.25 * max_length))
+                       for r in range(n_ROIs)]) 
+
+# ...for all ROIs
+sn = save_pfix + '_ROIplot_ColorByPsta_AllROIs'
+sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
+plots.plot_overlays_roi(ROIs, 
+                        ROI_colors, alpha=1.0, colormap='bwr', colorlim=1.0, 
+                        bgimage=plots.auto_level_s2p_image(fov_image), 
+                        flip='lr', rotate=-90,
+                        title=r'$d^\prime_F$ value',
+                        save_path=sp)
+
+# ...only for ROIs with |dprime_F| >= threshold
+above_threshold = np.where(np.abs(dprime[m]) >= threshold_dprime)[0]
+sn = save_pfix + '_ROIplot_ColorByPsta' + \
+    '_threshDprime{:0.2f}'.format(threshold_dprime).replace('.', 'p')
+sp = [os.path.join(save_path, sn + se) for se in save_ext] if saving else []
+plots.plot_overlays_roi(ROIs[above_threshold], 
+                        ROI_colors[above_threshold], alpha=1.0, colormap='bwr', colorlim=1.0, 
+                        bgimage=plots.auto_level_s2p_image(fov_image), 
+                        flip='lr', rotate=-90,
+                        title=r'$d^\prime_F$ value,' + '\n' +
+                              r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
+                        save_path=sp)
+
+del above_threshold, ROI_colors
+
+
+# %% Compare ROI preferred stimulus space axis angles with respect to distance
+
+m = 'Fzsc'
+
+# centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
+centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
+roipair_dist_um = np.array([np.linalg.norm(centroid_um[r0] - centroid_um[r1]) 
+                            for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+
+if np.any(roipair_dist_um > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
+    warn('Distance between some ROIs exceeds expected FOV diagonal.')
+
+roipair_stimvectdiff = np.array([angle_between_vectors(P_lin_pca40[r0], P_lin_pca40[r1], degrees=True)
+                               for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+
+w_bin_um = 25
+n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_stimvectdiff, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_stimvectdiff, statistic='std', bins=bin_edges)
+bin_ns, _, _ = binned_statistic(roipair_dist_um, roipair_stimvectdiff, statistic='count', bins=bin_edges)
+
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 100
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
+
+fig_stimvectdiff = plt.figure()
+ax = fig_stimvectdiff.subplots(1, 1)
+ax.set_ylabel(r'Difference between Preferred Axes ($\degree$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major')
+ax.set_xlim((0, 1000))  # roipair_dist_um.max() + 1))
+ax.set_ylim((0, 100))
+# ax.set_ylim((roipair_stimvectdiff.min() - np.abs(0.1 * roipair_stimvectdiff.min()), 
+#              roipair_stimvectdiff.max() + np.abs(0.1 * roipair_stimvectdiff.max())))
+ax.scatter(roipair_dist_um, roipair_stimvectdiff, marker='.', s=0.5, alpha=0.2, color='k', edgecolor='None')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
+fig_stimvectdiff.show()
+
+if saving:
+    sn = save_pfix + '_RelationshipPlot_StimVectDiff_by_Distance'
+    for se in save_ext:
+        fig_stimvectdiff.savefig(os.path.join(save_path, sn + se),
+                               dpi=plt.rcParams['figure.dpi'], transparent=True)
+        
+        
+# %% Compare ROI stimulus space weighted position with respect to distance
+
+m = 'Fzsc'
+
+# centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
+centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
+roipair_dist_um = np.array([np.linalg.norm(centroid_um[r0] - centroid_um[r1]) 
+                            for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+
+if np.any(roipair_dist_um > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)):
+    warn('Distance between some ROIs exceeds expected FOV diagonal.')
+
+weightedpca_roipair_dist_um = np.array([np.linalg.norm(weighted_pca40_centers[r0] - weighted_pca40_centers[r1]) 
+                            for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+
+w_bin_um = 25
+n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, weightedpca_roipair_dist_um, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, weightedpca_roipair_dist_um, statistic='std', bins=bin_edges)
+bin_ns, _, _ = binned_statistic(roipair_dist_um, weightedpca_roipair_dist_um, statistic='count', bins=bin_edges)
+
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 200
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
+
+fig_stimvectdiff = plt.figure()
+ax = fig_stimvectdiff.subplots(1, 1)
+ax.set_ylabel(r'Distance weighted between points', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major')
+ax.set_xlim((0, 1000))  # roipair_dist_um.max() + 1))
+ax.set_ylim((0, 20))
+# ax.set_ylim((weightedpca_roipair_dist_um.min() - np.abs(0.1 * weightedpca_roipair_dist_um.min()), 
+#              weightedpca_roipair_dist_um.max() + np.abs(0.1 * weightedpca_roipair_dist_um.max())))
+ax.scatter(roipair_dist_um, weightedpca_roipair_dist_um, marker='.', s=0.5, alpha=0.2, color='k', edgecolor='None')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
+fig_stimvectdiff.show()
+
+if saving:
+    sn = save_pfix + '_RelationshipPlot_StimVectDiff_by_Distance'
+    for se in save_ext:
+        fig_stimvectdiff.savefig(os.path.join(save_path, sn + se),
+                               dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+
+# %% Compare ROI value-based correlations between preferred stimulus space axis with respect to distance
+
+m = 'Fzsc'
+
+roipair_corr_stimvect = np.array([np.corrcoef(P_lin_pca40[r0], P_lin_pca40[r1])[0, 1]
+                                  for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+# roipair_corr_respvect_sp = np.array([scipy.stats.pearsonr(resp_vect_cond[m][r0], resp_vect_cond[m][r1]).statistic 
+#                                      for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+roipair_corr_stimvect_shuff = roipair_corr_stimvect.copy()
+np.random.shuffle(roipair_corr_stimvect_shuff)
+
+w_bin_um = 25
+n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
+bin_edges = np.linspace(0, n_bins * w_bin_um, n_bins + 1)
+bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_bins)
+bin_medians, _, _ = binned_statistic(roipair_dist_um, roipair_corr_stimvect, statistic='median', bins=bin_edges)
+bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_corr_stimvect, statistic='std', bins=bin_edges)
+bin_medians_shuff, _, _ = binned_statistic(roipair_dist_um, roipair_corr_stimvect_shuff, statistic='median', bins=bin_edges)
+bin_stds_shuff, _, _ = binned_statistic(roipair_dist_um, roipair_corr_stimvect_shuff, statistic='std', bins=bin_edges)
+
+# Exclude any bins with less than 100 pairs
+n_pairs_required = 100
+bin_centers = bin_centers[bin_ns > n_pairs_required]
+bin_medians = bin_medians[bin_ns > n_pairs_required]
+bin_stds = bin_stds[bin_ns > n_pairs_required]
+bin_medians_shuff = bin_medians_shuff[bin_ns > n_pairs_required]
+bin_stds_shuff = bin_stds_shuff[bin_ns > n_pairs_required]
+
+
+fig_r = plt.figure()
+ax = fig_r.subplots(1, 1)
+ax.set_ylabel(r'Preferred Stimulus Axis Pearson correlation ($\it{r}$)', fontsize=10)
+ax.set_xlabel('Distance (µm)', fontsize=10)
+ax.spines[['right', 'top']].set_visible(False)
+ax.tick_params(axis='both', which='major')
+# ax.set_xlim((0, roipair_dist_um.max() + 1))
+ax.set_xlim((0, 500))
+ax.set_ylim((roipair_corr_stimvect.min() - np.abs(0.1 * roipair_corr_stimvect.min()), 1))
+# ax.set_ylim((-0.0, 0.8))
+
+ax.scatter(roipair_dist_um, roipair_corr_stimvect, marker='.', s=0.5, alpha=0.5, color='k', edgecolor='None')
+ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
+            markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
+            fmt='o', elinewidth=1, ecolor='r')
+
+# params = [C, A, k]
+guess = [0.28, -0.21, 0.014]
+result = least_squares(distance_dependence_objective,
+                       guess, 
+                       args=(bin_centers, bin_medians), 
+                       xtol=1e-10, ftol=1e-10, gtol=1e-12,
+                       bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
+                       max_nfev=100000)
+
+guess_shuff = [0.3, 0.0, 0.0]
+result_shuff = least_squares(distance_dependence_objective,
+                             guess_shuff, 
+                             args=(bin_centers, bin_medians_shuff), 
+                             xtol=1e-10, ftol=1e-10, gtol=1e-12,
+                             # bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
+                             max_nfev=1000000)
+
+# *** TODO remove least_squares or curve_fit depending on which ends up being used.
+
+# def dir_dist_dep_exp_equation_cf(x, C, A, k):
+#     # based on Pattadkal et al Priebe 2022 bioRxiv
+#     #     https://doi.org/10.1101/2022.06.23.497220
+#     # y: fitted direction difference
+#     # x: distance between cells
+#     y = C - (A * np.exp(-k * x))
+#     return y
+
+# cf = curve_fit(dir_dist_dep_exp_equation_cf, xdata=bin_centers, ydata=bin_medians)
+                       # args=(bin_centers, bin_medians))
+                       # xtol=1e-10, ftol=1e-10, gtol=1e-12,
+                       # bounds=([0.0, -0.4, 0.01], [0.6, 0.0, 0.03]),
+                       # max_nfev=100000)
+
+fit = result['x']  # cf[0
+C_f = fit[0]
+A_f = fit[1]
+k_f = fit[2]
+
+ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.max(bin_edges) + 1))
+ddys = C_f - (A_f * np.exp(-k_f * ddxs))
+
+fit_shuff = result_shuff['x']
+C_f_s = fit_shuff[0]
+A_f_s = fit_shuff[1]
+k_f_s = fit_shuff[2]
+
+ddys_shuff = C_f_s - (A_f_s * np.exp(-k_f_s * ddxs))
+
+if result_shuff['success']:
+    ax.plot(ddxs, ddys_shuff, 'b')
+if result['success']:
+    ax.plot(ddxs, ddys, 'r')
+
+plots.set_plot_text_settings()
+fig_r.show()
+
+if saving:
+    sn = save_pfix + '_RelationshipPlot_PrefStimVectPearsonCorr_by_Distance'
+    for se in save_ext:
+        fig_r.savefig(os.path.join(save_path, sn + se),
+                      dpi=plt.rcParams['figure.dpi'], transparent=True)
+
 
 # %% Plot stimulus images
 
