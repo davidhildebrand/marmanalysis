@@ -144,7 +144,6 @@ if 'galactica' in system_name.lower():
     base_path = r'/Users/davidh/Data/Freiwald/ImageDatasets'
     stimulus_path = r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets/StimSpace'
     device = 'cpu'
-    # device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 elif 'marmostor' in system_name.lower():
     base_path = r'/marmostor/DavidH/ImageDatasets'
     stimulus_path = r'/FreiwaldSync/MarmoScope/Stimulus/Sets/StimSpace'
