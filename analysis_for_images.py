@@ -571,6 +571,27 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# # # Macaroon
+# animal_str = 'Macaroon'
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # Sparrow
+# animal_str = 'Sparrow'
+
+# # 20250328d Left soma-jGCaMP8s
+# date_str = '20250328d'
+# # -- PD 200um ( | )
+# session_str = '150720tUTC_SP_depth200um_fov1184x1600um_res2p00x2p00umpx_fr07p280Hz_pow030p4mW_stimMultimodal'
+# # -- MD 250um ( | )
+# session_str = '161950tUTC_SP_depth250um_fov1184x1600um_res2p00x2p00umpx_fr07p280Hz_pow039p4mW_stimMultimodal'
+# # -- MT 200um ( | )
+# session_str = '170648tUTC_SP_depth200um_fov1184x1600um_res2p00x2p00umpx_fr07p280Hz_pow030p4mW_stimMultimodal'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 if 'save_path' not in locals():
     save_path = ''
 if 'savepath_str' not in locals():
