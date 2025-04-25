@@ -1258,6 +1258,38 @@ if correct_acqfr_index:
         stimlog[ak] = stimlog[ak] - 1
 
 
+# Remove trials without corresponding imaging data
+last_trial = len(stimlog) + 1
+
+if np.any(stimlog['acqfr_stim_i'].isnull()):
+    abort_trial = np.min([last_trial, 
+                          np.min(np.where(stimlog['acqfr_stim_i'].isnull())[0]) - 1])
+    warn('Found null acquisition frame counts. Only considering {} trials.'.format(last_trial))
+
+if np.any(stimlog['acqfr_stim_f'].isnull()):
+    last_trial = np.min([last_trial, 
+                         np.min(np.where(stimlog['acqfr_stim_f'].isnull())[0]) - 1])
+    
+    warn('Found null acquisition frame counts. Only considering {} trials.'.format(last_trial))
+
+if np.any(stimlog['acqfr_stim_i'] > n_frames) or np.any(stimlog['acqfr_stim_f'] > n_frames):
+    last_trial = np.min([last_trial, 
+                         np.min(np.concatenate((np.where(stimlog['acqfr_stim_i'] > n_frames)[0],
+                                                np.where(stimlog['acqfr_stim_f'] > n_frames)[0])))])
+    
+    warn('Found acquisition frame counts that exceed saved frames. ' + 
+         'Only considering {} trials.'.format(last_trial))
+
+if np.any(stimlog['acqfr_stim_i'].diff() == 0):
+    last_trial = np.min([last_trial, 
+                         np.min(np.where(stimlog['acqfr_stim_i'].diff() == 0)[0]) - 2])
+    warn('Found acquisition frame counts that were the same for multiple trials. ' + 
+         'Only considering {} trials.'.format(last_trial))
+
+if last_trial < len(stimlog) + 1:
+    stimlog = stimlog.drop(stimlog.index[last_trial+1:])
+
+
 # Determine basic stimulus presentation information
 #   For sessions using older stimulus code, the exact number of stimulus or ISI frames could
 #   vary slightly because the stim start was not locked to an acqusition frame increment.
@@ -1265,6 +1297,7 @@ if correct_acqfr_index:
 dur_stim = round_to_quarter(np.mean(stimlog['dur_stim'].values))
 dur_isi = round_to_quarter(np.min(stimlog['dur_isi_pre'].values))
 dur_trial = dur_isi + dur_stim + dur_isi
+
 if md['stim_locked_to_acqfr']:
     n_samp_stim = np.bincount(stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).argmax()
 else:
