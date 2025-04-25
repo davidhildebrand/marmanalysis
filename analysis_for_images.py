@@ -3346,6 +3346,8 @@ bin_stds, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect, statis
 bin_medians_shuff, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect_shuff, statistic='median', bins=bin_edges)
 bin_stds_shuff, _, _ = binned_statistic(roipair_dist_um, roipair_corr_respvect_shuff, statistic='std', bins=bin_edges)
 
+# TODO TRY CONFIDENCE INTERVAL OR BAYESIAN APPROACH HERE?
+
 # Exclude any bins with less than 100 pairs
 n_pairs_required = 100
 bin_centers = bin_centers[bin_ns > n_pairs_required]
@@ -3629,13 +3631,13 @@ fig_stimspace, ax = plt.subplots(figsize=(10,10))
 #                                       1.0), 
 #             zorder=0)
 max_length = np.max([np.linalg.norm(P_sta_pca2[r]) for r in range(n_ROIs)])
-ax.scatter(data=weighted_pca2_centers_df, s=40, x='PC1', y='PC2', alpha=0.2, c='k', label='weighted_pca_pos', zorder=0)
-# for r in range(n_ROIs):
-#     ax.plot([0, P_sta_pca2[r,0]], [0, P_sta_pca2[r,1]],  # alpha=0.1, 
-#             color=colorsys.hsv_to_rgb(clockwise_angle(facevect_fc6_pca2, P_sta_pca2[r]) / (2 * np.pi), 
-#                                       np.linalg.norm(P_sta_pca2[r]) / max_length, 
-#                                       1.0), 
-#             zorder=0)
+# ax.scatter(data=weighted_pca2_centers_df, s=40, x='PC1', y='PC2', alpha=0.2, c='k', label='weighted_pca_pos', zorder=0)
+for r in range(n_ROIs):
+    ax.plot([0, P_sta_pca2[r,0]], [0, P_sta_pca2[r,1]],  # alpha=0.1, 
+            color=colorsys.hsv_to_rgb(clockwise_angle(facevect_fc6_pca2, P_sta_pca2[r]) / (2 * np.pi), 
+                                      np.linalg.norm(P_sta_pca2[r]) / max_length, 
+                                      1.0), 
+            zorder=0)
 # # ax.quiver([0, P_sta[dprime[m].argmax(),0]], [0, P_sta[dprime[m].argmax(),1]],  # scale_units='xy', scale=0.001, 
 # #           alpha=0.5, color=(1,0,0), label='Psta_dprime_max', zorder=1)
 # ax.quiver([0, P_lin_pca2[dprime[m].argmax(),0]], [0, P_lin_pca2[dprime[m].argmax(),1]], 
@@ -3653,7 +3655,7 @@ ax.scatter(data=stimvals_fc6_pca2_df[bool_B], x='PC1', y='PC2', s=40, linewidths
            alpha=1.0, c=stim_colors[bool_B], label='B', zorder=1)
 plt.title('PCA of Stimulus Image AlexNet Features')
 plt.legend()
-plt.axis('square')
+# plt.axis('square')
 fig_stimspace.show()
 
 
@@ -3681,7 +3683,7 @@ plots.plot_overlays_roi(ROIs,
                         ROI_colors, alpha=1.0, colormap='bwr', colorlim=1.0, 
                         bgimage=plots.auto_level_s2p_image(fov_image), 
                         flip='lr', rotate=-90,
-                        title=r'$d^\prime_F$ value',
+                        title=r'stim space vector angle',
                         save_path=sp)
 
 # ...only for ROIs with |dprime_F| >= threshold
@@ -3693,7 +3695,7 @@ plots.plot_overlays_roi(ROIs[above_threshold],
                         ROI_colors[above_threshold], alpha=1.0, colormap='bwr', colorlim=1.0, 
                         bgimage=plots.auto_level_s2p_image(fov_image), 
                         flip='lr', rotate=-90,
-                        title=r'$d^\prime_F$ value,' + '\n' +
+                        title=r'stim space vector angle value,' + '\n' +
                               r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dprime),
                         save_path=sp)
 
@@ -3704,7 +3706,6 @@ del above_threshold, ROI_colors
 
 m = 'Fzsc'
 
-# centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
 centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
 roipair_dist_um = np.array([np.linalg.norm(centroid_um[r0] - centroid_um[r1]) 
                             for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
@@ -3713,7 +3714,10 @@ if np.any(roipair_dist_um > np.sqrt(md['fov']['w_um']**2 + md['fov']['h_um']**2)
     warn('Distance between some ROIs exceeds expected FOV diagonal.')
 
 roipair_stimvectdiff = np.array([angle_between_vectors(P_lin_pca40[r0], P_lin_pca40[r1], degrees=True)
-                               for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+                                 for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
+# from sklearn.metrics.pairwise import cosine_similarity
+# roipair_stimvectdiff = np.array([cosine_similarity([P_lin_pca40[r0]], [P_lin_pca40[r1]])[0][0]
+#                                 for r0, r1 in list(itertools.combinations(range(n_ROIs), 2))])
 
 w_bin_um = 25
 n_bins = int(np.ceil(roipair_dist_um.max() / w_bin_um))
@@ -3732,11 +3736,13 @@ bin_stds = bin_stds[bin_ns > n_pairs_required]
 fig_stimvectdiff = plt.figure()
 ax = fig_stimvectdiff.subplots(1, 1)
 ax.set_ylabel(r'Difference between Preferred Axes ($\degree$)', fontsize=10)
+# ax.set_ylabel(r'Cosine similarity ($\degree$)', fontsize=10)
 ax.set_xlabel('Distance (µm)', fontsize=10)
 ax.spines[['right', 'top']].set_visible(False)
 ax.tick_params(axis='both', which='major')
 ax.set_xlim((0, 1000))  # roipair_dist_um.max() + 1))
-ax.set_ylim((0, 100))
+ax.set_ylim((0, 120))
+# ax.set_ylim((-1, 1))
 # ax.set_ylim((roipair_stimvectdiff.min() - np.abs(0.1 * roipair_stimvectdiff.min()), 
 #              roipair_stimvectdiff.max() + np.abs(0.1 * roipair_stimvectdiff.max())))
 ax.scatter(roipair_dist_um, roipair_stimvectdiff, marker='.', s=0.5, alpha=0.2, color='k', edgecolor='None')
