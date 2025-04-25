@@ -590,6 +590,29 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # # -- MT 200um ( | )
 # session_str = '170648tUTC_SP_depth200um_fov1184x1600um_res2p00x2p00umpx_fr07p280Hz_pow030p4mW_stimMultimodal'
 
+# # 20250419d Left soma-jGCaMP8s
+# date_str = '20250419d'
+# # -- PD 125um (| aborted too few frames)
+# session_str = '155205tUTC_SP_depth125um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow018p5mW_stimMultimodal_AbortedEarlyTooFewFrames'
+# # -- PD 125um ( | )
+# session_str = '161919tUTC_SP_depth125um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow018p5mW_stimMultimodal'
+# # -- PD 150um ( | )
+# session_str = '164610tUTC_SP_depth150um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow021p0mW_stimMultimodal'
+# # -- PD 175um ( | )
+# session_str = '171741tUTC_SP_depth175um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow023p9mW_stimMultimodal'
+# # -- PD 200um ( | )
+# session_str = '174543tUTC_SP_depth200um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow027p1mW_stimMultimodal'
+# # -- PD 250um ( | )
+# session_str = '180941tUTC_SP_depth250um_fov1184x1176um_res2p00x2p00umpx_fr09p794Hz_pow034p8mW_stimMultimodal'
+# # -- PD 300um ( | )
+# session_str = ''
+# # -- PD 350um ( | )
+# session_str = ''
+# # -- MT 200um ( | )
+# session_str = ''
+# # -- MD 200um ( | )
+# session_str = ''
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if 'save_path' not in locals():
