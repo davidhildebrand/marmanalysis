@@ -3206,11 +3206,12 @@ del above_threshold, ROI_colors
 
 # centroid_px = np.vstack(stats_df[m]['centroid_px'].values)
 centroid_um = np.vstack(stats_df[m]['centroid_um'].values)
-left_of_cent = np.array([centroid_um[r, 0] >= (md['fov']['w_um'] / 2) for r in range(n_ROIs)])
+left_of_cent = np.array([(centroid_um[r, 0] + np.random.normal(0, 30)) >= (md['fov']['w_um'] / 2) 
+                         for r in range(n_ROIs)])
 
 data_sim = np.full(dprime[m].shape, np.nan)
-data_sim[left_of_cent] = 0.8 + np.random.normal(0, 0.1, data_sim[left_of_cent].shape)
-data_sim[~left_of_cent] = -0.8 + np.random.normal(0, 0.1, data_sim[~left_of_cent].shape)
+data_sim[left_of_cent] = 0.8 + np.random.normal(0, 0.2, data_sim[left_of_cent].shape)
+data_sim[~left_of_cent] = -0.8 + np.random.normal(0, 0.2, data_sim[~left_of_cent].shape)
 
 
 # %% Overlay ROI masks over imaging data... pseudocolored by simulated data values..
