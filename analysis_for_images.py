@@ -104,7 +104,7 @@ animal_str = 'Cadbury'
 
 # # 20220909d Right ribo-jGCaMP8s
 # date_str = '20220909d'
-# -- PD 200um (acquisition ended before stimulus)
+# # -- PD 200um (acquisition ended before stimulus)
 # session_str = '174325tUTC_SP_depth200um_fov0600x0600um_res1p04x1p00umpx_fr09p608Hz_pow050p2mW_stimImagesSongFOBonly_AbortedAfterManyTrials'
 # md = dict()
 # md['framerate'] = 9.608
@@ -115,7 +115,6 @@ animal_str = 'Cadbury'
 # dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 
 # # 20221016d Right ribo-jGCaMP8s
-# date_str = '20221016d_olds2p'
 date_str = '20221016d'
 # -- PD (good | fixation spot on before every stimulus, not sure about background stability)
 session_str = '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly'
@@ -496,21 +495,6 @@ dirstr_suite2p = 'suite2p_cellpose2_d14px_pt-3p5_ft1p5*'
 # date_str = '20241230d'
 # # -- PD 250um stimImages_Images[SongFOBonly]
 # session_str = '183201tUTC_SP_depth250um_fov2072x1600um_res2p00x2p00umpx_fr04p159Hz_pow025p6mW_stimImagesSongFOBonly'
-
-# # 20250207d Left soma-jGCaMP8s
-# date_str = '20250207d'
-# # -- PD depth series
-# 160551tUTC_SP_depth000um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow010p2mW
-# 160658tUTC_SP_depth050um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow012p2mW_stimNone
-# 160757tUTC_SP_depth100um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow016p9mW_stimNone
-# 160905tUTC_SP_depth150um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow021p0mW_stimNone
-# 161003tUTC_SP_depth200um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow027p2mW_stimNone
-# 161109tUTC_SP_depth250um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow034p5mW_stimNone
-# 161208tUTC_SP_depth300um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow044p8mW_stimNone
-# 161316tUTC_SP_depth350um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow056p9mW_stimNone
-# 161644tUTC_SP_depth400um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow073p3mW_stimNone
-# 161748tUTC_SP_depth450um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow094p4mW_stimNone
-# 161845tUTC_SP_depth500um_fov1184x1176um_res2p00x2p00umpx_fr09p792Hz_pow120p6mW_stimNone
 
 # # 20250208d Left soma-jGCaMP8s
 # date_str = '20250208d'
