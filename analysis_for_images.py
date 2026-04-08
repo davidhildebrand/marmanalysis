@@ -3942,3 +3942,68 @@ if saving:
     for se in save_ext:
         fig_r.savefig(os.path.join(save_path, sn + se),
                       dpi=plt.rcParams['figure.dpi'], transparent=True)
+
+
+#%% Output data
+
+savedata = {
+  'metadata': md,
+  'n_samp_isi': n_samp_isi, 
+  'n_samp_stim': n_samp_stim,
+  'n_samp_trial': n_samp_trial,
+  'idx_stim': idx_stim,
+  # data, continuous 
+  'data_traces': Frois,
+  'framelocs': stimlog[['trial', 'cond', 'rep', 'acqfr_stim_i', 'acqfr_stim_f']].values,
+  # data, chunked
+  'data_raw': data[sort_idx_cond]['Fraw'],
+  'data_F0': data[sort_idx_cond]['F0'],
+  'data_dFF': data[sort_idx_cond]['FdFF'],
+  'data_zsc': data[sort_idx_cond]['Fzsc'],
+  # stimulus vectors
+  'n_conds': n_conds,
+  'conds': data['cond'][sort_idx_cond],
+  'imagenames': data['imagename'][sort_idx_cond],
+  # stimulus category vectors
+  'n_cats': n_cats,
+  'cats': np.unique(data['cat'][sort_idx_cond]),
+  'cond_to_cat': data['cat'][sort_idx_cond],
+  # spatial positions
+  'centroids_px': np.vstack(stats_df['FdFF']['centroid_px'].values),
+  'centroids_um': np.vstack(stats_df['FdFF']['centroid_um'].values),
+  'mask': stats_df['FdFF']['mask'].values,
+  # exclusion/threshold vector
+  'dprime_f_dFF': dprime['FdFF'],
+  'dprime_f_zsc': dprime['Fzsc'],
+  'fsi_dFF': FSI['FdFF'],
+  'fsi_zsc': FSI['Fzsc'],
+}
+
+save_path = r'/Users/davidh/Desktop/'
+sn = save_pfix + '_data_20251104dump'
+sp = os.path.join(save_path, sn + '.pkl')
+fptr = open(sp, 'wb')
+pickle.dump(savedata, fptr)
+fptr.close()
+
+# try:
+#     with open(sp, 'rb') as file:
+#         loaded_data = pickle.load(file)
+#     print('Data successfully loaded from pickle file.')
+#     print(loaded_data.keys())
+#     idx_stim = loaded_data['idx_stim']
+#     rois_by_conds = np.mean(loaded_data['data_zsc'][:, :, :, idx_stim], axis=(2, 3)).swapaxes(0, 1)
+# except FileNotFoundError:
+#     print(f"Error: The file '{sp}' was not found.")
+# except Exception as e:
+#     print(f"An error occurred while loading the pickle file: {e}")
+
+
+import scipy.io as sio
+
+sp = os.path.join(save_path, sn + '.mat')
+sio.savemat(sp, savedata)
+
+
+
+
