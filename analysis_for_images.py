@@ -877,6 +877,7 @@ if stimlog is not None:
         sl = parsers.parse_log_stim_image(session_log)
         stimlog.update(sl, overwrite=False)
         del sl
+stimlog['rep'] = stimlog.groupby('cond').cumcount() + 1
 
 dirlist_eyecal = [d for d in glob(os.path.join(date_path, dirstr_eyecal)) if os.path.isdir(d)]
 if len(dirlist_eyecal) > 0:
