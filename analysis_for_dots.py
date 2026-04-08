@@ -420,7 +420,11 @@ if stimlog is not None:
             for t in range(len(stimlog['dur_isi_post']) - 1):
                 stimlog.at[t, 'dur_isi_post'] = stimlog['t_isi_f'].loc[t + 1] - stimlog['t_isi_i'].loc[t + 1]
             del t
-    if stimlog.isnull().values.any() and session_log is not None:
+    # if stimlog.isnull().values.any() and session_log is not None:
+    if (session_log is not None and 
+        stimlog['stim_mode'].isnull().values.any() and
+        stimlog['stim_class'].isnull().values.any() and
+        stimlog['cond'].isnull().values.any()):
         sl = parsers.parse_log_stim_dots(session_log)
         stimlog.update(sl, overwrite=False)
         del sl
@@ -523,9 +527,9 @@ n_ROIs, n_frames = Frois.shape
 
 # %% Process fluorescence signal
 
-# # Inspect fluorescence baseline filters
-# filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
-#                                percentile=10, rank=10, sigma=10)
+# Inspect fluorescence baseline filters
+filters.plot_example_baselines(Frois, rois=2, frames=1000, framerate=md['framerate'], window=60, include_mpfi=False,
+                               percentile=10, rank=10, sigma=10)
 
 # Calculate baseline fluorescence (F0)
 F0_filt_win_sec = 60  # sec
@@ -536,9 +540,6 @@ F0 = filters.calculate_baselines(Frois, framerate=md['framerate'], window=F0_fil
 FdF = Frois - F0
 FdFF_raw = (Frois - F0) / F0
 Fzsc_raw = (Frois - F0 - np.mean(Frois - F0, axis=1)[:, np.newaxis]) / np.std(Frois - F0, axis=1)[:, np.newaxis]
-
-FdFF = FdFF_raw
-Fzsc = Fzsc_raw
 
 
 # %% Estimate SNR
@@ -1109,8 +1110,8 @@ if exclude_by_acqstart:
             excluded_preacq[cnd].append(rep)
         print('Excluding {} trials presumably presented before acquisition start.'.format(len(trials_preacq)))
         for ek in excluded_preacq:
-            print('  {}/{} excluded for {} ({})'.format(len(excluded_preacq[ek]), n_reps,
-                                                        conditions[ek].decode(), condidx_to_cat[ek].decode()))
+            print('  {}/{} excluded for {}'.format(len(excluded_preacq[ek]), n_reps,
+                                                   conditions[ek].decode()))
 
 if exclude_by_movement and len(trials_movement) > 0:
     for cnd, rep in trials_movement:
@@ -1120,8 +1121,8 @@ if exclude_by_movement and len(trials_movement) > 0:
         excluded_movement[cnd].append(rep)
     print('Excluding {} trials due to movement (via suite2p badframes).'.format(len(trials_movement)))
     for ek in excluded_movement:
-        print('  {}/{} excluded for {} ({})'.format(len(excluded_movement[ek]), n_reps,
-                                                    conditions[ek].decode(), condidx_to_cat[ek].decode()))
+        print('  {}/{} excluded for {}'.format(len(excluded_movement[ek]), n_reps,
+                                               conditions[ek].decode()))
 
 excluded_blinks = {}
 # TODO * * * add exclusion by blinks
@@ -1138,8 +1139,8 @@ for cnd, rep in trials_exclude:
 
 print('In total, {} trials excluded.'.format(len(trials_movement)))
 for ek in excluded:
-    print('  {}/{} excluded for {} ({})'.format(len(excluded[ek]), n_reps,
-                                                conditions[ek].decode(), condidx_to_cat[ek].decode()))
+    print('  {}/{} excluded for {}'.format(len(excluded[ek]), n_reps,
+                                            conditions[ek].decode()))
 
 # # F__by_cond = [roi, cond, t, F]
 # FdFF_by_cond = np.full([n_ROIs, n_conds, n_trials, n_samp_isi+n_samp_stim+n_samp_isi], np.nan)
@@ -1168,7 +1169,6 @@ for ek in excluded:
 
 idx_stim = range(n_samp_isi, n_samp_isi + n_samp_stim)
 
-
 # FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
 # FdFF_by_cond_Rstim = FdFF_by_cond[:,:,:,n_samp_isi:(n_samp_isi+n_samp_stim)]
 
@@ -1181,8 +1181,8 @@ dsiT = np.full([n_ROIs, 2], np.nan)
 #     Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
 #     dsiT[r] = calculate_dsi(Ts, Rs[r], plotting=True)
 for r in range(n_ROIs):
-    # Rs[r] = np.ravel(np.mean(FdFF_by_cond_Rstim[r], axis=2))
-    Rs[r] = np.ravel(np.mean(data['FdFF'][:, r, :, idx_stim], axis=0))
+    # Rs[r] = np.ravel(np.nanmean(FdFF_by_cond_Rstim[r], axis=2))
+    Rs[r] = np.ravel(np.nanmean(data['FdFF'][:, r, :, idx_stim], axis=0))
     dsiT[r] = calculate_dsi(Ts, Rs[r])
 
 
@@ -1199,7 +1199,7 @@ for r in range(n_ROIs):
 
 
 # %% Define ROIs as tuned or untuned
-print('DSI tuning threshold: {}' .format(threshold_dsi))
+print('DSI tuning threshold: {}'.format(threshold_dsi))
 tunidx_dsi = dsiT[:, 0]
 DSI = dsiT[:, 0]
 Tprefs = dsiT[:, 1]
@@ -1246,8 +1246,8 @@ if saving:
 
 import plots
 
-plots.plot_overlays_orig(ROIs, Tprefs_norm, DSI, tuning_thresh=threshold_dsi, title=title_str,
-                         fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
+# plots.plot_overlays_orig(ROIs, Tprefs_norm, DSI, tuning_thresh=threshold_dsi, title=title_str,
+#                          fov_size=fov_size, circular=True, ref_image=fov_image, save_path=save_path)
 
 
 # ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0) if not np.isnan(h) else (0, 0, 0)
@@ -1272,18 +1272,19 @@ ROI_colors = np.array([colorsys.hsv_to_rgb(h, 1.0, 1.0)  # if not np.isnan(h) el
 
 # ...only for ROIs with |DSI| >= threshold
 above_threshold = np.where(DSI >= threshold_dsi)[0]
-sn = save_pfix + '__ROIplot_ColorByPreferredDotMotionDirection' + \
-    '_threshDSI{:0.2f}'.format(threshold_dsi).replace('.', 'p')
-    # '_max{}{:0.2f}'.format(m, ROI_colors_saturateval).replace('.', 'p') + \
-sp = os.path.join(save_path, sn + save_ext) if saving else ''
-plots.plot_overlays_roi(ROIs[above_threshold],
-                        ROI_colors[above_threshold],
-                        bgimage=plots.auto_level_s2p_image(fov_image), 
-                        flip=None, rotate=0,
-                        # flip='lr', rotate=-90,
-                        title='preferred direction,\n' +
-                              r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dsi),
-                        save_path=sp)
+if saving:
+    sn = save_pfix + '__ROIplot_ColorByPreferredDotMotionDirection' + \
+        '_threshDSI{:0.2f}'.format(threshold_dsi).replace('.', 'p')
+    for se in save_ext:
+        sp = os.path.join(save_path, sn + se) if saving else ''
+        plots.plot_overlays_roi(ROIs[above_threshold],
+                                ROI_colors[above_threshold],
+                                bgimage=plots.auto_level_s2p_image(fov_image), 
+                                flip=None, rotate=0,
+                                # flip='lr', rotate=-90,
+                                title='preferred direction,\n' +
+                                      r'$d^\prime_F$ $\geq$ {:0.2f}'.format(threshold_dsi),
+                                save_path=sp)
 
 
 # %% Plot preferred direction difference relative to distance for every ROI pair
@@ -1345,6 +1346,11 @@ assert roi_distances_um.shape == roi_tuning_differences.shape
 rinds, cinds = np.triu_indices_from(roi_distances_um, k=1)
 distprefs = np.array([[roi_distances_um[r, c], roi_tuning_differences[r, c]] for r, c in zip(rinds, cinds)])
 
+roi_tuning_differences_shuff = roi_tuning_differences.copy()
+np.random.shuffle(roi_tuning_differences_shuff)
+distprefs_shuff = np.array([[roi_distances_um[r, c], roi_tuning_differences_shuff[r, c]] for r, c in zip(rinds, cinds)])
+
+
 if 'resolution_umpx' in md['fov']:
     if 'w_um' not in md['fov'] or 'h_um' not in md['fov']:
         md['fov']['w_um'] = md['fov']['w_px'] * md['fov']['resolution_umpx'][0]
@@ -1398,6 +1404,9 @@ bin_centers = np.linspace(w_bin_um / 2, (n_bins * w_bin_um) - (w_bin_um / 2), n_
 bin_medians, _, _ = binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='median', bins=bin_edges)
 bin_stds, _, _ = binned_statistic(distprefs[:, 0], distprefs[:, 1], statistic='std', bins=bin_edges)
 
+bin_medians_shuff, _, _ = binned_statistic(distprefs_shuff[:, 0], distprefs_shuff[:, 1], statistic='median', bins=bin_edges)
+bin_stds_shuff, _, _ = binned_statistic(distprefs_shuff[:, 0], distprefs_shuff[:, 1], statistic='std', bins=bin_edges)
+
 # TODO convert all this to take radians like other functions, then convert to deg
 
 # params = [C, A, k]
@@ -1414,34 +1423,48 @@ k_f = fit[2]
 ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
 ddys = C_f - (A_f * np.exp(-k_f * ddxs))
 
-# params = [C, A, k]
-# guess = [70, 80, 0.018]
-# guess = [70, 50, 0.03]
-# guess = [70, 50, 0.03, 8, 50, 10]
-# guess = [70, 50, 0.03, 8, 20, 80]
-# maybe find model with chirp or damping?
-guess0 = [70.99, 57.46, 0.01294, 6.581, -3.221, 60]
-guess1 = [7.099e+01, 5.746e+01, 1.294e-02, 6.581e+00, -3.221e+00, 7.514e+01]
-guess2 = [7.101e+01, 6.917e+01, 1.599e-02, 3.525e+00, -9.966e+01, 5.435e+01]
-result = least_squares(dirdist_objective_wcos, guess,
-                            args=(bin_centers, bin_medians), 
-                            xtol=1e-10,
-                            ftol=1e-12,
-                            #bounds=([50, 0, 0.01, 1, 0, 10], [90, 40, 0.05, 30, 1000, 300]),
-                            max_nfev=1000000000)
-fit = result['x']
-C_f = fit[0]
-A_f = fit[1]
-k_f = fit[2]
-B_f = fit[3]
-d_f = fit[4]
-e_f = fit[5]
-ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
-ddys = C_f - (A_f * np.exp(-k_f * ddxs)) - B_f * np.cos((ddxs + d_f) / e_f)
+# guess_s = [70, 80, 0.018]
+# guess_s = [70, 70, 0]
+guess_s = [70, 50, 0.03]
+# result = minimize(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), method='L-BFGS-B')
+# result = minimize(dirdist_objective, guess, args=(bin_centers, bin_medians), method='Nelder-Mead')  # , method='L-BFGS-B')
+# result = least_squares(dirdist_objective, guess, args=(distprefs[:, 0], distprefs[:, 1]), max_nfev=10000)
+result_s = least_squares(dirdist_objective, guess_s, args=(bin_centers, bin_medians_shuff), max_nfev=100000)
+fit_s = result_s['x']
+C_f_s = fit_s[0]
+A_f_s = fit_s[1]
+k_f_s = fit_s[2]
+ddxs_s = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
+ddys_s = C_f_s - (A_f_s * np.exp(-k_f_s * ddxs_s))
 
 
+# # params = [C, A, k]
+# # guess = [70, 80, 0.018]
+# # guess = [70, 50, 0.03]
+# # guess = [70, 50, 0.03, 8, 50, 10]
+# # guess = [70, 50, 0.03, 8, 20, 80]
+# # maybe find model with chirp or damping?
+# guess0 = [70.99, 57.46, 0.01294, 6.581, -3.221, 60]
+# guess1 = [7.099e+01, 5.746e+01, 1.294e-02, 6.581e+00, -3.221e+00, 7.514e+01]
+# guess2 = [7.101e+01, 6.917e+01, 1.599e-02, 3.525e+00, -9.966e+01, 5.435e+01]
+# result_wc = least_squares(dirdist_objective_wcos, guess2,
+#                         args=(bin_centers, bin_medians), 
+#                         xtol=1e-10,
+#                         ftol=1e-12,
+#                         #bounds=([50, 0, 0.01, 1, 0, 10], [90, 40, 0.05, 30, 1000, 300]),
+#                         max_nfev=100000)  # 1000000000)
+# fit_wc = result['x']
+# C_f_wc = fit[0]
+# A_f_wc = fit[1]
+# k_f_wc = fit[2]
+# B_f_wc = fit[3]
+# d_f_wc = fit[4]
+# e_f_wc = fit[5]
+# ddxs_wc = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
+# ddys_wc = C_f_wc - (A_f_wc * np.exp(-k_f_wc * ddxs_wc)) - B_f_wc * np.cos((ddxs_wc + d_f_wc) / e_f_wc)
 
-# Jagruti paper
+
+# from Jagruti paper
 # Error bars represent the angular standard deviation.
 # Blue line is an exponential fit to the data and
 # red line is an exponential fit to the shuffled data.
@@ -1472,19 +1495,24 @@ ax.scatter(distprefs[:, 0], distprefs[:, 1], marker='.', s=0.5, color='k', edgec
 ax.errorbar(bin_centers, bin_medians, yerr=bin_stds,
             markeredgecolor='r', markerfacecolor='w', markersize=3, capsize=0,
             fmt='o', elinewidth=1, ecolor='r')
+# ax.errorbar(bin_centers, bin_medians_shuff, yerr=bin_stds_shuff,
+#             markeredgecolor='b', markerfacecolor='w', markersize=3, capsize=0,
+#             fmt='o', elinewidth=1, ecolor='r')
 # TODO investigate whether it is an issue that direction difference is only accurate to 1º
 
 # ddxs = np.linspace(0, np.round(np.max(bin_edges)), int(np.round(np.max(bin_edges)) + 1))
 # ddys = C_f - (A_f * np.exp(-k_f * ddxs)) - 8 * np.cos((ddxs + 20) / 80)
-if result['success']:
-    ax.plot(ddxs, ddys, 'r')
+# if result['success']:
+ax.plot(ddxs, ddys, 'r')
+ax.plot(ddxs_s, ddys_s, 'k')
 
 plt.show()
 
 if saving:
-    sn = save_pfix + '_RelationshipPlot_TprefDiff_by_Distance'
-    f1.savefig(os.path.join(save_path, sn + save_ext),
-               dpi=plt.rcParams['figure.dpi'], transparent=True)
+    for se in save_ext:
+        sn = save_pfix + '_RelationshipPlot_TprefDiff_by_Distance'
+        sp = os.path.join(save_path, sn + se) if saving else ''
+        f1.savefig(sp, dpi=plt.rcParams['figure.dpi'], transparent=True)
 
 
 
