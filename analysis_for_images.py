@@ -61,9 +61,14 @@ plt.rcParams['figure.dpi'] = 300
 correct_acqfr_index = True
 
 # Metrics to consider for plots and calculations
-metrics = ['FdFF', 'Fzsc']
+metrics = ['FdFF', 
+           'Fzsc',
+           'F0',
+           'Fraw']
 metric_labels = {'FdFF': 'dF/F',
-                 'Fzsc': 'Z-score'}
+                 'Fzsc': 'Z-score',
+                 'F0': 'baseline',
+                 'Fraw': 'raw'}
 
 # Template establishing the ordering and labeling for plots
 template = np.array([b'blank', b'scram_s', b'scram_p',
@@ -1623,11 +1628,19 @@ for c in range(n_conds):
                 data[c]['FdFF'][:, t, 0:n_samp_miss] = np.array([FdFF_raw[:, 0],] * n_samp_miss).T
             if 'Fzsc' in metrics:
                 data[c]['Fzsc'][:, t, 0:n_samp_miss] = np.array([Fzsc_raw[:, 0],] * n_samp_miss).T
+            if 'F0' in metrics:
+                data[c]['F0'][:, t, 0:n_samp_miss] = np.array([F0[:, 0],] * n_samp_miss).T
+            if 'Fraw' in metrics:
+                data[c]['Fraw'][:, t, 0:n_samp_miss] = np.array([Frois[:, 0],] * n_samp_miss).T
             fr_start = 0
             if 'FdFF' in metrics:
                 data[c]['FdFF'][:, t, n_samp_miss:n_samp_trial] = FdFF_raw[:, fr_start:fr_end]
             if 'Fzsc' in metrics:
                 data[c]['Fzsc'][:, t, n_samp_miss:n_samp_trial] = Fzsc_raw[:, fr_start:fr_end]
+            if 'F0' in metrics:
+                data[c]['F0'][:, t, n_samp_miss:n_samp_trial] = F0[:, fr_start:fr_end]
+            if 'Fraw' in metrics:
+                data[c]['Fraw'][:, t, n_samp_miss:n_samp_trial] = Frois[:, fr_start:fr_end]
             del n_samp_miss
             continue
         if fr_end > n_frames:
@@ -1637,6 +1650,10 @@ for c in range(n_conds):
             data[c]['FdFF'][:, t, :] = FdFF_raw[:, fr_start:fr_end]
         if 'Fzsc' in metrics:
             data[c]['Fzsc'][:, t, :] = Fzsc_raw[:, fr_start:fr_end]
+        if 'F0' in metrics:
+            data[c]['F0'][:, t, :] = F0[:, fr_start:fr_end]
+        if 'Fraw' in metrics:
+            data[c]['Fraw'][:, t, :] = Frois[:, fr_start:fr_end]
     for m in metrics:
         if np.any(np.isnan(data[c][m])):
             warn('Some {} values in cond {} are NaNs'.format(m, c))
