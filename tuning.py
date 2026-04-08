@@ -5,40 +5,50 @@ import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 
 
-def response_at_theta(params, theta):
-    # Based on Pattadkal et al Priebe 2022 bioRxiv
-    #     https://doi.org/10.1101/2022.06.23.497220
+def von_mises(params, theta):
+    # Based on Pattadkal et al Priebe 2024 Neuron https://doi.org/10.1016/j.neuron.2023.11.005
+    #   Methods section 'Quantification and Statistical Analysis'  
+    
     theta_pref = params[0]  # rad, preferred direction
     beta = params[1]  # 'tuning width factor'
-    const_baseline = params[2]  # baseline
-    a1 = params[3]  # peak 1 maxiumum amplitude
-    a2 = params[4]  # peak 2 maxiumum amplitude
-    resp = (a1 * np.exp(beta * np.cos(theta - theta_pref))) + \
-        (a2 * np.exp(beta * np.cos(np.pi + theta - theta_pref))) + \
-        const_baseline
-    return resp
+    a0 = params[2]  # baseline
+    a1 = params[3]  # peak 1 maximum amplitude
+    a2 = params[4]  # peak 2 maximum amplitude
+    r = (a0 + 
+        (a1 * np.exp(beta * np.cos(theta - theta_pref))) + 
+        (a2 * np.exp(beta * np.cos(np.pi + theta - theta_pref))))
+    return r
 
 
 def gf(params, theta):
-    # Based on Fahey et al Tolias 2019 bioRxiv.
+    # Based on Fahey et al Tolias 2019 bioRxiv
     #   https://doi.org/10.1101/745323
+    
     theta_pref = params[0]  # rad, preferred direction
     w = params[1]  # peak concentration or 'tuning width factor'
     g = np.exp(-w * (1 - np.cos(theta - theta_pref)))
     return g
 
 
-def vf(params, theta):
+def von_mises_twopeakscaled(params, theta):
+    # Based on Fahey et al Tolias 2019 bioRxiv
+    #   https://doi.org/10.1101/745323
+    
+    # theta_pref = params[0]  # rad, preferred direction
+    # w = params[1]  # peak concentration or 'tuning width factor'
     a0 = params[2]  # baseline
-    a1 = params[3]  # peak 1 maxiumum amplitude
-    a2 = params[4]  # peak 2 maxiumum amplitude
+    a1 = params[3]  # peak 1 maximum amplitude
+    a2 = params[4]  # peak 2 maximum amplitude
     v = a0 + (a1 * gf(params, theta)) + (a2 * gf(params, theta - np.pi))
+    # v = (a0 + 
+    #     (a1 * np.exp(-w * (1 - np.cos(theta - theta_pref)))) + 
+    #     (a2 * np.exp(-w * (1 - np.cos(theta - np.pi - theta_pref)))))
     return v
 
 
 def dsi_model(params, theta):
-    resp = response_at_theta(params, theta)  # Pattadkal et al Priebe 2022
-    # r = vf(params, theta)  # Fahey et al Tolias 2019
+    resp = von_mises(params, theta)  # model used by Pattadkal et al Priebe 2024 Neuron
+    # r = von_mises_twopeakscaled(params, theta)  # model used by Fahey et al Tolias 2019 bioRxiv
     return resp
 
 
@@ -56,8 +66,8 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
     responses_measured = ys
 
     # params = [theta_pref, w/beta, a0, a1, a2]
-    guess_baseline = np.mean(responses_measured)
-    guess_amplitude = np.percentile(responses_measured, 90)
+    guess_baseline = np.nanmean(responses_measured)
+    guess_amplitude = np.nanpercentile(responses_measured, 90)
     guess = [(np.pi / 2),
              np.radians(360 / 8),
              guess_baseline,
@@ -73,7 +83,7 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
     a2_f = fit[4]
 
     # Based on Pattadkal et al Priebe 2022 bioRxiv
-    #     "The location of the peak of this fitted tuning curve is used as the preferred direction of each cell."
+    #   "The location of the peak of this fitted tuning curve is used as the preferred direction of each cell."
     fit_curve = dsi_model(fit, np.radians(np.arange(0, 360)))
     max_peak_arg = fit_curve.argmax()
     # peak_locs = find_peaks(fit_curve, height=0)[0]
