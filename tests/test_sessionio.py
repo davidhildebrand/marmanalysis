@@ -12,6 +12,7 @@ Run:  ../.venv/bin/python -m pytest marmanalysis/tests/test_sessionio.py -v
 import os
 import sys
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -80,6 +81,33 @@ def test_convert_stimulus_record_preserves_explicit_columns():
     out = parsers.convert_stimulus_record(df)
     assert out.loc[0, 'stim_mode'] == 'auditory'   # audio -> normalized to 'auditory'
     assert out.loc[0, 'stim_class'] == 'tone'
+
+
+def test_compute_f0_dff_shapes_and_keys():
+    rng = np.random.default_rng(0)
+    frois = (rng.standard_normal((8, 2000)).astype('float32') * 40 + 500)
+    traces = sessionio.compute_f0_dff(frois, framerate=6.0, window=60)
+    assert set(traces) == {'FdFF', 'Fzsc', 'F0', 'Fraw'}
+    for k in traces:
+        assert traces[k].shape == frois.shape
+    assert traces['Fraw'] is frois
+    assert np.isfinite(traces['FdFF']).all()
+    assert np.isfinite(traces['Fzsc']).all()
+
+
+def test_load_metadata_and_suite2p():
+    path = CASES[1][2]  # Cadbury/20221016d (small FOV)
+    if not os.path.isdir(path):
+        pytest.skip('session data not present')
+    md = sessionio.load_metadata(path)
+    assert md['framerate'] > 0 and 'fov' in md
+
+    s2p = sessionio.load_suite2p(path)
+    n_rois, n_frames = s2p['Frois'].shape
+    assert n_rois > 0 and n_frames > 0
+    assert len(s2p['ROIs']) == n_rois
+    assert tuple(s2p['fov_image'].shape) == tuple(s2p['fov_size'])
+    assert s2p['badframes'].ndim == 1
 
 
 if __name__ == '__main__':

@@ -12,11 +12,18 @@ Everything is normalized to the parsers.create_stimulus_record schema.
 
 import glob
 import os
+import pickle
+import re
+import socket
 from warnings import warn
 
+import numpy as np
 import pandas as pd
 
+import filters
+import metadata
 import parsers
+import response_table
 
 
 # Text-log parser per stimulus paradigm (the text format is paradigm-specific).
@@ -170,3 +177,180 @@ def _critical_conflicts(base, text_df):
     if conflicts:
         warn('stimlog base/text disagree on {}; keeping base values.'.format(conflicts))
     return conflicts
+
+
+# --- session loaders (2b) ------------------------------------------------------------------
+
+# Default suite2p variant when a session has more than one suite2p_* folder
+# (matches dirstr_suite2p_pref in the analysis_for_*.py scripts).
+SUITE2P_VARIANT_DEFAULT = r'suite2p_cellpose3_d[0-9]+px_pt-3p5_ft1p5'
+
+
+def resolve_paths(hostname=None):
+    """Map the host to (base_path, stim_path), as in the analysis_for_*.py host block."""
+    h = (hostname or socket.gethostname()).lower()
+    if 'galactica' in h:
+        return (r'/Users/davidh/Data/Freiwald/suite2p_results',
+                r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets')
+    if 'obsidian' in h:
+        return (r'F:\Data', r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets')
+    if 'dobbin' in h:
+        return (r'D:\Data', r'C:\Users\DavidH\Sync\Freiwald\MarmoScope\Stimulus\Sets')
+    return (None, None)
+
+
+def load_metadata(session_path):
+    """Load session metadata: the *_metadata.pickle if present, else parsed from the *_00001.tif,
+    merged onto metadata.default_metadata() with derived fov width/height in um.
+    Replicates analysis_for_images.py:790-813.
+    """
+    md_files = [f for f in glob.glob(os.path.join(session_path, '*_metadata.pickle')) if os.path.isfile(f)]
+    img_files = [f for f in glob.glob(os.path.join(session_path, '*_00001.tif')) if os.path.isfile(f)]
+    if md_files:
+        with open(md_files[0], 'rb') as f:
+            md = pickle.load(f)
+    elif img_files:
+        warn('Could not find metadata file, loading from image data file.')
+        md = metadata.extract_useful_metadata(metadata.get_metadata(img_files[0]))
+    else:
+        raise RuntimeError('Could not find metadata or image data file in {}.'.format(session_path))
+    md = {**metadata.default_metadata(), **md}
+    fov = md.get('fov')
+    if fov and 'resolution_umpx' in fov:
+        if 'w_um' not in fov and 'w_px' in fov:
+            fov['w_um'] = fov['resolution_umpx'][0] * fov['w_px']
+        if 'h_um' not in fov and 'h_px' in fov:
+            fov['h_um'] = fov['resolution_umpx'][1] * fov['h_px']
+    return md
+
+
+def find_suite2p_dir(session_path, variant=None):
+    """Pick a session's suite2p_* output directory. With variant=None and several present, prefer
+    the SUITE2P_VARIANT_DEFAULT pattern; pass a regex/substring to select a specific extraction
+    (e.g. cellpose-anatomical vs functional). Matches analysis_for_images.py:938-947.
+    """
+    dirs = [d for d in sorted(glob.glob(os.path.join(session_path, 'suite2p*'))) if os.path.isdir(d)]
+    if not dirs:
+        raise RuntimeError('Could not find a suite2p folder in {}.'.format(session_path))
+    if variant is not None:
+        matches = [d for d in dirs if re.search(variant, os.path.basename(d))]
+        if not matches:
+            raise RuntimeError('No suite2p variant matching {!r} in {} (have {}).'.format(
+                variant, session_path, [os.path.basename(d) for d in dirs]))
+        if len(matches) > 1:
+            warn('Multiple suite2p variants match {!r}, using {}.'.format(
+                variant, os.path.basename(matches[0])))
+        return matches[0]
+    idx = 0
+    if len(dirs) > 1:
+        preferred = [i for i, d in enumerate(dirs)
+                     if re.search(SUITE2P_VARIANT_DEFAULT, os.path.basename(d))]
+        idx = preferred[0] if preferred else 0
+        warn('Found multiple suite2p folders, using {}.'.format(os.path.basename(dirs[idx])))
+    return dirs[idx]
+
+
+def load_suite2p(session_path, variant=None, threshold_cellprob=0.0):
+    """Load a session's suite2p plane0 outputs and select accepted, active ROIs.
+    Replicates analysis_for_images.py:954-975. Returns a dict with Frois, ROIs (stat), ops,
+    badframes, cellinds, iscell, fov_image, fov_size, path.
+    """
+    s2p_dir = find_suite2p_dir(session_path, variant=variant)
+    plane = os.path.join(s2p_dir, 'plane0')
+    if not os.path.isdir(plane):
+        raise RuntimeError('Could not find suite2p plane0 in {}.'.format(s2p_dir))
+    iscell = np.load(os.path.join(plane, 'iscell.npy'))
+    F = np.load(os.path.join(plane, 'F.npy'))
+    stat = np.load(os.path.join(plane, 'stat.npy'), allow_pickle=True)
+    ops = np.load(os.path.join(plane, 'ops.npy'), allow_pickle=True).item()
+
+    cellinds = np.where(iscell[:, 1] >= threshold_cellprob)[0]
+    inactives = np.where(np.std(F, axis=1) == 0)[0]
+    if len(inactives) > 0:
+        warn('Excluded {} inactive ROIs.'.format(len(inactives)))
+    cellinds = np.setdiff1d(cellinds, inactives)
+    return {
+        'path': s2p_dir,
+        'Frois': F[cellinds],
+        'ROIs': stat[cellinds],
+        'ops': ops,
+        'badframes': np.where(ops['badframes'])[0],
+        'cellinds': cellinds,
+        'iscell': iscell,
+        'fov_image': ops['meanImg'],
+        'fov_size': (ops['Ly'], ops['Lx']),
+    }
+
+
+def compute_f0_dff(frois, framerate, window=60, method='medianbw'):
+    """Baseline F0 and the dF/F + z-scored traces from raw ROI fluorescence.
+    Replicates analysis_for_images.py:985-994 (images use method='medianbw', dots use 'meanbw').
+    Returns {'FdFF', 'Fzsc', 'F0', 'Fraw'}.
+    """
+    f0 = filters.calculate_baselines(frois, framerate=framerate, window=window, method=method)
+    fd = frois - f0
+    fdff = fd / f0
+    fzsc = (fd - np.mean(fd, axis=1)[:, np.newaxis]) / np.std(fd, axis=1)[:, np.newaxis]
+    return {'FdFF': fdff, 'Fzsc': fzsc, 'F0': f0, 'Fraw': frois}
+
+
+def correct_acqfr_index(stimlog):
+    """Subtract 1 from all acqfr_* columns (the frame counter starts at 1, not 0).
+    Matches analysis_for_images.py:1267-1271.
+    """
+    stimlog = stimlog.copy()
+    for c in [c for c in stimlog.columns if 'acqfr' in c]:
+        stimlog[c] = stimlog[c] - 1
+    return stimlog
+
+
+def derive_trial_timing(stimlog, stim_locked_to_acqfr=True):
+    """Derive (n_samp_isi, n_samp_stim) from the acqfr spans (analysis_for_images.py:1314-1325)."""
+    stim_span = (stimlog['acqfr_stim_f'] - stimlog['acqfr_stim_i']).dropna().astype(int).to_numpy()
+    isi_span = (stimlog['acqfr_isi_f'] - stimlog['acqfr_isi_i']).dropna().astype(int).to_numpy()
+    if stim_locked_to_acqfr:
+        n_samp_stim = int(np.bincount(stim_span).argmax())
+    else:
+        nz = np.bincount(stim_span).nonzero()[0]
+        n_samp_stim = int(nz[0] if nz[0] != 0 else nz[1])
+    nz = np.bincount(isi_span).nonzero()[0]
+    n_samp_isi = int(nz[0] if nz[0] != 0 else nz[1])
+    return n_samp_isi, n_samp_stim
+
+
+def trim_to_imaged_trials(stimlog, n_frames, n_samp_isi, n_samp_stim):
+    """Drop trials whose [pre-ISI | stim | post-ISI] window falls outside the recorded frames
+    (null or out-of-range onsets). A dtype-safe stand-in for the abort handling in
+    analysis_for_images.py:1274-1303.
+    """
+    onset = stimlog['acqfr_stim_i']
+    fr_end = onset + n_samp_stim + n_samp_isi
+    keep = (onset.notnull() & (fr_end <= n_frames) & (onset >= 0)).fillna(False)
+    return stimlog[keep].reset_index(drop=True)
+
+
+def build_session_response_table(session_path, variant=None, baseline_method='medianbw',
+                                 paradigm='auto', threshold_cellprob=0.0):
+    """Load a session end-to-end into a response_table xarray Dataset.
+
+    Orchestrates load_metadata -> load_suite2p -> compute_f0_dff -> load_stimlog ->
+    acqfr correction / timing / trim -> response_table.build_response_table. Returns
+    (dataset, context), where context holds the intermediates (md, s2p, traces, stimlog,
+    n_samp_isi, n_samp_stim, stim_provenance). Paradigm-specific condition metadata (category,
+    image name, etc.) is layered on by the paradigm driver; this orchestrator stays general.
+    """
+    md = load_metadata(session_path)
+    s2p = load_suite2p(session_path, variant=variant, threshold_cellprob=threshold_cellprob)
+    traces = compute_f0_dff(s2p['Frois'], md['framerate'], method=baseline_method)
+    n_frames = s2p['Frois'].shape[1]
+
+    stimlog, stim_prov = load_stimlog(session_path, paradigm=paradigm)
+    stimlog = correct_acqfr_index(stimlog)
+    n_samp_isi, n_samp_stim = derive_trial_timing(stimlog, md.get('stim_locked_to_acqfr', True))
+    stimlog = trim_to_imaged_trials(stimlog, n_frames, n_samp_isi, n_samp_stim)
+
+    ds = response_table.build_response_table(
+        traces, stimlog, n_samp_isi, n_samp_stim, framerate=md['framerate'])
+    context = {'md': md, 's2p': s2p, 'traces': traces, 'stimlog': stimlog,
+               'n_samp_isi': n_samp_isi, 'n_samp_stim': n_samp_stim, 'stim_provenance': stim_prov}
+    return ds, context
