@@ -91,7 +91,7 @@ def _parse_text(path, paradigm, required):
         return None
     try:
         with open(path) as f:
-            return parser(f.read())
+            return parsers.normalize_stimlog_dtypes(parser(f.read()))
     except Exception as e:
         if required:
             raise
@@ -154,6 +154,7 @@ def load_stimlog(session_path, paradigm='auto', backfill_from_text=True):
         'n_cells_backfilled': int(n_backfilled),
         'conflicts': conflicts,
     }
+    stimlog = parsers.normalize_stimlog_dtypes(stimlog)
     return stimlog.reset_index(drop=True), provenance
 
 

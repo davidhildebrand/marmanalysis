@@ -364,6 +364,38 @@ def parse_log_eyecal(eyecal_log, data=None):
     return out
 
 
+STIMLOG_INT_COLS = (
+    'trial', 'rep', 'cond',
+    'acqfr_isi_i', 'acqfr_isi_f', 'acqfr_fix_i', 'acqfr_fix_f', 'acqfr_stim_i', 'acqfr_stim_f',
+    'dispfr_isi_i', 'dispfr_isi_f', 'dispfr_fix_i', 'dispfr_fix_f', 'dispfr_stim_i', 'dispfr_stim_f',
+    'ai_isi_i', 'ai_isi_f', 'ai_fix_i', 'ai_fix_f', 'ai_stim_i', 'ai_stim_f',
+)
+STIMLOG_FLOAT_COLS = (
+    'dur_isi_pre', 'dur_stim', 'dur_isi_post',
+    't_isi_i', 't_isi_f', 't_fix_i', 't_fix_f', 't_stim_i', 't_stim_f',
+)
+
+
+def normalize_stimlog_dtypes(log, object_fill=False):
+    """Cast a stimlog to canonical dtypes: nullable Int64 for integer columns (frame indices and
+    condition ids -- true integers that can still be missing as pd.NA) and float64 for
+    durations/times. Label/tuple/array columns are left untouched, or coerced to object when
+    object_fill=True (used at build time, where every non-numeric column is still empty).
+    """
+    log = log.copy()
+    for c in STIMLOG_INT_COLS:
+        if c in log.columns:
+            log[c] = pd.to_numeric(log[c], errors='coerce').astype('Int64')
+    for c in STIMLOG_FLOAT_COLS:
+        if c in log.columns:
+            log[c] = pd.to_numeric(log[c], errors='coerce').astype('float64')
+    if object_fill:
+        for c in log.columns:
+            if c not in STIMLOG_INT_COLS and c not in STIMLOG_FLOAT_COLS and log[c].dtype != object:
+                log[c] = log[c].astype(object)
+    return log
+
+
 def create_stimulus_record(trials=1) -> pd.DataFrame:
     # TODO set log dtypes?
 
@@ -494,7 +526,7 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
                         })
     log.set_index(['trial'])
 
-    return log
+    return normalize_stimlog_dtypes(log, object_fill=True)
 
 
 def _ensure_stim_columns(log_input):
@@ -574,6 +606,10 @@ def convert_stimulus_record(log_input) -> pd.DataFrame:
         # else:
         #     warn('Expected log key {} not found in input log.'.format(k))
 
+    # Keep the label columns object dtype so the per-modality string assignments below don't
+    # collide with a float64 (all-NaN) column copied in from the source (e.g. stim_subclass).
+    for k in ('stim_mode', 'stim_class', 'stim_subclass'):
+        log[k] = log[k].astype(object)
 
     keys_namechange = {
         # new_key_name: old_key_name,
@@ -600,16 +636,15 @@ def convert_stimulus_record(log_input) -> pd.DataFrame:
             log['dur_isi_pre'] = log['t_isi_f'] - log['t_isi_i']
     if 'dur_stim' in log_input.columns:
         log['dur_stim'] = log_input['dur_stim']
+    elif 'stim_dur' in log_input.columns and not log_input['stim_dur'].isnull().all():
+        log['dur_stim'] = log_input['stim_dur']
+    elif 't_stim_i' in log_input.columns and 't_stim_f' in log_input.columns:
+        # Older CSVs have neither dur_stim nor stim_dur; derive it from the stim on/off times
+        # (matches the post-convert fill in analysis_for_images.py:868-870). Previously this
+        # fallback was unreachable because it was nested under `if 'stim_dur' in columns`.
+        log['dur_stim'] = log_input['t_stim_f'] - log_input['t_stim_i']
     else:
-        if 'stim_dur' in log_input.columns:
-            if not log_input['stim_dur'].isnull().all():
-                log['dur_stim'] = log_input['stim_dur']
-            elif 't_stim_i' in log_input.columns and 't_stim_f' in log_input.columns:
-                log['dur_stim'] = log_input['t_stim_f'] - log_input['t_stim_i']
-            else:
-                warn('No stimulus duration information available.')
-        else:
-            warn('No stimulus duration information available.')
+        warn('No stimulus duration information available.')
     if 'dur_isi_post' in log_input.columns:
         log['dur_isi_post'] = log_input['dur_isi_post']
     else:
@@ -792,7 +827,7 @@ def convert_stimulus_record(log_input) -> pd.DataFrame:
     log.loc[trials_vocalization, 'stim_class'] = 'tone'
     log.loc[trials_vocalization, 'stim_class'] = 'vocalization'
 
-    return log
+    return normalize_stimlog_dtypes(log)
 
 
 def parse_log_stim_image(session_log) -> pd.DataFrame:
