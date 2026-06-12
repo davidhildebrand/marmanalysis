@@ -3,19 +3,11 @@
 
 import argparse
 import json
-import magic
 import os
 from warnings import warn
 
 import metadata
-
-
-def is_tiff(filepath: str) -> bool:
-    # source_ext != '.tif' and source_ext != '.tiff':
-    allowed_types = ['image/tiff', 'image/tif']
-    if magic.from_file(filepath, mime=True) not in allowed_types:
-        return False
-    return True
+from fileio import is_tiff
 
 
 def json_serializer(obj):

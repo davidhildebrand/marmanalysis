@@ -2,17 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import magic
 import os
 
 import metadata
-
-
-def is_tiff(filepath: str) -> bool:
-    allowed_types = ['image/tiff', 'image/tif']
-    if magic.from_file(filepath, mime=True) not in allowed_types:
-        return False
-    return True
+from fileio import is_tiff
 
 
 # Parse command line options

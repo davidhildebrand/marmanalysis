@@ -8,7 +8,6 @@ oasis-deconv
 opencv-python
 pandas
 pillow
-python-magic
 # pyplot-themes @ git+https://github.com/idroz/pyplot-themes@e6e8ff
 scanimage-tiff-reader
 scipy
