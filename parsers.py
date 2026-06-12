@@ -497,7 +497,44 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
     return log
 
 
+def _ensure_stim_columns(log_input):
+    """Add stim_mode/stim_class/stim_subclass for older stimlogs that predate them.
+
+    Pre-multimodal exports (e.g. the image-only CSV variant) lack these columns that
+    convert_stimulus_record relies on, which otherwise raises KeyError. stim_mode/stim_class are
+    inferred from which stimulus-parameter columns are populated; stim_subclass defaults to None.
+    """
+    needed = ('stim_mode', 'stim_class', 'stim_subclass')
+    if all(c in log_input.columns for c in needed):
+        return log_input
+    log_input = log_input.copy()
+    cols = set(log_input.columns)
+    if 'stim_mode' not in cols or 'stim_class' not in cols:
+        if {'image', 'image_path'} & cols:
+            stim_mode, stim_class = 'visual', 'image'
+        elif {'video', 'video_path'} & cols:
+            stim_mode, stim_class = 'visual', 'video'
+        elif any(c.startswith('grating') for c in cols):
+            stim_mode, stim_class = 'visual', 'moving_grating'
+        elif any(c.startswith('dots') for c in cols):
+            stim_mode, stim_class = 'visual', 'dots'
+        elif {'f', 'lev', 'voc_path'} & cols:
+            stim_mode, stim_class = 'audio', 'tone'
+        else:
+            warn('stimlog lacks stim_mode/stim_class and modality could not be inferred; '
+                 'defaulting to visual/image.')
+            stim_mode, stim_class = 'visual', 'image'
+        if 'stim_mode' not in cols:
+            log_input['stim_mode'] = stim_mode
+        if 'stim_class' not in cols:
+            log_input['stim_class'] = stim_class
+    if 'stim_subclass' not in cols:
+        log_input['stim_subclass'] = None
+    return log_input
+
+
 def convert_stimulus_record(log_input) -> pd.DataFrame:
+    log_input = _ensure_stim_columns(log_input)
     log = create_stimulus_record(trials=len(log_input))
     # log.update(log_input)
 

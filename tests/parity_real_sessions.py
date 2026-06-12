@@ -33,8 +33,8 @@ import pandas as pd
 warnings.simplefilter('ignore')
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import filters
-import parsers
 import response_table as rt
+import sessionio
 
 BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
 METRICS = ['FdFF', 'Fzsc', 'F0', 'Fraw']
@@ -59,15 +59,9 @@ def load_session(animal, date, session):
     framerate = md['framerate']
     stim_locked = md.get('stim_locked_to_acqfr', True)
 
-    # --- stimlog: CSV read directly (this variant lacks stim_mode/stim_class), else text log
-    csvs = glob.glob(os.path.join(sp, '*_stimlog.csv'))
-    logs = [f for f in glob.glob(os.path.join(sp, '*.log')) if 'disptimes' not in f]
-    if csvs:
-        stimlog = pd.read_csv(csvs[0])
-        stimlog_src = 'csv'
-    else:
-        stimlog = parsers.parse_log_stim_image(open(logs[0]).read())
-        stimlog_src = 'text-log'
+    # --- stimlog via the shared layered-merge loader (sessionio): pickle>csv base + text backfill
+    stimlog, stim_prov = sessionio.load_stimlog(sp)
+    stimlog_src = stim_prov['base_source']
     stimlog = stimlog.reset_index(drop=True)
 
     # --- suite2p (analysis_for_images.py:938-975)
