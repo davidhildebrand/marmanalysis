@@ -212,7 +212,8 @@ def calculate_baselines(f_rois, framerate=6.364, window=60, method='medianbw', *
     window: period of filtering (sec)
     method: type of filter to use
     """
-    if np.ndim(f_rois) == 1:
+    input_1d = np.ndim(f_rois) == 1
+    if input_1d:
         f_rois = np.expand_dims(f_rois, axis=0)
 
     n_rois, n_frames = f_rois.shape
@@ -442,8 +443,10 @@ def calculate_baselines(f_rois, framerate=6.364, window=60, method='medianbw', *
         case _:
             raise ValueError('Unknown baseline filtering method: {}'.format(method))
 
-    if f0.shape[0] == 1:
-        f0 = np.squeeze(f0)
+    # Preserve input dimensionality: a 1-D trace returns 1-D, but a (1, n_frames) batch stays 2-D
+    # (avoids a shape-dependent return type that breaks `f0[r]` indexing for a single ROI).
+    if input_1d:
+        f0 = f0[0]
     return f0
 
 

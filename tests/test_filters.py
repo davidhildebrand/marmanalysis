@@ -4,8 +4,8 @@
 sessionio.compute_fluorescence_metrics. These check the SEMANTICS of the baseline (it tracks the
 slow/low signal and ignores sparse positive events) rather than re-deriving the filter math.
 
-Note: calculate_baselines squeezes single-ROI output to 1D, so the multi-ROI tests use
-np.atleast_2d to stay shape-robust (in real use it always sees many ROIs).
+Note: calculate_baselines is shape-preserving -- 1-D in -> 1-D out, 2-D in -> 2-D out (a (1, n)
+batch stays 2-D); see test_shape_preserving.
 
 Run:  ../.venv/bin/python -m pytest marmanalysis/tests/test_filters.py -v
 """
@@ -35,9 +35,10 @@ def test_baseline_ignores_sparse_transients(method):
     frois = np.full((1, n_frames), baseline)
     spikes = np.array([100, 300, 700, 1000])
     frois[0, spikes] += 400.0
-    f0 = np.atleast_2d(filters.calculate_baselines(frois, framerate=6.0, window=60, method=method))
-    assert np.max(np.abs(f0[0] - baseline)) < 50.0              # F0 hugs the baseline
-    assert np.all(frois[0, spikes] - f0[0, spikes] > 300.0)     # transients tower over F0
+    f0 = filters.calculate_baselines(frois, framerate=6.0, window=60, method=method)
+    assert f0.shape == (1, n_frames)                           # shape-preserving (was squeezed)
+    assert np.max(np.abs(f0[0] - baseline)) < 50.0             # F0 hugs the baseline
+    assert np.all(frois[0, spikes] - f0[0, spikes] > 300.0)    # transients tower over F0
 
 
 def test_baseline_tracks_slow_drift():
@@ -45,17 +46,21 @@ def test_baseline_tracks_slow_drift():
     is its centre value)."""
     n_frames = 1500
     drift = np.linspace(400.0, 600.0, n_frames)
-    f0 = np.atleast_2d(filters.calculate_baselines(drift[None, :], framerate=6.0, window=60,
-                                                   method='median'))
-    mid = slice(400, n_frames - 400)                            # away from reflect-padded edges
+    f0 = filters.calculate_baselines(drift[None, :], framerate=6.0, window=60, method='median')
+    assert f0.shape == (1, n_frames)
+    mid = slice(400, n_frames - 400)                           # away from reflect-padded edges
     np.testing.assert_allclose(f0[0, mid], drift[mid], atol=5.0)
 
 
-def test_single_roi_is_squeezed_to_1d():
-    """A single ROI (1D input, or a 1-row 2D input) returns a 1D baseline."""
-    f0 = filters.calculate_baselines(np.full(600, 500.0), framerate=6.0, window=60, method='median')
-    assert f0.ndim == 1 and f0.shape == (600,)
-    np.testing.assert_allclose(f0, 500.0, atol=1e-6)
+def test_shape_preserving():
+    """1-D input -> 1-D output; a single-ROI (1, n) batch stays 2-D (no shape-dependent squeeze)."""
+    flat = np.full(600, 500.0)
+    f0_1d = filters.calculate_baselines(flat, framerate=6.0, window=60, method='median')
+    f0_2d = filters.calculate_baselines(flat[None, :], framerate=6.0, window=60, method='median')
+    assert f0_1d.shape == (600,)
+    assert f0_2d.shape == (1, 600)
+    np.testing.assert_allclose(f0_1d, 500.0, atol=1e-6)
+    np.testing.assert_allclose(f0_2d, 500.0, atol=1e-6)
 
 
 if __name__ == '__main__':
