@@ -1,4 +1,5 @@
 filetype
+h5netcdf  # netCDF/HDF5 backend for xarray (stage-1 processed files)
 h5py
 imagesize
 matplotlib
@@ -18,3 +19,5 @@ suite2p
 tifffile
 torch
 torchvision
+xarray
+pytest  # tests

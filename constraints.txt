@@ -1,0 +1,26 @@
+# pip constraints for this machine: Intel (x86_64) macOS + Python 3.12.
+# Used via (run from the workspace root, where .venv lives):
+#   .venv/bin/python -m pip install -c marmanalysis/constraints.txt -r marmanalysis/requirements.txt
+#
+# Why pin numpy < 2 (resolves to numpy 1.26.4):
+#   * torch 2.2.2 is the LAST PyTorch release with x86_64-macOS wheels
+#     (newer torch ships arm64-mac only). Its binaries were compiled against
+#     numpy 1.x, so numpy 2.x triggers the
+#     "module compiled against numpy 1.x cannot run in numpy 2.x" import error.
+#   * suite2p 1.1.0 only requires numpy>=1.24.3, so 1.26.4 satisfies it.
+#
+# Why pin numba / llvmlite explicitly:
+#   numba 0.60.0 / llvmlite 0.43.0 are the LAST versions shipping prebuilt
+#   x86_64-macOS cp312 wheels. Capping numpy alone is NOT enough — newer numba
+#   (0.65.x) still supports numpy 1.26, so the resolver would pick it and then
+#   build llvmlite 0.47 from source, which needs cmake + a matching LLVM
+#   (not installed here). numba 0.60.0 also requires numpy<2.1, consistent
+#   with the numpy pin above, and satisfies suite2p's numba>=0.57.0.
+numpy>=1.24.3,<2
+numba==0.60.0
+llvmlite==0.43.0
+
+# pandas: the codebase predates pandas 3.0's stricter dtype rules (e.g. a `.loc` string
+# assignment into an all-NaN float64 column no longer silently upcasts to object, which
+# breaks parsers.convert_stimulus_record). Pin to the 2.x series the code was written for.
+pandas>=2.0,<3
