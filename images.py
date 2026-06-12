@@ -23,6 +23,7 @@ import pandas as pd
 from scipy.stats import f_oneway
 
 import response_table
+import sessionio
 
 
 # Plot/template ordering for categories (analysis_for_images.py:74-77).
@@ -219,3 +220,63 @@ def responsive_anova(ds, metric='Fzsc'):
         groups = [arr[r, c][~np.isnan(arr[r, c])] for c in range(n_cond)]
         _, p[r] = f_oneway(*groups)
     return p
+
+
+def roi_stats(ds, rois, resolution_umpx, metric='Fzsc'):
+    """Per-ROI image-response statistics: spatial centroid, peak-driving condition and category,
+    and face d'/FSI. Reproduces the non-WIP fields of analysis_for_images.py:2070-2106.
+
+    ``rois`` is the suite2p stat array (each entry has 'xpix'/'ypix'); ``resolution_umpx`` is
+    md['fov']['resolution_umpx']. Returns a DataFrame indexed by ROI.
+    """
+    resp_cond = response_table.stim_window_response(ds, metric).transpose('roi', 'condition').values
+    cond_labels = ds['cond'].values
+    cats = ds['cat'].values
+    categories = pd.unique(cats)
+    cat_masks = [np.array([c == k for c in cats]) for k in categories]
+    resp_cat = np.column_stack([resp_cond[:, m].mean(axis=1) for m in cat_masks])
+
+    dprime = face_dprime(ds, metric).values
+    fsi = face_selectivity_index(ds, metric).values
+    peak_cond_idx = np.nanargmax(resp_cond, axis=1)
+    peak_cat_idx = np.nanargmax(resp_cat, axis=1)
+
+    rows = []
+    for r in range(resp_cond.shape[0]):
+        centroid_px = np.array([rois[r]['xpix'].mean(), rois[r]['ypix'].mean()])
+        rows.append({
+            'roi': r,
+            'centroid_px': centroid_px,
+            'centroid_um': np.asarray(resolution_umpx) * centroid_px,
+            'peak_cond': cond_labels[peak_cond_idx[r]],
+            'peak_cond_val': resp_cond[r, peak_cond_idx[r]],
+            'cat_of_peak_cond': cats[peak_cond_idx[r]],
+            'peak_cat': categories[peak_cat_idx[r]],
+            'peak_cat_val': resp_cat[r, peak_cat_idx[r]],
+            'dprime': dprime[r],
+            'fsi': fsi[r],
+        })
+    return pd.DataFrame(rows).set_index('roi')
+
+
+def process_session(session_path, metrics=('FdFF', 'Fzsc'), responsiveness_metric='Fzsc',
+                    roi_stats_metric='Fzsc', variant=None, baseline_method='medianbw'):
+    """Thin image-paradigm driver: a session path -> the per-ROI image statistics, via the shared
+    loaders + container (sessionio.build_session_response_table + the image helpers here).
+
+    Returns a results dict with the response Dataset, the load context, per-metric face d'/FSI,
+    the responsiveness ANOVA p-values, and the per-ROI stats table. Figures are intentionally left
+    to plots.py -- call those on the returned arrays.
+    """
+    ds, ctx = sessionio.build_session_response_table(
+        session_path, variant=variant, baseline_method=baseline_method)
+    ds = attach_condition_metadata(ds, build_condition_metadata(ctx['stimlog']))
+    return {
+        'dataset': ds,
+        'context': ctx,
+        'dprime': {m: face_dprime(ds, m) for m in metrics},
+        'fsi': {m: face_selectivity_index(ds, m) for m in metrics},
+        'p_anova': responsive_anova(ds, responsiveness_metric),
+        'roi_stats': roi_stats(ds, ctx['s2p']['ROIs'], ctx['md']['fov']['resolution_umpx'],
+                               roi_stats_metric),
+    }

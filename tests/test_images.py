@@ -14,6 +14,7 @@ import os
 import sys
 
 import numpy as np
+import pandas as pd
 import pytest
 from scipy.stats import f_oneway
 
@@ -99,17 +100,45 @@ def _ref_anova(traces, stimlog, n_samp_stim, metric='Fzsc'):
     return p
 
 
+def test_roi_stats_synthetic():
+    import response_table as rt
+    n_roi, n_reps, n_isi, n_stim = 5, 3, 2, 2
+    cats = [b'face_mrm', b'obj', b'food', b'body_mrm']
+    cond_labels = np.array([b'fm01', b'om1001', b'vf1001', b'bm01'], dtype=object)
+    rng = np.random.default_rng(1)
+    n_trials = len(cats) * n_reps
+    cond_seq = rng.permutation(np.repeat(np.arange(len(cats)), n_reps))
+    onsets = 4 + 8 * np.arange(n_trials)
+    stimlog = pd.DataFrame({'cond': cond_seq, 'acqfr_stim_i': onsets})
+    traces = {'Fzsc': rng.standard_normal((n_roi, int(onsets.max() + n_stim + n_isi + 3)))}
+    ds = rt.build_response_table(traces, stimlog, n_isi, n_stim)
+    ds = ds.assign_coords(cat=('condition', np.array(cats, dtype=object)),
+                          cond=('condition', cond_labels))
+    rois = [{'xpix': np.array([r, r + 1, r + 2]), 'ypix': np.array([2 * r, 2 * r + 2, 2 * r + 4])}
+            for r in range(n_roi)]
+
+    rs = images.roi_stats(ds, rois, [2.0, 2.0], 'Fzsc')
+    assert len(rs) == n_roi
+    assert {'centroid_px', 'centroid_um', 'peak_cond', 'peak_cat', 'dprime', 'fsi'}.issubset(rs.columns)
+    np.testing.assert_allclose(rs['centroid_px'].iloc[0], [1.0, 2.0])   # xpix mean 1, ypix mean 2
+    np.testing.assert_allclose(rs['centroid_um'].iloc[0], [2.0, 4.0])
+    assert rs['peak_cond'].iloc[0] in set(cond_labels)
+    assert rs['peak_cat'].iloc[0] in set(cats)
+
+
 @pytest.mark.parametrize('a, d, s', SESSIONS, ids=[x[1] for x in SESSIONS])
-def test_dprime_fsi_anova_parity(a, d, s):
+def test_image_stats_parity(a, d, s):
+    """End-to-end through the thin driver (images.process_session): d'/FSI/ANOVA and the per-ROI
+    peak/centroid stats all match an independent inline reference."""
     path = os.path.join(BASE, a, d, s)
     if not os.path.isdir(path):
         pytest.skip('session data not present')
-    ds, ctx = sessionio.build_session_response_table(path)
-    ds = images.attach_condition_metadata(ds, images.build_condition_metadata(ctx['stimlog']))
-
-    dprime_new = images.face_dprime(ds, 'Fzsc').values
-    fsi_new = images.face_selectivity_index(ds, 'Fzsc').values
-    p_new = images.responsive_anova(ds, 'Fzsc')
+    results = images.process_session(path)
+    ds, ctx = results['dataset'], results['context']
+    dprime_new = results['dprime']['Fzsc'].values
+    fsi_new = results['fsi']['Fzsc'].values
+    p_new = results['p_anova']
+    rs = results['roi_stats']
 
     is_face, is_nonface, is_nfo = images.supercategory_bools(ds['cat'].values)
     resp = _resp_vect(ctx['traces'], ctx['stimlog'], ctx['n_samp_stim'], 'Fzsc')
@@ -119,6 +148,18 @@ def test_dprime_fsi_anova_parity(a, d, s):
     assert np.allclose(dprime_new, dprime_ref, rtol=1e-4, atol=1e-5, equal_nan=True)
     assert np.allclose(fsi_new, fsi_ref, rtol=1e-4, atol=1e-5, equal_nan=True)
     assert np.allclose(p_new, p_ref, rtol=1e-4, atol=1e-6, equal_nan=True)
+
+    # roi_stats: peak condition/category labels + ROI centroid vs independent reference.
+    cats = ds['cat'].values
+    peak_cond_ref = ds['cond'].values[np.nanargmax(resp, axis=1)]
+    categories = np.unique(cats)
+    resp_cat_ref = np.column_stack([resp[:, np.array([c == k for c in cats])].mean(1)
+                                    for k in categories])
+    peak_cat_ref = categories[np.nanargmax(resp_cat_ref, axis=1)]
+    assert (rs['peak_cond'].values == peak_cond_ref).mean() > 0.99   # allow rare float ties
+    assert (rs['peak_cat'].values == peak_cat_ref).mean() > 0.99
+    r0 = ctx['s2p']['ROIs'][0]
+    np.testing.assert_allclose(rs['centroid_px'].iloc[0], [r0['xpix'].mean(), r0['ypix'].mean()])
 
 
 if __name__ == '__main__':

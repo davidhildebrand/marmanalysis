@@ -83,16 +83,21 @@ def test_convert_stimulus_record_preserves_explicit_columns():
     assert out.loc[0, 'stim_class'] == 'tone'
 
 
-def test_compute_f0_dff_shapes_and_keys():
+def test_compute_fluorescence_metrics():
     rng = np.random.default_rng(0)
     frois = (rng.standard_normal((8, 2000)).astype('float32') * 40 + 500)
-    traces = sessionio.compute_f0_dff(frois, framerate=6.0, window=60)
+    traces = sessionio.compute_fluorescence_metrics(frois, framerate=6.0, window=60)
     assert set(traces) == {'FdFF', 'Fzsc', 'F0', 'Fraw'}
     for k in traces:
         assert traces[k].shape == frois.shape
     assert traces['Fraw'] is frois
-    assert np.isfinite(traces['FdFF']).all()
-    assert np.isfinite(traces['Fzsc']).all()
+    assert np.isfinite(traces['FdFF']).all() and np.isfinite(traces['Fzsc']).all()
+
+    # value invariants (non-circular): FdFF = (Fraw - F0)/F0  <=>  Fraw == F0 * (1 + FdFF)
+    np.testing.assert_allclose(traces['Fraw'], traces['F0'] * (1 + traces['FdFF']), rtol=1e-4)
+    # Fzsc is z-scored per ROI: each ROI trace has ~0 mean and unit std (ddof=0)
+    np.testing.assert_allclose(traces['Fzsc'].mean(axis=1), 0, atol=1e-4)
+    np.testing.assert_allclose(traces['Fzsc'].std(axis=1), 1, atol=1e-4)
 
 
 def test_load_metadata_and_suite2p():

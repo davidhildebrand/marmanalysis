@@ -282,7 +282,7 @@ def load_suite2p(session_path, variant=None, threshold_cellprob=0.0):
     }
 
 
-def compute_f0_dff(frois, framerate, window=60, method='medianbw'):
+def compute_fluorescence_metrics(frois, framerate, window=60, method='medianbw'):
     """Baseline F0 and the dF/F + z-scored traces from raw ROI fluorescence.
     Replicates analysis_for_images.py:985-994 (images use method='medianbw', dots use 'meanbw').
     Returns {'FdFF', 'Fzsc', 'F0', 'Fraw'}.
@@ -333,7 +333,7 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
                                  paradigm='auto', threshold_cellprob=0.0):
     """Load a session end-to-end into a response_table xarray Dataset.
 
-    Orchestrates load_metadata -> load_suite2p -> compute_f0_dff -> load_stimlog ->
+    Orchestrates load_metadata -> load_suite2p -> compute_fluorescence_metrics -> load_stimlog ->
     acqfr correction / timing / trim -> response_table.build_response_table. Returns
     (dataset, context), where context holds the intermediates (md, s2p, traces, stimlog,
     n_samp_isi, n_samp_stim, stim_provenance). Paradigm-specific condition metadata (category,
@@ -341,7 +341,7 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
     """
     md = load_metadata(session_path)
     s2p = load_suite2p(session_path, variant=variant, threshold_cellprob=threshold_cellprob)
-    traces = compute_f0_dff(s2p['Frois'], md['framerate'], method=baseline_method)
+    traces = compute_fluorescence_metrics(s2p['Frois'], md['framerate'], method=baseline_method)
     n_frames = s2p['Frois'].shape[1]
 
     stimlog, stim_prov = load_stimlog(session_path, paradigm=paradigm)
