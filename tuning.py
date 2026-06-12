@@ -128,3 +128,31 @@ def calculate_dsi(xs, ys, unit='deg', plotting=False, debugging=False):
               'a1={:.2f} a2={:.2f}'.format(a1_f, a2_f))
 
     return dsi, theta_pref
+
+
+def calculate_osi(xs, ys, unit='deg'):
+    """Orientation-selectivity index (OSI): the orientation vector strength (1 - circular variance
+    at 2*theta), with the preferred orientation from the resultant-vector angle.
+
+    Based on Mazurek, Kager and Van Hooser 2014 Front Neural Circuits
+      https://doi.org/10.3389/fncir.2014.00092
+    "Robust quantification of orientation selectivity and direction selectivity."
+    OSI = |sum_k R_k * exp(2i*theta_k)| / sum_k R_k, the 2*theta analogue of the DSI vector strength
+    in calculate_dsi (so orientations 180 deg apart are treated as identical).
+
+    xs: stimulus angles (orientations or drift directions), ys: responses (one per angle).
+    Returns (osi, ori_pref) with ori_pref the preferred ORIENTATION in [0, 180) deg (or [0, pi) rad).
+    Responses are shifted to be non-negative first, matching calculate_dsi.
+    """
+    thetas = np.radians(xs) if unit == 'deg' else np.asarray(xs, dtype=float)
+    R = np.asarray(ys, dtype=float)
+    R = R + np.abs(np.min(R))
+    sin2 = np.sum(R * np.sin(2 * thetas))
+    cos2 = np.sum(R * np.cos(2 * thetas))
+    osi = np.sqrt(sin2**2 + cos2**2) / np.sum(R)
+    ori_pref = 0.5 * np.arctan2(sin2, cos2)
+    if unit == 'deg':
+        ori_pref = np.degrees(ori_pref) % 180
+    else:
+        ori_pref = ori_pref % np.pi
+    return osi, ori_pref
