@@ -7,14 +7,18 @@ object), and the convert_stimulus_record dur_stim-from-times fallback.
 Run:  ../.venv/bin/python -m pytest marmanalysis/tests/test_parsers.py -v
 """
 
+import glob
 import os
 import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import parsers
+
+BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
 
 
 def test_create_stimulus_record_schema_dtypes():
@@ -64,6 +68,22 @@ def test_convert_derives_dur_stim_from_stim_times():
     assert (out['stim_class'] == 'image').all()           # inferred for the legacy variant
 
 
+def test_parse_log_stim_gratings_real():
+    """The fixed parse_log_stim_gratings loads a real DriftingGratings text log into the canonical
+    schema (acqfr_isi/stim from the AI-less ISI lines; float grating_ori, no int() crash)."""
+    logs = [f for f in glob.glob(BASE + '/Larry/20241101d/*stimDriftingGratings8dirFF/*Grating*.log')
+            if 'disptimes' not in f]
+    if not logs:
+        pytest.skip('grating log not present')
+    sl = parsers.parse_log_stim_gratings(open(logs[0]).read())
+    for c in ['cond', 'acqfr_isi_i', 'acqfr_isi_f', 'acqfr_stim_i', 'acqfr_stim_f',
+              'grating_ori', 'grating_sf', 'grating_tf']:
+        assert c in sl.columns and not sl[c].isnull().all(), 'missing/empty column ' + c
+    assert (sl['stim_class'].dropna() == 'grating').all()
+    assert (sl['stim_subclass'].dropna() == 'drifting').all()
+    assert sl['grating_ori'].dropna().nunique() == 8            # 8 drift directions (8dirFF)
+    assert sl['grating_ori'].dropna().between(0, 360).all()     # float ori parsed (no int() crash)
+
+
 if __name__ == '__main__':
-    import pytest
     sys.exit(pytest.main([__file__, '-v']))

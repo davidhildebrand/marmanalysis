@@ -1117,7 +1117,7 @@ def parse_log_stim_dots(session_log) -> pd.DataFrame:
 
     for line in lines:
         pattern_isi = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*ISI\s*(start|end),?\s*' + \
-                      r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+                      r'acqfr=([0-9]+),?\s*(AI_data\.shape=\(([0-9]+),\s*([0-9]+)\))?'
         if re.match(pattern_isi, line) is not None:
             g = re.match(pattern_isi, line).groups()
             t = float(g[0])
@@ -1126,7 +1126,7 @@ def parse_log_stim_dots(session_log) -> pd.DataFrame:
                 warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
             acqfr = int(g[4])
-            ai_shape = (int(g[5]), int(g[6]))
+            ai_shape = (int(g[6]), int(g[7])) if g[5] is not None else (None, None)
 
             match g[3]:
                 case 'start':
@@ -1138,7 +1138,8 @@ def parse_log_stim_dots(session_log) -> pd.DataFrame:
                         time_isi_i = t
                     log.at[trial, 't_isi_i'] = t
                     log.at[trial, 'acqfr_isi_i'] = acqfr
-                    log.at[trial, 'ai_isi_i'] = ai_shape[0]
+                    if ai_shape[0] is not None:
+                        log.at[trial, 'ai_isi_i'] = ai_shape[0]
                 case 'end':
                     if times_isi is None and 'time_isi_i' in locals():
                         log.at[trial, 'dur_isi_pre'] = t - time_isi_i
@@ -1146,7 +1147,8 @@ def parse_log_stim_dots(session_log) -> pd.DataFrame:
                             log.at[trial - 1, 'dur_isi_post'] = t - time_isi_i
                     log.at[trial, 't_isi_f'] = t
                     log.at[trial, 'acqfr_isi_f'] = acqfr
-                    log.at[trial, 'ai_isi_f'] = ai_shape[0]
+                    if ai_shape[0] is not None:
+                        log.at[trial, 'ai_isi_f'] = ai_shape[0]
                 case _:
                     warn('Unknown interstimulus event in log file: {}'.format(line))
 
@@ -1303,7 +1305,7 @@ def parse_log_stim_gratings(session_log) -> pd.DataFrame:
 
     for line in lines:
         pattern_isi = r'^\s*([0-9\.]+)\s*EXP\s*trial\s*([0-9]+)\/?([0-9]+)?,?\s*ISI\s*(start|end),?\s*' + \
-                      r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
+                      r'acqfr=([0-9]+),?\s*(AI_data\.shape=\(([0-9]+),\s*([0-9]+)\))?'
         if re.match(pattern_isi, line) is not None:
             g = re.match(pattern_isi, line).groups()
             t = float(g[0])
@@ -1312,7 +1314,7 @@ def parse_log_stim_gratings(session_log) -> pd.DataFrame:
                 warn('Calculated number of trials ({}) does not match number '.format(n_trials) +
                      'referenced in trial {} ({}): {}'.format(trial, g[2], line))
             acqfr = int(g[4])
-            ai_shape = (int(g[5]), int(g[6]))
+            ai_shape = (int(g[6]), int(g[7])) if g[5] is not None else (None, None)
 
             match g[3]:
                 case 'start':
@@ -1324,7 +1326,8 @@ def parse_log_stim_gratings(session_log) -> pd.DataFrame:
                         time_isi_i = t
                     log.at[trial, 't_isi_i'] = t
                     log.at[trial, 'acqfr_isi_i'] = acqfr
-                    log.at[trial, 'ai_isi_i'] = ai_shape[0]
+                    if ai_shape[0] is not None:
+                        log.at[trial, 'ai_isi_i'] = ai_shape[0]
                 case 'end':
                     if times_isi is None and 'time_isi_i' in locals():
                         log.at[trial, 'dur_isi_pre'] = t - time_isi_i
@@ -1332,7 +1335,8 @@ def parse_log_stim_gratings(session_log) -> pd.DataFrame:
                             log.at[trial - 1, 'dur_isi_post'] = t - time_isi_i
                     log.at[trial, 't_isi_f'] = t
                     log.at[trial, 'acqfr_isi_f'] = acqfr
-                    log.at[trial, 'ai_isi_f'] = ai_shape[0]
+                    if ai_shape[0] is not None:
+                        log.at[trial, 'ai_isi_f'] = ai_shape[0]
                 case _:
                     warn('Unknown interstimulus event in log file: {}'.format(line))
 
@@ -1369,16 +1373,14 @@ def parse_log_stim_gratings(session_log) -> pd.DataFrame:
                     log.at[trial, 'cond'] = int(g[8])
                     log.at[trial, 'stim_mode'] = 'visual'
                     log.at[trial, 'stim_class'] = g[5]
-                    if g[6].replace(' ', '') == 'fullfield' and g[7].replace(' ', '') == 'drifting':
-                        log.at[trial, 'stim_subclass'] = 'translation'
-                        log.at[trial, 'grating_dir'] = float(g[9])
-                    else:
-                        log.at[trial, 'stim_subclass'] = None
-                    log.at[trial, 'grating_ori'] = int(g[9])
-                    log.at[trial, 'ori'] = int(g[9])
+                    # g[7] is the grating subclass ('drifting'/'static'). The logged 'ori' (g[9]) is
+                    # the drift DIRECTION; convert_stimulus_record likewise stores direction in
+                    # grating_ori (the schema has no grating_dir). float() not int() -- directions
+                    # are logged as e.g. 180.0, which int() cannot parse.
+                    log.at[trial, 'stim_subclass'] = g[7]
+                    log.at[trial, 'grating_ori'] = float(g[9])
                     log.at[trial, 'grating_tex'] = g[10]
                     log.at[trial, 'grating_size'] = np.fromstring(g[11], sep=' ')
-                    log.at[trial, 'size'] = np.fromstring(g[11], sep=' ')
                     log.at[trial, 'grating_sf'] = float(np.fromstring(g[12], sep=' ')[0])
                     log.at[trial, 'grating_tf'] = float(g[13])
                     log.at[trial, 'grating_mask'] = g[14]
