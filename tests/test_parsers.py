@@ -85,5 +85,16 @@ def test_parse_log_stim_gratings_real():
     assert sl['grating_ori'].dropna().between(0, 360).all()     # float ori parsed (no int() crash)
 
 
+def test_assert_parser_progress_distinguishes_failures():
+    """The shared conclusion-check helper raises a 'wrong parser' message when the paradigm's stim
+    function never appeared, but a distinct 'aborted session' message when the right parser ran yet
+    no trials were recorded (the Cadbury/20231018d case: ImageStim present, no stim-start lines)."""
+    parsers._assert_parser_progress(True, True, 'image', 'ImageStim')        # both seen -> no raise
+    with pytest.raises(Exception, match='Incorrect log parser chosen'):
+        parsers._assert_parser_progress(False, False, 'image', 'ImageStim')  # stim func missing
+    with pytest.raises(Exception, match='aborted'):
+        parsers._assert_parser_progress(False, True, 'image', 'ImageStim')   # found func, no trials
+
+
 if __name__ == '__main__':
     sys.exit(pytest.main([__file__, '-v']))

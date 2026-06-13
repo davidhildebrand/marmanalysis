@@ -830,6 +830,22 @@ def convert_stimulus_record(log_input) -> pd.DataFrame:
     return normalize_stimlog_dtypes(log)
 
 
+def _assert_parser_progress(found_trial, found_stimfunc, paradigm, stimfunc):
+    """Sanity-check, at the log's conclusion line, that text parsing actually advanced.
+
+    Two distinct failures are possible and previously gave the same misleading message:
+    ``found_stimfunc`` False means this paradigm's stimulus function (e.g. ``ImageStim``) never
+    appeared, so the wrong parser was chosen; ``found_trial`` False (with the stim function present)
+    means the right parser ran but no trials were recorded -- the session was aborted before any
+    stimulus was presented. Each case now raises its own clear message."""
+    if not found_stimfunc:
+        raise Exception('Incorrect log parser chosen: this parser is for {} sessions, but no {}() '
+                        'was found in the log.'.format(paradigm, stimfunc))
+    if not found_trial:
+        raise Exception('No trials found in this {} log; the session was likely aborted before any '
+                        'stimulus was presented.'.format(paradigm))
+
+
 def parse_log_stim_image(session_log) -> pd.DataFrame:
     """
     Parse the session log file output of the original stimulus_image.py script into newer DataFrame format.
@@ -1027,9 +1043,7 @@ def parse_log_stim_image(session_log) -> pd.DataFrame:
         pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
                        r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_conc, line) is not None:
-            if 'trial' not in locals() or not found_stimfunc:
-                raise Exception('Incorrect log parser chosen. This parser is for image sessions. '
-                                'Conclusion reached without finding a trial or no ImageStim found.')
+            _assert_parser_progress('trial' in locals(), found_stimfunc, 'image', 'ImageStim')
             g = re.match(pattern_conc, line).groups()
             t = float(g[0])
             acqfr = int(g[2])
@@ -1215,9 +1229,7 @@ def parse_log_stim_dots(session_log) -> pd.DataFrame:
         pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
                        r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_conc, line) is not None:
-            if 'trial' not in locals() or not found_stimfunc:
-                raise Exception('Incorrect log parser chosen. This parser is for dots sessions. '
-                                'Conclusion reached without finding a trial or no ImageStim found.')
+            _assert_parser_progress('trial' in locals(), found_stimfunc, 'dots', 'DotStim')
             g = re.match(pattern_conc, line).groups()
             t = float(g[0])
             acqfr = int(g[2])
@@ -1397,9 +1409,7 @@ def parse_log_stim_gratings(session_log) -> pd.DataFrame:
         pattern_conc = r'^\s*([0-9\.]+)\s*EXP\s*conclusion,?\s*(start|end),?\s*' + \
                        r'acqfr=([0-9]+),?\s*AI_data\.shape=\(([0-9]+),\s*([0-9]+)\)'
         if re.match(pattern_conc, line) is not None:
-            if 'trial' not in locals() or not found_stimfunc:
-                raise Exception('Incorrect log parser chosen. This parser is for dots sessions. '
-                                'Conclusion reached without finding a trial or no ImageStim found.')
+            _assert_parser_progress('trial' in locals(), found_stimfunc, 'gratings', 'GratingStim')
             g = re.match(pattern_conc, line).groups()
             t = float(g[0])
             acqfr = int(g[2])

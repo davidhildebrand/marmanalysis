@@ -37,17 +37,37 @@ _PARADIGM_TEXT_PARSER = {
 _CRITICAL_COLS = ('cond', 'acqfr_stim_i', 'acqfr_stim_f', 'acqfr_isi_i', 'acqfr_isi_f')
 
 
-def infer_paradigm(session_path):
-    """Guess the stimulus paradigm from the session directory's 'stim<...>' token."""
-    name = os.path.basename(os.path.normpath(session_path)).lower()
-    if 'multimodal' in name:
+def _paradigm_from_name(name):
+    """Map a single directory/file name to a paradigm token (or 'unknown')."""
+    n = name.lower()
+    if 'multimodal' in n:
         return 'multimodal'
-    if 'image' in name:
+    if 'image' in n:
         return 'image'
-    if 'grating' in name:
+    if 'grating' in n:
         return 'gratings'
-    if 'dot' in name:
+    if 'dot' in n:
         return 'dots'
+    if 'auditory' in n or 'tone' in n or 'vocal' in n:
+        return 'auditory'
+    if 'flash' in n:
+        return 'flash'
+    if 'dummy' in n:
+        return 'dummy'
+    return 'unknown'
+
+
+def infer_paradigm(session_path, log_path=None):
+    """Guess the stimulus paradigm. The stimulus LOG filename (``..._Stimulus_<Type>.log``) is a
+    more reliable signal than the session directory's ``stim<...>`` token, which is occasionally
+    mislabeled (e.g. a DriftingGratings session foldered as 'MovingDots'), so prefer it when a text
+    log is available and fall back to the directory name otherwise."""
+    candidates = ([os.path.basename(log_path)] if log_path else [])
+    candidates.append(os.path.basename(os.path.normpath(session_path)))
+    for name in candidates:
+        paradigm = _paradigm_from_name(name)
+        if paradigm != 'unknown':
+            return paradigm
     return 'unknown'
 
 
@@ -118,7 +138,8 @@ def load_stimlog(session_path, paradigm='auto', backfill_from_text=True):
     session_path : str
         Path to a single session directory.
     paradigm : str
-        Stimulus paradigm selecting the text-log parser; 'auto' infers it from the directory name.
+        Stimulus paradigm selecting the text-log parser; 'auto' infers it from the text-log
+        filename (preferred) or the session directory name.
     backfill_from_text : bool
         Whether to backfill missing values from the text log when a structured base exists.
 
@@ -130,7 +151,7 @@ def load_stimlog(session_path, paradigm='auto', backfill_from_text=True):
     """
     sources = find_stimlog_sources(session_path)
     if paradigm == 'auto':
-        paradigm = infer_paradigm(session_path)
+        paradigm = infer_paradigm(session_path, sources['text'])
 
     base, base_source, base_file = _load_structured(sources)
 

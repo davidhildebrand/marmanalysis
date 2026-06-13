@@ -52,6 +52,22 @@ def test_load_stimlog_real_sessions(expected_base, expected_paradigm, path):
         assert not stimlog[c].isnull().all(), 'all-null column ' + c
 
 
+def test_infer_paradigm_tokens_and_log_precedence():
+    """infer_paradigm recognizes each stimulus token and prefers the (more reliable) log filename
+    over the session directory name, which is occasionally mislabeled."""
+    assert sessionio._paradigm_from_name('x_Stimulus_Images.log') == 'image'
+    assert sessionio._paradigm_from_name('x_Stimulus_DriftingGratingsFullField.log') == 'gratings'
+    assert sessionio._paradigm_from_name('x_Stimulus_MovingDots.log') == 'dots'
+    assert sessionio._paradigm_from_name('x_Stimulus_MultimodalGratings.log') == 'multimodal'
+    assert sessionio._paradigm_from_name('x_Stimulus_Auditory_max15.log') == 'auditory'
+    assert sessionio._paradigm_from_name('x_Stimulus_Dummy.log') == 'dummy'
+    assert sessionio._paradigm_from_name('x_Stimulus_Mystery.log') == 'unknown'
+    # log filename wins over a mislabeled directory; directory is the fallback when no log given.
+    assert sessionio.infer_paradigm('/d/Larry/20241101d/161123tUTC_stimMovingDots',
+                                    '161123tUTC_Stimulus_DriftingGratingsFullField.log') == 'gratings'
+    assert sessionio.infer_paradigm('/d/Larry/20241101d/161123tUTC_stimDriftingGratings8dirFF') == 'gratings'
+
+
 def test_convert_stimulus_record_infers_missing_stim_columns():
     """The image-only CSV variant lacks stim_mode/stim_class/stim_subclass; convert must infer
     them (default visual/image) instead of raising KeyError."""
