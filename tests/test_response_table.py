@@ -16,6 +16,8 @@ import sys
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
+from scipy.stats import f_oneway
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import response_table as rt
@@ -256,6 +258,54 @@ def test_exclusion_is_a_mask_not_a_nan():
     manual = kept.mean(dim=('repeat', 'time')).values
     got = rt.stim_window_response(ds_excl, 'FdFF').sel(condition=0).values
     np.testing.assert_allclose(got, manual)
+
+
+def _ds_from_trial_values(vals, metric='Fzsc'):
+    """Minimal response table with a single stim frame whose value is the desired per-trial response.
+
+    ``vals`` has shape (roi, condition, repeat); the returned Dataset has ``trial_response`` equal to
+    ``vals`` exactly, so trial-level statistics can be tested without the windowing machinery."""
+    n_roi, n_cond, n_rep = vals.shape
+    return xr.Dataset(
+        {metric: (('roi', 'condition', 'repeat', 'time'), vals[..., None].astype(float))},
+        coords={'roi': np.arange(n_roi), 'condition': np.arange(n_cond),
+                'repeat': np.arange(n_rep), 'time': [0],
+                'epoch': ('time', np.array([rt.EPOCH_STIM])),
+                'excluded': (('condition', 'repeat'), np.zeros((n_cond, n_rep), bool))})
+
+
+def test_trial_response_keeps_repeat_axis():
+    traces, stimlog, n_isi, n_stim = _make_session()
+    ds = rt.build_response_table(traces, stimlog, n_isi, n_stim, condition_coords={'cat': CATS})
+    tr = rt.trial_response(ds, 'FdFF')
+    assert set(tr.dims) == {'roi', 'condition', 'repeat'}
+    manual = ds['FdFF'].isel(time=list(range(n_isi, n_isi + n_stim))).mean('time')
+    np.testing.assert_allclose(tr.transpose('roi', 'condition', 'repeat').values,
+                               manual.transpose('roi', 'condition', 'repeat').values)
+
+
+def test_trial_scalar_anova_detects_structure_and_parity():
+    rng = np.random.default_rng(0)
+    n_cond, n_rep = 6, 8
+    roi0 = (np.arange(n_cond) * 3.0)[:, None] + rng.normal(scale=0.3, size=(n_cond, n_rep))
+    roi1 = rng.normal(scale=1.0, size=(n_cond, n_rep))
+    ds = _ds_from_trial_values(np.stack([roi0, roi1]))
+    p = rt.trial_scalar_anova(ds, 'Fzsc')
+    assert p[0] < 1e-6 and p[1] > 0.05
+    tr = rt.trial_response(ds, 'Fzsc').transpose('roi', 'condition', 'repeat').values
+    for r in range(2):
+        np.testing.assert_allclose(p[r], f_oneway(*[tr[r, c] for c in range(n_cond)]).pvalue)
+
+
+def test_split_half_reliability_reliable_vs_noise():
+    rng = np.random.default_rng(0)
+    n_cond, n_rep = 100, 10  # many conditions so the pure-noise reliability estimate collapses to ~0
+    sig = rng.normal(size=n_cond)
+    roi0 = np.repeat(sig[:, None], n_rep, axis=1)          # identical across repeats -> reliable
+    roi1 = rng.normal(size=(n_cond, n_rep))                # pure noise -> unreliable
+    ds = _ds_from_trial_values(np.stack([roi0, roi1]))
+    rel = rt.split_half_reliability(ds, 'Fzsc', n_splits=50, seed=1)
+    assert rel[0] > 0.95 and rel[1] < 0.3 and (rel[0] - rel[1]) > 0.6
 
 
 if __name__ == '__main__':

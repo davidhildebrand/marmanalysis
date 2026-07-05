@@ -21,6 +21,7 @@ class of bug where un-overwritten NaNs are mistaken for excluded trials.
 
 import numpy as np
 import xarray as xr
+from scipy.stats import f_oneway
 
 
 # Trial structure: a trial is [ISI_pre | stimulus | ISI_post], each ISI being n_samp_isi
@@ -275,6 +276,84 @@ def face_selectivity_index(resp_vect_cond, is_face, is_nonface_object):
     fsi = xr.where(np.sign(mu_F) > np.sign(mu_O), 1.0, fsi)
     fsi = xr.where(np.sign(mu_F) < np.sign(mu_O), -1.0, fsi)
     return fsi
+
+
+def trial_response(ds, metric):
+    """Per-(roi, condition, repeat) mean response over the stimulus window.
+
+    Like ``stim_window_response`` but keeps the ``repeat`` axis, giving one scalar per trial. Excluded
+    trials become NaN via the exclusion mask. This is the per-trial response used by trial-level
+    statistics -- a repeats-as-samples ANOVA or split-half reliability -- which treat the trial (not
+    the frame) as the unit of observation.
+    """
+    stim = _valid(ds, metric).where(ds['epoch'] == EPOCH_STIM)
+    return stim.mean(dim='time', skipna=True)
+
+
+def trial_scalar_anova(ds, metric='Fzsc'):
+    """Per-ROI one-way ANOVA across conditions using one scalar per trial (repeats as samples).
+
+    The statistically sound counterpart to the frame-pooled responsiveness ANOVA in
+    ``analysis_for_images.py`` (mirrored by ``images.responsive_anova``): each (condition, repeat) is
+    first reduced to a single stim-window mean, so strongly autocorrelated within-trial frames are NOT
+    treated as independent observations. Pooling frames inflates the degrees of freedom and makes the
+    test anti-conservative; reducing to one scalar per trial removes that pseudoreplication. Returns a
+    per-ROI p-value array (NaN where a cell has too few valid trials).
+    """
+    tr = trial_response(ds, metric).transpose('roi', 'condition', 'repeat').values
+    n_roi, n_cond = tr.shape[0], tr.shape[1]
+    pvals = np.full(n_roi, np.nan)
+    for r in range(n_roi):
+        groups = [g[~np.isnan(g)] for g in tr[r]]
+        groups = [g for g in groups if g.size > 0]
+        if len(groups) >= 2 and sum(g.size for g in groups) > len(groups):
+            pvals[r] = f_oneway(*groups).pvalue
+    return pvals
+
+
+def split_half_reliability(ds, metric, n_splits=100, seed=0, spearman_brown=True):
+    """Per-ROI response reliability by split-half correlation (Vinken et al. Livingstone 2023).
+
+    For each ROI the repeats are randomly split in half ``n_splits`` times; each half is trial-averaged
+    to a condition-response vector, the two vectors are Pearson-correlated across conditions, and the
+    correlations are averaged to r. With ``spearman_brown`` the full-set reliability is
+    rho = 2r / (1 + r) (the correction noted at analysis_for_images.py:2038-2047). This is a
+    trial-level signal-consistency measure -- a principled complement to, or replacement for, the
+    responsiveness ANOVA. Returns a per-ROI array (NaN where fewer than two repeats are available).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A response table (see ``build_response_table``).
+    metric : str
+        Metric variable to use (e.g. 'Fzsc' or 'FdFF').
+    n_splits : int
+        Number of random half-splits to average over.
+    seed : int
+        Seed for the split permutations (drawn once and shared across ROIs, for reproducibility).
+    spearman_brown : bool
+        Apply the Spearman-Brown correction rho = 2r / (1 + r).
+    """
+    tr = trial_response(ds, metric).transpose('roi', 'condition', 'repeat').values
+    n_roi, _, n_rep = tr.shape
+    half = n_rep // 2
+    out = np.full(n_roi, np.nan)
+    if half < 1:
+        return out
+    rng = np.random.default_rng(seed)
+    perms = [rng.permutation(n_rep) for _ in range(n_splits)]
+    for r in range(n_roi):
+        corrs = []
+        for perm in perms:
+            a = np.nanmean(tr[r][:, perm[:half]], axis=1)
+            b = np.nanmean(tr[r][:, perm[half:2 * half]], axis=1)
+            ok = ~np.isnan(a) & ~np.isnan(b)
+            if ok.sum() >= 2 and np.std(a[ok]) > 0 and np.std(b[ok]) > 0:
+                corrs.append(np.corrcoef(a[ok], b[ok])[0, 1])
+        if corrs:
+            r_mean = float(np.mean(corrs))
+            out[r] = (2 * r_mean / (1 + r_mean)) if (spearman_brown and (1 + r_mean) != 0) else r_mean
+    return out
 
 
 def _as_int_frame(value):
