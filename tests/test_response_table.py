@@ -133,6 +133,62 @@ def test_dprime_and_fsi_match_structured_array():
             rt.face_selectivity_index(resp, is_face, is_nonface_object).values, fsi_ref[m])
 
 
+def test_normalize_response_shape_and_bounds():
+    traces, stimlog, n_isi, n_stim = _make_session()
+    ds = rt.build_response_table(traces, stimlog, n_isi, n_stim, condition_coords={'cat': CATS})
+    resp = rt.stim_window_response(ds, 'FdFF')
+    for method in ['peak', 'l2', 'zscore', 'range']:
+        norm = rt.normalize_response(resp, method=method)
+        assert norm.dims == resp.dims and norm.sizes == resp.sizes
+    assert float(np.abs(rt.normalize_response(resp, method='peak')).max()) <= 1.0 + 1e-9
+    rng = rt.normalize_response(resp, method='range')
+    assert float(rng.min()) >= -1e-9 and float(rng.max()) <= 1.0 + 1e-9
+    with pytest.raises(ValueError):
+        rt.normalize_response(resp, method='nonsense')
+
+
+@pytest.mark.parametrize('method', ['peak', 'l2', 'zscore', 'range'])
+def test_dprime_invariant_to_normalization(method):
+    """face d' is affine-invariant, so any per-ROI positive-scale normalization leaves it unchanged."""
+    traces, stimlog, n_isi, n_stim = _make_session()
+    ds = rt.build_response_table(traces, stimlog, n_isi, n_stim, condition_coords={'cat': CATS})
+    is_face, is_nonface, _ = _category_bools(CATS)
+    for m in METRICS:
+        resp = rt.stim_window_response(ds, m)
+        d0 = rt.face_dprime(resp, is_face, is_nonface).values
+        dn = rt.face_dprime(rt.normalize_response(resp, method=method), is_face, is_nonface).values
+        np.testing.assert_allclose(dn, d0, rtol=1e-9, atol=1e-9, equal_nan=True)
+
+
+@pytest.mark.parametrize('method', ['peak', 'l2'])
+def test_fsi_invariant_to_multiplicative_normalization(method):
+    """FSI is scale-invariant: a purely multiplicative normalization leaves it unchanged."""
+    traces, stimlog, n_isi, n_stim = _make_session()
+    ds = rt.build_response_table(traces, stimlog, n_isi, n_stim, condition_coords={'cat': CATS})
+    is_face, _, is_nonface_object = _category_bools(CATS)
+    for m in METRICS:
+        resp = rt.stim_window_response(ds, m)
+        f0 = rt.face_selectivity_index(resp, is_face, is_nonface_object).values
+        fn = rt.face_selectivity_index(
+            rt.normalize_response(resp, method=method), is_face, is_nonface_object).values
+        np.testing.assert_allclose(fn, f0, rtol=1e-9, atol=1e-9, equal_nan=True)
+
+
+@pytest.mark.parametrize('method', ['zscore', 'range'])
+def test_fsi_changes_under_additive_normalization(method):
+    """FSI is NOT shift-invariant: a zero-shifting normalization changes it -- which is exactly why
+    FSI must come from a baseline-relative measure (FdFF, zero = F0 baseline), not Fzsc (zero =
+    session mean)."""
+    traces, stimlog, n_isi, n_stim = _make_session()
+    ds = rt.build_response_table(traces, stimlog, n_isi, n_stim, condition_coords={'cat': CATS})
+    is_face, _, is_nonface_object = _category_bools(CATS)
+    resp = rt.stim_window_response(ds, 'FdFF')
+    f0 = rt.face_selectivity_index(resp, is_face, is_nonface_object).values
+    fn = rt.face_selectivity_index(
+        rt.normalize_response(resp, method=method), is_face, is_nonface_object).values
+    assert not np.allclose(fn, f0, equal_nan=True)
+
+
 def test_first_trial_short_isi_pad_matches():
     """fr_start < 0 on the first trial: pad with the first frame (images:1622-1646)."""
     traces, stimlog, n_isi, n_stim = _make_session()

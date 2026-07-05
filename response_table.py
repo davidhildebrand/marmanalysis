@@ -185,6 +185,56 @@ def stim_window_response(ds, metric):
     return stim.mean(dim=('repeat', 'time'), skipna=True)
 
 
+def normalize_response(resp_vect_cond, method='peak', dim='condition'):
+    """Per-ROI normalization of a response matrix across the stimulus set.
+
+    Rescales each ROI's response vector over ``dim`` (default the stimulus ``condition`` axis) so
+    ROIs can be pooled or compared on a common footing -- the per-neuron normalization reported in
+    the Freiwald/Tsao face-patch studies. The reduction is over ``dim`` only, independently per ROI;
+    other axes broadcast. Intended for the ``(roi, condition)`` output of ``stim_window_response``.
+
+    Parameters
+    ----------
+    resp_vect_cond : xarray.DataArray
+        Response array with a ``dim`` axis (e.g. the ``(roi, condition)`` matrix).
+    method : {'peak', 'l2', 'zscore', 'range'}
+        ``'peak'``   -- divide by the per-ROI maximum absolute value over ``dim`` (sign kept, peak
+        magnitude 1). Purely multiplicative, so ``face_dprime`` and ``face_selectivity_index`` are
+        unchanged. ``'l2'`` -- divide by the per-ROI L2 norm over ``dim``; multiplicative, d'/FSI
+        unchanged. ``'zscore'`` -- ``(r - mean) / SD`` over ``dim``; affine (moves the zero point),
+        so d' is unchanged but FSI changes (FSI is not shift-invariant). ``'range'`` --
+        ``(r - min) / (max - min)`` over ``dim`` -> [0, 1]; affine, d' unchanged, FSI changes.
+    dim : str
+        Axis to normalize over (the stimulus axis). Default ``'condition'``.
+
+    Returns
+    -------
+    xarray.DataArray
+        Same shape/coords as the input. An ROI whose normalizer is zero (a flat/silent response
+        vector) is returned as zeros.
+
+    Notes
+    -----
+    Because face d' is affine-invariant and FSI is only scale-invariant, this helper does not alter
+    the selectivity indices except where a method shifts the zero point (``'zscore'``/``'range'``
+    change FSI). It is meant for population-level comparison/visualization, not for changing d'/FSI.
+    """
+    r = resp_vect_cond
+    if method == 'peak':
+        num, denom = r, np.abs(r).max(dim)
+    elif method == 'l2':
+        num, denom = r, np.sqrt((r ** 2).sum(dim))
+    elif method == 'zscore':
+        num, denom = r - r.mean(dim), r.std(dim)
+    elif method == 'range':
+        lo = r.min(dim)
+        num, denom = r - lo, r.max(dim) - lo
+    else:
+        raise ValueError("Unknown normalization method {!r}; expected one of "
+                         "'peak', 'l2', 'zscore', 'range'.".format(method))
+    return xr.where(denom > 0, num / xr.where(denom > 0, denom, 1.0), 0.0)
+
+
 def category_mean_std(resp_vect_cond, in_category):
     """Across-stimulus mean and SD of the per-condition responses for one category.
 
