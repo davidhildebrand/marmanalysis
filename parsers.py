@@ -377,7 +377,8 @@ STIMLOG_FLOAT_COLS = (
 
 
 def normalize_stimlog_dtypes(log, object_fill=False):
-    """Cast a stimlog to canonical dtypes: nullable Int64 for integer columns (frame indices and
+    """
+    Cast a stimlog to canonical dtypes: nullable Int64 for integer columns (frame indices and
     condition ids -- true integers that can still be missing as pd.NA) and float64 for
     durations/times. Label/tuple/array columns are left untouched, or coerced to object when
     object_fill=True (used at build time, where every non-numeric column is still empty).
