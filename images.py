@@ -196,13 +196,18 @@ def face_dprime(ds, metric='Fzsc'):
         response_table.stim_window_response(ds, metric), is_face, is_nonface)
 
 
-def face_selectivity_index(ds, metric='Fzsc'):
+def face_selectivity_index(ds, metric='FdFF'):
     """Face-selectivity index FSI per ROI, using the cat coord on ds.
 
     Freiwald and Tsao 2010 Science https://doi.org/10.1126/science.1194908
     Faces vs non-face OBJECTS only (bodies/scrambles/blank excluded), a mean-response ratio with
     no variance term: FSI = (R_F - R_O) / (R_F + R_O), clamped to +/-1 on sign disagreement.
     Distinct from d' (different comparison group and formula) -- see face_dprime.
+
+    Defaults to the baseline-relative FdFF, NOT Fzsc, on purpose: FSI is a ratio index that is not
+    shift-invariant, so on mean-zero z-scored responses the denominator R_F + R_O crosses zero and the
+    index is meaningless (see response_table.face_selectivity_index; the Tsao/Freiwald FSI is defined
+    on response ABOVE baseline).
     """
     is_face, _, is_nonface_object = supercategory_bools(ds['cat'].values)
     return response_table.face_selectivity_index(
@@ -222,12 +227,14 @@ def responsive_anova(ds, metric='Fzsc'):
     return p
 
 
-def roi_stats(ds, rois, resolution_umpx, metric='Fzsc'):
+def roi_stats(ds, rois, resolution_umpx, metric='Fzsc', fsi_metric='FdFF'):
     """Per-ROI image-response statistics: spatial centroid, peak-driving condition and category,
     and face d'/FSI. Reproduces the non-WIP fields of analysis_for_images.py:2070-2106.
 
     ``rois`` is the suite2p stat array (each entry has 'xpix'/'ypix'); ``resolution_umpx`` is
-    md['fov']['resolution_umpx']. Returns a DataFrame indexed by ROI.
+    md['fov']['resolution_umpx']. Returns a DataFrame indexed by ROI. ``fsi_metric`` is separate from
+    ``metric`` because FSI (a ratio index) is only valid on a baseline-relative measure (FdFF), never
+    on z-scored responses -- see face_selectivity_index.
     """
     resp_cond = response_table.stim_window_response(ds, metric).transpose('roi', 'condition').values
     cond_labels = ds['cond'].values
@@ -237,7 +244,7 @@ def roi_stats(ds, rois, resolution_umpx, metric='Fzsc'):
     resp_cat = np.column_stack([resp_cond[:, m].mean(axis=1) for m in cat_masks])
 
     dprime = face_dprime(ds, metric).values
-    fsi = face_selectivity_index(ds, metric).values
+    fsi = face_selectivity_index(ds, fsi_metric).values
     peak_cond_idx = np.nanargmax(resp_cond, axis=1)
     peak_cat_idx = np.nanargmax(resp_cat, axis=1)
 
@@ -275,7 +282,9 @@ def process_session(session_path, metrics=('FdFF', 'Fzsc'), responsiveness_metri
         'dataset': ds,
         'context': ctx,
         'dprime': {m: face_dprime(ds, m) for m in metrics},
-        'fsi': {m: face_selectivity_index(ds, m) for m in metrics},
+        # FSI is a ratio index valid only on a baseline-relative metric; z-scored (Fzsc) responses are
+        # mean-zero so its denominator crosses 0 -- exclude Fzsc (see face_selectivity_index).
+        'fsi': {m: face_selectivity_index(ds, m) for m in metrics if m != 'Fzsc'},
         'p_anova': responsive_anova(ds, responsiveness_metric),
         'roi_stats': roi_stats(ds, ctx['s2p']['ROIs'], ctx['md']['fov']['resolution_umpx'],
                                roi_stats_metric),

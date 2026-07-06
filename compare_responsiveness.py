@@ -94,16 +94,18 @@ def main():
 
     p_frame = images.responsive_anova(ds, m)
     p_trial = rt.trial_scalar_anova(ds, m)
+    p_resp = rt.visual_responsiveness(ds, m)
     rel = rt.split_half_reliability(ds, m)
     p_zeta = (np.full(n_roi, np.nan) if args.no_zeta
               else zeta_pvalues(ctx, m, ctx['n_samp_isi'] + ctx['n_samp_stim'], args.max_rois))
 
     a, rt_thr = args.alpha, args.rel_thresh
     crit = {
-        'frame-ANOVA': (p_frame < a, np.isfinite(p_frame)),
-        'trial-ANOVA': (p_trial < a, np.isfinite(p_trial)),
-        'ZETA': (p_zeta < a, np.isfinite(p_zeta)),
-        'reliab>%.2f' % rt_thr: (rel > rt_thr, np.isfinite(rel)),
+        'stim>base RESP': (p_resp < a, np.isfinite(p_resp)),   # responsiveness (visual drive)
+        'ZETA RESP': (p_zeta < a, np.isfinite(p_zeta)),        # responsiveness (onset-locked)
+        'frame-ANOVA sel': (p_frame < a, np.isfinite(p_frame)),  # selectivity (pseudorep'd)
+        'trial-ANOVA sel': (p_trial < a, np.isfinite(p_trial)),  # selectivity
+        'reliab>%.2f sel' % rt_thr: (rel > rt_thr, np.isfinite(rel)),  # selectivity
     }
     print('\nresponsive counts (alpha=%.3g):' % a)
     for k, (s, vld) in crit.items():
@@ -113,17 +115,20 @@ def main():
 
     print('\npairwise agreement (responsive sets):')
     sig = {k: (s & vld) for k, (s, vld) in crit.items()}
-    _report_pair('frame', sig['frame-ANOVA'], 'trial', sig['trial-ANOVA'])
+    k_frame, k_trial, k_resp = 'frame-ANOVA sel', 'trial-ANOVA sel', 'stim>base RESP'
+    k_rel, k_zeta = 'reliab>%.2f sel' % rt_thr, 'ZETA RESP'
+    _report_pair('frame', sig[k_frame], 'trial', sig[k_trial])
+    _report_pair('resp', sig[k_resp], 'trial', sig[k_trial])       # is responsiveness a superset of selectivity?
     if not args.no_zeta:
         z = np.isfinite(p_zeta)
         print('  (ZETA computed on %d ROIs; comparisons below restricted to those)' % int(z.sum()))
-        _report_pair('trial', sig['trial-ANOVA'] & z, 'ZETA', sig['ZETA'])
-        _report_pair('frame', sig['frame-ANOVA'] & z, 'ZETA', sig['ZETA'])
-        _report_pair('ZETA', sig['ZETA'], 'reliab', sig['reliab>%.2f' % rt_thr] & z)
+        _report_pair('resp', sig[k_resp] & z, 'ZETA', sig[k_zeta])  # two drive measures agree?
+        _report_pair('trial', sig[k_trial] & z, 'ZETA', sig[k_zeta])
+        _report_pair('ZETA', sig[k_zeta], 'reliab', sig[k_rel] & z)
 
     print('\nrank correlations (Spearman) of the continuous scores:')
     scores = {'-log10 p_frame': _neglog(p_frame), '-log10 p_trial': _neglog(p_trial),
-              'reliability': rel}
+              '-log10 p_resp': _neglog(p_resp), 'reliability': rel}
     if not args.no_zeta:
         scores['-log10 p_zeta'] = _neglog(p_zeta)
     keys = list(scores)
@@ -139,9 +144,9 @@ def main():
         os.makedirs(os.path.dirname(args.out) or '.', exist_ok=True)
         with open(args.out, 'w', newline='') as f:
             w = csv.writer(f)
-            w.writerow(['roi', 'p_frame_anova', 'p_trial_anova', 'p_zeta', 'reliability'])
+            w.writerow(['roi', 'p_frame_anova', 'p_trial_anova', 'p_stim_vs_base', 'p_zeta', 'reliability'])
             for r in range(n_roi):
-                w.writerow([r, p_frame[r], p_trial[r], p_zeta[r], rel[r]])
+                w.writerow([r, p_frame[r], p_trial[r], p_resp[r], p_zeta[r], rel[r]])
         print('\nwrote', args.out)
 
 

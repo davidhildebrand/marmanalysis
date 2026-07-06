@@ -110,7 +110,9 @@ def test_roi_stats_synthetic():
     cond_seq = rng.permutation(np.repeat(np.arange(len(cats)), n_reps))
     onsets = 4 + 8 * np.arange(n_trials)
     stimlog = pd.DataFrame({'cond': cond_seq, 'acqfr_stim_i': onsets})
-    traces = {'Fzsc': rng.standard_normal((n_roi, int(onsets.max() + n_stim + n_isi + 3)))}
+    n_frames = int(onsets.max() + n_stim + n_isi + 3)
+    traces = {'Fzsc': rng.standard_normal((n_roi, n_frames)),
+              'FdFF': rng.standard_normal((n_roi, n_frames))}  # FdFF present so roi_stats can do FSI
     ds = rt.build_response_table(traces, stimlog, n_isi, n_stim)
     ds = ds.assign_coords(cat=('condition', np.array(cats, dtype=object)),
                           cond=('condition', cond_labels))
@@ -136,13 +138,15 @@ def test_image_stats_parity(a, d, s):
     results = images.process_session(path)
     ds, ctx = results['dataset'], results['context']
     dprime_new = results['dprime']['Fzsc'].values
-    fsi_new = results['fsi']['Fzsc'].values
+    fsi_new = results['fsi']['FdFF'].values   # FSI is computed on FdFF (not the invalid Fzsc)
     p_new = results['p_anova']
     rs = results['roi_stats']
 
     is_face, is_nonface, is_nfo = images.supercategory_bools(ds['cat'].values)
     resp = _resp_vect(ctx['traces'], ctx['stimlog'], ctx['n_samp_stim'], 'Fzsc')
-    dprime_ref, fsi_ref = _ref_dprime_fsi(resp, is_face, is_nonface, is_nfo)
+    dprime_ref, _ = _ref_dprime_fsi(resp, is_face, is_nonface, is_nfo)
+    resp_dff = _resp_vect(ctx['traces'], ctx['stimlog'], ctx['n_samp_stim'], 'FdFF')
+    _, fsi_ref = _ref_dprime_fsi(resp_dff, is_face, is_nonface, is_nfo)   # FSI uses FdFF, not Fzsc
     p_ref = _ref_anova(ctx['traces'], ctx['stimlog'], ctx['n_samp_stim'], 'Fzsc')
 
     assert np.allclose(dprime_new, dprime_ref, rtol=1e-4, atol=1e-5, equal_nan=True)

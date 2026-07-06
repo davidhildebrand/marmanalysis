@@ -21,7 +21,7 @@ class of bug where un-overwritten NaNs are mistaken for excluded trials.
 
 import numpy as np
 import xarray as xr
-from scipy.stats import f_oneway
+from scipy.stats import f_oneway, ttest_rel, wilcoxon
 
 
 # Trial structure: a trial is [ISI_pre | stimulus | ISI_post], each ISI being n_samp_isi
@@ -266,6 +266,13 @@ def face_selectivity_index(resp_vect_cond, is_face, is_nonface_object):
     FSI = (R_face - R_nonfaceobject) / (R_face + R_nonfaceobject), using mean responses.
     When the two responses have opposite sign, FSI is clamped to +1 (face>0, object<0) or
     -1 (face<0, object>0), matching analysis_for_images.py:2028-2035.
+
+    NOTE: this ratio index is NOT shift-invariant, so ``resp_vect_cond`` must be a baseline-relative
+    "response above baseline" measure (FdFF, whose zero is the F0 baseline). Do NOT pass z-scored
+    responses (Fzsc): they are mean-zero over the session, so R_face + R_nonfaceobject crosses zero and
+    the index (and its +/-1 clamp) becomes meaningless. Contrast d' -- a scale/shift-invariant
+    standardized difference that is valid on any affine-transformed metric. (See the images.py wrapper,
+    which defaults to FdFF, and test_fsi_changes_under_additive_normalization.)
     """
     mu_F, _ = category_mean_std(resp_vect_cond, is_face)
     mu_O, _ = category_mean_std(resp_vect_cond, is_nonface_object)
@@ -278,16 +285,17 @@ def face_selectivity_index(resp_vect_cond, is_face, is_nonface_object):
     return fsi
 
 
-def trial_response(ds, metric):
-    """Per-(roi, condition, repeat) mean response over the stimulus window.
+def trial_response(ds, metric, epoch=EPOCH_STIM):
+    """Per-(roi, condition, repeat) mean response over one trial epoch (default the stimulus window).
 
     Like ``stim_window_response`` but keeps the ``repeat`` axis, giving one scalar per trial. Excluded
     trials become NaN via the exclusion mask. This is the per-trial response used by trial-level
-    statistics -- a repeats-as-samples ANOVA or split-half reliability -- which treat the trial (not
-    the frame) as the unit of observation.
+    statistics -- a repeats-as-samples ANOVA, split-half reliability, or a stim-vs-baseline
+    responsiveness test (pass ``epoch=EPOCH_ISI_PRE`` for the pre-stimulus baseline) -- which treat the
+    trial (not the frame) as the unit of observation.
     """
-    stim = _valid(ds, metric).where(ds['epoch'] == EPOCH_STIM)
-    return stim.mean(dim='time', skipna=True)
+    win = _valid(ds, metric).where(ds['epoch'] == epoch)
+    return win.mean(dim='time', skipna=True)
 
 
 def trial_scalar_anova(ds, metric='Fzsc'):
@@ -354,6 +362,35 @@ def split_half_reliability(ds, metric, n_splits=100, seed=0, spearman_brown=True
             r_mean = float(np.mean(corrs))
             out[r] = (2 * r_mean / (1 + r_mean)) if (spearman_brown and (1 + r_mean) != 0) else r_mean
     return out
+
+
+def visual_responsiveness(ds, metric='Fzsc', test='wilcoxon', alternative='two-sided'):
+    """Per-ROI test for a stimulus-evoked response vs the pre-stimulus baseline.
+
+    An 'active cell' / visual-RESPONSIVENESS criterion -- distinct from stimulus SELECTIVITY. For each
+    ROI the per-trial stim-window response is compared to the SAME trial's pre-stimulus ISI baseline,
+    paired across all trials, with a Wilcoxon signed-rank ('wilcoxon') or paired t-test ('ttest').
+    This asks "does the cell respond to stimulus presentation at all", NOT "does it differentiate the
+    stimuli" -- the across-condition ANOVA (trial_scalar_anova) answers the latter and is much
+    stricter. ``alternative='two-sided'`` counts both driven and suppressed cells; 'greater' restricts
+    to activation. Returns a per-ROI p-value array (NaN where a cell has too few valid trials).
+    """
+    stim = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
+    base = trial_response(ds, metric, EPOCH_ISI_PRE).transpose('roi', 'condition', 'repeat').values
+    n_roi = stim.shape[0]
+    pvals = np.full(n_roi, np.nan)
+    for r in range(n_roi):
+        s, b = stim[r].ravel(), base[r].ravel()
+        ok = ~np.isnan(s) & ~np.isnan(b)
+        s, b = s[ok], b[ok]
+        if s.size < 2:
+            continue
+        try:
+            pvals[r] = (ttest_rel(s, b, alternative=alternative).pvalue if test == 'ttest'
+                        else wilcoxon(s, b, alternative=alternative).pvalue)
+        except ValueError:
+            pass  # e.g. all paired differences are zero
+    return pvals
 
 
 def _as_int_frame(value):

@@ -308,5 +308,29 @@ def test_split_half_reliability_reliable_vs_noise():
     assert rel[0] > 0.95 and rel[1] < 0.3 and (rel[0] - rel[1]) > 0.6
 
 
+def _ds_stim_base(stim_vals, base_vals, metric='Fzsc'):
+    """Two-frame response table (isi_pre baseline frame + stim frame) with the given per-trial baseline
+    and stim values, for testing stim-vs-baseline responsiveness."""
+    n_roi, n_cond, n_rep = stim_vals.shape
+    arr = np.stack([base_vals, stim_vals], axis=-1).astype(float)  # time 0 = isi_pre, time 1 = stim
+    return xr.Dataset(
+        {metric: (('roi', 'condition', 'repeat', 'time'), arr)},
+        coords={'roi': np.arange(n_roi), 'condition': np.arange(n_cond), 'repeat': np.arange(n_rep),
+                'time': [0, 1], 'epoch': ('time', np.array([rt.EPOCH_ISI_PRE, rt.EPOCH_STIM])),
+                'excluded': (('condition', 'repeat'), np.zeros((n_cond, n_rep), bool))})
+
+
+def test_visual_responsiveness_driven_but_not_selective():
+    rng = np.random.default_rng(0)
+    n_cond, n_rep = 20, 8
+    base = rng.normal(size=(2, n_cond, n_rep))
+    stim = np.stack([2.0 + 0.1 * rng.normal(size=(n_cond, n_rep)),        # ROI0: uniform drive
+                     base[1] + 0.1 * rng.normal(size=(n_cond, n_rep))])   # ROI1: no net drive
+    ds = _ds_stim_base(stim, base)
+    p_resp = rt.visual_responsiveness(ds, 'Fzsc')
+    assert p_resp[0] < 1e-6 and p_resp[1] > 0.05             # driven vs silent
+    assert rt.trial_scalar_anova(ds, 'Fzsc')[0] > 0.05       # driven cell is NOT stimulus-selective
+
+
 if __name__ == '__main__':
     sys.exit(pytest.main([__file__, '-v']))
