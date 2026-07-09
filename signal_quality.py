@@ -115,3 +115,47 @@ def active_mask(dff, framerate=None, method='nu', k=None, pct=99.0, isi_mask=Non
     with np.errstate(divide='ignore', invalid='ignore'):
         snr = peak / sigma
     return snr > k, snr, peak, sigma
+
+
+def _count_transient_runs(x, onset_val, offset_val, min_frames):
+    """Count contiguous above-``offset_val`` runs of x that peak >= ``onset_val`` and span >= ``min_frames``
+    (hysteresis: a transient is bounded by the offset crossing but must reach the onset threshold)."""
+    above = np.flatnonzero(x >= offset_val)
+    if above.size == 0:
+        return 0
+    brk = np.flatnonzero(np.diff(above) > 1)
+    starts = np.concatenate(([above[0]], above[brk + 1]))
+    ends = np.concatenate((above[brk], [above[-1]]))
+    n = 0
+    for s, e in zip(starts, ends):
+        if (e - s + 1) >= min_frames and x[s:e + 1].max() >= onset_val:
+            n += 1
+    return n
+
+
+def transient_count(dff, framerate, sigma=None, sigma_method='diff', isi_mask=None,
+                    onset=3.0, offset=1.0, min_duration_sec=0.5):
+    """Per-ROI count of significant calcium transients over the whole session.
+
+    A transient is a contiguous ΔF/F excursion that PEAKS above ``onset``*sigma and, with hysteresis, stays
+    above ``offset``*sigma for at least ``min_duration_sec`` (converted to frames via ``framerate``). This is
+    a biologically grounded, PERMISSIVE activity measure -- real neurons fire calcium transients; debris and
+    silent/dead cells do not. Using ``transient_count >= N`` as the 'active' gate keeps functioning neurons
+    (including any stimulus-responsive cell, which by definition fires) and removes only non-cells -- unlike
+    the peak-SNR gate, which also drops small-but-reliable responders. ``sigma`` is the per-ROI noise
+    (default from ``noise_sigma(method=sigma_method)``); ΔF/F units.
+
+    CAVEAT: raw-ΔF/F thresholding is param-sensitive -- too-loose ``onset``/``min_duration_sec`` count noise
+    excursions as transients (every ROI gets hundreds), so the defaults are matched to real calcium kinetics
+    (amplitude a few sigma, sustained >= the decay time). A robust, threshold-free event count should come
+    from deconvolution (OASIS/Cascade), which infers events from the indicator kinetics; treat this as the
+    interim measure.
+    """
+    dff = np.asarray(dff, float)
+    if sigma is None:
+        sigma = noise_sigma(dff, framerate, sigma_method, isi_mask)
+    min_frames = max(1, int(round(min_duration_sec * framerate)))
+    counts = np.zeros(dff.shape[0], dtype=int)
+    for r in range(dff.shape[0]):
+        counts[r] = _count_transient_runs(dff[r], onset * sigma[r], offset * sigma[r], min_frames)
+    return counts

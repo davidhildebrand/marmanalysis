@@ -59,3 +59,14 @@ def test_active_mask_warns_at_slow_framerate():
     msgs = [str(w.message) for w in rec]
     assert any('undersampled' in m and '2.50 Hz' in m for m in msgs)
     assert not any('6.40 Hz' in m for m in msgs)
+
+
+def test_transient_count_detects_events_not_noise():
+    rng = np.random.default_rng(0)
+    n = 4000
+    dff = rng.normal(0, 0.02, (2, n))
+    for t in rng.choice(np.arange(0, n - 6, 12), 30, replace=False):
+        dff[0, t:t + 5] += 0.5                              # ROI0: 30 clear 5-frame transients
+    counts = sq.transient_count(dff, framerate=6.0, onset=3.0, offset=1.0, min_duration_sec=0.3)
+    assert counts[0] >= 25                                  # detects most injected transients
+    assert counts[1] <= 5                                   # noise ROI: essentially none
