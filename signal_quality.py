@@ -36,17 +36,17 @@ _MAD_TO_STD = 0.6745
 # different rates. 'mad'/'diff'/'mad_isi' give a Gaussian-equivalent per-frame sigma whose SNR is
 # frame-rate DEPENDENT -- within-session alternates.
 #
-# nu k=9.0: an inclusive-but-clean active bar. On the nu scale it is frame-rate INDEPENDENT, so it
-# transfers across sessions at different rates as a consistent DETECTABILITY criterion -- a fixed
-# sigma-multiple would NOT (per-frame sigma ~ sqrt(framerate), so "3 sigma" is trivially easy when imaging
-# slow and too strict when fast). In sigma terms k=9 is ~2.7 sigma at the 6.4 Hz reference session
-# (Cadbury PD: ~412/791 active, more inclusive than suite2p's 310) and exactly 3 sigma at ~5.7 Hz -- a
-# central choice for a ~5-6 Hz range -- while staying above the pure-noise floor (~2.33 sigma, the 99th-pct
-# peak of Gaussian noise). The 3-sigma-equivalent k scales as ~3.8*sqrt(framerate) (e.g. ~8.4 at 5 Hz,
-# ~11.9 at 10 Hz). Very slow rates (2-3 Hz) can undersample the transient PEAK (nu fixes the noise term,
-# not the peak), biasing the active count low -- active_mask emits a runtime warning below warn_slow_hz
-# (default 4 Hz); consider lowering k there. mad/diff/mad_isi k=3 = the plain within-session 3-sigma bar.
-_DEFAULT_K = {'nu': 9.0, 'diff': 3.0, 'mad': 3.0, 'mad_isi': 3.0, 'std': 3.0}
+# nu k=7.0: a PERMISSIVE "is this a real cell" gate, not a "clearly-driven" bar. Goal: drop only debris and
+# dead/silent ROIs, keeping the neurons -- cellpose already enforces morphology and over a long session most
+# neurons fire, so we expect to remove very few. On the reference session (Cadbury PD) k=7 keeps ~773/791
+# (98%) and, crucially, CONTAINS all responsive+selective cells (their min nu-SNR ~7.2 > 7), so the
+# active/responsive/selective nesting holds. nu is frame-rate INDEPENDENT (per-frame sigma ~ sqrt(framerate),
+# which nu divides out), so the threshold transfers across acquisition rates; it is also simple/structured --
+# unlike raw-dF/F transient counting, which is param-sensitive. Very slow rates (2-3 Hz) can undersample the
+# transient PEAK (nu fixes the noise term, not the peak) -- active_mask warns below warn_slow_hz (default
+# 4 Hz). The biologically-principled alternative is an event/transient count (n_transients), best done via
+# deconvolution. mad/diff/mad_isi k=3 = the plain within-session 3-sigma bar.
+_DEFAULT_K = {'nu': 7.0, 'diff': 3.0, 'mad': 3.0, 'mad_isi': 3.0, 'std': 3.0}
 
 
 def standardized_noise(dff, framerate, percent=True):
@@ -95,7 +95,7 @@ def active_mask(dff, framerate=None, method='nu', k=None, pct=99.0, isi_mask=Non
     ``method`` defaults to 'nu' (Rupprecht standardized noise) -- the frame-rate-INDEPENDENT choice,
     recommended when comparing across sessions at different acquisition rates; 'mad'/'diff'
     (Gaussian-equivalent per-frame sigma) and 'mad_isi' (v9-style) are within-session alternates. ``k``
-    defaults per-method (nu ~9, others ~3; see _DEFAULT_K) -- choose it from the SNR distribution for
+    defaults per-method (nu ~7, others ~3; see _DEFAULT_K) -- choose it from the SNR distribution for
     your data. Returns ``(mask, snr, peak, sigma)`` per ROI. For 'nu', peak is taken to the same percent
     scale as sigma so the ratio is consistent.
 
@@ -133,14 +133,14 @@ def _count_transient_runs(x, onset_val, offset_val, min_frames):
     return n
 
 
-def transient_count(dff, framerate, sigma=None, sigma_method='diff', isi_mask=None,
+def n_transients(dff, framerate, sigma=None, sigma_method='diff', isi_mask=None,
                     onset=3.0, offset=1.0, min_duration_sec=0.5):
     """Per-ROI count of significant calcium transients over the whole session.
 
     A transient is a contiguous ΔF/F excursion that PEAKS above ``onset``*sigma and, with hysteresis, stays
     above ``offset``*sigma for at least ``min_duration_sec`` (converted to frames via ``framerate``). This is
     a biologically grounded, PERMISSIVE activity measure -- real neurons fire calcium transients; debris and
-    silent/dead cells do not. Using ``transient_count >= N`` as the 'active' gate keeps functioning neurons
+    silent/dead cells do not. Using ``n_transients >= N`` as the 'active' gate keeps functioning neurons
     (including any stimulus-responsive cell, which by definition fires) and removes only non-cells -- unlike
     the peak-SNR gate, which also drops small-but-reliable responders. ``sigma`` is the per-ROI noise
     (default from ``noise_sigma(method=sigma_method)``); ΔF/F units.
