@@ -327,9 +327,63 @@ def test_visual_responsiveness_driven_but_not_selective():
     stim = np.stack([2.0 + 0.1 * rng.normal(size=(n_cond, n_rep)),        # ROI0: uniform drive
                      base[1] + 0.1 * rng.normal(size=(n_cond, n_rep))])   # ROI1: no net drive
     ds = _ds_stim_base(stim, base)
-    p_resp = rt.visual_responsiveness(ds, 'Fzsc')
-    assert p_resp[0] < 1e-6 and p_resp[1] > 0.05             # driven vs silent
+    p_resp = rt.visual_responsiveness(ds, 'Fzsc', framerate=6.0, min_baseline_frames=1)
+    assert p_resp[0] < 0.05 and p_resp[1] > 0.05             # driven vs silent (per-condition, BH-FDR)
     assert rt.trial_scalar_anova(ds, 'Fzsc')[0] > 0.05       # driven cell is NOT stimulus-selective
+
+
+def _ds_epoched(arr, n_isi, n_stim, metric='Fzsc'):
+    """Response table from a full (roi, cond, rep, time) array with explicit isi_pre/stim/isi_post epochs."""
+    n_roi, n_cond, n_rep, T = arr.shape
+    ep = np.array([rt.EPOCH_ISI_PRE] * n_isi + [rt.EPOCH_STIM] * n_stim
+                  + [rt.EPOCH_ISI_POST] * (T - n_isi - n_stim))
+    return xr.Dataset(
+        {metric: (('roi', 'condition', 'repeat', 'time'), arr.astype(float))},
+        coords={'roi': np.arange(n_roi), 'condition': np.arange(n_cond), 'repeat': np.arange(n_rep),
+                'time': np.arange(T), 'epoch': ('time', ep),
+                'excluded': (('condition', 'repeat'), np.zeros((n_cond, n_rep), bool))})
+
+
+def test_visual_responsiveness_uses_late_isi_baseline():
+    rng = np.random.default_rng(0)
+    n_cond, n_rep, n_isi, n_stim = 8, 10, 4, 2
+    T = 2 * n_isi + n_stim
+    arr = np.empty((1, n_cond, n_rep, T))
+    arr[..., 0:2] = 0.0 + 0.05 * rng.normal(size=(1, n_cond, n_rep, 2))   # EARLY isi_pre = 0
+    arr[..., 2:4] = 3.0 + 0.05 * rng.normal(size=(1, n_cond, n_rep, 2))   # LATE isi_pre = 3 (== stim)
+    arr[..., 4:6] = 3.0 + 0.05 * rng.normal(size=(1, n_cond, n_rep, 2))   # stim = 3
+    arr[..., 6:8] = 1.0 + 0.05 * rng.normal(size=(1, n_cond, n_rep, 2))   # isi_post
+    ds = _ds_epoched(arr, n_isi, n_stim)
+    # last 2 isi_pre frames (== 3 == stim) -> stim minus baseline ~ 0 -> NOT responsive
+    p_late = rt.visual_responsiveness(ds, 'Fzsc', framerate=2.0, baseline_sec=1.0, min_baseline_frames=1)
+    assert p_late[0] > 0.05
+    # a longer baseline reaching the early (==0) frames DOES see a response -> the late window is really used
+    p_full = rt.visual_responsiveness(ds, 'Fzsc', framerate=2.0, baseline_sec=2.0, min_baseline_frames=1)
+    assert p_full[0] < 0.05
+
+
+def test_selectivity_excludes_blank_and_responsiveness_uses_blank():
+    rng = np.random.default_rng(0)
+    n_cond, n_rep = 6, 10                                        # conds 0-4 = stimuli, 5 = blank
+    base_vals = rng.normal(size=(1, n_cond, n_rep))
+    stim_vals = 2.0 + 0.1 * rng.normal(size=(1, n_cond, n_rep))  # uniform +2 to all conditions
+    stim_vals[0, 5, :] = 0.0 + 0.1 * rng.normal(size=n_rep)      # blank: no response
+    ds = _ds_stim_base(stim_vals, base_vals).assign_coords(
+        cat=('condition', np.array([b'obj', b'face_mrm', b'body_mrm', b'scram_s', b'food', b'blank'], dtype=object)))
+    assert rt.trial_scalar_anova(ds, 'Fzsc', exclude_blank=True)[0] > 0.05    # 5 stimuli all ~2 -> not selective
+    assert rt.trial_scalar_anova(ds, 'Fzsc', exclude_blank=False)[0] < 0.05   # incl blank -> mislabeled selective
+    assert rt.visual_responsiveness(ds, 'Fzsc')[0] < 0.05                     # uses blank as baseline -> responsive
+
+
+def test_per_stimulus_responsiveness_runs():
+    rng = np.random.default_rng(0)
+    n_cond, n_rep = 20, 8
+    base = rng.normal(size=(2, n_cond, n_rep))
+    stim = np.stack([2.0 + 0.1 * rng.normal(size=(n_cond, n_rep)),
+                     base[1] + 0.1 * rng.normal(size=(n_cond, n_rep))])
+    ds = _ds_stim_base(stim, base)
+    p = rt.per_stimulus_responsiveness(ds, 'Fzsc', framerate=6.0, min_baseline_frames=1)
+    assert p[0] < 0.05 and p[1] > 0.05
 
 
 if __name__ == '__main__':

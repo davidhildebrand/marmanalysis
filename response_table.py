@@ -21,7 +21,8 @@ class of bug where un-overwritten NaNs are mistaken for excluded trials.
 
 import numpy as np
 import xarray as xr
-from scipy.stats import f_oneway, ttest_rel, wilcoxon
+from scipy.stats import f_oneway, ttest_rel, wilcoxon, false_discovery_control
+from warnings import warn
 
 
 # Trial structure: a trial is [ISI_pre | stimulus | ISI_post], each ISI being n_samp_isi
@@ -298,7 +299,7 @@ def trial_response(ds, metric, epoch=EPOCH_STIM):
     return win.mean(dim='time', skipna=True)
 
 
-def trial_scalar_anova(ds, metric='Fzsc'):
+def trial_scalar_anova(ds, metric='Fzsc', exclude_blank=True):
     """Per-ROI one-way ANOVA across conditions using one scalar per trial (repeats as samples).
 
     The statistically sound counterpart to the frame-pooled responsiveness ANOVA in
@@ -307,8 +308,14 @@ def trial_scalar_anova(ds, metric='Fzsc'):
     treated as independent observations. Pooling frames inflates the degrees of freedom and makes the
     test anti-conservative; reducing to one scalar per trial removes that pseudoreplication. Returns a
     per-ROI p-value array (NaN where a cell has too few valid trials).
+
+    SELECTIVITY: with ``exclude_blank`` the no-stimulus 'blank' condition is dropped so the test isolates
+    stimulus-vs-stimulus differentiation and is not fired by mere responsiveness (a uniform responder that
+    differs only from blank would otherwise be mislabeled selective). Scrambles are stimuli and are kept.
     """
     tr = trial_response(ds, metric).transpose('roi', 'condition', 'repeat').values
+    if exclude_blank:
+        tr = tr[:, _stimulus_conditions(ds), :]
     n_roi, n_cond = tr.shape[0], tr.shape[1]
     pvals = np.full(n_roi, np.nan)
     for r in range(n_roi):
@@ -364,33 +371,105 @@ def split_half_reliability(ds, metric, n_splits=100, seed=0, spearman_brown=True
     return out
 
 
-def visual_responsiveness(ds, metric='Fzsc', test='wilcoxon', alternative='two-sided'):
-    """Per-ROI test for a stimulus-evoked response vs the pre-stimulus baseline.
+def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames):
+    """Per-(roi, condition, repeat) mean over the LATE pre-stimulus ISI window.
 
-    An 'active cell' / visual-RESPONSIVENESS criterion -- distinct from stimulus SELECTIVITY. For each
-    ROI the per-trial stim-window response is compared to the SAME trial's pre-stimulus ISI baseline,
-    paired across all trials, with a Wilcoxon signed-rank ('wilcoxon') or paired t-test ('ttest').
-    This asks "does the cell respond to stimulus presentation at all", NOT "does it differentiate the
-    stimuli" -- the across-condition ANOVA (trial_scalar_anova) answers the latter and is much
-    stricter. ``alternative='two-sided'`` counts both driven and suppressed cells; 'greater' restricts
-    to activation. Returns a per-ROI p-value array (NaN where a cell has too few valid trials).
+    Uses the last ``baseline_sec`` seconds of the isi_pre epoch (nearest to stimulus onset), NOT the whole
+    ISI: the early ISI is the decay tail of the previous trial's response and would bias the baseline. The
+    window is sized in seconds (framerate-aware) and clamped to the available isi_pre frames.
     """
-    stim = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
-    base = trial_response(ds, metric, EPOCH_ISI_PRE).transpose('roi', 'condition', 'repeat').values
-    n_roi = stim.shape[0]
+    if framerate is None:
+        raise ValueError('framerate (frames/s) is required to size the late-baseline window')
+    epoch = ds['epoch'].values
+    pre_idx = np.where(epoch == EPOCH_ISI_PRE)[0]
+    if pre_idx.size == 0:
+        raise ValueError('no isi_pre frames in the response table')
+    n_base = int(np.clip(round(baseline_sec * framerate), 1, pre_idx.size))
+    if n_base < min_baseline_frames:
+        warn('visual_responsiveness: baseline window is %d frame(s) (< %d) at %.2f Hz -- stim-vs-baseline '
+             'may be unreliable; use a longer baseline_sec or a faster session.'
+             % (n_base, min_baseline_frames, framerate), stacklevel=3)
+    return _valid(ds, metric).isel(time=pre_idx[-n_base:]).mean('time')
+
+
+def _stimulus_conditions(ds):
+    """Boolean mask over the condition axis: True for real-stimulus conditions (everything except the
+    no-stimulus 'blank'). Scrambles ARE stimuli and stay True. Uses the 'cat' coord if present, else all."""
+    if 'cat' not in ds.coords:
+        return np.ones(ds.sizes['condition'], dtype=bool)
+    return np.array([c != b'blank' for c in ds['cat'].values])
+
+
+def visual_responsiveness(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3):
+    """Per-ROI visual RESPONSIVENESS gate: is the mean response modulated across stimuli AND baseline?
+
+    A one-way ANOVA over [real-stimulus conditions] + [a no-stimulus baseline group], where the baseline is
+    the BLANK condition's trials when the session has one, else the LATE pre-stimulus ISI window
+    (_late_isi_baseline). Because it pools evidence exactly like the selectivity ANOVA (trial_scalar_anova)
+    but adds the baseline group, it is a true SUPERSET of selectivity -- "the cell responds to the stimulus
+    stream, including vs baseline". Scrambles count as stimuli; only blank is the baseline. For a stricter
+    "responds to a SPECIFIC stimulus" label see per_stimulus_responsiveness. Returns a per-ROI p-value.
+    """
+    tr = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
+    is_stim = _stimulus_conditions(ds)
+    cats = ds['cat'].values if 'cat' in ds.coords else None
+    blank = None if cats is None else np.array([c == b'blank' for c in cats])
+    if blank is not None and blank.any():
+        base = tr[:, blank, :]                              # the measured no-stimulus (blank) condition
+    else:
+        base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames)
+                .transpose('roi', 'condition', 'repeat').values)
+    stim = tr[:, is_stim, :]
+    n_roi, n_stimcond = stim.shape[0], stim.shape[1]
     pvals = np.full(n_roi, np.nan)
     for r in range(n_roi):
-        s, b = stim[r].ravel(), base[r].ravel()
-        ok = ~np.isnan(s) & ~np.isnan(b)
-        s, b = s[ok], b[ok]
-        if s.size < 2:
-            continue
-        try:
-            pvals[r] = (ttest_rel(s, b, alternative=alternative).pvalue if test == 'ttest'
-                        else wilcoxon(s, b, alternative=alternative).pvalue)
-        except ValueError:
-            pass  # e.g. all paired differences are zero
+        groups = [stim[r, c][~np.isnan(stim[r, c])] for c in range(n_stimcond)]
+        groups.append(base[r].ravel()[~np.isnan(base[r].ravel())])   # pooled no-stimulus baseline group
+        groups = [g for g in groups if g.size > 0]
+        if len(groups) >= 2 and sum(g.size for g in groups) > len(groups):
+            pvals[r] = f_oneway(*groups).pvalue
     return pvals
+
+
+def per_stimulus_responsiveness(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, test='ttest',
+                                alternative='two-sided', min_baseline_frames=3):
+    """Per-ROI PER-STIMULUS responsiveness: does the cell respond to a SPECIFIC stimulus above baseline?
+
+    For each ROI and each condition the per-trial stim-window response is compared to the SAME trial's
+    LATE pre-stimulus baseline (last ``baseline_sec`` of isi_pre -- see _late_isi_baseline) with a paired
+    t-test ('ttest', default) or Wilcoxon signed-rank ('wilcoxon'). The per-condition p-values are
+    Benjamini-Hochberg FDR-corrected across conditions and the ROI's responsiveness p is the MINIMUM
+    adjusted p -- i.e. "responsive if ANY stimulus beats baseline". This is a true superset of stimulus
+    SELECTIVITY (trial_scalar_anova) and a different question from it. ``alternative='two-sided'`` counts
+    both driven and suppressed cells.
+
+    NOTE with ~10 reps/condition a per-condition test has limited power (Wilcoxon especially, whose p has a
+    ~2/2^n floor), so single-stimulus responders can fail BH here; the max-statistic permutation variant is
+    better powered for that (visual_responsiveness_perm, staged separately). Returns per-ROI min BH-adjusted
+    p (NaN where no condition had enough valid trials).
+    """
+    stim = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
+    base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames)
+            .transpose('roi', 'condition', 'repeat').values)
+    n_roi, n_cond = stim.shape[0], stim.shape[1]
+    out = np.full(n_roi, np.nan)
+    for r in range(n_roi):
+        pc = np.full(n_cond, np.nan)
+        for c in range(n_cond):
+            s, b = stim[r, c], base[r, c]
+            ok = ~np.isnan(s) & ~np.isnan(b)
+            s, b = s[ok], b[ok]
+            if s.size < 2 or np.allclose(s, b):
+                continue
+            try:
+                pc[c] = (ttest_rel(s, b, alternative=alternative).pvalue if test == 'ttest'
+                         else wilcoxon(s, b, alternative=alternative).pvalue)
+            except ValueError:
+                pass
+        valid = ~np.isnan(pc)
+        if valid.any():
+            out[r] = float(np.min(false_discovery_control(pc[valid], method='bh')))
+    return out
 
 
 def _as_int_frame(value):

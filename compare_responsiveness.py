@@ -80,6 +80,7 @@ def main():
     ap.add_argument('--metric', default='Fzsc')
     ap.add_argument('--alpha', type=float, default=0.01)
     ap.add_argument('--rel-thresh', type=float, default=0.4)
+    ap.add_argument('--resp-q', type=float, default=0.05)
     ap.add_argument('--max-rois', type=int, default=None)
     ap.add_argument('--no-zeta', action='store_true')
     ap.add_argument('--out', default=None)
@@ -94,14 +95,14 @@ def main():
 
     p_frame = images.responsive_anova(ds, m)
     p_trial = rt.trial_scalar_anova(ds, m)
-    p_resp = rt.visual_responsiveness(ds, m)
+    p_resp = rt.visual_responsiveness(ds, m, framerate=ctx['md']['framerate'])
     rel = rt.split_half_reliability(ds, m)
     p_zeta = (np.full(n_roi, np.nan) if args.no_zeta
               else zeta_pvalues(ctx, m, ctx['n_samp_isi'] + ctx['n_samp_stim'], args.max_rois))
 
     a, rt_thr = args.alpha, args.rel_thresh
     crit = {
-        'stim>base RESP': (p_resp < a, np.isfinite(p_resp)),   # responsiveness (visual drive)
+        'responsive-ANOVA': (p_resp < args.resp_q, np.isfinite(p_resp)),  # gate: stim+baseline ANOVA
         'ZETA RESP': (p_zeta < a, np.isfinite(p_zeta)),        # responsiveness (onset-locked)
         'frame-ANOVA sel': (p_frame < a, np.isfinite(p_frame)),  # selectivity (pseudorep'd)
         'trial-ANOVA sel': (p_trial < a, np.isfinite(p_trial)),  # selectivity
@@ -115,7 +116,7 @@ def main():
 
     print('\npairwise agreement (responsive sets):')
     sig = {k: (s & vld) for k, (s, vld) in crit.items()}
-    k_frame, k_trial, k_resp = 'frame-ANOVA sel', 'trial-ANOVA sel', 'stim>base RESP'
+    k_frame, k_trial, k_resp = 'frame-ANOVA sel', 'trial-ANOVA sel', 'responsive-ANOVA'
     k_rel, k_zeta = 'reliab>%.2f sel' % rt_thr, 'ZETA RESP'
     _report_pair('frame', sig[k_frame], 'trial', sig[k_trial])
     _report_pair('resp', sig[k_resp], 'trial', sig[k_trial])       # is responsiveness a superset of selectivity?
