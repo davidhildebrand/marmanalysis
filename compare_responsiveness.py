@@ -8,7 +8,7 @@ pseudoreplicates strongly autocorrelated within-trial frames and is therefore an
 with a trial-level test:
 
   frame ANOVA         images.responsive_anova              (pools trials x frames)
-  trial ANOVA         response_table.trial_scalar_anova    (one stim-window scalar per trial)
+  trial ANOVA         response_table.anova_selective    (one stim-window scalar per trial)
   ZETA                zetapy.zetatstest                    (parameter-free, full trace vs onsets)
   split-half reliab   response_table.split_half_reliability (Spearman-Brown corrected)
 
@@ -94,8 +94,8 @@ def main():
           % (n_roi, ds.sizes['condition'], ds.sizes['repeat'], m))
 
     p_frame = images.responsive_anova(ds, m)
-    p_trial = rt.trial_scalar_anova(ds, m)
-    p_resp = rt.visual_responsiveness(ds, m, framerate=ctx['md']['framerate'])
+    p_trial = rt.anova_selective(ds, m)
+    p_resp = rt.anova_responsive(ds, m, framerate=ctx['md']['framerate'])
     rel = rt.split_half_reliability(ds, m)
     p_zeta = (np.full(n_roi, np.nan) if args.no_zeta
               else zeta_pvalues(ctx, m, ctx['n_samp_isi'] + ctx['n_samp_stim'], args.max_rois))

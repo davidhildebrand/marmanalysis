@@ -284,13 +284,13 @@ def test_trial_response_keeps_repeat_axis():
                                manual.transpose('roi', 'condition', 'repeat').values)
 
 
-def test_trial_scalar_anova_detects_structure_and_parity():
+def test_anova_selective_detects_structure_and_parity():
     rng = np.random.default_rng(0)
     n_cond, n_rep = 6, 8
     roi0 = (np.arange(n_cond) * 3.0)[:, None] + rng.normal(scale=0.3, size=(n_cond, n_rep))
     roi1 = rng.normal(scale=1.0, size=(n_cond, n_rep))
     ds = _ds_from_trial_values(np.stack([roi0, roi1]))
-    p = rt.trial_scalar_anova(ds, 'Fzsc')
+    p = rt.anova_selective(ds, 'Fzsc')
     assert p[0] < 1e-6 and p[1] > 0.05
     tr = rt.trial_response(ds, 'Fzsc').transpose('roi', 'condition', 'repeat').values
     for r in range(2):
@@ -320,16 +320,16 @@ def _ds_stim_base(stim_vals, base_vals, metric='Fzsc'):
                 'excluded': (('condition', 'repeat'), np.zeros((n_cond, n_rep), bool))})
 
 
-def test_visual_responsiveness_driven_but_not_selective():
+def test_anova_responsive_driven_but_not_selective():
     rng = np.random.default_rng(0)
     n_cond, n_rep = 20, 8
     base = rng.normal(size=(2, n_cond, n_rep))
     stim = np.stack([2.0 + 0.1 * rng.normal(size=(n_cond, n_rep)),        # ROI0: uniform drive
                      base[1] + 0.1 * rng.normal(size=(n_cond, n_rep))])   # ROI1: no net drive
     ds = _ds_stim_base(stim, base)
-    p_resp = rt.visual_responsiveness(ds, 'Fzsc', framerate=6.0, min_baseline_frames=1)
-    assert p_resp[0] < 0.05 and p_resp[1] > 0.05             # driven vs silent (per-condition, BH-FDR)
-    assert rt.trial_scalar_anova(ds, 'Fzsc')[0] > 0.05       # driven cell is NOT stimulus-selective
+    p_resp = rt.anova_responsive(ds, 'Fzsc', framerate=6.0, min_baseline_frames=1)
+    assert p_resp[0] < 0.05 and p_resp[1] > 0.05             # driven vs silent (stim+baseline ANOVA gate)
+    assert rt.anova_selective(ds, 'Fzsc')[0] > 0.05       # driven cell is NOT stimulus-selective
 
 
 def _ds_epoched(arr, n_isi, n_stim, metric='Fzsc'):
@@ -344,7 +344,7 @@ def _ds_epoched(arr, n_isi, n_stim, metric='Fzsc'):
                 'excluded': (('condition', 'repeat'), np.zeros((n_cond, n_rep), bool))})
 
 
-def test_visual_responsiveness_uses_late_isi_baseline():
+def test_anova_responsive_uses_late_isi_baseline():
     rng = np.random.default_rng(0)
     n_cond, n_rep, n_isi, n_stim = 8, 10, 4, 2
     T = 2 * n_isi + n_stim
@@ -355,10 +355,10 @@ def test_visual_responsiveness_uses_late_isi_baseline():
     arr[..., 6:8] = 1.0 + 0.05 * rng.normal(size=(1, n_cond, n_rep, 2))   # isi_post
     ds = _ds_epoched(arr, n_isi, n_stim)
     # last 2 isi_pre frames (== 3 == stim) -> stim minus baseline ~ 0 -> NOT responsive
-    p_late = rt.visual_responsiveness(ds, 'Fzsc', framerate=2.0, baseline_sec=1.0, min_baseline_frames=1)
+    p_late = rt.anova_responsive(ds, 'Fzsc', framerate=2.0, baseline_sec=1.0, min_baseline_frames=1)
     assert p_late[0] > 0.05
     # a longer baseline reaching the early (==0) frames DOES see a response -> the late window is really used
-    p_full = rt.visual_responsiveness(ds, 'Fzsc', framerate=2.0, baseline_sec=2.0, min_baseline_frames=1)
+    p_full = rt.anova_responsive(ds, 'Fzsc', framerate=2.0, baseline_sec=2.0, min_baseline_frames=1)
     assert p_full[0] < 0.05
 
 
@@ -370,19 +370,19 @@ def test_selectivity_excludes_blank_and_responsiveness_uses_blank():
     stim_vals[0, 5, :] = 0.0 + 0.1 * rng.normal(size=n_rep)      # blank: no response
     ds = _ds_stim_base(stim_vals, base_vals).assign_coords(
         cat=('condition', np.array([b'obj', b'face_mrm', b'body_mrm', b'scram_s', b'food', b'blank'], dtype=object)))
-    assert rt.trial_scalar_anova(ds, 'Fzsc', exclude_blank=True)[0] > 0.05    # 5 stimuli all ~2 -> not selective
-    assert rt.trial_scalar_anova(ds, 'Fzsc', exclude_blank=False)[0] < 0.05   # incl blank -> mislabeled selective
-    assert rt.visual_responsiveness(ds, 'Fzsc')[0] < 0.05                     # uses blank as baseline -> responsive
+    assert rt.anova_selective(ds, 'Fzsc', exclude_blank=True)[0] > 0.05    # 5 stimuli all ~2 -> not selective
+    assert rt.anova_selective(ds, 'Fzsc', exclude_blank=False)[0] < 0.05   # incl blank -> mislabeled selective
+    assert rt.anova_responsive(ds, 'Fzsc')[0] < 0.05                     # uses blank as baseline -> responsive
 
 
-def test_per_stimulus_responsiveness_runs():
+def test_fdr_responsive_runs():
     rng = np.random.default_rng(0)
     n_cond, n_rep = 20, 8
     base = rng.normal(size=(2, n_cond, n_rep))
     stim = np.stack([2.0 + 0.1 * rng.normal(size=(n_cond, n_rep)),
                      base[1] + 0.1 * rng.normal(size=(n_cond, n_rep))])
     ds = _ds_stim_base(stim, base)
-    p = rt.per_stimulus_responsiveness(ds, 'Fzsc', framerate=6.0, min_baseline_frames=1)
+    p = rt.fdr_responsive(ds, 'Fzsc', framerate=6.0, min_baseline_frames=1)
     assert p[0] < 0.05 and p[1] > 0.05
 
 

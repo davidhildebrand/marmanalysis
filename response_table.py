@@ -299,7 +299,7 @@ def trial_response(ds, metric, epoch=EPOCH_STIM):
     return win.mean(dim='time', skipna=True)
 
 
-def trial_scalar_anova(ds, metric='Fzsc', exclude_blank=True):
+def anova_selective(ds, metric='Fzsc', exclude_blank=True):
     """Per-ROI one-way ANOVA across conditions using one scalar per trial (repeats as samples).
 
     The statistically sound counterpart to the frame-pooled responsiveness ANOVA in
@@ -386,7 +386,7 @@ def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames)
         raise ValueError('no isi_pre frames in the response table')
     n_base = int(np.clip(round(baseline_sec * framerate), 1, pre_idx.size))
     if n_base < min_baseline_frames:
-        warn('visual_responsiveness: baseline window is %d frame(s) (< %d) at %.2f Hz -- stim-vs-baseline '
+        warn('anova_responsive: baseline window is %d frame(s) (< %d) at %.2f Hz -- stim-vs-baseline '
              'may be unreliable; use a longer baseline_sec or a faster session.'
              % (n_base, min_baseline_frames, framerate), stacklevel=3)
     return _valid(ds, metric).isel(time=pre_idx[-n_base:]).mean('time')
@@ -400,15 +400,15 @@ def _stimulus_conditions(ds):
     return np.array([c != b'blank' for c in ds['cat'].values])
 
 
-def visual_responsiveness(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3):
+def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3):
     """Per-ROI visual RESPONSIVENESS gate: is the mean response modulated across stimuli AND baseline?
 
     A one-way ANOVA over [real-stimulus conditions] + [a no-stimulus baseline group], where the baseline is
     the BLANK condition's trials when the session has one, else the LATE pre-stimulus ISI window
-    (_late_isi_baseline). Because it pools evidence exactly like the selectivity ANOVA (trial_scalar_anova)
+    (_late_isi_baseline). Because it pools evidence exactly like the selectivity ANOVA (anova_selective)
     but adds the baseline group, it is a true SUPERSET of selectivity -- "the cell responds to the stimulus
     stream, including vs baseline". Scrambles count as stimuli; only blank is the baseline. For a stricter
-    "responds to a SPECIFIC stimulus" label see per_stimulus_responsiveness. Returns a per-ROI p-value.
+    "responds to a SPECIFIC stimulus" label see fdr_responsive. Returns a per-ROI p-value.
     """
     tr = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
     is_stim = _stimulus_conditions(ds)
@@ -431,21 +431,24 @@ def visual_responsiveness(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, m
     return pvals
 
 
-def per_stimulus_responsiveness(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, test='ttest',
+def fdr_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, test='ttest',
                                 alternative='two-sided', min_baseline_frames=3):
-    """Per-ROI PER-STIMULUS responsiveness: does the cell respond to a SPECIFIC stimulus above baseline?
+    """Per-ROI FDR-controlled per-stimulus responsiveness: does the cell respond to a SPECIFIC stimulus?
 
     For each ROI and each condition the per-trial stim-window response is compared to the SAME trial's
     LATE pre-stimulus baseline (last ``baseline_sec`` of isi_pre -- see _late_isi_baseline) with a paired
     t-test ('ttest', default) or Wilcoxon signed-rank ('wilcoxon'). The per-condition p-values are
-    Benjamini-Hochberg FDR-corrected across conditions and the ROI's responsiveness p is the MINIMUM
-    adjusted p -- i.e. "responsive if ANY stimulus beats baseline". This is a true superset of stimulus
-    SELECTIVITY (trial_scalar_anova) and a different question from it. ``alternative='two-sided'`` counts
-    both driven and suppressed cells.
+    Benjamini-Hochberg FDR-corrected across conditions and the ROI's score is the MINIMUM adjusted p (an
+    FDR q-value) -- i.e. "responsive if ANY single stimulus beats baseline". ``alternative='two-sided'``
+    counts both driven and suppressed cells. This asks a DIFFERENT question from stimulus selectivity
+    (anova_selective) and, unlike the ANOVA gate (anova_responsive), is NOT a guaranteed superset of
+    it: a distributed-selective cell (tuning spread across conditions, no single dominant stimulus) can be
+    selective yet fail BH here. Kept as a distinct, stricter "specific-stimulus" label because the
+    selectivity/responsiveness definitions are not yet settled and its misses are informative.
 
     NOTE with ~10 reps/condition a per-condition test has limited power (Wilcoxon especially, whose p has a
     ~2/2^n floor), so single-stimulus responders can fail BH here; the max-statistic permutation variant is
-    better powered for that (visual_responsiveness_perm, staged separately). Returns per-ROI min BH-adjusted
+    better powered for that (anova_responsive_perm, staged separately). Returns per-ROI min BH-adjusted
     p (NaN where no condition had enough valid trials).
     """
     stim = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
