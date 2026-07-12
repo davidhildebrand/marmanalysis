@@ -52,9 +52,10 @@ def main():
                                      method='nu', k=args.active_k)
 
     def gates(d):
-        pr = rt.anova_responsive(d, m, framerate=fr)
-        psl = rt.anova_selective(d, m)
-        return _sig(pr, args.alpha), _sig(psl, args.alpha)
+        # nested classes: responsive = differs-from-baseline OR differentiates; selective = differentiates
+        # (a strict subset). See response_table.classify_responses -- makes selective-not-responsive == 0.
+        c = rt.classify_responses(d, m, framerate=fr, alpha=args.alpha)
+        return c['responsive'], c['selective']
 
     resp0, sel0 = gates(ds)
     dsd, info = denoise_psn(ds, m, args.mode, diagnostic=not args.no_diagnostic, outdir='output',

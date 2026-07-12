@@ -284,6 +284,20 @@ def test_trial_response_keeps_repeat_axis():
                                manual.transpose('roi', 'condition', 'repeat').values)
 
 
+def test_trial_response_reduce_and_onset_offset():
+    """reduce='peak' catches a brief transient the mean dilutes; onset_offset shifts the window later."""
+    n_isi, n_stim = 2, 4
+    arr = np.zeros((1, 1, 1, 2 * n_isi + n_stim))
+    arr[0, 0, 0, 2:6] = [0.0, 5.0, 1.0, 0.0]                # stim-window frames: a peak of 5 at frame 3
+    ds = _ds_epoched(arr, n_isi, n_stim)
+    assert np.isclose(rt.trial_response(ds, 'Fzsc', reduce='mean').values.ravel()[0], 1.5)  # mean[0,5,1,0]
+    assert np.isclose(rt.trial_response(ds, 'Fzsc', reduce='peak').values.ravel()[0], 5.0)  # max
+    assert np.isclose(rt.trial_response(ds, 'Fzsc').values.ravel()[0], 1.5)                 # default == mean
+    # offset 1 s (2 frames @ 2 Hz) shifts the window off the frame-3 peak -> lower peak
+    shifted = rt.trial_response(ds, 'Fzsc', reduce='peak', framerate=2.0, onset_offset_sec=1.0)
+    assert float(shifted.values.ravel()[0]) < 5.0
+
+
 def test_anova_selective_detects_structure_and_parity():
     rng = np.random.default_rng(0)
     n_cond, n_rep = 6, 8
@@ -357,9 +371,11 @@ def test_anova_responsive_uses_late_isi_baseline():
     # last 2 isi_pre frames (== 3 == stim) -> stim minus baseline ~ 0 -> NOT responsive
     p_late = rt.anova_responsive(ds, 'Fzsc', framerate=2.0, baseline_sec=1.0, min_baseline_frames=1)
     assert p_late[0] > 0.05
-    # a longer baseline reaching the early (==0) frames DOES see a response -> the late window is really used
-    p_full = rt.anova_responsive(ds, 'Fzsc', framerate=2.0, baseline_sec=2.0, min_baseline_frames=1)
-    assert p_full[0] < 0.05
+    # even a long baseline_sec is capped at the last 50% of the ISI (frames 2-3, == 3), so it never reaches
+    # the early (== 0) decay-tail frames -> still NOT responsive (the 50% cap on a short ISI).
+    p_capped = rt.anova_responsive(ds, 'Fzsc', framerate=2.0, baseline_sec=5.0, min_baseline_frames=1)
+    assert p_capped[0] > 0.05
+    assert float(rt._late_isi_baseline(ds, 'Fzsc', 2.0, 5.0, 1).mean()) > 2.5   # late half (==3), not full (~1.5)
 
 
 def test_selectivity_excludes_blank_and_responsiveness_uses_blank():

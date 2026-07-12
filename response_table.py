@@ -286,20 +286,54 @@ def face_selectivity_index(resp_vect_cond, is_face, is_nonface_object):
     return fsi
 
 
-def trial_response(ds, metric, epoch=EPOCH_STIM):
-    """Per-(roi, condition, repeat) mean response over one trial epoch (default the stimulus window).
+def trial_response(ds, metric, epoch=EPOCH_STIM, reduce='mean', framerate=None,
+                   onset_offset_sec=0.0, window_sec=None):
+    """Per-(roi, condition, repeat) response scalar over a per-trial response window.
 
-    Like ``stim_window_response`` but keeps the ``repeat`` axis, giving one scalar per trial. Excluded
-    trials become NaN via the exclusion mask. This is the per-trial response used by trial-level
-    statistics -- a repeats-as-samples ANOVA, split-half reliability, or a stim-vs-baseline
-    responsiveness test (pass ``epoch=EPOCH_ISI_PRE`` for the pre-stimulus baseline) -- which treat the
-    trial (not the frame) as the unit of observation.
+    Keeps the ``repeat`` axis, giving one scalar per trial -- the unit of observation for trial-level
+    statistics (repeats-as-samples ANOVA, split-half reliability, stim-vs-baseline responsiveness).
+    Excluded trials become NaN via the exclusion mask.
+
+    By DEFAULT (``reduce='mean'``, no offset/window) it is the mean over the ``epoch`` frames -- the original
+    behaviour; pass ``epoch=EPOCH_ISI_PRE`` for the pre-stimulus baseline. The window can be shifted and
+    resized to track calcium kinetics / response latency, and reduced differently, so the scalar can be made
+    robust to brief transients or to response-timing jitter (e.g. from uncontrolled eye position):
+
+      onset_offset_sec  shift the window later by this many seconds from epoch onset (indicator rise +
+                        neural latency); it may extend past the epoch into the following ISI (the decay
+                        tail). Requires ``framerate``.
+      window_sec        window length in seconds from the (shifted) onset; default = the epoch's length.
+      reduce            'mean' (default) | 'peak' (max over the window) | 'auc' (time integral, per second).
+
+    All three reductions are compared across conditions by a scale-invariant F-test, so the ANOVA gates
+    accept any of them (note 'auc' scales with window length, so keep the window fixed when using it).
     """
-    win = _valid(ds, metric).where(ds['epoch'] == epoch)
-    return win.mean(dim='time', skipna=True)
+    da = _valid(ds, metric)
+    epoch_idx = np.where(ds['epoch'].values == epoch)[0]
+    if epoch_idx.size == 0:
+        raise ValueError('no %r frames in the response table' % epoch)
+    if onset_offset_sec == 0.0 and window_sec is None:
+        idx = epoch_idx
+    else:
+        if framerate is None:
+            raise ValueError('onset_offset_sec / window_sec require framerate')
+        start = int(epoch_idx[0] + round(onset_offset_sec * framerate))
+        n_win = epoch_idx.size if window_sec is None else max(1, int(round(window_sec * framerate)))
+        idx = np.arange(max(start, 0), min(start + n_win, ds.sizes['time']))
+        if idx.size == 0:
+            raise ValueError('response window falls outside the trial (onset_offset_sec/window_sec too large)')
+    win = da.isel(time=idx)
+    if reduce == 'mean':
+        return win.mean('time', skipna=True)
+    if reduce == 'peak':
+        return win.max('time', skipna=True)
+    if reduce == 'auc':
+        return win.sum('time', skipna=True) / float(framerate or 1.0)
+    raise ValueError("unknown reduce %r; expected 'mean', 'peak', or 'auc'" % reduce)
 
 
-def anova_selective(ds, metric='Fzsc', exclude_blank=True):
+def anova_selective(ds, metric='Fzsc', exclude_blank=True, reduce='mean', framerate=None,
+                    onset_offset_sec=0.0, window_sec=None):
     """Per-ROI one-way ANOVA across conditions using one scalar per trial (repeats as samples).
 
     The statistically sound counterpart to the frame-pooled responsiveness ANOVA in
@@ -312,8 +346,14 @@ def anova_selective(ds, metric='Fzsc', exclude_blank=True):
     SELECTIVITY: with ``exclude_blank`` the no-stimulus 'blank' condition is dropped so the test isolates
     stimulus-vs-stimulus differentiation and is not fired by mere responsiveness (a uniform responder that
     differs only from blank would otherwise be mislabeled selective). Scrambles are stimuli and are kept.
+
+    This is the DIFFERENTIATION test in isolation; report the selective POPULATION as its intersection with
+    responsiveness (``classify_responses``) so ``selective ⊆ responsive`` holds -- a cell must respond to
+    differentiate, so an independent selective count can otherwise flag borderline non-responders.
     """
-    tr = trial_response(ds, metric).transpose('roi', 'condition', 'repeat').values
+    tr = trial_response(ds, metric, reduce=reduce, framerate=framerate,
+                        onset_offset_sec=onset_offset_sec, window_sec=window_sec
+                        ).transpose('roi', 'condition', 'repeat').values
     if exclude_blank:
         tr = tr[:, _stimulus_conditions(ds), :]
     n_roi, n_cond = tr.shape[0], tr.shape[1]
@@ -371,12 +411,13 @@ def split_half_reliability(ds, metric, n_splits=100, seed=0, spearman_brown=True
     return out
 
 
-def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames):
+def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames, reduce='mean'):
     """Per-(roi, condition, repeat) mean over the LATE pre-stimulus ISI window.
 
     Uses the last ``baseline_sec`` seconds of the isi_pre epoch (nearest to stimulus onset), NOT the whole
     ISI: the early ISI is the decay tail of the previous trial's response and would bias the baseline. The
-    window is sized in seconds (framerate-aware) and clamped to the available isi_pre frames.
+    window is framerate-aware and capped at the last 50% of the isi_pre frames, so a short ISI
+    (< ~2x baseline_sec) falls back to its last half rather than reaching into the decay-tail region.
     """
     if framerate is None:
         raise ValueError('framerate (frames/s) is required to size the late-baseline window')
@@ -384,12 +425,19 @@ def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames)
     pre_idx = np.where(epoch == EPOCH_ISI_PRE)[0]
     if pre_idx.size == 0:
         raise ValueError('no isi_pre frames in the response table')
-    n_base = int(np.clip(round(baseline_sec * framerate), 1, pre_idx.size))
+    # last baseline_sec, but never more than the last 50% of the ISI (leave the early decay-tail half out);
+    # a short ISI (< ~2x baseline_sec) therefore falls back to its last half.
+    n_base = int(np.clip(min(round(baseline_sec * framerate), pre_idx.size // 2), 1, pre_idx.size))
     if n_base < min_baseline_frames:
         warn('anova_responsive: baseline window is %d frame(s) (< %d) at %.2f Hz -- stim-vs-baseline '
              'may be unreliable; use a longer baseline_sec or a faster session.'
              % (n_base, min_baseline_frames, framerate), stacklevel=3)
-    return _valid(ds, metric).isel(time=pre_idx[-n_base:]).mean('time')
+    win = _valid(ds, metric).isel(time=pre_idx[-n_base:])
+    if reduce == 'peak':
+        return win.max('time', skipna=True)
+    if reduce == 'auc':
+        return win.sum('time', skipna=True) / float(framerate)
+    return win.mean('time', skipna=True)
 
 
 def _stimulus_conditions(ds):
@@ -400,7 +448,8 @@ def _stimulus_conditions(ds):
     return np.array([c != b'blank' for c in ds['cat'].values])
 
 
-def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3):
+def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3,
+                     reduce='mean', onset_offset_sec=0.0, window_sec=None):
     """Per-ROI visual RESPONSIVENESS gate: is the mean response modulated across stimuli AND baseline?
 
     A one-way ANOVA over [real-stimulus conditions] + [a no-stimulus baseline group], where the baseline is
@@ -410,14 +459,16 @@ def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_ba
     stream, including vs baseline". Scrambles count as stimuli; only blank is the baseline. For a stricter
     "responds to a SPECIFIC stimulus" label see fdr_responsive. Returns a per-ROI p-value.
     """
-    tr = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
+    tr = trial_response(ds, metric, EPOCH_STIM, reduce=reduce, framerate=framerate,
+                        onset_offset_sec=onset_offset_sec, window_sec=window_sec
+                        ).transpose('roi', 'condition', 'repeat').values
     is_stim = _stimulus_conditions(ds)
     cats = ds['cat'].values if 'cat' in ds.coords else None
     blank = None if cats is None else np.array([c == b'blank' for c in cats])
     if blank is not None and blank.any():
         base = tr[:, blank, :]                              # the measured no-stimulus (blank) condition
     else:
-        base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames)
+        base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames, reduce=reduce)
                 .transpose('roi', 'condition', 'repeat').values)
     stim = tr[:, is_stim, :]
     n_roi, n_stimcond = stim.shape[0], stim.shape[1]
@@ -473,6 +524,32 @@ def fdr_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, test='tt
         if valid.any():
             out[r] = float(np.min(false_discovery_control(pc[valid], method='bh')))
     return out
+
+
+def classify_responses(ds, metric='Fzsc', framerate=None, alpha=0.05, baseline_sec=1.0,
+                       reduce='mean', onset_offset_sec=0.0, window_sec=None):
+    """Nested response classes with ``selective`` a strict subset of ``responsive``, by construction.
+
+    A cell is RESPONSIVE if it shows ANY stimulus-driven modulation -- either it differs from baseline
+    (``anova_responsive``, the omnibus conditions+baseline ANOVA) OR it differentiates among stimuli
+    (``anova_selective``). It is SELECTIVE if it differentiates among stimuli. Taking responsive as the
+    UNION guarantees ``selective ⊆ responsive`` (a cell must respond to differentiate) while keeping
+    responsiveness permissive -- a differentiating cell is never dropped for failing the baseline contrast,
+    which is what produced the 11 borderline "selective non-responders" under two independent ANOVAs. Mirrors
+    v9, whose single ANOVA over [conditions + blank] is the gate and whose OSI/DSI are within-responsive
+    DESCRIPTORS, so no selective non-responder can arise. Suppression counts: both ANOVAs are two-sided.
+
+    Returns a dict of per-ROI boolean masks ``responsive`` and ``selective`` plus the p-value arrays
+    ``p_responsive`` (omnibus) and ``p_selective`` (differentiation).
+    """
+    p_omni = anova_responsive(ds, metric, framerate=framerate, baseline_sec=baseline_sec,
+                              reduce=reduce, onset_offset_sec=onset_offset_sec, window_sec=window_sec)
+    p_diff = anova_selective(ds, metric, reduce=reduce, framerate=framerate,
+                             onset_offset_sec=onset_offset_sec, window_sec=window_sec)
+    differentiates = (p_diff < alpha) & np.isfinite(p_diff)
+    responds_vs_base = (p_omni < alpha) & np.isfinite(p_omni)
+    return {'responsive': responds_vs_base | differentiates, 'selective': differentiates,
+            'p_responsive': p_omni, 'p_selective': p_diff}
 
 
 def _as_int_frame(value):
