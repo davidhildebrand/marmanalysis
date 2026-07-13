@@ -294,7 +294,7 @@ def test_trial_response_reduce_and_onset_offset():
     assert np.isclose(rt.trial_response(ds, 'Fzsc', reduce='peak').values.ravel()[0], 5.0)  # max
     assert np.isclose(rt.trial_response(ds, 'Fzsc').values.ravel()[0], 1.5)                 # default == mean
     # offset 1 s (2 frames @ 2 Hz) shifts the window off the frame-3 peak -> lower peak
-    shifted = rt.trial_response(ds, 'Fzsc', reduce='peak', framerate=2.0, onset_offset_sec=1.0)
+    shifted = rt.trial_response(ds, 'Fzsc', reduce='peak', framerate=2.0, offset_response_window_sec=1.0)
     assert float(shifted.values.ravel()[0]) < 5.0
 
 

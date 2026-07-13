@@ -52,8 +52,8 @@ def main():
             w_fr = n_stim if w is None else w
             for off in offs:
                 c = rt.classify_responses(ds, args.metric, framerate=fr, alpha=args.alpha, reduce=red,
-                                          onset_offset_sec=off / fr,
-                                          window_sec=(None if w is None else w / fr),
+                                          offset_response_window_sec=off / fr,
+                                          response_window_sec=(None if w is None else w / fr),
                                           match_baseline_len=(red == 'peak'))
                 print('  %-6s  %5s  %5.2f   %5d  %5.2f   %6d  %6d'
                       % (red, 'full' if w is None else str(w), w_fr / fr, off, off / fr,

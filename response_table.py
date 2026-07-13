@@ -287,7 +287,7 @@ def face_selectivity_index(resp_vect_cond, is_face, is_nonface_object):
 
 
 def trial_response(ds, metric, epoch=EPOCH_STIM, reduce='mean', framerate=None,
-                   onset_offset_sec=0.0, window_sec=None):
+                   offset_response_window_sec=0.0, response_window_sec=None):
     """Per-(roi, condition, repeat) response scalar over a per-trial response window.
 
     Keeps the ``repeat`` axis, giving one scalar per trial -- the unit of observation for trial-level
@@ -299,10 +299,10 @@ def trial_response(ds, metric, epoch=EPOCH_STIM, reduce='mean', framerate=None,
     resized to track calcium kinetics / response latency, and reduced differently, so the scalar can be made
     robust to brief transients or to response-timing jitter (e.g. from uncontrolled eye position):
 
-      onset_offset_sec  shift the window later by this many seconds from epoch onset (indicator rise +
+      offset_response_window_sec  shift the window later by this many seconds from epoch onset (indicator rise +
                         neural latency); it may extend past the epoch into the following ISI (the decay
                         tail). Requires ``framerate``.
-      window_sec        window length in seconds from the (shifted) onset; default = the epoch's length.
+      response_window_sec        window length in seconds from the (shifted) onset; default = the epoch's length.
       reduce            'mean' (default) | 'peak' (max over the window) | 'auc' (time integral, per second).
 
     All three reductions are compared across conditions by a scale-invariant F-test, so the ANOVA gates
@@ -312,16 +312,16 @@ def trial_response(ds, metric, epoch=EPOCH_STIM, reduce='mean', framerate=None,
     epoch_idx = np.where(ds['epoch'].values == epoch)[0]
     if epoch_idx.size == 0:
         raise ValueError('no %r frames in the response table' % epoch)
-    if onset_offset_sec == 0.0 and window_sec is None:
+    if offset_response_window_sec == 0.0 and response_window_sec is None:
         idx = epoch_idx
     else:
         if framerate is None:
-            raise ValueError('onset_offset_sec / window_sec require framerate')
-        start = int(epoch_idx[0] + round(onset_offset_sec * framerate))
-        n_win = epoch_idx.size if window_sec is None else max(1, int(round(window_sec * framerate)))
+            raise ValueError('offset_response_window_sec / response_window_sec require framerate')
+        start = int(epoch_idx[0] + round(offset_response_window_sec * framerate))
+        n_win = epoch_idx.size if response_window_sec is None else max(1, int(round(response_window_sec * framerate)))
         idx = np.arange(max(start, 0), min(start + n_win, ds.sizes['time']))
         if idx.size == 0:
-            raise ValueError('response window falls outside the trial (onset_offset_sec/window_sec too large)')
+            raise ValueError('response window falls outside the trial (offset_response_window_sec/response_window_sec too large)')
     win = da.isel(time=idx)
     if reduce == 'mean':
         return win.mean('time', skipna=True)
@@ -333,7 +333,7 @@ def trial_response(ds, metric, epoch=EPOCH_STIM, reduce='mean', framerate=None,
 
 
 def anova_selective(ds, metric='Fzsc', exclude_blank=True, reduce='mean', framerate=None,
-                    onset_offset_sec=0.0, window_sec=None):
+                    offset_response_window_sec=0.0, response_window_sec=None):
     """Per-ROI one-way ANOVA across conditions using one scalar per trial (repeats as samples).
 
     The statistically sound counterpart to the frame-pooled responsiveness ANOVA in
@@ -352,7 +352,7 @@ def anova_selective(ds, metric='Fzsc', exclude_blank=True, reduce='mean', framer
     differentiate, so an independent selective count can otherwise flag borderline non-responders.
     """
     tr = trial_response(ds, metric, reduce=reduce, framerate=framerate,
-                        onset_offset_sec=onset_offset_sec, window_sec=window_sec
+                        offset_response_window_sec=offset_response_window_sec, response_window_sec=response_window_sec
                         ).transpose('roi', 'condition', 'repeat').values
     if exclude_blank:
         tr = tr[:, _stimulus_conditions(ds), :]
@@ -451,7 +451,7 @@ def _stimulus_conditions(ds):
 
 
 def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3,
-                     reduce='mean', onset_offset_sec=0.0, window_sec=None, match_baseline_len=False):
+                     reduce='mean', offset_response_window_sec=0.0, response_window_sec=None, match_baseline_len=False):
     """Per-ROI visual RESPONSIVENESS gate: is the mean response modulated across stimuli AND baseline?
 
     A one-way ANOVA over [real-stimulus conditions] + [a no-stimulus baseline group], where the baseline is
@@ -462,7 +462,7 @@ def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_ba
     "responds to a SPECIFIC stimulus" label see fdr_responsive. Returns a per-ROI p-value.
     """
     tr = trial_response(ds, metric, EPOCH_STIM, reduce=reduce, framerate=framerate,
-                        onset_offset_sec=onset_offset_sec, window_sec=window_sec
+                        offset_response_window_sec=offset_response_window_sec, response_window_sec=response_window_sec
                         ).transpose('roi', 'condition', 'repeat').values
     is_stim = _stimulus_conditions(ds)
     cats = ds['cat'].values if 'cat' in ds.coords else None
@@ -473,7 +473,7 @@ def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_ba
         n_win = None
         if match_baseline_len and framerate is not None:    # length-match baseline to the stim window (fair peak)
             n_stim = int((ds['epoch'].values == EPOCH_STIM).sum())
-            n_win = max(1, int(round(window_sec * framerate))) if window_sec else n_stim
+            n_win = max(1, int(round(response_window_sec * framerate))) if response_window_sec else n_stim
         base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames,
                                    reduce=reduce, n_frames=n_win)
                 .transpose('roi', 'condition', 'repeat').values)
@@ -534,7 +534,7 @@ def fdr_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, test='tt
 
 
 def classify_responses(ds, metric='Fzsc', framerate=None, alpha=0.05, baseline_sec=1.0,
-                       reduce='mean', onset_offset_sec=0.0, window_sec=None, match_baseline_len=False):
+                       reduce='mean', offset_response_window_sec=0.0, response_window_sec=None, match_baseline_len=False):
     """Nested response classes with ``selective`` a strict subset of ``responsive``, by construction.
 
     A cell is RESPONSIVE if it shows ANY stimulus-driven modulation -- either it differs from baseline
@@ -550,10 +550,10 @@ def classify_responses(ds, metric='Fzsc', framerate=None, alpha=0.05, baseline_s
     ``p_responsive`` (omnibus) and ``p_selective`` (differentiation).
     """
     p_omni = anova_responsive(ds, metric, framerate=framerate, baseline_sec=baseline_sec,
-                              reduce=reduce, onset_offset_sec=onset_offset_sec, window_sec=window_sec,
+                              reduce=reduce, offset_response_window_sec=offset_response_window_sec, response_window_sec=response_window_sec,
                               match_baseline_len=match_baseline_len)
     p_diff = anova_selective(ds, metric, reduce=reduce, framerate=framerate,
-                             onset_offset_sec=onset_offset_sec, window_sec=window_sec)
+                             offset_response_window_sec=offset_response_window_sec, response_window_sec=response_window_sec)
     differentiates = (p_diff < alpha) & np.isfinite(p_diff)
     responds_vs_base = (p_omni < alpha) & np.isfinite(p_omni)
     return {'responsive': responds_vs_base | differentiates, 'selective': differentiates,
