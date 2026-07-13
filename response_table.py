@@ -411,7 +411,7 @@ def split_half_reliability(ds, metric, n_splits=100, seed=0, spearman_brown=True
     return out
 
 
-def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames, reduce='mean'):
+def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames, reduce='mean', n_frames=None):
     """Per-(roi, condition, repeat) mean over the LATE pre-stimulus ISI window.
 
     Uses the last ``baseline_sec`` seconds of the isi_pre epoch (nearest to stimulus onset), NOT the whole
@@ -426,8 +426,10 @@ def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames,
     if pre_idx.size == 0:
         raise ValueError('no isi_pre frames in the response table')
     # last baseline_sec, but never more than the last 50% of the ISI (leave the early decay-tail half out);
-    # a short ISI (< ~2x baseline_sec) therefore falls back to its last half.
-    n_base = int(np.clip(min(round(baseline_sec * framerate), pre_idx.size // 2), 1, pre_idx.size))
+    # a short ISI (< ~2x baseline_sec) falls back to its last half. ``n_frames`` overrides the length -- used
+    # to LENGTH-MATCH the baseline to the stim window for a fair peak comparison (peak grows with #frames).
+    want = round(baseline_sec * framerate) if n_frames is None else n_frames
+    n_base = int(np.clip(min(want, pre_idx.size // 2), 1, pre_idx.size))
     if n_base < min_baseline_frames:
         warn('anova_responsive: baseline window is %d frame(s) (< %d) at %.2f Hz -- stim-vs-baseline '
              'may be unreliable; use a longer baseline_sec or a faster session.'
@@ -449,7 +451,7 @@ def _stimulus_conditions(ds):
 
 
 def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3,
-                     reduce='mean', onset_offset_sec=0.0, window_sec=None):
+                     reduce='mean', onset_offset_sec=0.0, window_sec=None, match_baseline_len=False):
     """Per-ROI visual RESPONSIVENESS gate: is the mean response modulated across stimuli AND baseline?
 
     A one-way ANOVA over [real-stimulus conditions] + [a no-stimulus baseline group], where the baseline is
@@ -468,7 +470,12 @@ def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_ba
     if blank is not None and blank.any():
         base = tr[:, blank, :]                              # the measured no-stimulus (blank) condition
     else:
-        base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames, reduce=reduce)
+        n_win = None
+        if match_baseline_len and framerate is not None:    # length-match baseline to the stim window (fair peak)
+            n_stim = int((ds['epoch'].values == EPOCH_STIM).sum())
+            n_win = max(1, int(round(window_sec * framerate))) if window_sec else n_stim
+        base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames,
+                                   reduce=reduce, n_frames=n_win)
                 .transpose('roi', 'condition', 'repeat').values)
     stim = tr[:, is_stim, :]
     n_roi, n_stimcond = stim.shape[0], stim.shape[1]
@@ -527,7 +534,7 @@ def fdr_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, test='tt
 
 
 def classify_responses(ds, metric='Fzsc', framerate=None, alpha=0.05, baseline_sec=1.0,
-                       reduce='mean', onset_offset_sec=0.0, window_sec=None):
+                       reduce='mean', onset_offset_sec=0.0, window_sec=None, match_baseline_len=False):
     """Nested response classes with ``selective`` a strict subset of ``responsive``, by construction.
 
     A cell is RESPONSIVE if it shows ANY stimulus-driven modulation -- either it differs from baseline
@@ -543,7 +550,8 @@ def classify_responses(ds, metric='Fzsc', framerate=None, alpha=0.05, baseline_s
     ``p_responsive`` (omnibus) and ``p_selective`` (differentiation).
     """
     p_omni = anova_responsive(ds, metric, framerate=framerate, baseline_sec=baseline_sec,
-                              reduce=reduce, onset_offset_sec=onset_offset_sec, window_sec=window_sec)
+                              reduce=reduce, onset_offset_sec=onset_offset_sec, window_sec=window_sec,
+                              match_baseline_len=match_baseline_len)
     p_diff = anova_selective(ds, metric, reduce=reduce, framerate=framerate,
                              onset_offset_sec=onset_offset_sec, window_sec=window_sec)
     differentiates = (p_diff < alpha) & np.isfinite(p_diff)
