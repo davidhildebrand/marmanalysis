@@ -124,6 +124,65 @@ def gaze_gate(trial_recs, min_open=0.5, max_dev=None, ref=None):
     return np.array(keep), np.array(devs), np.asarray(ref, float)
 
 
+def stim_sample_mask(oc):
+    """Boolean per-AI-sample mask, True during stimulus windows (from the log's per-trial stim windows)."""
+    n = oc['ai'].shape[0]
+    f2a = acqfr_to_ai(oc['anchors'])
+    mask = np.zeros(n, bool)
+    for ph in oc['trials'].values():
+        s = ph.get('fixation end') or ph.get('ISI end')
+        e = ph.get('stim end')
+        if s and e:
+            i0, i1 = int(f2a(s[0])), int(f2a(e[0]))
+            if 0 <= i0 < i1 <= n:
+                mask[i0:i1] = True
+    return mask
+
+
+def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, bins=100,
+              eye_ch=EYE_CH, rail_v=RAIL_V):
+    """2D gaze-DENSITY panels (log-scaled histogram2d + median & 1-SD ellipse) for the requested subsets over
+    the whole session -- a vectorized, ~1e6-sample-friendly replacement for the per-trial scatter/KDE in
+    analysis_for_images.py. ``which`` selects any of 'all' (whole session), 'stim' (during stimulus),
+    'nonstim' (ISI/fixation). Signal-loss (railed/zeroed) samples are dropped. Returns the saved figure path.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Ellipse
+    from datetime import datetime, timezone
+
+    ai = oc['ai']
+    x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
+    good = ~lost_mask(ai, eye_ch, rail_v)
+    stim = stim_sample_mask(oc)
+    subs = {'all': good, 'stim': good & stim, 'nonstim': good & ~stim}
+    lab = {'all': 'all session', 'stim': 'during stimulus', 'nonstim': 'non-stimulus (ISI/fixation)'}
+    which = [w for w in which if w in subs]
+    xr = np.percentile(x[good], [0.5, 99.5])
+    yr = np.percentile(y[good], [0.5, 99.5])
+
+    fig, axes = plt.subplots(1, len(which), figsize=(4.3 * len(which), 4.4),
+                             squeeze=False, sharex=True, sharey=True)
+    for ax, w in zip(axes[0], which):
+        m = subs[w]
+        H, xe, ye = np.histogram2d(x[m], y[m], bins=bins, range=[xr, yr])
+        ax.imshow(np.log1p(H.T), origin='lower', extent=[xe[0], xe[-1], ye[0], ye[-1]],
+                  aspect='auto', cmap='magma')
+        mx, my = float(np.median(x[m])), float(np.median(y[m]))
+        ax.plot(mx, my, 'c+', ms=12, mew=2)
+        ax.add_patch(Ellipse((mx, my), 2 * np.std(x[m]), 2 * np.std(y[m]), fill=False, edgecolor='c', lw=1.5))
+        ax.set_title('%s\n%d samp (%.1f%%)' % (lab[w], int(m.sum()), 100 * m.mean()))
+        ax.set_xlabel('eye X (V)')
+    axes[0][0].set_ylabel('eye Y (V)')
+    fig.suptitle('gaze density (log color) — %s' % (tag or os.path.basename(oc.get('log_path', 'session'))))
+    os.makedirs(outdir, exist_ok=True)
+    p = os.path.join(outdir, 'gaze_%s_%s.png' % (tag or 'session',
+                     datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
+    fig.tight_layout()
+    fig.savefig(p, dpi=140)
+    plt.close(fig)
+    return p
+
+
 def _demo(session_path, outdir='output'):
     from datetime import datetime, timezone
     import matplotlib
@@ -162,6 +221,7 @@ def _demo(session_path, outdir='output'):
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
     fig.tight_layout(); fig.savefig(p, dpi=140); plt.close(fig)
     print('saved', p)
+    print('saved', plot_gaze(oc, tag=os.path.basename(session_path.rstrip('/'))[:24], outdir=outdir))
 
 
 if __name__ == '__main__':
