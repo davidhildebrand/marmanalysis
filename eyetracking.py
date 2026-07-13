@@ -183,6 +183,68 @@ def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, b
     return p
 
 
+def plot_gaze_kde(oc, outdir='output', tag=None, grid=100, n_sub=15000, seed=0, eye_ch=EYE_CH, rail_v=RAIL_V):
+    """Smooth gaze density (Gaussian KDE on a random subsample -- full ``gaussian_kde`` is O(N^2), infeasible
+    at ~1e6 samples) for DURING-STIM vs NON-STIM, plus their normalized DIFFERENCE map, to surface subtle
+    differences the raw histogram flattens. Also prints a quantitative stim-vs-nonstim dispersion comparison.
+    Returns the saved figure path."""
+    from scipy.stats import gaussian_kde
+    import matplotlib.pyplot as plt
+    from datetime import datetime, timezone
+
+    rng = np.random.default_rng(seed)
+    ai = oc['ai']
+    x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
+    good = ~lost_mask(ai, eye_ch, rail_v)
+    stim = stim_sample_mask(oc)
+    S, Nn = good & stim, good & ~stim
+    xr = np.percentile(x[good], [1, 99])
+    yr = np.percentile(y[good], [1, 99])
+    gx, gy = np.linspace(xr[0], xr[1], grid), np.linspace(yr[0], yr[1], grid)
+    GX, GY = np.meshgrid(gx, gy)
+    pts = np.vstack([GX.ravel(), GY.ravel()])
+
+    def kde(mask):
+        idx = np.where(mask)[0]
+        if idx.size > n_sub:
+            idx = rng.choice(idx, n_sub, replace=False)
+        d = gaussian_kde(np.vstack([x[idx], y[idx]]))(pts).reshape(GX.shape)
+        return d / d.sum()
+
+    dS, dN = kde(S), kde(Nn)
+    diff = dS - dN
+
+    def summ(mask):
+        mx, my = np.median(x[mask]), np.median(y[mask])
+        return mx, my, np.std(x[mask]), np.std(y[mask]), np.median(np.hypot(x[mask] - mx, y[mask] - my))
+    a, b = summ(S), summ(Nn)
+    print('  during-stim : median (%.3f, %.3f) V | SD (%.3f, %.3f) | median radial dev %.3f | n=%d'
+          % (a[0], a[1], a[2], a[3], a[4], int(S.sum())))
+    print('  non-stimulus: median (%.3f, %.3f) V | SD (%.3f, %.3f) | median radial dev %.3f | n=%d'
+          % (b[0], b[1], b[2], b[3], b[4], int(Nn.sum())))
+    print('  dispersion ratio stim/nonstim:  SDx %.2f  SDy %.2f  radial %.2f'
+          % (a[2] / b[2], a[3] / b[3], a[4] / b[4]))
+
+    fig, ax = plt.subplots(1, 3, figsize=(13, 4.3), sharex=True, sharey=True)
+    ext = [xr[0], xr[1], yr[0], yr[1]]
+    ax[0].imshow(dS, origin='lower', extent=ext, aspect='auto', cmap='magma'); ax[0].set_title('during stimulus (KDE)')
+    ax[1].imshow(dN, origin='lower', extent=ext, aspect='auto', cmap='magma'); ax[1].set_title('non-stimulus (KDE)')
+    v = float(np.abs(diff).max())
+    im = ax[2].imshow(diff, origin='lower', extent=ext, aspect='auto', cmap='RdBu_r', vmin=-v, vmax=v)
+    ax[2].set_title('stim − nonstim (Δdensity)'); fig.colorbar(im, ax=ax[2], fraction=0.046)
+    for a_ in ax:
+        a_.set_xlabel('eye X (V)')
+    ax[0].set_ylabel('eye Y (V)')
+    fig.suptitle('gaze KDE: stim vs non-stim — %s' % (tag or 'session'))
+    os.makedirs(outdir, exist_ok=True)
+    p = os.path.join(outdir, 'gaze_kde_%s_%s.png' % (tag or 'session',
+                     datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
+    fig.tight_layout()
+    fig.savefig(p, dpi=140)
+    plt.close(fig)
+    return p
+
+
 def _demo(session_path, outdir='output'):
     from datetime import datetime, timezone
     import matplotlib
