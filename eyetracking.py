@@ -7,15 +7,18 @@ piped to a DAQ, the shape any analog eye-tracker produces (EyeLoop for these ses
 identity is irrelevant to this reader). It is linked to the 2P acquisition frames via the stimulus log --
 which stamps every trial event with both ``acqfr`` and the running ``AI_data.shape`` (there is NO
 frame-trigger channel), so an (acqfr <-> AI-sample) interpolation aligns the continuous analog record to
-frames. Produces per-trial gaze + eyes-open fraction, a DATA-DRIVEN fixation reference (session-median gaze
-of eyes-open samples -- calibration is unreliable and fixation is not enforced), and a per-trial gate
-(eyes-closed / off-fixation).
+frames. Produces per-trial gaze + eyes-open fraction, per-phase sample masks (stim / fixation / ISI), gaze
+dispersion descriptors (BCEA + robust median-radial-dev), a DATA-DRIVEN on-target reference (stim-period
+median gaze -- the stimulus sits at the fixation location, and the stimulus is what concentrates gaze), and a
+per-trial gate (eyes-closed / off-fixation). An optional per-session calibration (a separate
+``*_EyeTrackingCalibration`` recording) gives a ROUGH voltage->degree scale via an affine fit -- gated by a
+quality check, since the grid is nonlinear + recorded well before the session (drift).
 
 Channels (this era): ch0, ch1 = eye X, Y; ch2-4 = accelerometer (usually unused). Signal loss / eyes-closed
 shows up as the DAQ rail (|v| ~ 9.5 V) and/or X,Y zeroed -- the signature varies by session, so both are
 treated as lost. A tracker-SPECIFIC log (e.g. EyeLoop ``datalog.json``, ``'b'`` = blink) is a cleaner source
-when present and would get its own reader (TODO; see [[eyetracking-data]]). NB: some calibration files carry
-a legacy ``'coarse oculomatic values'`` key -- a misnomer; the tracker was EyeLoop.
+when present and would get its own reader (TODO; see [[eyetracking-data]]). NB: the calibration voltage key is
+a legacy misnomer (``'coarse oculomatic values'``) -- the tracker was EyeLoop.
 """
 import glob
 import os
@@ -26,6 +29,13 @@ import numpy as np
 
 EYE_CH = (0, 1)     # eye X, Y channels (analog input; any tracker piped to the DAQ)
 RAIL_V = 9.0        # |v| above this = DAQ rail (signal loss)
+
+# Calibration usability gate (affine voltage->degree fit). The grid is ~+/-5 deg; drop to VOLTS-only if the
+# map folds, is too anisotropic, non-monotonic, or its residual is a large fraction of the grid half-range.
+CAL_COND_MAX = 4.0          # max deg/V axis-ratio (anisotropy) before untrustworthy
+CAL_MAX_INVERSIONS = 1      # allow at most this many non-monotonic grid edges
+CAL_RESID_FRAC_GOOD = 0.15  # residual < this fraction of grid half-range => 'good'
+CAL_RESID_FRAC_DROP = 0.50  # residual > this fraction => 'unusable' (report volts only)
 
 
 def _find(session_path, pat):
@@ -71,6 +81,38 @@ def acqfr_to_ai(anchors):
     return lambda f: np.interp(f, anchors[:, 0], anchors[:, 1])
 
 
+def phase_sample_masks(oc):
+    """Per-AI-sample boolean masks for the three trial phases, from the log's per-trial event stamps:
+    ``stim`` (stim start -> stim end), ``fixation`` (fixation start -> end), ``isi`` (ISI start -> fixation
+    start, i.e. the BLANK interval before the fixation spot -- the fixation spot occupies the ISI tail). Kept
+    separate on purpose: whether the fixation spot actually tightens gaze is session/animal-specific (in the
+    Cadbury images session it does NOT -- fixation looks like blank ISI; only the stimulus concentrates gaze).
+    Falls back gracefully for sessions lacking a fixation phase."""
+    n = oc['ai'].shape[0]
+    f2a = acqfr_to_ai(oc['anchors'])
+    masks = {k: np.zeros(n, bool) for k in ('stim', 'fixation', 'isi')}
+
+    def span(ph, a, b, name):
+        if a in ph and b in ph:
+            i0, i1 = int(f2a(ph[a][0])), int(f2a(ph[b][0]))
+            if 0 <= i0 < i1 <= n:
+                masks[name][i0:i1] = True
+
+    for ph in oc['trials'].values():
+        stim_start = 'stim start' if 'stim start' in ph else ('fixation end' if 'fixation end' in ph else 'ISI end')
+        span(ph, stim_start, 'stim end', 'stim')
+        span(ph, 'fixation start', 'fixation end', 'fixation')
+        isi_end = 'fixation start' if 'fixation start' in ph else ('ISI end' if 'ISI end' in ph else 'stim start')
+        span(ph, 'ISI start', isi_end, 'isi')
+    return masks
+
+
+def stim_sample_mask(oc):
+    """Boolean per-AI-sample mask, True during stimulus windows (convenience wrapper over
+    ``phase_sample_masks``)."""
+    return phase_sample_masks(oc)['stim']
+
+
 def _window_gaze(ai, lost, s0, s1, eye_ch):
     """(eyes_open_fraction, (mean_x, mean_y) over open samples) for AI-sample window [s0, s1)."""
     if s1 <= s0:
@@ -96,7 +138,7 @@ def trial_gaze(oc, eye_ch=EYE_CH, rail_v=RAIL_V):
             g = _window_gaze(ai, lost, int(f2a(ph['fixation start'][0])), int(f2a(ph['fixation end'][0])), eye_ch)
             if g:
                 rec['fixation_open'], rec['fixation_xy'] = g
-        stim_start = ph.get('fixation end') or ph.get('ISI end')
+        stim_start = ph.get('stim start') or ph.get('fixation end') or ph.get('ISI end')
         if stim_start and 'stim end' in ph:
             g = _window_gaze(ai, lost, int(f2a(stim_start[0])), int(f2a(ph['stim end'][0])), eye_ch)
             if g:
@@ -105,15 +147,39 @@ def trial_gaze(oc, eye_ch=EYE_CH, rail_v=RAIL_V):
     return out
 
 
+def bcea(x, y, p=0.68):
+    """Bivariate Contour Ellipse Area at probability ``p`` -- the standard eye-tracking fixation-stability
+    metric: the area of the covariance ellipse containing fraction ``p`` of samples,
+    ``-2 ln(1-p) * pi * sqrt(det Cov)``. Units = input units squared (V^2, or deg^2 after calibration)."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    if x.size < 3:
+        return float('nan')
+    C = np.cov(x, y)
+    return float(-2.0 * np.log(1 - p) * np.pi * np.sqrt(max(np.linalg.det(C), 0.0)))
+
+
+def dispersion_stats(x, y, p=0.68):
+    """Gaze-dispersion descriptors: robust ``median`` center, per-axis ``sd``, ``medrad`` (median radial
+    deviation from the median -- robust to look-away outliers), and ``bcea`` at probability ``p``. Lengths in
+    input units (V, or deg after calibration); ``bcea`` in units^2."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    mx, my = float(np.median(x)), float(np.median(y))
+    return {'median': (mx, my), 'sd': (float(x.std()), float(y.std())),
+            'medrad': float(np.median(np.hypot(x - mx, y - my))), 'bcea': bcea(x, y, p), 'n': int(x.size)}
+
+
 def gaze_gate(trial_recs, min_open=0.5, max_dev=None, ref=None):
-    """Per-trial gate + deviations. The reference gaze is data-driven: median of fixation_xy across trials if
-    fixation windows exist, else median of stim_xy (no calibration needed). A trial is KEPT if its stim-window
-    eyes-open fraction >= ``min_open`` and (if ``max_dev`` given) its stim gaze is within ``max_dev`` of the
-    reference. Returns (keep_mask, deviations, ref)."""
-    fix = np.array([r['fixation_xy'] for r in trial_recs if r.get('fixation_xy')], float)
+    """Per-trial gate + deviations. The on-target reference gaze is data-driven: median of per-trial STIM
+    gaze (the engaged, tightest gaze -- the stimulus sits at the fixation location and is what concentrates
+    gaze), falling back to fixation-window gaze only if no stim gaze exists. A trial is KEPT if its stim-window
+    eyes-open fraction >= ``min_open`` (i.e. eyes open for at least that fraction of the stim period) AND (if
+    ``max_dev`` given, in the same units as the gaze, i.e. volts) its mean stim gaze is within ``max_dev`` of
+    the reference. Returns (keep_mask, deviations, ref)."""
     stim = np.array([r['stim_xy'] for r in trial_recs if r.get('stim_xy')], float)
+    fix = np.array([r['fixation_xy'] for r in trial_recs if r.get('fixation_xy')], float)
     if ref is None:
-        ref = np.median(fix, axis=0) if len(fix) else (np.median(stim, axis=0) if len(stim) else np.array([np.nan, np.nan]))
+        ref = (np.median(stim, axis=0) if len(stim)
+               else (np.median(fix, axis=0) if len(fix) else np.array([np.nan, np.nan])))
     keep, devs = [], []
     for r in trial_recs:
         s = r.get('stim_xy')
@@ -124,19 +190,63 @@ def gaze_gate(trial_recs, min_open=0.5, max_dev=None, ref=None):
     return np.array(keep), np.array(devs), np.asarray(ref, float)
 
 
-def stim_sample_mask(oc):
-    """Boolean per-AI-sample mask, True during stimulus windows (from the log's per-trial stim windows)."""
-    n = oc['ai'].shape[0]
-    f2a = acqfr_to_ai(oc['anchors'])
-    mask = np.zeros(n, bool)
-    for ph in oc['trials'].values():
-        s = ph.get('fixation end') or ph.get('ISI end')
-        e = ph.get('stim end')
-        if s and e:
-            i0, i1 = int(f2a(s[0])), int(f2a(e[0]))
-            if 0 <= i0 < i1 <= n:
-                mask[i0:i1] = True
-    return mask
+def load_calibration(session_path, cal_glob='*EyeTrackingCalibration*/*calibration.p'):
+    """Load a session's eye-tracking calibration (a separate ``*_EyeTrackingCalibration`` recording, typically
+    in the SAME date dir as the session). Returns {``positions`` (k,2) screen deg, ``volts`` (k,2) eye V,
+    ``accel_baseline``, ``path``} or None if absent. The voltage key is a legacy misnomer ('coarse oculomatic
+    values') -- the tracker was EyeLoop."""
+    base = os.path.dirname(session_path.rstrip('/'))
+    hits = sorted(glob.glob(os.path.join(base, cal_glob)))
+    if not hits:
+        return None
+    cal = pickle.load(open(hits[0], 'rb'))
+    return {'positions': np.asarray(cal['calibration positions'], float),
+            'volts': np.asarray(cal['coarse oculomatic values'], float),
+            'accel_baseline': np.asarray(cal.get('accelerometer baseline', []), float),
+            'path': hits[0]}
+
+
+def fit_calibration(cal, grid_half_deg=None):
+    """Least-squares AFFINE eye-voltage -> screen-degree map from the calibration grid. Returns ``M`` (2x2
+    deg/V Jacobian), ``offset``, residuals, ``deg_per_v`` (isotropic = sqrt|det M|) + ``deg_per_v_principal``
+    (the two singular values), plus a ``quality`` verdict in {'good','rough','unusable'} and a ``reliable``
+    bool. Marmoset grids are typically nonlinear (recorded well before the session, animals untrained on
+    fixation), so the map is at best a ROUGH scale -- 'unusable' means report VOLTS only, no degrees."""
+    pos, volt = cal['positions'], cal['volts']
+    A = np.hstack([volt, np.ones((len(volt), 1))])
+    coef, *_ = np.linalg.lstsq(A, pos, rcond=None)
+    M, offset = coef[:2], coef[2]
+    resid = np.hypot(*(A @ coef - pos).T)
+    detM = float(np.linalg.det(M))
+    sv = np.linalg.svd(M, compute_uv=False)
+    cond = float(sv[0] / sv[1]) if sv[1] > 0 else np.inf
+    inv = 0                                        # grid monotonicity: volt-X up along deg-X rows, volt-Y up along deg-Y cols
+    for row in np.unique(pos[:, 1]):
+        m = pos[:, 1] == row
+        inv += int(np.any(np.diff(volt[m, 0][np.argsort(pos[m, 0])]) <= 0))
+    for col in np.unique(pos[:, 0]):
+        m = pos[:, 0] == col
+        inv += int(np.any(np.diff(volt[m, 1][np.argsort(pos[m, 1])]) <= 0))
+    half = grid_half_deg or float(np.abs(pos).max())
+    resid_frac = float(resid.mean() / half)
+    if detM <= 0 or cond > CAL_COND_MAX or inv > CAL_MAX_INVERSIONS or resid_frac > CAL_RESID_FRAC_DROP:
+        quality = 'unusable'
+    elif resid_frac < CAL_RESID_FRAC_GOOD and inv == 0 and cond < 2:
+        quality = 'good'
+    else:
+        quality = 'rough'
+    return {'M': M, 'offset': offset, 'resid_mean': float(resid.mean()), 'resid_max': float(resid.max()),
+            'deg_per_v': float(np.sqrt(abs(detM))), 'deg_per_v_principal': sv, 'cond': cond,
+            'n_inversions': int(inv), 'resid_frac': resid_frac, 'quality': quality,
+            'reliable': quality != 'unusable',
+            'reason': 'det=%.2f cond=%.1f inversions=%d resid=%.0f%%grid' % (detM, cond, inv, 100 * resid_frac)}
+
+
+def volts_to_deg(fc, xy):
+    """Map eye voltage(s) to screen degrees with a fitted affine calibration (``fit_calibration`` result).
+    ``xy`` is (2,) or (n, 2). Returns the same shape. Meaningful only when ``fc['reliable']``."""
+    xy = np.atleast_2d(np.asarray(xy, float))
+    return np.squeeze(xy @ fc['M'] + fc['offset'])
 
 
 def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, bins=100,
@@ -183,61 +293,75 @@ def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, b
     return p
 
 
-def plot_gaze_kde(oc, outdir='output', tag=None, grid=100, n_sub=15000, seed=0, eye_ch=EYE_CH, rail_v=RAIL_V):
-    """Smooth gaze density (Gaussian KDE on a random subsample -- full ``gaussian_kde`` is O(N^2), infeasible
-    at ~1e6 samples) for DURING-STIM vs NON-STIM, plus their normalized DIFFERENCE map, to surface subtle
-    differences the raw histogram flattens. Also prints a quantitative stim-vs-nonstim dispersion comparison.
-    Returns the saved figure path."""
+def plot_gaze_phases(oc, subsets=('stim', 'fixation', 'isi'),
+                     diffs=(('stim', 'isi'), ('fixation', 'isi'), ('stim', 'fixation')),
+                     outdir='output', tag=None, grid=100, n_sub=15000, seed=0, eye_ch=EYE_CH, rail_v=RAIL_V):
+    """Per-phase gaze KDE (top row, each with its 68% BCEA ellipse + median marker) and pairwise normalized
+    density DIFFERENCES (bottom row), to reveal how gaze concentration differs by trial phase -- differences
+    the raw histogram flattens. KDE is on a random subsample (full ``gaussian_kde`` is O(N^2), infeasible at
+    ~1e6 samples). Also prints the per-phase dispersion table (medRad + BCEA). Returns the saved figure path.
+    """
     from scipy.stats import gaussian_kde
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Ellipse
     from datetime import datetime, timezone
 
     rng = np.random.default_rng(seed)
     ai = oc['ai']
     x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
     good = ~lost_mask(ai, eye_ch, rail_v)
-    stim = stim_sample_mask(oc)
-    S, Nn = good & stim, good & ~stim
+    masks = {k: v & good for k, v in phase_sample_masks(oc).items() if k in subsets}
     xr = np.percentile(x[good], [1, 99])
     yr = np.percentile(y[good], [1, 99])
     gx, gy = np.linspace(xr[0], xr[1], grid), np.linspace(yr[0], yr[1], grid)
     GX, GY = np.meshgrid(gx, gy)
     pts = np.vstack([GX.ravel(), GY.ravel()])
 
-    def kde(mask):
-        idx = np.where(mask)[0]
+    def kde(m):
+        idx = np.where(m)[0]
         if idx.size > n_sub:
             idx = rng.choice(idx, n_sub, replace=False)
         d = gaussian_kde(np.vstack([x[idx], y[idx]]))(pts).reshape(GX.shape)
         return d / d.sum()
 
-    dS, dN = kde(S), kde(Nn)
-    diff = dS - dN
+    dens = {k: kde(masks[k]) for k in subsets}
+    ds = {k: dispersion_stats(x[masks[k]], y[masks[k]]) for k in subsets}
+    print('  per-phase gaze dispersion (eyes-open samples):')
+    for k in subsets:
+        s = ds[k]
+        print('    %-9s medRad %.3f V | BCEA68 %.3f V^2 | median (%.3f, %.3f) | n=%d'
+              % (k, s['medrad'], s['bcea'], s['median'][0], s['median'][1], s['n']))
 
-    def summ(mask):
-        mx, my = np.median(x[mask]), np.median(y[mask])
-        return mx, my, np.std(x[mask]), np.std(y[mask]), np.median(np.hypot(x[mask] - mx, y[mask] - my))
-    a, b = summ(S), summ(Nn)
-    print('  during-stim : median (%.3f, %.3f) V | SD (%.3f, %.3f) | median radial dev %.3f | n=%d'
-          % (a[0], a[1], a[2], a[3], a[4], int(S.sum())))
-    print('  non-stimulus: median (%.3f, %.3f) V | SD (%.3f, %.3f) | median radial dev %.3f | n=%d'
-          % (b[0], b[1], b[2], b[3], b[4], int(Nn.sum())))
-    print('  dispersion ratio stim/nonstim:  SDx %.2f  SDy %.2f  radial %.2f'
-          % (a[2] / b[2], a[3] / b[3], a[4] / b[4]))
-
-    fig, ax = plt.subplots(1, 3, figsize=(13, 4.3), sharex=True, sharey=True)
     ext = [xr[0], xr[1], yr[0], yr[1]]
-    ax[0].imshow(dS, origin='lower', extent=ext, aspect='auto', cmap='magma'); ax[0].set_title('during stimulus (KDE)')
-    ax[1].imshow(dN, origin='lower', extent=ext, aspect='auto', cmap='magma'); ax[1].set_title('non-stimulus (KDE)')
-    v = float(np.abs(diff).max())
-    im = ax[2].imshow(diff, origin='lower', extent=ext, aspect='auto', cmap='RdBu_r', vmin=-v, vmax=v)
-    ax[2].set_title('stim − nonstim (Δdensity)'); fig.colorbar(im, ax=ax[2], fraction=0.046)
-    for a_ in ax:
+    ncol = max(len(subsets), len(diffs))
+    fig, ax = plt.subplots(2, ncol, figsize=(4.4 * ncol, 8.6), squeeze=False, sharex=True, sharey=True)
+    for a_ in ax.ravel():
+        a_.set_visible(False)
+    for j, k in enumerate(subsets):
+        a_ = ax[0, j]; a_.set_visible(True)
+        a_.imshow(dens[k], origin='lower', extent=ext, aspect='auto', cmap='magma')
+        s = ds[k]
+        C = np.cov(x[masks[k]], y[masks[k]])
+        vals, vecs = np.linalg.eigh(C)
+        o = vals.argsort()[::-1]; vals, vecs = vals[o], vecs[:, o]
+        ang = np.degrees(np.arctan2(vecs[1, 0], vecs[0, 0]))
+        w, h = 2 * np.sqrt(vals * (-2 * np.log(1 - 0.68)))
+        a_.add_patch(Ellipse(s['median'], w, h, angle=ang, fill=False, edgecolor='c', lw=1.6))
+        a_.plot(*s['median'], 'c+', ms=11, mew=2)
+        a_.set_title('%s (KDE)\nmedRad %.2f V | BCEA68 %.2f' % (k, s['medrad'], s['bcea']))
+        a_.set_ylabel('eye Y (V)')
+    for j, (aN, bN) in enumerate(diffs):
+        a_ = ax[1, j]; a_.set_visible(True)
+        dd = dens[aN] - dens[bN]
+        v = float(np.abs(dd).max())
+        im = a_.imshow(dd, origin='lower', extent=ext, aspect='auto', cmap='RdBu_r', vmin=-v, vmax=v)
+        a_.set_title('%s − %s (Δdensity)' % (aN, bN))
         a_.set_xlabel('eye X (V)')
-    ax[0].set_ylabel('eye Y (V)')
-    fig.suptitle('gaze KDE: stim vs non-stim — %s' % (tag or 'session'))
+        fig.colorbar(im, ax=a_, fraction=0.046)
+    ax[1, 0].set_ylabel('eye Y (V)')
+    fig.suptitle('gaze by trial phase — %s' % (tag or 'session'))
     os.makedirs(outdir, exist_ok=True)
-    p = os.path.join(outdir, 'gaze_kde_%s_%s.png' % (tag or 'session',
+    p = os.path.join(outdir, 'gaze_phases_%s_%s.png' % (tag or 'session',
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
     fig.tight_layout()
     fig.savefig(p, dpi=140)
@@ -266,16 +390,31 @@ def _demo(session_path, outdir='output'):
           % (len(recs), int(np.isfinite(stim_open).sum()), sum('fixation_xy' in r for r in recs)))
     print('per-trial stim eyes-open: median %.3f | frac trials <0.5 open: %.3f'
           % (np.nanmedian(stim_open), np.nanmean(stim_open < 0.5)))
-    print('data-driven gaze reference (eye V): (%.3f, %.3f)' % (ref[0], ref[1]))
+    print('data-driven gaze reference (stim-median, eye V): (%.3f, %.3f)' % (ref[0], ref[1]))
     print('stim gaze deviation from ref (V): median %.3f | p90 %.3f' % (np.nanmedian(devs), np.nanpercentile(devs, 90)))
     print('gate keep (min_open=0.5): %d / %d (%.1f%%)' % (keep.sum(), len(keep), 100 * keep.mean()))
+
+    masks = phase_sample_masks(oc)
+    for k in ('stim', 'fixation', 'isi'):
+        m = masks[k] & ~lost
+        if m.any():
+            s = dispersion_stats(ai[m, 0], ai[m, 1])
+            print('  %-9s dispersion: medRad %.3f V | BCEA68 %.3f V^2 | n=%d' % (k, s['medrad'], s['bcea'], s['n']))
+    cal = load_calibration(session_path)
+    if cal is not None:
+        fc = fit_calibration(cal)
+        print('calibration: quality=%s (%s) | ~%.2f deg/V (%.2f & %.2f principal) | resid %.2f deg'
+              % (fc['quality'], fc['reason'], fc['deg_per_v'], fc['deg_per_v_principal'][0],
+                 fc['deg_per_v_principal'][1], fc['resid_mean']))
+    else:
+        print('calibration: none found')
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 4.2))
     ax[0].hist(stim_open[np.isfinite(stim_open)], bins=20, color='C0')
     ax[0].axvline(0.5, color='r', ls='--'); ax[0].set_xlabel('per-trial eyes-open fraction'); ax[0].set_ylabel('trials')
     sx = np.array([r['stim_xy'] for r in recs if r.get('stim_xy')], float)
     sc = ax[1].scatter(sx[:, 0], sx[:, 1], c=[r['stim_open'] for r in recs if r.get('stim_xy')], cmap='viridis', s=12)
-    ax[1].plot(ref[0], ref[1], 'r+', ms=15, mew=2, label='data-driven ref')
+    ax[1].plot(ref[0], ref[1], 'r+', ms=15, mew=2, label='stim-median ref')
     ax[1].set_xlabel('eye X (V)'); ax[1].set_ylabel('eye Y (V)'); ax[1].legend(fontsize=8); fig.colorbar(sc, ax=ax[1], label='eyes-open')
     fig.suptitle('eye-AI gaze — %s' % os.path.basename(session_path.rstrip('/'))[:44])
     os.makedirs(outdir, exist_ok=True)
@@ -283,7 +422,9 @@ def _demo(session_path, outdir='output'):
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
     fig.tight_layout(); fig.savefig(p, dpi=140); plt.close(fig)
     print('saved', p)
-    print('saved', plot_gaze(oc, tag=os.path.basename(session_path.rstrip('/'))[:24], outdir=outdir))
+    tag = os.path.basename(session_path.rstrip('/'))[:24]
+    print('saved', plot_gaze(oc, tag=tag, outdir=outdir))
+    print('saved', plot_gaze_phases(oc, tag=tag, outdir=outdir))
 
 
 if __name__ == '__main__':
