@@ -45,13 +45,15 @@ def _find(session_path, pat):
 
 def load_eye_ai(session_path):
     """Load analog eye data + parse the stimulus log. Returns dict: ``ai`` (n_samp, n_ch); ``anchors`` (k, 2)
-    [acqfr, ai_sample] from the log's per-event stamps; ``trials`` {trial: {phase: (acqfr, ai_sample)}}."""
+    [acqfr, ai_sample] from the log's per-event stamps; ``trials`` {trial: {phase: (acqfr, ai_sample)}};
+    ``stim_pos`` {trial: (deg_x, deg_y)} = the stimulus screen position parsed from each 'stim start' line
+    (enables task-based calibration anchors -- see ``stim_gaze_anchors``)."""
     aip = _find(session_path, '*_AIdata.p')
     logp = _find(session_path, '*Stimulus*.log')
     if aip is None or logp is None:
         raise FileNotFoundError('need *_AIdata.p and a stimulus *.log in %s' % session_path)
     ai = np.asarray(pickle.load(open(aip, 'rb')), float)
-    anchors, trials = [], {}
+    anchors, trials, stim_pos = [], {}, {}
     ev = re.compile(r'trial (\d+)/\d+, ([^,]+),')
     for line in open(logp):
         m = ev.search(line)
@@ -64,10 +66,14 @@ def load_eye_ai(session_path):
         tr, ph, acqfr, nai = int(m.group(1)), m.group(2).strip(), int(a.group(1)), int(s.group(1))
         anchors.append((acqfr, nai))
         trials.setdefault(tr, {})[ph] = (acqfr, nai)
+        if ph == 'stim start':
+            pm = re.search(r'pos=[\(\[]\s*([-\d.eE]+)[,\s]+\s*([-\d.eE]+)', line)
+            if pm:
+                stim_pos[tr] = (float(pm.group(1)), float(pm.group(2)))
     if not anchors:
         raise ValueError('no (acqfr, AI_data.shape) anchors parsed from %s' % logp)
     return {'ai': ai, 'anchors': np.array(sorted(set(anchors)), float), 'trials': trials,
-            'ai_path': aip, 'log_path': logp}
+            'stim_pos': stim_pos, 'ai_path': aip, 'log_path': logp}
 
 
 def lost_mask(ai, eye_ch=EYE_CH, rail_v=RAIL_V):
@@ -168,6 +174,72 @@ def dispersion_stats(x, y, p=0.68):
             'medrad': float(np.median(np.hypot(x - mx, y - my))), 'bcea': bcea(x, y, p), 'n': int(x.size)}
 
 
+def kde_peak(x, y, grid=140, n_sub=25000, seed=0):
+    """2D density MODE: the (x, y) maximizing a Gaussian KDE on a grid. Robust 'where they looked most'
+    estimate -- sparse but concentrated fixations form a peak while wandering stays diffuse, so the mode
+    recovers the target even when the animal only occasionally looks at it (unlike mean/median, which the
+    wandering pulls off-target). Split-half stable to ~0.03 V on the Cadbury stim epoch. Subsamples for
+    tractability. Returns (px, py)."""
+    from scipy.stats import gaussian_kde
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(x.size, n_sub, replace=False) if x.size > n_sub else np.arange(x.size)
+    k = gaussian_kde(np.vstack([x[idx], y[idx]]))
+    xr, yr = np.percentile(x, [1, 99]), np.percentile(y, [1, 99])
+    GX, GY = np.meshgrid(np.linspace(xr[0], xr[1], grid), np.linspace(yr[0], yr[1], grid))
+    d = k(np.vstack([GX.ravel(), GY.ravel()]))
+    i = int(d.argmax())
+    return float(GX.ravel()[i]), float(GY.ravel()[i])
+
+
+def stim_reference(oc, reduce='peak', eye_ch=EYE_CH, rail_v=RAIL_V):
+    """Data-driven on-target gaze reference: the KDE mode (``reduce='peak'``, default) or median of pooled
+    eyes-open gaze over ALL stim windows -- 'where the animal looked when looking at the stimulus'. The mode
+    is preferred: it locks onto the (sparse but concentrated) fixation cluster and ignores wandering, and is
+    far more reliable than the poorly-participated formal calibration. Returns (vx, vy)."""
+    ai = oc['ai']
+    stim = phase_sample_masks(oc)['stim'] & ~lost_mask(ai, eye_ch, rail_v)
+    xs, ys = ai[stim, eye_ch[0]], ai[stim, eye_ch[1]]
+    if xs.size < 10:
+        return np.array([np.nan, np.nan])
+    return np.asarray(kde_peak(xs, ys) if reduce == 'peak' else (np.median(xs), np.median(ys)), float)
+
+
+def stim_gaze_anchors(oc, reduce='peak', min_samples=1000, conc_radius=1.0, eye_ch=EYE_CH, rail_v=RAIL_V):
+    """Task-based calibration anchors: for each DISTINCT stimulus screen position, the eye-voltage where the
+    animal looked at it (KDE mode by default), plus a quality score. Because the stimulus -- unlike a bare
+    calibration dot -- motivates a poorly-trained animal to look, these anchors beat the formal grid; for a
+    multi-position session they can build a calibration outright, and for a single-position session (e.g.
+    images at 0,0) they yield ONE anchor (the (0,0) supplement). Quality: ``n`` eyes-open samples and ``conc``
+    = fraction within ``conc_radius`` V of the estimate (peak sharpness / participation rate). Returns a list
+    of {'pos_deg', 'volt', 'n', 'conc'} sorted by decreasing ``conc``."""
+    ai = oc['ai']
+    x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
+    lost = lost_mask(ai, eye_ch, rail_v)
+    f2a = acqfr_to_ai(oc['anchors'])
+    by_pos = {}
+    for tr, ph in oc['trials'].items():
+        pos = oc.get('stim_pos', {}).get(tr)
+        s = ph.get('stim start') or ph.get('fixation end') or ph.get('ISI end')
+        e = ph.get('stim end')
+        if pos is None or not (s and e):
+            continue
+        i0, i1 = int(f2a(s[0])), int(f2a(e[0]))
+        ok = ~lost[i0:i1]
+        if ok.any():
+            by_pos.setdefault(pos, []).append((x[i0:i1][ok], y[i0:i1][ok]))
+    out = []
+    for pos, chunks in by_pos.items():
+        gx = np.concatenate([c[0] for c in chunks])
+        gy = np.concatenate([c[1] for c in chunks])
+        if gx.size < min_samples:
+            continue
+        v = kde_peak(gx, gy) if reduce == 'peak' else (float(np.median(gx)), float(np.median(gy)))
+        conc = float((np.hypot(gx - v[0], gy - v[1]) < conc_radius).mean())
+        out.append({'pos_deg': pos, 'volt': (float(v[0]), float(v[1])), 'n': int(gx.size), 'conc': conc})
+    return sorted(out, key=lambda a: -a['conc'])
+
+
 def gaze_gate(trial_recs, min_open=0.5, max_dev=None, ref=None):
     """Per-trial gate + deviations. The on-target reference gaze is data-driven: median of per-trial STIM
     gaze (the engaged, tightest gaze -- the stimulus sits at the fixation location and is what concentrates
@@ -206,29 +278,47 @@ def load_calibration(session_path, cal_glob='*EyeTrackingCalibration*/*calibrati
             'path': hits[0]}
 
 
-def fit_calibration(cal, grid_half_deg=None):
-    """Least-squares AFFINE eye-voltage -> screen-degree map from the calibration grid. Returns ``M`` (2x2
-    deg/V Jacobian), ``offset``, residuals, ``deg_per_v`` (isotropic = sqrt|det M|) + ``deg_per_v_principal``
-    (the two singular values), plus a ``quality`` verdict in {'good','rough','unusable'} and a ``reliable``
-    bool. Marmoset grids are typically nonlinear (recorded well before the session, animals untrained on
-    fixation), so the map is at best a ROUGH scale -- 'unusable' means report VOLTS only, no degrees."""
-    pos, volt = cal['positions'], cal['volts']
+def fit_calibration(cal, extra_anchors=None, drop=None, weights=None, grid_half_deg=None):
+    """Least-squares AFFINE eye-voltage -> screen-degree map. Optionally SUPPLEMENT the formal grid with
+    task-derived ``extra_anchors`` (from ``stim_gaze_anchors`` -- any stimulus position, not just 0,0; each
+    may carry a 'weight'), DROP unreliable grid positions (``drop`` = list of (deg_x, deg_y), e.g. the
+    zero-completion targets from ``calibration_point_quality``), and/or ``weights`` the formal points. Returns
+    ``M`` (2x2 deg/V), ``offset``, residuals, ``deg_per_v`` (+ principal), ``n_points``, a ``quality`` verdict
+    {'good','rough','unusable'} and ``reliable`` bool. Marmoset grids are typically nonlinear/poorly
+    participated -> at best a ROUGH scale; 'unusable' => report VOLTS only, no degrees."""
+    pos = [tuple(map(float, p)) for p in cal['positions']]
+    volt = [tuple(map(float, v)) for v in cal['volts']]
+    w = list(weights) if weights is not None else [1.0] * len(pos)
+    if drop:
+        drop = {tuple(map(float, d)) for d in drop}
+        keep = [i for i, p in enumerate(pos) if p not in drop]
+        pos, volt, w = [pos[i] for i in keep], [volt[i] for i in keep], [w[i] for i in keep]
+    for a in (extra_anchors or []):
+        pos.append(tuple(map(float, a['pos_deg'])))
+        volt.append(tuple(map(float, a['volt'])))
+        w.append(float(a.get('weight', 1.0)))
+    pos, volt, w = np.array(pos, float), np.array(volt, float), np.array(w, float)
     A = np.hstack([volt, np.ones((len(volt), 1))])
-    coef, *_ = np.linalg.lstsq(A, pos, rcond=None)
+    sw = np.sqrt(w)[:, None]
+    coef, *_ = np.linalg.lstsq(A * sw, pos * sw, rcond=None)
     M, offset = coef[:2], coef[2]
     resid = np.hypot(*(A @ coef - pos).T)
     detM = float(np.linalg.det(M))
     sv = np.linalg.svd(M, compute_uv=False)
     cond = float(sv[0] / sv[1]) if sv[1] > 0 else np.inf
+    upos, ui = np.unique(pos, axis=0, return_inverse=True)   # aggregate duplicate positions (e.g. a task anchor
+    uvolt = np.array([volt[ui == k].mean(0) for k in range(len(upos))])  # colliding with a grid point) for monotonicity
     inv = 0                                        # grid monotonicity: volt-X up along deg-X rows, volt-Y up along deg-Y cols
-    for row in np.unique(pos[:, 1]):
-        m = pos[:, 1] == row
-        inv += int(np.any(np.diff(volt[m, 0][np.argsort(pos[m, 0])]) <= 0))
-    for col in np.unique(pos[:, 0]):
-        m = pos[:, 0] == col
-        inv += int(np.any(np.diff(volt[m, 1][np.argsort(pos[m, 1])]) <= 0))
+    for row in np.unique(upos[:, 1]):
+        m = upos[:, 1] == row
+        if m.sum() > 1:
+            inv += int(np.any(np.diff(uvolt[m, 0][np.argsort(upos[m, 0])]) <= 0))
+    for col in np.unique(upos[:, 0]):
+        m = upos[:, 0] == col
+        if m.sum() > 1:
+            inv += int(np.any(np.diff(uvolt[m, 1][np.argsort(upos[m, 1])]) <= 0))
     half = grid_half_deg or float(np.abs(pos).max())
-    resid_frac = float(resid.mean() / half)
+    resid_frac = float(resid.mean() / half) if half else np.inf
     if detM <= 0 or cond > CAL_COND_MAX or inv > CAL_MAX_INVERSIONS or resid_frac > CAL_RESID_FRAC_DROP:
         quality = 'unusable'
     elif resid_frac < CAL_RESID_FRAC_GOOD and inv == 0 and cond < 2:
@@ -237,9 +327,9 @@ def fit_calibration(cal, grid_half_deg=None):
         quality = 'rough'
     return {'M': M, 'offset': offset, 'resid_mean': float(resid.mean()), 'resid_max': float(resid.max()),
             'deg_per_v': float(np.sqrt(abs(detM))), 'deg_per_v_principal': sv, 'cond': cond,
-            'n_inversions': int(inv), 'resid_frac': resid_frac, 'quality': quality,
+            'n_points': int(len(pos)), 'n_inversions': int(inv), 'resid_frac': resid_frac, 'quality': quality,
             'reliable': quality != 'unusable',
-            'reason': 'det=%.2f cond=%.1f inversions=%d resid=%.0f%%grid' % (detM, cond, inv, 100 * resid_frac)}
+            'reason': 'n=%d det=%.2f cond=%.1f inv=%d resid=%.0f%%grid' % (len(pos), detM, cond, inv, 100 * resid_frac)}
 
 
 def volts_to_deg(fc, xy):
@@ -247,6 +337,56 @@ def volts_to_deg(fc, xy):
     ``xy`` is (2,) or (n, 2). Returns the same shape. Meaningful only when ``fc['reliable']``."""
     xy = np.atleast_2d(np.asarray(xy, float))
     return np.squeeze(xy @ fc['M'] + fc['offset'])
+
+
+def calibration_point_quality(session_path, cal_glob='*EyeTrackingCalibration*/*.log'):
+    """Per-target quality of the FORMAL calibration, parsed from the calibration session's grid-target phase
+    (``grid target fixation start / completed`` per ``grid_target.pos``): fixations COMPLETED, RESTARTS, and
+    the eye-voltage + dispersion of the successful holds. Poorly-trained animals leave many targets with 0
+    completions / many restarts (esp. the periphery they won't saccade to) -- feed the zero-completion
+    positions to ``fit_calibration(drop=...)``. Returns {pos_deg: {'n','done','restart','volt_hold','medrad'}}
+    or {} if no calibration log is found."""
+    base = os.path.dirname(session_path.rstrip('/'))
+    logs = [l for l in glob.glob(os.path.join(base, cal_glob)) if 'disptimes' not in l]
+    if not logs:
+        return {}
+    aip = glob.glob(os.path.join(os.path.dirname(logs[0]), '*_AIdata.p'))
+    ai = np.asarray(pickle.load(open(aip[0], 'rb')), float) if aip else None
+    lost = lost_mask(ai) if ai is not None else None
+    rx = re.compile(r'grid target trial (\d+), grid target ([a-z ]+?), grid_target\.pos = '
+                    r'\[\s*([-\d.]+)\s+([-\d.]+)\], AI_data\.shape = \((\d+)')
+    trials = {}
+    for line in open(logs[0]):
+        m = rx.search(line)
+        if not m:
+            continue
+        tr, ev = int(m.group(1)), m.group(2).strip()
+        p, s = (float(m.group(3)), float(m.group(4))), int(m.group(5))
+        d = trials.setdefault(tr, {'pos': p, 'fix': [], 'done': None})
+        if ev == 'fixation start':
+            d['fix'].append(s)
+        elif ev == 'fixation completed':
+            d['done'] = s
+    out, holds = {}, {}
+    for d in trials.values():
+        p = d['pos']
+        q = out.setdefault(p, {'n': 0, 'done': 0, 'restart': 0})
+        q['n'] += 1
+        q['restart'] += max(0, len(d['fix']) - 1)
+        if d['done'] and d['fix'] and ai is not None:
+            q['done'] += 1
+            s0 = max([f for f in d['fix'] if f <= d['done']] or [d['fix'][0]])
+            g = ai[s0:d['done'], :2][~lost[s0:d['done']]]
+            if len(g) >= 5:
+                holds.setdefault(p, []).append(g)
+    for p, q in out.items():
+        if p in holds:
+            g = np.vstack(holds[p])
+            mx, my = float(np.median(g[:, 0])), float(np.median(g[:, 1]))
+            q['volt_hold'], q['medrad'] = (mx, my), float(np.median(np.hypot(g[:, 0] - mx, g[:, 1] - my)))
+        else:
+            q['volt_hold'], q['medrad'] = None, None
+    return out
 
 
 def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, bins=100,
@@ -380,7 +520,8 @@ def _demo(session_path, outdir='output'):
     ai_per_fr = np.polyfit(anchors[:, 0], anchors[:, 1], 1)[0]
     lost = lost_mask(ai)
     recs = trial_gaze(oc)
-    keep, devs, ref = gaze_gate(recs, min_open=0.5)
+    ref = stim_reference(oc, reduce='peak')
+    keep, devs, ref = gaze_gate(recs, min_open=0.5, ref=ref)
     stim_open = np.array([r.get('stim_open', np.nan) for r in recs], float)
 
     print('session   :', os.path.basename(session_path.rstrip('/'))[:60])
@@ -390,7 +531,7 @@ def _demo(session_path, outdir='output'):
           % (len(recs), int(np.isfinite(stim_open).sum()), sum('fixation_xy' in r for r in recs)))
     print('per-trial stim eyes-open: median %.3f | frac trials <0.5 open: %.3f'
           % (np.nanmedian(stim_open), np.nanmean(stim_open < 0.5)))
-    print('data-driven gaze reference (stim-median, eye V): (%.3f, %.3f)' % (ref[0], ref[1]))
+    print('data-driven gaze reference (stim KDE-peak, eye V): (%.3f, %.3f)' % (ref[0], ref[1]))
     print('stim gaze deviation from ref (V): median %.3f | p90 %.3f' % (np.nanmedian(devs), np.nanpercentile(devs, 90)))
     print('gate keep (min_open=0.5): %d / %d (%.1f%%)' % (keep.sum(), len(keep), 100 * keep.mean()))
 
@@ -408,6 +549,17 @@ def _demo(session_path, outdir='output'):
                  fc['deg_per_v_principal'][1], fc['resid_mean']))
     else:
         print('calibration: none found')
+    anchors = stim_gaze_anchors(oc)
+    if anchors:
+        a0 = anchors[0]
+        print('stim-gaze anchors: %d position(s) | best pos=%s volt=(%.3f, %.3f) conc=%.2f n=%d'
+              % (len(anchors), a0['pos_deg'], a0['volt'][0], a0['volt'][1], a0['conc'], a0['n']))
+        if cal is not None:
+            fq = calibration_point_quality(session_path)
+            drop = [p for p, qq in fq.items() if qq['done'] == 0] + [a['pos_deg'] for a in anchors]
+            fc2 = fit_calibration(cal, extra_anchors=anchors, drop=drop)
+            print('  + supplement/clean fit: quality=%s | ~%.2f deg/V | resid %.2f deg (dropped %d, +%d anchors)'
+                  % (fc2['quality'], fc2['deg_per_v'], fc2['resid_mean'], len(drop), len(anchors)))
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 4.2))
     ax[0].hist(stim_open[np.isfinite(stim_open)], bins=20, color='C0')
