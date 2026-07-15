@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Gaze / eye-tracking gating from the analog eye-tracker (DAQ) record.
+"""Eye-position gating from the analog eye-tracker (DAQ) record.
 
 The per-session ``*_AIdata.p`` is a generic analog-input record -- eye X, Y plus accelerometer channels
 piped to a DAQ, the shape any analog eye-tracker produces (EyeLoop for these sessions, but the tracker
@@ -47,7 +47,7 @@ def load_eye_ai(session_path):
     """Load analog eye data + parse the stimulus log. Returns dict: ``ai`` (n_samp, n_ch); ``anchors`` (k, 2)
     [acqfr, ai_sample] from the log's per-event stamps; ``trials`` {trial: {phase: (acqfr, ai_sample)}};
     ``stim_pos`` {trial: (deg_x, deg_y)} = the stimulus screen position parsed from each 'stim start' line
-    (enables task-based calibration anchors -- see ``stim_gaze_anchors``)."""
+    (enables task-based calibration anchors -- see ``calculate_stim_derived_eyepos_anchors``)."""
     aip = _find(session_path, '*_AIdata.p')
     logp = _find(session_path, '*Stimulus*.log')
     if aip is None or logp is None:
@@ -76,18 +76,18 @@ def load_eye_ai(session_path):
             'stim_pos': stim_pos, 'ai_path': aip, 'log_path': logp}
 
 
-def lost_mask(ai, eye_ch=EYE_CH, rail_v=RAIL_V):
+def calculate_eyepos_loss_mask(ai, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Per-sample signal-loss (eyes-closed/blink): either eye channel railed (|v|>rail_v), or both zeroed."""
     x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
     return (np.abs(x) > rail_v) | (np.abs(y) > rail_v) | ((x == 0) & (y == 0))
 
 
-def acqfr_to_ai(anchors):
+def map_acqfr_to_ai_sample(anchors):
     """Function mapping acquisition-frame -> AI-sample index (linear interp over the log anchors)."""
     return lambda f: np.interp(f, anchors[:, 0], anchors[:, 1])
 
 
-def phase_sample_masks(oc):
+def calculate_phase_sample_masks(oc):
     """Per-AI-sample boolean masks for the three trial phases, from the log's per-trial event stamps:
     ``stim`` (stim start -> stim end), ``fixation`` (fixation start -> end), ``isi`` (ISI start -> fixation
     start, i.e. the BLANK interval before the fixation spot -- the fixation spot occupies the ISI tail). Kept
@@ -95,7 +95,7 @@ def phase_sample_masks(oc):
     Cadbury images session it does NOT -- fixation looks like blank ISI; only the stimulus concentrates gaze).
     Falls back gracefully for sessions lacking a fixation phase."""
     n = oc['ai'].shape[0]
-    f2a = acqfr_to_ai(oc['anchors'])
+    f2a = map_acqfr_to_ai_sample(oc['anchors'])
     masks = {k: np.zeros(n, bool) for k in ('stim', 'fixation', 'isi')}
 
     def span(ph, a, b, name):
@@ -113,13 +113,13 @@ def phase_sample_masks(oc):
     return masks
 
 
-def stim_sample_mask(oc):
+def calculate_stim_sample_mask(oc):
     """Boolean per-AI-sample mask, True during stimulus windows (convenience wrapper over
-    ``phase_sample_masks``)."""
-    return phase_sample_masks(oc)['stim']
+    ``calculate_phase_sample_masks``)."""
+    return calculate_phase_sample_masks(oc)['stim']
 
 
-def _window_gaze(ai, lost, s0, s1, eye_ch):
+def _window_eyepos(ai, lost, s0, s1, eye_ch):
     """(eyes_open_fraction, (mean_x, mean_y) over open samples) for AI-sample window [s0, s1)."""
     if s1 <= s0:
         return None
@@ -130,30 +130,30 @@ def _window_gaze(ai, lost, s0, s1, eye_ch):
                               float(np.mean(ai[s0:s1, eye_ch[1]][ok])))
 
 
-def trial_gaze(oc, eye_ch=EYE_CH, rail_v=RAIL_V):
+def calculate_trial_eyepos(oc, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Per-trial gaze: mean eye X,Y + eyes-open fraction over the fixation window (if present) and the stim
     window ([fixation end | ISI end] -> stim end). Returns a list of per-trial dicts."""
     ai, trials = oc['ai'], oc['trials']
-    f2a = acqfr_to_ai(oc['anchors'])
-    lost = lost_mask(ai, eye_ch, rail_v)
+    f2a = map_acqfr_to_ai_sample(oc['anchors'])
+    lost = calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
     out = []
     for tr in sorted(trials):
         ph = trials[tr]
         rec = {'trial': tr}
         if 'fixation start' in ph and 'fixation end' in ph:
-            g = _window_gaze(ai, lost, int(f2a(ph['fixation start'][0])), int(f2a(ph['fixation end'][0])), eye_ch)
+            g = _window_eyepos(ai, lost, int(f2a(ph['fixation start'][0])), int(f2a(ph['fixation end'][0])), eye_ch)
             if g:
                 rec['fixation_open'], rec['fixation_xy'] = g
         stim_start = ph.get('stim start') or ph.get('fixation end') or ph.get('ISI end')
         if stim_start and 'stim end' in ph:
-            g = _window_gaze(ai, lost, int(f2a(stim_start[0])), int(f2a(ph['stim end'][0])), eye_ch)
+            g = _window_eyepos(ai, lost, int(f2a(stim_start[0])), int(f2a(ph['stim end'][0])), eye_ch)
             if g:
                 rec['stim_open'], rec['stim_xy'] = g
         out.append(rec)
     return out
 
 
-def bcea(x, y, p=0.68):
+def calculate_eyepos_bcea(x, y, p=0.68):
     """Bivariate Contour Ellipse Area at probability ``p`` -- the standard eye-tracking fixation-stability
     metric: the area of the covariance ellipse containing fraction ``p`` of samples,
     ``-2 ln(1-p) * pi * sqrt(det Cov)``. Units = input units squared (V^2, or deg^2 after calibration)."""
@@ -164,17 +164,17 @@ def bcea(x, y, p=0.68):
     return float(-2.0 * np.log(1 - p) * np.pi * np.sqrt(max(np.linalg.det(C), 0.0)))
 
 
-def dispersion_stats(x, y, p=0.68):
+def calculate_eyepos_dispersion(x, y, p=0.68):
     """Gaze-dispersion descriptors: robust ``median`` center, per-axis ``sd``, ``medrad`` (median radial
-    deviation from the median -- robust to look-away outliers), and ``bcea`` at probability ``p``. Lengths in
-    input units (V, or deg after calibration); ``bcea`` in units^2."""
+    deviation from the median -- robust to look-away outliers), and ``calculate_eyepos_bcea`` at probability ``p``. Lengths in
+    input units (V, or deg after calibration); ``calculate_eyepos_bcea`` in units^2."""
     x, y = np.asarray(x, float), np.asarray(y, float)
     mx, my = float(np.median(x)), float(np.median(y))
     return {'median': (mx, my), 'sd': (float(x.std()), float(y.std())),
-            'medrad': float(np.median(np.hypot(x - mx, y - my))), 'bcea': bcea(x, y, p), 'n': int(x.size)}
+            'medrad': float(np.median(np.hypot(x - mx, y - my))), 'bcea': calculate_eyepos_bcea(x, y, p), 'n': int(x.size)}
 
 
-def kde_peak(x, y, grid=140, n_sub=25000, seed=0):
+def calculate_eyepos_kde_peak(x, y, grid=140, n_sub=25000, seed=0):
     """2D density MODE: the (x, y) maximizing a Gaussian KDE on a grid. Robust 'where they looked most'
     estimate -- sparse but concentrated fixations form a peak while wandering stays diffuse, so the mode
     recovers the target even when the animal only occasionally looks at it (unlike mean/median, which the
@@ -192,20 +192,20 @@ def kde_peak(x, y, grid=140, n_sub=25000, seed=0):
     return float(GX.ravel()[i]), float(GY.ravel()[i])
 
 
-def stim_reference(oc, reduce='peak', eye_ch=EYE_CH, rail_v=RAIL_V):
+def calculate_stim_derived_eyepos_ref(oc, reduce='peak', eye_ch=EYE_CH, rail_v=RAIL_V):
     """Data-driven on-target gaze reference: the KDE mode (``reduce='peak'``, default) or median of pooled
     eyes-open gaze over ALL stim windows -- 'where the animal looked when looking at the stimulus'. The mode
     is preferred: it locks onto the (sparse but concentrated) fixation cluster and ignores wandering, and is
     far more reliable than the poorly-participated formal calibration. Returns (vx, vy)."""
     ai = oc['ai']
-    stim = phase_sample_masks(oc)['stim'] & ~lost_mask(ai, eye_ch, rail_v)
+    stim = calculate_phase_sample_masks(oc)['stim'] & ~calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
     xs, ys = ai[stim, eye_ch[0]], ai[stim, eye_ch[1]]
     if xs.size < 10:
         return np.array([np.nan, np.nan])
-    return np.asarray(kde_peak(xs, ys) if reduce == 'peak' else (np.median(xs), np.median(ys)), float)
+    return np.asarray(calculate_eyepos_kde_peak(xs, ys) if reduce == 'peak' else (np.median(xs), np.median(ys)), float)
 
 
-def stim_gaze_anchors(oc, reduce='peak', min_samples=1000, conc_radius=1.0, eye_ch=EYE_CH, rail_v=RAIL_V):
+def calculate_stim_derived_eyepos_anchors(oc, reduce='peak', min_samples=1000, conc_radius=1.0, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Task-based calibration anchors: for each DISTINCT stimulus screen position, the eye-voltage where the
     animal looked at it (KDE mode by default), plus a quality score. Because the stimulus -- unlike a bare
     calibration dot -- motivates a poorly-trained animal to look, these anchors beat the formal grid; for a
@@ -215,8 +215,8 @@ def stim_gaze_anchors(oc, reduce='peak', min_samples=1000, conc_radius=1.0, eye_
     of {'pos_deg', 'volt', 'n', 'conc'} sorted by decreasing ``conc``."""
     ai = oc['ai']
     x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
-    lost = lost_mask(ai, eye_ch, rail_v)
-    f2a = acqfr_to_ai(oc['anchors'])
+    lost = calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
+    f2a = map_acqfr_to_ai_sample(oc['anchors'])
     by_pos = {}
     for tr, ph in oc['trials'].items():
         pos = oc.get('stim_pos', {}).get(tr)
@@ -234,13 +234,62 @@ def stim_gaze_anchors(oc, reduce='peak', min_samples=1000, conc_radius=1.0, eye_
         gy = np.concatenate([c[1] for c in chunks])
         if gx.size < min_samples:
             continue
-        v = kde_peak(gx, gy) if reduce == 'peak' else (float(np.median(gx)), float(np.median(gy)))
+        v = calculate_eyepos_kde_peak(gx, gy) if reduce == 'peak' else (float(np.median(gx)), float(np.median(gy)))
         conc = float((np.hypot(gx - v[0], gy - v[1]) < conc_radius).mean())
         out.append({'pos_deg': pos, 'volt': (float(v[0]), float(v[1])), 'n': int(gx.size), 'conc': conc})
     return sorted(out, key=lambda a: -a['conc'])
 
 
-def gaze_gate(trial_recs, min_open=0.5, max_dev=None, ref=None):
+def is_eye_near_stim(eyepos_x, eyepos_y, stim_derived_eyepos_ref, near_radius_v):
+    """True where the (rough) eye position is within ``near_radius_v`` volts of the stimulus-derived
+    eye-position reference -- i.e. the animal is plausibly looking at the stimulus. Per-sample boolean
+    (scalars or arrays). Absolute eye-position calibration is unreliable here, so this is a RELATIVE proximity
+    test to the data-driven reference, not an absolute-degrees judgement."""
+    return (np.hypot(np.asarray(eyepos_x, float) - stim_derived_eyepos_ref[0],
+                     np.asarray(eyepos_y, float) - stim_derived_eyepos_ref[1]) <= near_radius_v)
+
+
+def calculate_eye_near_stim_sec(oc, stim_derived_eyepos_ref, near_radius_v, expected_response_dur_sec=0.5,
+                                exclude_late_looks=True, framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V):
+    """Per-trial SECONDS the (rough) eye position was near the stimulus during the countable part of the stim
+    window -- the raw quantity a viewing-time gate thresholds (keep a trial when this >= a minimum, which
+    defaults to ``expected_response_dur_sec``). Returns a per-trial numpy array (NaN if a trial has no stim
+    window). Pass the session's ``framerate`` (acq frames/s) so the AI-sample count converts to real seconds.
+
+    PROCESS: per trial, take the stim-window AI samples, keep those that are eyes-open AND ``is_eye_near_stim``
+    (within ``near_radius_v`` of the reference), and convert the surviving sample count to seconds via the AI
+    sample rate (samples/acq-frame from the log anchors x framerate).
+
+    LOGIC (``exclude_late_looks``, default True): the response is measured as the full-stim-period mean, and
+    jGCaMP8s has a fast rise but slow decay, so a look landing in the final ``expected_response_dur_sec`` of
+    the stimulus drives calcium that develops mostly AFTER stim offset -- outside the averaging window -- and
+    so is not captured. The countable window is therefore shortened to
+    [stim_start, stim_end - expected_response_dur_sec]; near-stim time in that final stretch is not counted.
+    Set False to count the whole stim window.
+
+    OUTCOME: a trial whose only near-stim viewing is late tallies ~0 s and fails the gate; a trial viewed
+    early enough for its response to register tallies its real on-stimulus time. This is an absolute seconds
+    count (not a fraction of the stim window), so a 1 s and a 2 s stimulus session are treated consistently."""
+    ai = oc['ai']
+    lost = calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
+    near = is_eye_near_stim(ai[:, eye_ch[0]], ai[:, eye_ch[1]], stim_derived_eyepos_ref, near_radius_v) & ~lost
+    f2a = map_acqfr_to_ai_sample(oc['anchors'])
+    samp_per_sec = float(np.polyfit(oc['anchors'][:, 0], oc['anchors'][:, 1], 1)[0]) * framerate
+    tail = int(expected_response_dur_sec * samp_per_sec) if exclude_late_looks else 0
+    out = []
+    for tr in sorted(oc['trials']):
+        ph = oc['trials'][tr]
+        s = ph.get('stim start') or ph.get('fixation end') or ph.get('ISI end')
+        e = ph.get('stim end')
+        if not (s and e):
+            out.append(np.nan)
+            continue
+        i0, i1 = int(f2a(s[0])), int(f2a(e[0])) - tail
+        out.append(float(near[i0:i1].sum()) / samp_per_sec if i1 > i0 else 0.0)
+    return np.array(out)
+
+
+def gate_trials_by_eyepos(trial_recs, min_open=0.5, max_dev=None, ref=None):
     """Per-trial gate + deviations. The on-target reference gaze is data-driven: median of per-trial STIM
     gaze (the engaged, tightest gaze -- the stimulus sits at the fixation location and is what concentrates
     gaze), falling back to fixation-window gaze only if no stim gaze exists. A trial is KEPT if its stim-window
@@ -280,9 +329,9 @@ def load_calibration(session_path, cal_glob='*EyeTrackingCalibration*/*calibrati
 
 def fit_calibration(cal, extra_anchors=None, drop=None, weights=None, grid_half_deg=None):
     """Least-squares AFFINE eye-voltage -> screen-degree map. Optionally SUPPLEMENT the formal grid with
-    task-derived ``extra_anchors`` (from ``stim_gaze_anchors`` -- any stimulus position, not just 0,0; each
+    task-derived ``extra_anchors`` (from ``calculate_stim_derived_eyepos_anchors`` -- any stimulus position, not just 0,0; each
     may carry a 'weight'), DROP unreliable grid positions (``drop`` = list of (deg_x, deg_y), e.g. the
-    zero-completion targets from ``calibration_point_quality``), and/or ``weights`` the formal points. Returns
+    zero-completion targets from ``calculate_eyepos_calibration_quality``), and/or ``weights`` the formal points. Returns
     ``M`` (2x2 deg/V), ``offset``, residuals, ``deg_per_v`` (+ principal), ``n_points``, a ``quality`` verdict
     {'good','rough','unusable'} and ``reliable`` bool. Marmoset grids are typically nonlinear/poorly
     participated -> at best a ROUGH scale; 'unusable' => report VOLTS only, no degrees."""
@@ -332,14 +381,14 @@ def fit_calibration(cal, extra_anchors=None, drop=None, weights=None, grid_half_
             'reason': 'n=%d det=%.2f cond=%.1f inv=%d resid=%.0f%%grid' % (len(pos), detM, cond, inv, 100 * resid_frac)}
 
 
-def volts_to_deg(fc, xy):
+def convert_volts_to_deg(fc, xy):
     """Map eye voltage(s) to screen degrees with a fitted affine calibration (``fit_calibration`` result).
     ``xy`` is (2,) or (n, 2). Returns the same shape. Meaningful only when ``fc['reliable']``."""
     xy = np.atleast_2d(np.asarray(xy, float))
     return np.squeeze(xy @ fc['M'] + fc['offset'])
 
 
-def calibration_point_quality(session_path, cal_glob='*EyeTrackingCalibration*/*.log'):
+def calculate_eyepos_calibration_quality(session_path, cal_glob='*EyeTrackingCalibration*/*.log'):
     """Per-target quality of the FORMAL calibration, parsed from the calibration session's grid-target phase
     (``grid target fixation start / completed`` per ``grid_target.pos``): fixations COMPLETED, RESTARTS, and
     the eye-voltage + dispersion of the successful holds. Poorly-trained animals leave many targets with 0
@@ -352,7 +401,7 @@ def calibration_point_quality(session_path, cal_glob='*EyeTrackingCalibration*/*
         return {}
     aip = glob.glob(os.path.join(os.path.dirname(logs[0]), '*_AIdata.p'))
     ai = np.asarray(pickle.load(open(aip[0], 'rb')), float) if aip else None
-    lost = lost_mask(ai) if ai is not None else None
+    lost = calculate_eyepos_loss_mask(ai) if ai is not None else None
     rx = re.compile(r'grid target trial (\d+), grid target ([a-z ]+?), grid_target\.pos = '
                     r'\[\s*([-\d.]+)\s+([-\d.]+)\], AI_data\.shape = \((\d+)')
     trials = {}
@@ -389,7 +438,7 @@ def calibration_point_quality(session_path, cal_glob='*EyeTrackingCalibration*/*
     return out
 
 
-def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, bins=100,
+def plot_eyepos_density(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, bins=100,
               eye_ch=EYE_CH, rail_v=RAIL_V):
     """2D gaze-DENSITY panels (log-scaled histogram2d + median & 1-SD ellipse) for the requested subsets over
     the whole session -- a vectorized, ~1e6-sample-friendly replacement for the per-trial scatter/KDE in
@@ -402,8 +451,8 @@ def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, b
 
     ai = oc['ai']
     x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
-    good = ~lost_mask(ai, eye_ch, rail_v)
-    stim = stim_sample_mask(oc)
+    good = ~calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
+    stim = calculate_stim_sample_mask(oc)
     subs = {'all': good, 'stim': good & stim, 'nonstim': good & ~stim}
     lab = {'all': 'all session', 'stim': 'during stimulus', 'nonstim': 'non-stimulus (ISI/fixation)'}
     which = [w for w in which if w in subs]
@@ -425,7 +474,7 @@ def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, b
     axes[0][0].set_ylabel('eye Y (V)')
     fig.suptitle('gaze density (log color) — %s' % (tag or os.path.basename(oc.get('log_path', 'session'))))
     os.makedirs(outdir, exist_ok=True)
-    p = os.path.join(outdir, 'gaze_%s_%s.png' % (tag or 'session',
+    p = os.path.join(outdir, 'eyepos_density_%s_%s.png' % (tag or 'session',
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
     fig.tight_layout()
     fig.savefig(p, dpi=140)
@@ -433,7 +482,7 @@ def plot_gaze(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, b
     return p
 
 
-def plot_gaze_phases(oc, subsets=('stim', 'fixation', 'isi'),
+def plot_eyepos_by_phase(oc, subsets=('stim', 'fixation', 'isi'),
                      diffs=(('stim', 'isi'), ('fixation', 'isi'), ('stim', 'fixation')),
                      outdir='output', tag=None, grid=100, n_sub=15000, seed=0, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Per-phase gaze KDE (top row, each with its 68% BCEA ellipse + median marker) and pairwise normalized
@@ -449,8 +498,8 @@ def plot_gaze_phases(oc, subsets=('stim', 'fixation', 'isi'),
     rng = np.random.default_rng(seed)
     ai = oc['ai']
     x, y = ai[:, eye_ch[0]], ai[:, eye_ch[1]]
-    good = ~lost_mask(ai, eye_ch, rail_v)
-    masks = {k: v & good for k, v in phase_sample_masks(oc).items() if k in subsets}
+    good = ~calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
+    masks = {k: v & good for k, v in calculate_phase_sample_masks(oc).items() if k in subsets}
     xr = np.percentile(x[good], [1, 99])
     yr = np.percentile(y[good], [1, 99])
     gx, gy = np.linspace(xr[0], xr[1], grid), np.linspace(yr[0], yr[1], grid)
@@ -465,7 +514,7 @@ def plot_gaze_phases(oc, subsets=('stim', 'fixation', 'isi'),
         return d / d.sum()
 
     dens = {k: kde(masks[k]) for k in subsets}
-    ds = {k: dispersion_stats(x[masks[k]], y[masks[k]]) for k in subsets}
+    ds = {k: calculate_eyepos_dispersion(x[masks[k]], y[masks[k]]) for k in subsets}
     print('  per-phase gaze dispersion (eyes-open samples):')
     for k in subsets:
         s = ds[k]
@@ -501,7 +550,7 @@ def plot_gaze_phases(oc, subsets=('stim', 'fixation', 'isi'),
     ax[1, 0].set_ylabel('eye Y (V)')
     fig.suptitle('gaze by trial phase — %s' % (tag or 'session'))
     os.makedirs(outdir, exist_ok=True)
-    p = os.path.join(outdir, 'gaze_phases_%s_%s.png' % (tag or 'session',
+    p = os.path.join(outdir, 'eyepos_phases_%s_%s.png' % (tag or 'session',
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
     fig.tight_layout()
     fig.savefig(p, dpi=140)
@@ -518,10 +567,10 @@ def _demo(session_path, outdir='output'):
     oc = load_eye_ai(session_path)
     ai, anchors = oc['ai'], oc['anchors']
     ai_per_fr = np.polyfit(anchors[:, 0], anchors[:, 1], 1)[0]
-    lost = lost_mask(ai)
-    recs = trial_gaze(oc)
-    ref = stim_reference(oc, reduce='peak')
-    keep, devs, ref = gaze_gate(recs, min_open=0.5, ref=ref)
+    lost = calculate_eyepos_loss_mask(ai)
+    recs = calculate_trial_eyepos(oc)
+    ref = calculate_stim_derived_eyepos_ref(oc, reduce='peak')
+    keep, devs, ref = gate_trials_by_eyepos(recs, min_open=0.5, ref=ref)
     stim_open = np.array([r.get('stim_open', np.nan) for r in recs], float)
 
     print('session   :', os.path.basename(session_path.rstrip('/'))[:60])
@@ -535,12 +584,20 @@ def _demo(session_path, outdir='output'):
     print('stim gaze deviation from ref (V): median %.3f | p90 %.3f' % (np.nanmedian(devs), np.nanpercentile(devs, 90)))
     print('gate keep (min_open=0.5): %d / %d (%.1f%%)' % (keep.sum(), len(keep), 100 * keep.mean()))
 
-    masks = phase_sample_masks(oc)
+    masks = calculate_phase_sample_masks(oc)
     for k in ('stim', 'fixation', 'isi'):
         m = masks[k] & ~lost
         if m.any():
-            s = dispersion_stats(ai[m, 0], ai[m, 1])
+            s = calculate_eyepos_dispersion(ai[m, 0], ai[m, 1])
             print('  %-9s dispersion: medRad %.3f V | BCEA68 %.3f V^2 | n=%d' % (k, s['medrad'], s['bcea'], s['n']))
+    stim_ok = masks['stim'] & ~lost
+    near_radius_v = 2 * float(np.median(np.hypot(ai[stim_ok, 0] - ref[0], ai[stim_ok, 1] - ref[1])))
+    near_sec = calculate_eye_near_stim_sec(oc, ref, near_radius_v, framerate=6.364)
+    print('eye-near-stim radius (2x stim spread about ref): %.2f V | near-stim sec: median %.2f p10 %.2f'
+          % (near_radius_v, np.nanmedian(near_sec), np.nanpercentile(near_sec, 10)))
+    for mn in (0.5, 0.75, 1.0):
+        print('  keep (eye near stim >= %.2fs, late looks excluded): %d / %d'
+              % (mn, int(np.nansum(near_sec >= mn)), int(np.isfinite(near_sec).sum())))
     cal = load_calibration(session_path)
     if cal is not None:
         fc = fit_calibration(cal)
@@ -549,13 +606,13 @@ def _demo(session_path, outdir='output'):
                  fc['deg_per_v_principal'][1], fc['resid_mean']))
     else:
         print('calibration: none found')
-    anchors = stim_gaze_anchors(oc)
+    anchors = calculate_stim_derived_eyepos_anchors(oc)
     if anchors:
         a0 = anchors[0]
         print('stim-gaze anchors: %d position(s) | best pos=%s volt=(%.3f, %.3f) conc=%.2f n=%d'
               % (len(anchors), a0['pos_deg'], a0['volt'][0], a0['volt'][1], a0['conc'], a0['n']))
         if cal is not None:
-            fq = calibration_point_quality(session_path)
+            fq = calculate_eyepos_calibration_quality(session_path)
             drop = [p for p, qq in fq.items() if qq['done'] == 0] + [a['pos_deg'] for a in anchors]
             fc2 = fit_calibration(cal, extra_anchors=anchors, drop=drop)
             print('  + supplement/clean fit: quality=%s | ~%.2f deg/V | resid %.2f deg (dropped %d, +%d anchors)'
@@ -575,8 +632,8 @@ def _demo(session_path, outdir='output'):
     fig.tight_layout(); fig.savefig(p, dpi=140); plt.close(fig)
     print('saved', p)
     tag = os.path.basename(session_path.rstrip('/'))[:24]
-    print('saved', plot_gaze(oc, tag=tag, outdir=outdir))
-    print('saved', plot_gaze_phases(oc, tag=tag, outdir=outdir))
+    print('saved', plot_eyepos_density(oc, tag=tag, outdir=outdir))
+    print('saved', plot_eyepos_by_phase(oc, tag=tag, outdir=outdir))
 
 
 if __name__ == '__main__':
