@@ -7,9 +7,9 @@ piped to a DAQ, the shape any analog eye-tracker produces (EyeLoop for these ses
 identity is irrelevant to this reader). It is linked to the 2P acquisition frames via the stimulus log --
 which stamps every trial event with both ``acqfr`` and the running ``AI_data.shape`` (there is NO
 frame-trigger channel), so an (acqfr <-> AI-sample) interpolation aligns the continuous analog record to
-frames. Produces per-trial gaze + eyes-open fraction, per-phase sample masks (stim / fixation / ISI), gaze
+frames. Produces per-trial eye position + eyes-open fraction, per-phase sample masks (stim / fixation / ISI), eye position
 dispersion descriptors (BCEA + robust median-radial-dev), a DATA-DRIVEN on-target reference (stim-period
-median gaze -- the stimulus sits at the fixation location, and the stimulus is what concentrates gaze), and a
+median eye position -- the stimulus sits at the fixation location, and the stimulus is what concentrates eye position), and a
 per-trial gate (eyes-closed / off-fixation). An optional per-session calibration (a separate
 ``*_EyeTrackingCalibration`` recording) gives a ROUGH voltage->degree scale via an affine fit -- gated by a
 quality check, since the grid is nonlinear + recorded well before the session (drift).
@@ -91,8 +91,8 @@ def calculate_phase_sample_masks(oc):
     """Per-AI-sample boolean masks for the three trial phases, from the log's per-trial event stamps:
     ``stim`` (stim start -> stim end), ``fixation`` (fixation start -> end), ``isi`` (ISI start -> fixation
     start, i.e. the BLANK interval before the fixation spot -- the fixation spot occupies the ISI tail). Kept
-    separate on purpose: whether the fixation spot actually tightens gaze is session/animal-specific (in the
-    Cadbury images session it does NOT -- fixation looks like blank ISI; only the stimulus concentrates gaze).
+    separate on purpose: whether the fixation spot actually tightens the eye-position cluster is session/animal-specific (in the
+    Cadbury images session it does NOT -- fixation looks like blank ISI; only the stimulus concentrates eye position).
     Falls back gracefully for sessions lacking a fixation phase."""
     n = oc['ai'].shape[0]
     f2a = map_acqfr_to_ai_sample(oc['anchors'])
@@ -131,7 +131,7 @@ def _window_eyepos(ai, lost, s0, s1, eye_ch):
 
 
 def calculate_trial_eyepos(oc, eye_ch=EYE_CH, rail_v=RAIL_V):
-    """Per-trial gaze: mean eye X,Y + eyes-open fraction over the fixation window (if present) and the stim
+    """Per-trial eye position: mean eye X,Y + eyes-open fraction over the fixation window (if present) and the stim
     window ([fixation end | ISI end] -> stim end). Returns a list of per-trial dicts."""
     ai, trials = oc['ai'], oc['trials']
     f2a = map_acqfr_to_ai_sample(oc['anchors'])
@@ -165,7 +165,7 @@ def calculate_eyepos_bcea(x, y, p=0.68):
 
 
 def calculate_eyepos_dispersion(x, y, p=0.68):
-    """Gaze-dispersion descriptors: robust ``median`` center, per-axis ``sd``, ``medrad`` (median radial
+    """Eye-position dispersion descriptors: robust ``median`` center, per-axis ``sd``, ``medrad`` (median radial
     deviation from the median -- robust to look-away outliers), and ``calculate_eyepos_bcea`` at probability ``p``. Lengths in
     input units (V, or deg after calibration); ``calculate_eyepos_bcea`` in units^2."""
     x, y = np.asarray(x, float), np.asarray(y, float)
@@ -193,8 +193,8 @@ def calculate_eyepos_kde_peak(x, y, grid=140, n_sub=25000, seed=0):
 
 
 def calculate_stim_derived_eyepos_ref(oc, reduce='peak', eye_ch=EYE_CH, rail_v=RAIL_V):
-    """Data-driven on-target gaze reference: the KDE mode (``reduce='peak'``, default) or median of pooled
-    eyes-open gaze over ALL stim windows -- 'where the animal looked when looking at the stimulus'. The mode
+    """Data-driven on-target eye position reference: the KDE mode (``reduce='peak'``, default) or median of pooled
+    eyes-open eye position over ALL stim windows -- 'where the animal looked when looking at the stimulus'. The mode
     is preferred: it locks onto the (sparse but concentrated) fixation cluster and ignores wandering, and is
     far more reliable than the poorly-participated formal calibration. Returns (vx, vy)."""
     ai = oc['ai']
@@ -290,11 +290,11 @@ def calculate_eye_near_stim_sec(oc, stim_derived_eyepos_ref, near_radius_v, expe
 
 
 def gate_trials_by_eyepos(trial_recs, min_open=0.5, max_dev=None, ref=None):
-    """Per-trial gate + deviations. The on-target reference gaze is data-driven: median of per-trial STIM
-    gaze (the engaged, tightest gaze -- the stimulus sits at the fixation location and is what concentrates
-    gaze), falling back to fixation-window gaze only if no stim gaze exists. A trial is KEPT if its stim-window
+    """Per-trial gate + deviations. The on-target reference eye position is data-driven: median of per-trial STIM
+    eye position (the engaged, tightest eye position -- the stimulus sits at the fixation location and is what concentrates
+    eye position), falling back to fixation-window eye position only if no stim eye position exists. A trial is KEPT if its stim-window
     eyes-open fraction >= ``min_open`` (i.e. eyes open for at least that fraction of the stim period) AND (if
-    ``max_dev`` given, in the same units as the gaze, i.e. volts) its mean stim gaze is within ``max_dev`` of
+    ``max_dev`` given, in the same units as the eye position, i.e. volts) its mean stim eye position is within ``max_dev`` of
     the reference. Returns (keep_mask, deviations, ref)."""
     stim = np.array([r['stim_xy'] for r in trial_recs if r.get('stim_xy')], float)
     fix = np.array([r['fixation_xy'] for r in trial_recs if r.get('fixation_xy')], float)
@@ -440,7 +440,7 @@ def calculate_eyepos_calibration_quality(session_path, cal_glob='*EyeTrackingCal
 
 def plot_eyepos_density(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, bins=100,
               eye_ch=EYE_CH, rail_v=RAIL_V):
-    """2D gaze-DENSITY panels (log-scaled histogram2d + median & 1-SD ellipse) for the requested subsets over
+    """2D eye-position density panels (log-scaled histogram2d + median & 1-SD ellipse) for the requested subsets over
     the whole session -- a vectorized, ~1e6-sample-friendly replacement for the per-trial scatter/KDE in
     analysis_for_images.py. ``which`` selects any of 'all' (whole session), 'stim' (during stimulus),
     'nonstim' (ISI/fixation). Signal-loss (railed/zeroed) samples are dropped. Returns the saved figure path.
@@ -472,7 +472,7 @@ def plot_eyepos_density(oc, which=('all', 'stim', 'nonstim'), outdir='output', t
         ax.set_title('%s\n%d samp (%.1f%%)' % (lab[w], int(m.sum()), 100 * m.mean()))
         ax.set_xlabel('eye X (V)')
     axes[0][0].set_ylabel('eye Y (V)')
-    fig.suptitle('gaze density (log color) — %s' % (tag or os.path.basename(oc.get('log_path', 'session'))))
+    fig.suptitle('eye position density (log color) — %s' % (tag or os.path.basename(oc.get('log_path', 'session'))))
     os.makedirs(outdir, exist_ok=True)
     p = os.path.join(outdir, 'eyepos_density_%s_%s.png' % (tag or 'session',
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
@@ -485,8 +485,8 @@ def plot_eyepos_density(oc, which=('all', 'stim', 'nonstim'), outdir='output', t
 def plot_eyepos_by_phase(oc, subsets=('stim', 'fixation', 'isi'),
                      diffs=(('stim', 'isi'), ('fixation', 'isi'), ('stim', 'fixation')),
                      outdir='output', tag=None, grid=100, n_sub=15000, seed=0, eye_ch=EYE_CH, rail_v=RAIL_V):
-    """Per-phase gaze KDE (top row, each with its 68% BCEA ellipse + median marker) and pairwise normalized
-    density DIFFERENCES (bottom row), to reveal how gaze concentration differs by trial phase -- differences
+    """Per-phase eye position KDE (top row, each with its 68% BCEA ellipse + median marker) and pairwise normalized
+    density DIFFERENCES (bottom row), to reveal how eye position concentration differs by trial phase -- differences
     the raw histogram flattens. KDE is on a random subsample (full ``gaussian_kde`` is O(N^2), infeasible at
     ~1e6 samples). Also prints the per-phase dispersion table (medRad + BCEA). Returns the saved figure path.
     """
@@ -515,7 +515,7 @@ def plot_eyepos_by_phase(oc, subsets=('stim', 'fixation', 'isi'),
 
     dens = {k: kde(masks[k]) for k in subsets}
     ds = {k: calculate_eyepos_dispersion(x[masks[k]], y[masks[k]]) for k in subsets}
-    print('  per-phase gaze dispersion (eyes-open samples):')
+    print('  per-phase eye position dispersion (eyes-open samples):')
     for k in subsets:
         s = ds[k]
         print('    %-9s medRad %.3f V | BCEA68 %.3f V^2 | median (%.3f, %.3f) | n=%d'
@@ -548,7 +548,7 @@ def plot_eyepos_by_phase(oc, subsets=('stim', 'fixation', 'isi'),
         a_.set_xlabel('eye X (V)')
         fig.colorbar(im, ax=a_, fraction=0.046)
     ax[1, 0].set_ylabel('eye Y (V)')
-    fig.suptitle('gaze by trial phase — %s' % (tag or 'session'))
+    fig.suptitle('eye position by trial phase — %s' % (tag or 'session'))
     os.makedirs(outdir, exist_ok=True)
     p = os.path.join(outdir, 'eyepos_phases_%s_%s.png' % (tag or 'session',
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
@@ -580,8 +580,8 @@ def _demo(session_path, outdir='output'):
           % (len(recs), int(np.isfinite(stim_open).sum()), sum('fixation_xy' in r for r in recs)))
     print('per-trial stim eyes-open: median %.3f | frac trials <0.5 open: %.3f'
           % (np.nanmedian(stim_open), np.nanmean(stim_open < 0.5)))
-    print('data-driven gaze reference (stim KDE-peak, eye V): (%.3f, %.3f)' % (ref[0], ref[1]))
-    print('stim gaze deviation from ref (V): median %.3f | p90 %.3f' % (np.nanmedian(devs), np.nanpercentile(devs, 90)))
+    print('data-driven eye position reference (stim KDE-peak, eye V): (%.3f, %.3f)' % (ref[0], ref[1]))
+    print('stim eye position deviation from ref (V): median %.3f | p90 %.3f' % (np.nanmedian(devs), np.nanpercentile(devs, 90)))
     print('gate keep (min_open=0.5): %d / %d (%.1f%%)' % (keep.sum(), len(keep), 100 * keep.mean()))
 
     masks = calculate_phase_sample_masks(oc)
@@ -609,7 +609,7 @@ def _demo(session_path, outdir='output'):
     anchors = calculate_stim_derived_eyepos_anchors(oc)
     if anchors:
         a0 = anchors[0]
-        print('stim-gaze anchors: %d position(s) | best pos=%s volt=(%.3f, %.3f) conc=%.2f n=%d'
+        print('stim eye-position anchors: %d position(s) | best pos=%s volt=(%.3f, %.3f) conc=%.2f n=%d'
               % (len(anchors), a0['pos_deg'], a0['volt'][0], a0['volt'][1], a0['conc'], a0['n']))
         if cal is not None:
             fq = calculate_eyepos_calibration_quality(session_path)
@@ -625,7 +625,7 @@ def _demo(session_path, outdir='output'):
     sc = ax[1].scatter(sx[:, 0], sx[:, 1], c=[r['stim_open'] for r in recs if r.get('stim_xy')], cmap='viridis', s=12)
     ax[1].plot(ref[0], ref[1], 'r+', ms=15, mew=2, label='stim-median ref')
     ax[1].set_xlabel('eye X (V)'); ax[1].set_ylabel('eye Y (V)'); ax[1].legend(fontsize=8); fig.colorbar(sc, ax=ax[1], label='eyes-open')
-    fig.suptitle('eye-AI gaze — %s' % os.path.basename(session_path.rstrip('/'))[:44])
+    fig.suptitle('eye-AI position — %s' % os.path.basename(session_path.rstrip('/'))[:44])
     os.makedirs(outdir, exist_ok=True)
     p = os.path.join(outdir, 'eyetracking_%s_%s.png' % (os.path.basename(session_path.rstrip('/'))[:24],
                      datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
