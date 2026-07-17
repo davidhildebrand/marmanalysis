@@ -37,6 +37,19 @@ CAL_MAX_INVERSIONS = 1      # allow at most this many non-monotonic grid edges
 CAL_RESID_FRAC_GOOD = 0.15  # residual < this fraction of grid half-range => 'good'
 CAL_RESID_FRAC_DROP = 0.50  # residual > this fraction => 'unusable' (report volts only)
 
+# Indicator kinetics -> response timing. Rather than pick a response duration by feel, tie it to a published,
+# independently-corroborated number. jGCaMP8s has a few-MILLISECOND half-RISE (negligible at our ~6 Hz
+# imaging: calcium tracks spike onset inside one frame) and a ~200 ms half-DECAY in mouse brain -- Zhang et
+# al. 2023 Nature (the jGCaMP8 paper), which also reports ~2x the single-AP sensitivity of the best prior
+# sensor. The v9 pipeline encodes the same 0.2 s independently: it hands suite2p ``tau = 0.2`` (suite2p's
+# sensor-decay timescale), overriding suite2p's GCaMP6s default of 1.0. NB a ~200 ms decay CANNOT manufacture
+# the multi-second response plateau we observe -- that plateau is sustained FIRING, not indicator ringing.
+INDICATOR_HALF_DECAY_SEC = 0.20        # jGCaMP8s; == the suite2p `tau` v9 uses
+RESPONSE_REGISTER_HALF_DECAYS = 1.5    # half-decays for a look's response to register and still linger
+# How long a look must last -- and how far before stim offset it must land -- for its response to be
+# measurable in a stim-period-mean response. Derived, not guessed: 1.5 x 0.20 s = 0.30 s.
+EXPECTED_RESPONSE_DUR_SEC = RESPONSE_REGISTER_HALF_DECAYS * INDICATOR_HALF_DECAY_SEC
+
 
 def _find(session_path, pat):
     hits = [f for f in glob.glob(os.path.join(session_path, pat)) if 'disptimes' not in f]
@@ -249,7 +262,8 @@ def is_eye_near_stim(eyepos_x, eyepos_y, stim_derived_eyepos_ref, near_radius_v)
                      np.asarray(eyepos_y, float) - stim_derived_eyepos_ref[1]) <= near_radius_v)
 
 
-def calculate_eye_near_stim_sec(oc, stim_derived_eyepos_ref, near_radius_v, expected_response_dur_sec=0.5,
+def calculate_eye_near_stim_sec(oc, stim_derived_eyepos_ref, near_radius_v,
+                                expected_response_dur_sec=EXPECTED_RESPONSE_DUR_SEC,
                                 exclude_late_looks=True, framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Per-trial SECONDS the (rough) eye position was near the stimulus during the countable part of the stim
     window -- the raw quantity a viewing-time gate thresholds (keep a trial when this >= a minimum, which
@@ -289,26 +303,158 @@ def calculate_eye_near_stim_sec(oc, stim_derived_eyepos_ref, near_radius_v, expe
     return np.array(out)
 
 
-def gate_trials_by_eyepos(trial_recs, min_open=0.5, max_dev=None, ref=None):
-    """Per-trial gate + deviations. The on-target reference eye position is data-driven: median of per-trial STIM
-    eye position (the engaged, tightest eye position -- the stimulus sits at the fixation location and is what concentrates
-    eye position), falling back to fixation-window eye position only if no stim eye position exists. A trial is KEPT if its stim-window
-    eyes-open fraction >= ``min_open`` (i.e. eyes open for at least that fraction of the stim period) AND (if
-    ``max_dev`` given, in the same units as the eye position, i.e. volts) its mean stim eye position is within ``max_dev`` of
-    the reference. Returns (keep_mask, deviations, ref)."""
-    stim = np.array([r['stim_xy'] for r in trial_recs if r.get('stim_xy')], float)
-    fix = np.array([r['fixation_xy'] for r in trial_recs if r.get('fixation_xy')], float)
-    if ref is None:
-        ref = (np.median(stim, axis=0) if len(stim)
-               else (np.median(fix, axis=0) if len(fix) else np.array([np.nan, np.nan])))
-    keep, devs = [], []
-    for r in trial_recs:
-        s = r.get('stim_xy')
-        dev = float(np.hypot(s[0] - ref[0], s[1] - ref[1])) if s else np.nan
-        devs.append(dev)
-        keep.append(bool(r.get('stim_open', 0.0) >= min_open and
-                         (max_dev is None or (np.isfinite(dev) and dev <= max_dev))))
-    return np.array(keep), np.array(devs), np.asarray(ref, float)
+# Per-trial eye-position gating. Every criterion is SWITCHABLE via ``mode`` so its cost can be MEASURED
+# rather than assumed, and the default is 'none' -- eye tracking excludes nothing unless explicitly asked.
+# Use ``compare_eyepos_gate_modes`` to see all modes side by side on one session.
+GATE_MODES = ('none', 'fraction_open', 'fraction_near', 'duration_near', 'landing_window')
+
+
+def _default_near_radius_v(oc, ref, eye_ch=EYE_CH, rail_v=RAIL_V):
+    """Data-driven 'near the stimulus' radius: 2x the median radial deviation of eyes-open stim-window eye
+    position about the reference. Calibration-free (absolute degrees are untrustworthy here) and self-scaling
+    per session."""
+    ai = oc['ai']
+    m = calculate_phase_sample_masks(oc)['stim'] & ~calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
+    if not m.any():
+        return float('nan')
+    return 2.0 * float(np.median(np.hypot(ai[m, eye_ch[0]] - ref[0], ai[m, eye_ch[1]] - ref[1])))
+
+
+def _eyepos_trial_quantities(oc, ref, near_radius_v, expected_response_dur_sec, exclude_late_looks,
+                             framerate, eye_ch, rail_v):
+    """Per-trial raw quantities every gate mode is built from -- computed once so modes are cheap to compare.
+    ``fraction_open`` / ``fraction_near``: fraction of the stim window with eyes open / eye near the stimulus.
+    ``eye_near_stim_sec``: ABSOLUTE seconds near the stimulus within the countable window (see
+    ``exclude_late_looks``). ``landing_sec``: seconds from stim onset to the FIRST near-stim sample.
+    ``drive_sec``: near-stim seconds from that landing to stim offset -- the real stimulus drive a
+    landing-anchored response window would integrate. NaN where a trial has no usable stim window."""
+    ai = oc['ai']
+    lost = calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
+    near = is_eye_near_stim(ai[:, eye_ch[0]], ai[:, eye_ch[1]], ref, near_radius_v) & ~lost
+    f2a = map_acqfr_to_ai_sample(oc['anchors'])
+    samp_per_sec = float(np.polyfit(oc['anchors'][:, 0], oc['anchors'][:, 1], 1)[0]) * framerate
+    tail = int(expected_response_dur_sec * samp_per_sec) if exclude_late_looks else 0
+    keys = ('fraction_open', 'fraction_near', 'eye_near_stim_sec', 'landing_sec', 'drive_sec')
+    q = {k: [] for k in keys}
+    for tr in sorted(oc['trials']):
+        ph = oc['trials'][tr]
+        s = ph.get('stim start') or ph.get('fixation end') or ph.get('ISI end')
+        e = ph.get('stim end')
+        i0, i1 = (int(f2a(s[0])), int(f2a(e[0]))) if (s and e) else (0, 0)
+        if i1 <= i0:
+            for k in keys:
+                q[k].append(np.nan)
+            continue
+        q['fraction_open'].append(float((~lost[i0:i1]).mean()))
+        q['fraction_near'].append(float(near[i0:i1].mean()))
+        j1 = i1 - tail
+        q['eye_near_stim_sec'].append(float(near[i0:j1].sum()) / samp_per_sec if j1 > i0 else 0.0)
+        hit = np.flatnonzero(near[i0:i1])
+        q['landing_sec'].append(float(hit[0]) / samp_per_sec if hit.size else np.nan)
+        q['drive_sec'].append(float(near[i0 + hit[0]:i1].sum()) / samp_per_sec if hit.size else 0.0)
+    return {k: np.array(v, float) for k, v in q.items()}
+
+
+def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_radius_v=None,
+                          min_fraction=0.5, min_eye_near_stim_sec=None,
+                          expected_response_dur_sec=EXPECTED_RESPONSE_DUR_SEC, exclude_late_looks=True,
+                          framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V):
+    """Per-trial eye-position gate with a SWITCHABLE criterion. Returns a dict: ``mode``, ``kept`` (bool array,
+    one per trial), the reference/radius/thresholds actually used, and EVERY per-trial quantity, so you can
+    re-threshold or compare modes without recomputing. Default ``mode='none'`` -- eye tracking excludes nothing
+    unless you ask, so any exclusion stays a deliberate, reversible choice.
+
+    MODES
+      'none'
+          Keep every trial. The baseline: use it to measure what any other mode actually costs.
+      'fraction_open'
+          Keep if the eyes were open for >= ``min_fraction`` of the stim window. Unbiased about WHERE the
+          animal looked -- it only rejects blinks / tracker dropout.
+      'fraction_near'
+          Keep if the eye position was near the stimulus for >= ``min_fraction`` of the stim window.
+          CAVEAT for both fraction modes: a fraction is NOT comparable across sessions. Stim durations span
+          0.5-2.7 s in this dataset, so 0.5 of a 0.5 s stim (=0.25 s) demands far less viewing than 0.5 of a
+          2 s stim (=1 s). Prefer a duration mode when comparing sessions.
+      'duration_near'
+          Keep if the eye was near the stimulus for >= ``min_eye_near_stim_sec`` ABSOLUTE seconds (default
+          ``expected_response_dur_sec``) -- stim_dur-fair by construction. With ``exclude_late_looks`` (the
+          default) those seconds are counted only over [stim_start, stim_end - expected_response_dur_sec]:
+          a look landing in that final stretch drives calcium that develops after stim offset, outside a
+          stim-period-mean response window, so it cannot be measured and must not earn a trial its keep.
+      'landing_window'
+          The least exclusionary option, and the complement to 'duration_near'. Keep if the eye lands near the
+          stimulus at ANY time in the stim window and then supplies >= ``min_eye_near_stim_sec`` of real drive
+          before stim offset. Instead of discarding a late look it reports ``landing_sec``, so the response
+          window can START at the landing and run past stim offset into the early ISI -- where that look's
+          calcium actually appears (~1 half-decay, ~200 ms, after the drive). NB this function only GATES:
+          handing ``landing_sec`` to the response calculation to actually shift the window is a separate,
+          explicit step, because a per-trial window changes the response measure itself.
+
+    ``stim_derived_eyepos_ref`` defaults to the stimulus-derived eye-position mode; ``near_radius_v`` to a
+    data-driven radius (2x the stim-window spread about that reference). Pass the session ``framerate`` so
+    sample counts convert to real seconds."""
+    if mode not in GATE_MODES:
+        raise ValueError('mode must be one of %s, got %r' % (GATE_MODES, mode))
+    n_tr = len(oc['trials'])
+    out = {'mode': mode, 'stim_derived_eyepos_ref': stim_derived_eyepos_ref, 'near_radius_v': near_radius_v}
+    if mode == 'none':
+        out['kept'] = np.ones(n_tr, bool)
+        return out
+    if stim_derived_eyepos_ref is None:
+        stim_derived_eyepos_ref = calculate_stim_derived_eyepos_ref(oc, eye_ch=eye_ch, rail_v=rail_v)
+    if near_radius_v is None:
+        near_radius_v = _default_near_radius_v(oc, stim_derived_eyepos_ref, eye_ch, rail_v)
+    if min_eye_near_stim_sec is None:
+        min_eye_near_stim_sec = expected_response_dur_sec
+    q = _eyepos_trial_quantities(oc, stim_derived_eyepos_ref, near_radius_v, expected_response_dur_sec,
+                                 exclude_late_looks, framerate, eye_ch, rail_v)
+    with np.errstate(invalid='ignore'):                     # NaN (no stim window) compares False = excluded
+        if mode == 'fraction_open':
+            kept = q['fraction_open'] >= min_fraction
+        elif mode == 'fraction_near':
+            kept = q['fraction_near'] >= min_fraction
+        elif mode == 'duration_near':
+            kept = q['eye_near_stim_sec'] >= min_eye_near_stim_sec
+        else:                                               # 'landing_window'
+            kept = np.isfinite(q['landing_sec']) & (q['drive_sec'] >= min_eye_near_stim_sec)
+    out.update(q)
+    out.update({'kept': np.asarray(kept, bool), 'stim_derived_eyepos_ref': stim_derived_eyepos_ref,
+                'near_radius_v': near_radius_v, 'min_fraction': min_fraction,
+                'min_eye_near_stim_sec': min_eye_near_stim_sec,
+                'expected_response_dur_sec': expected_response_dur_sec})
+    return out
+
+
+def compare_eyepos_gate_modes(oc, min_fraction=0.5, min_eye_near_stim_sec=None,
+                              expected_response_dur_sec=EXPECTED_RESPONSE_DUR_SEC, exclude_late_looks=True,
+                              framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V, verbose=True):
+    """Run EVERY gate mode on one session and tabulate how many trials each keeps, so the cost of each
+    criterion is visible rather than assumed (the point of keeping them switchable). The reference and radius
+    are computed once and shared, so the modes differ only in their keep rule. Returns {mode: result-dict}."""
+    ref = calculate_stim_derived_eyepos_ref(oc, eye_ch=eye_ch, rail_v=rail_v)
+    radius = _default_near_radius_v(oc, ref, eye_ch, rail_v)
+    res = {m: gate_trials_by_eyepos(oc, mode=m, stim_derived_eyepos_ref=ref, near_radius_v=radius,
+                                    min_fraction=min_fraction, min_eye_near_stim_sec=min_eye_near_stim_sec,
+                                    expected_response_dur_sec=expected_response_dur_sec,
+                                    exclude_late_looks=exclude_late_looks, framerate=framerate,
+                                    eye_ch=eye_ch, rail_v=rail_v) for m in GATE_MODES}
+    if verbose:
+        n = max(len(oc['trials']), 1)
+        mn = expected_response_dur_sec if min_eye_near_stim_sec is None else min_eye_near_stim_sec
+        print('  eye-position gate modes | ref=(%.3f, %.3f) V  near_radius=%.2f V  min_fraction=%.2f  '
+              'min_near=%.2fs  expected_response_dur=%.2fs' % (ref[0], ref[1], radius, min_fraction, mn,
+                                                              expected_response_dur_sec))
+        crit = {'none': 'no eye-tracking exclusion (baseline)',
+                'fraction_open': 'eyes open >= %.0f%% of stim window' % (100 * min_fraction),
+                'fraction_near': 'eye near stim >= %.0f%% of stim window' % (100 * min_fraction),
+                'duration_near': 'eye near stim >= %.2fs abs (late looks %s)'
+                                 % (mn, 'excluded' if exclude_late_looks else 'counted'),
+                'landing_window': 'lands near stim anytime, then >= %.2fs drive' % mn}
+        print('    %-15s %6s %7s   %s' % ('mode', 'kept', 'excl', 'criterion'))
+        for m in GATE_MODES:
+            k = int(res[m]['kept'].sum())
+            print('    %-15s %6d %6.1f%%   %s' % (m, k, 100 * (1 - k / n), crit[m]))
+    return res
 
 
 def load_calibration(session_path, cal_glob='*EyeTrackingCalibration*/*calibration.p'):
@@ -570,8 +716,9 @@ def _demo(session_path, outdir='output'):
     lost = calculate_eyepos_loss_mask(ai)
     recs = calculate_trial_eyepos(oc)
     ref = calculate_stim_derived_eyepos_ref(oc, reduce='peak')
-    keep, devs, ref = gate_trials_by_eyepos(recs, min_open=0.5, ref=ref)
     stim_open = np.array([r.get('stim_open', np.nan) for r in recs], float)
+    devs = np.array([np.hypot(r['stim_xy'][0] - ref[0], r['stim_xy'][1] - ref[1])
+                     if r.get('stim_xy') else np.nan for r in recs], float)
 
     print('session   :', os.path.basename(session_path.rstrip('/'))[:60])
     print('AI        : %d samp x %d ch | ~%.1f samp/frame (~%.1f Hz @6.36)' % (ai.shape[0], ai.shape[1], ai_per_fr, ai_per_fr * 6.364))
@@ -582,7 +729,6 @@ def _demo(session_path, outdir='output'):
           % (np.nanmedian(stim_open), np.nanmean(stim_open < 0.5)))
     print('data-driven eye position reference (stim KDE-peak, eye V): (%.3f, %.3f)' % (ref[0], ref[1]))
     print('stim eye position deviation from ref (V): median %.3f | p90 %.3f' % (np.nanmedian(devs), np.nanpercentile(devs, 90)))
-    print('gate keep (min_open=0.5): %d / %d (%.1f%%)' % (keep.sum(), len(keep), 100 * keep.mean()))
 
     masks = calculate_phase_sample_masks(oc)
     for k in ('stim', 'fixation', 'isi'):
@@ -590,14 +736,7 @@ def _demo(session_path, outdir='output'):
         if m.any():
             s = calculate_eyepos_dispersion(ai[m, 0], ai[m, 1])
             print('  %-9s dispersion: medRad %.3f V | BCEA68 %.3f V^2 | n=%d' % (k, s['medrad'], s['bcea'], s['n']))
-    stim_ok = masks['stim'] & ~lost
-    near_radius_v = 2 * float(np.median(np.hypot(ai[stim_ok, 0] - ref[0], ai[stim_ok, 1] - ref[1])))
-    near_sec = calculate_eye_near_stim_sec(oc, ref, near_radius_v, framerate=6.364)
-    print('eye-near-stim radius (2x stim spread about ref): %.2f V | near-stim sec: median %.2f p10 %.2f'
-          % (near_radius_v, np.nanmedian(near_sec), np.nanpercentile(near_sec, 10)))
-    for mn in (0.5, 0.75, 1.0):
-        print('  keep (eye near stim >= %.2fs, late looks excluded): %d / %d'
-              % (mn, int(np.nansum(near_sec >= mn)), int(np.isfinite(near_sec).sum())))
+    compare_eyepos_gate_modes(oc, framerate=6.364)
     cal = load_calibration(session_path)
     if cal is not None:
         fc = fit_calibration(cal)
