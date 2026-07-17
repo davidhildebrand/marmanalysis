@@ -37,18 +37,23 @@ CAL_MAX_INVERSIONS = 1      # allow at most this many non-monotonic grid edges
 CAL_RESID_FRAC_GOOD = 0.15  # residual < this fraction of grid half-range => 'good'
 CAL_RESID_FRAC_DROP = 0.50  # residual > this fraction => 'unusable' (report volts only)
 
-# Indicator kinetics -> response timing. Rather than pick a response duration by feel, tie it to a published,
-# independently-corroborated number. jGCaMP8s has a few-MILLISECOND half-RISE (negligible at our ~6 Hz
-# imaging: calcium tracks spike onset inside one frame) and a ~200 ms half-DECAY in mouse brain -- Zhang et
-# al. 2023 Nature (the jGCaMP8 paper), which also reports ~2x the single-AP sensitivity of the best prior
-# sensor. The v9 pipeline encodes the same 0.2 s independently: it hands suite2p ``tau = 0.2`` (suite2p's
-# sensor-decay timescale), overriding suite2p's GCaMP6s default of 1.0. NB a ~200 ms decay CANNOT manufacture
-# the multi-second response plateau we observe -- that plateau is sustained FIRING, not indicator ringing.
-INDICATOR_HALF_DECAY_SEC = 0.20        # jGCaMP8s; == the suite2p `tau` v9 uses
-RESPONSE_REGISTER_HALF_DECAYS = 1.5    # half-decays for a look's response to register and still linger
-# How long a look must last -- and how far before stim offset it must land -- for its response to be
-# measurable in a stim-period-mean response. Derived, not guessed: 1.5 x 0.20 s = 0.30 s.
-EXPECTED_RESPONSE_DUR_SEC = RESPONSE_REGISTER_HALF_DECAYS * INDICATOR_HALF_DECAY_SEC
+# Indicator kinetics -> response timing.
+# PUBLISHED (jGCaMP8s; Zhang et al. Looger 2023 Nature, the jGCaMP8 paper): a few-MILLISECOND half-RISE --
+# negligible at our ~6 Hz imaging, so calcium tracks spike onset inside a single frame -- and a ~200 ms
+# half-DECAY in mouse brain, with ~2x the single-AP sensitivity of the best prior sensor.
+# RELATED BUT NOT THE SAME NUMBER: the v9 pipeline hands suite2p ``tau = 0.2`` (overriding suite2p's GCaMP6s
+# default of 1.0). suite2p's `tau` is an exponential decay TIME CONSTANT, not a half-decay: t_half = tau*ln2.
+# So v9's tau=0.2 s implies t_half ~0.14 s, and the paper's t_half ~0.20 s implies tau ~0.29 s. The two agree
+# only in ORDER OF MAGNITUDE -- do NOT read the shared "0.2" as independent confirmation of one value.
+# NB a ~0.2 s decay CANNOT manufacture the multi-second response plateau we observe: that plateau is sustained
+# FIRING, not indicator ringing.
+# Zhang et al. Looger 2023 Nature, https://doi.org/10.1038/s41586-023-05828-9
+INDICATOR_HALF_DECAY_SEC = 0.20        # jGCaMP8s 1-AP half-decay, mouse brain
+# HEURISTIC -- our judgement call, NOT a published constant and NOT from v9. How many indicator half-decays we
+# require for a look's response to have registered and still be lingering within the response window. It is
+# the only unsourced number here, so it is kept on its own line rather than buried inside a "derived" default.
+RESPONSE_REGISTER_HALF_DECAYS = 1.5
+EXPECTED_RESPONSE_DUR_SEC = RESPONSE_REGISTER_HALF_DECAYS * INDICATOR_HALF_DECAY_SEC   # 0.30 s
 
 
 def _find(session_path, pat):
@@ -312,7 +317,25 @@ GATE_MODES = ('none', 'fraction_open', 'fraction_near', 'duration_near', 'landin
 def _default_near_radius_v(oc, ref, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Data-driven 'near the stimulus' radius: 2x the median radial deviation of eyes-open stim-window eye
     position about the reference. Calibration-free (absolute degrees are untrustworthy here) and self-scaling
-    per session."""
+    per session.
+
+    TODO -- ANCHOR THIS TO RECEPTIVE-FIELD SIZE, not to stimulus size and not to session spread. The tolerance
+    that matters is the one deciding whether an eye movement actually changed what a neuron saw, and that is
+    set by RF size, not by how big the stimulus happens to be. The literature ties tolerance to STIMULUS size
+    only informally and in contradictory directions: enforced-fixation studies deliberately set the window
+    SMALLER than the stimulus -- Mansouri et al. Tanaka 2006 J Neurosci, 4 deg window vs 5-7 deg samples,
+    https://doi.org/10.1523/jneurosci.5238-05.2006 -- whereas free-viewing studies set the tolerance EQUAL to
+    it: Park et al. Leopold 2022 Sci Adv, tolerance "approximately the size of the movie stimulus",
+    https://doi.org/10.1126/sciadv.abm2054. The papers that argue it properly compare eye scatter against RF
+    size instead: Tang et al. Jiang 2018 Curr Biol report macaque V1 two-photon eye-position SD < 0.05 deg,
+    "significantly smaller than the typical receptive field sizes" (0.3-0.8 deg at 3-5 deg eccentricity),
+    https://doi.org/10.1016/j.cub.2017.11.039.
+
+    We have NO confirmed marmoset RF estimate for this area (PD). Working proxies, in order: macaque
+    face-patch PD/PITd or V4 RF size -- cf. Issa and DiCarlo 2012 J Neurosci, which maps face-patch RFs with a
+    3 deg probe at 1 deg resolution, https://doi.org/10.1523/JNEUROSCI.2391-12.2012 -- with marmoset MT as a
+    nearby-area check. Until such an estimate exists, the session-spread heuristic below is a STAND-IN, not a
+    principled tolerance: treat any degree-valued claim derived from it accordingly."""
     ai = oc['ai']
     m = calculate_phase_sample_masks(oc)['stim'] & ~calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
     if not m.any():
@@ -372,9 +395,9 @@ def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_ra
           animal looked -- it only rejects blinks / tracker dropout.
       'fraction_near'
           Keep if the eye position was near the stimulus for >= ``min_fraction`` of the stim window.
-          CAVEAT for both fraction modes: a fraction is NOT comparable across sessions. Stim durations span
-          0.5-2.7 s in this dataset, so 0.5 of a 0.5 s stim (=0.25 s) demands far less viewing than 0.5 of a
-          2 s stim (=1 s). Prefer a duration mode when comparing sessions.
+          CAVEAT for both fraction modes: a fraction is NOT comparable across sessions run with different
+          stimulus durations -- the same fraction demands a different absolute amount of viewing. Prefer a
+          duration mode when comparing across stim_dur conditions.
       'duration_near'
           Keep if the eye was near the stimulus for >= ``min_eye_near_stim_sec`` ABSOLUTE seconds (default
           ``expected_response_dur_sec``) -- stim_dur-fair by construction. With ``exclude_late_looks`` (the
