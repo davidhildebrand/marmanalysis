@@ -424,7 +424,9 @@ def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_ra
     if mode not in GATE_MODES:
         raise ValueError('mode must be one of %s, got %r' % (GATE_MODES, mode))
     n_tr = len(oc['trials'])
-    out = {'mode': mode, 'stim_derived_eyepos_ref': stim_derived_eyepos_ref, 'near_radius_v': near_radius_v}
+    trial_ids = np.array(sorted(oc['trials']))               # aligns 1:1 with ``kept`` (and every q array)
+    out = {'mode': mode, 'trial': trial_ids,
+           'stim_derived_eyepos_ref': stim_derived_eyepos_ref, 'near_radius_v': near_radius_v}
     if mode == 'none':
         out['kept'] = np.ones(n_tr, bool)
         return out
@@ -483,6 +485,55 @@ def compare_eyepos_gate_modes(oc, min_fraction=0.5, min_eye_near_stim_sec=None,
             k = int(res[m]['kept'].sum())
             print('    %-15s %6d %6.1f%%   %s' % (m, k, 100 * (1 - k / n), crit[m]))
     return res
+
+
+def _stim_onset_acqfr(ph):
+    """Stimulus-onset acquisition frame (raw, from the text log) for one trial's phase dict, with the same
+    stim-start fallback the rest of the module uses. NaN if the trial has no stim window."""
+    s = ph.get('stim start') or ph.get('fixation end') or ph.get('ISI end')
+    return float(s[0]) if s else np.nan
+
+
+def calculate_eyepos_stimlog_keep(oc, gate, stimlog, acqfr_col='acqfr_stim_i', match_tol_frames=3):
+    """Project a per-eye-trial gate result onto the response-table's stimlog rows: a per-row keep mask
+    (True = keep) that ``response_table.exclude_trials_by_stimlog`` turns into (condition, repeat) exclusions.
+
+    JOIN KEY = stimulus-onset acquisition frame. The eye tracker and the stimlog are stamped from the SAME
+    'stim start' log line, so each eye trial's onset frame equals the stimlog's ``acqfr_stim_i`` (up to the
+    global -1 acqfr correction applied to the stimlog). Matching on that physical frame -- nearest eye trial
+    within ``match_tol_frames`` -- is robust to trial RENUMBERING between the structured (pickle) and text
+    stimlog sources (which a trial-number join would silently get wrong) and self-validates: a bad join shows
+    up as a low ``n_matched``. Inter-trial spacing is tens of frames, so a few-frame tolerance is unambiguous.
+
+    A stimlog row with no eye trial within tolerance is KEPT (the eye record can't judge it) and counted in
+    ``n_unmatched`` -- eye gating never drops a trial it has no evidence about. Returns (keep_rows, info),
+    info summarizing the join (n_matched / n_unmatched / n_excluded) and the reference/radius the gate used."""
+    eye_trials = sorted(oc['trials'])
+    kept = np.asarray(gate['kept'], bool)
+    if kept.shape[0] != len(eye_trials):
+        raise ValueError('gate kept length %d != n eye trials %d' % (kept.shape[0], len(eye_trials)))
+    onset = np.array([_stim_onset_acqfr(oc['trials'][t]) for t in eye_trials], float)
+    onset = np.where(np.isfinite(onset), onset, np.inf)      # trials without a stim window never match
+    acq = np.asarray(stimlog[acqfr_col].to_numpy(dtype=float, na_value=np.nan), float)
+    keep_rows = np.ones(len(acq), bool)
+    n_matched = n_unmatched = n_excluded = 0
+    for i, a in enumerate(acq):
+        if not np.isfinite(a):
+            n_unmatched += 1
+            continue
+        j = int(np.argmin(np.abs(onset - a)))
+        if abs(onset[j] - a) <= match_tol_frames:
+            n_matched += 1
+            if not kept[j]:
+                keep_rows[i] = False
+                n_excluded += 1
+        else:
+            n_unmatched += 1
+    info = {'mode': gate.get('mode'), 'n_rows': int(len(acq)), 'n_matched': n_matched,
+            'n_unmatched': n_unmatched, 'n_excluded': n_excluded, 'match_tol_frames': match_tol_frames,
+            'stim_derived_eyepos_ref': gate.get('stim_derived_eyepos_ref'),
+            'near_radius_v': gate.get('near_radius_v')}
+    return keep_rows, info
 
 
 def load_calibration(session_path, cal_glob='*EyeTrackingCalibration*/*calibration.p'):

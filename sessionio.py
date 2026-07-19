@@ -20,6 +20,7 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 
+import eyetracking
 import filters
 import metadata
 import parsers
@@ -350,8 +351,30 @@ def trim_to_imaged_trials(stimlog, n_frames, n_samp_isi, n_samp_stim):
     return stimlog[keep].reset_index(drop=True)
 
 
+def _apply_eyepos_gate(ds, session_path, stimlog, framerate, mode, gate_kw):
+    """Apply the eye-position gate as response-table exclusions (used when ``eye_gate_mode != 'none'``).
+
+    Runs eyetracking.gate_trials_by_eyepos in the requested ``mode``, joins the gated eye trials to stimlog
+    rows by stimulus-onset frame (eyetracking.calculate_eyepos_stimlog_keep), and marks the failed
+    (condition, repeat) cells excluded via response_table.exclude_trials_by_stimlog. NO-OPS with a warning
+    when the session has no usable eye recording, so requesting a gate never blocks a session that simply
+    lacks eye data (modality heterogeneity is expected). Returns (dataset, summary)."""
+    try:
+        oc = eyetracking.load_eye_ai(session_path)
+    except (FileNotFoundError, ValueError) as e:
+        warn('eye_gate_mode={!r} requested but no usable eye data ({}); no eye exclusions applied.'
+             .format(mode, e))
+        return ds, {'mode': mode, 'applied': False, 'reason': str(e)}
+    gate = eyetracking.gate_trials_by_eyepos(oc, mode=mode, framerate=framerate, **gate_kw)
+    keep_rows, info = eyetracking.calculate_eyepos_stimlog_keep(oc, gate, stimlog)
+    ds, dropped = response_table.exclude_trials_by_stimlog(ds, stimlog, keep_rows)
+    info.update({'applied': True, 'n_excluded_cells': len(dropped)})
+    return ds, info
+
+
 def build_session_response_table(session_path, variant=None, baseline_method='medianbw',
-                                 paradigm='auto', threshold_cellprob=0.0):
+                                 paradigm='auto', threshold_cellprob=0.0,
+                                 eye_gate_mode='none', eye_gate_kw=None):
     """Load a session end-to-end into a response_table xarray Dataset.
 
     Orchestrates load_metadata -> load_suite2p -> compute_fluorescence_metrics -> load_stimlog ->
@@ -359,6 +382,14 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
     (dataset, context), where context holds the intermediates (md, s2p, traces, stimlog,
     n_samp_isi, n_samp_stim, stim_provenance). Paradigm-specific condition metadata (category,
     image name, etc.) is layered on by the paradigm driver; this orchestrator stays general.
+
+    Eye-position gating (opt-in). With ``eye_gate_mode != 'none'`` the eye-position gate
+    (eyetracking.gate_trials_by_eyepos) is run and its rejected trials are recorded in the table's
+    ``excluded`` mask -- values are never NaN-ed, so exclusions stay reversible and visible. ``eye_gate_kw``
+    passes mode parameters through to the gate (e.g. ``near_radius_v``, ``min_fraction``,
+    ``min_eye_near_stim_sec``); a per-session summary lands in ``context['eye_gate']``. The DEFAULT ``'none'``
+    changes nothing (no eye data is even loaded), keeping eye exclusion a deliberate choice; and a session
+    with no eye recording is a warned no-op rather than an error. See eyetracking.GATE_MODES for the modes.
     """
     md = load_metadata(session_path)
     s2p = load_suite2p(session_path, variant=variant, threshold_cellprob=threshold_cellprob)
@@ -374,4 +405,7 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
         traces, stimlog, n_samp_isi, n_samp_stim, framerate=md['framerate'])
     context = {'md': md, 's2p': s2p, 'traces': traces, 'stimlog': stimlog,
                'n_samp_isi': n_samp_isi, 'n_samp_stim': n_samp_stim, 'stim_provenance': stim_prov}
+    if eye_gate_mode != 'none':
+        ds, context['eye_gate'] = _apply_eyepos_gate(
+            ds, session_path, stimlog, md['framerate'], eye_gate_mode, eye_gate_kw or {})
     return ds, context

@@ -171,6 +171,28 @@ def exclude_trials(ds, trials):
     return ds.assign_coords(excluded=excluded)
 
 
+def exclude_trials_by_stimlog(ds, stimlog, keep_mask, cond_col='cond'):
+    """Exclude the response-table cells whose stimlog row is False in ``keep_mask``.
+
+    ``keep_mask`` is a boolean aligned to stimlog rows (True = keep). Each dropped row is mapped to its
+    (condition, repeat) cell using the SAME grouping ``build_response_table`` uses -- group by condition
+    value, repeat = positional order within that group -- so the pairs index exactly the cells the trial's
+    data occupies. Defers to ``exclude_trials`` (mask only; values are never overwritten). Returns
+    (dataset, dropped_pairs). This is the join point for an external per-trial gate (e.g. the eye-position
+    gate in eyetracking.calculate_eyepos_stimlog_keep)."""
+    keep_mask = np.asarray(keep_mask, bool)
+    if keep_mask.shape[0] != len(stimlog):
+        raise ValueError('keep_mask length %d != stimlog rows %d' % (keep_mask.shape[0], len(stimlog)))
+    conditions = np.unique(stimlog[cond_col].values)
+    dropped = []
+    for c in conditions:
+        rows = np.where((stimlog[cond_col] == c).to_numpy(dtype=bool, na_value=False))[0]
+        for t, ridx in enumerate(rows):                     # repeat index = position within the condition
+            if not keep_mask[int(ridx)]:
+                dropped.append((c, t))
+    return exclude_trials(ds, dropped), dropped
+
+
 def _valid(ds, metric):
     """Metric values with excluded trials masked to NaN (without mutating ds)."""
     return ds[metric].where(~ds['excluded'])
