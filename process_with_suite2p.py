@@ -8,6 +8,7 @@ import os
 import suite2p
 from warnings import warn
 
+import indicators
 import metadata
 
 # TODO Write a function to merge registered TIF files into a single file and also save as registered h5.
@@ -95,12 +96,13 @@ db['multiplane_parallel'] = False  # Run parallel pipeline on server.
 db['nplanes'] = 1
 db['nchannels'] = 1
 db['functional_chan'] = 1
-# jGCaMP8s sensor decay time constant. suite2p's `tau` is the exponential-decay TIME CONSTANT (fall to 1/e),
-# used by the OASIS spike deconvolution. jGCaMP8s reports a single-action-potential HALF-decay of ~0.20 s in
-# mouse brain (Zhang et al. Looger 2023 Nature, https://doi.org/10.1038/s41586-023-05828-9); the decay time
-# constant is tau = t_half / ln(2) = 0.20 / 0.693 = 0.29 s. (The previous 0.6 was a GCaMP6f value.) The
-# empirical per-session decay can be measured + compared via signal_quality.calculate_indicator_decay_tau.
-db['tau'] = 0.29
+# Sensor decay time constant for suite2p = the exponential-decay TIME CONSTANT of the OASIS deconvolution
+# kernel (fall to 1/e). Selected from the named indicator via the indicators lookup, which carries the value
+# and its published/empirical provenance (indicators.py); tau = published 1-AP half-decay / ln2. Set
+# `indicator` to the construct imaged -- 'jGCaMP8s' (default), 'ribo-jGCaMP8s', 'soma-jGCaMP8s', 'GCaMP6s', ...
+# (The previous hard-coded 0.6 was a GCaMP6f value.) Empirical per-session decay: report_indicator_tau.py.
+indicator = 'jGCaMP8s'
+db['tau'] = indicators.indicator_tau(indicator)
 db['fs'] = md['framerate']
 db['mesoscan'] = False  # Load json file containing mesoscope metadata.
 # db['frames_include'] = -1  # Process only a subset of # frames.

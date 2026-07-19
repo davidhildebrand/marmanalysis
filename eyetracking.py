@@ -27,6 +27,8 @@ import re
 
 import numpy as np
 
+import indicators
+
 EYE_CH = (0, 1)     # eye X, Y channels (analog input; any tracker piped to the DAQ)
 RAIL_V = 9.0        # |v| above this = DAQ rail (signal loss)
 
@@ -42,12 +44,12 @@ CAL_RESID_FRAC_DROP = 0.50  # residual > this fraction => 'unusable' (report vol
 # half-RISE -- negligible at our ~6 Hz imaging, so calcium tracks spike onset inside a single frame -- and a
 # ~200 ms single-AP HALF-decay in mouse brain, with ~2x the 1-AP sensitivity of the best prior sensor.
 # We parameterise the decay by its TIME CONSTANT tau (fall to 1/e), because tau is the standard quantity: it
-# is what suite2p takes (process_with_suite2p.py now passes tau=0.29) and what the OASIS deconvolution and
-# most reports use. tau = t_half / ln2, so the paper's t_half ~0.20 s -> tau ~0.29 s. An empirical per-session
-# tau can be measured from spontaneous-transient decays via signal_quality.calculate_indicator_decay_tau, to
-# compare against this published value. NB a ~0.29 s decay CANNOT manufacture the multi-second response
-# plateau we observe: that plateau is sustained FIRING, not indicator ringing.
-INDICATOR_DECAY_TAU_SEC = 0.29         # jGCaMP8s decay time constant = paper half-decay 0.20 s / ln2
+# is what suite2p takes and what OASIS deconvolution / most reports use. tau = t_half / ln2, so the paper's
+# t_half ~0.20 s -> tau ~0.29 s. The value + its provenance live in the indicators lookup (indicators.py) --
+# the single source shared with process_with_suite2p.py -- and an empirical per-session tau can be measured
+# via signal_quality.calculate_indicator_decay_tau. NB a ~0.29 s decay CANNOT manufacture the multi-second
+# response plateau we observe: that plateau is sustained FIRING, not indicator ringing.
+INDICATOR_DECAY_TAU_SEC = indicators.indicator_tau('jGCaMP8s')   # single source of truth: indicators.py
 # The gate's response-timing parameter (``expected_response_dur_sec``: how long a look's response takes to
 # register + linger -- used as BOTH the minimum viewing duration and the excluded tail before stim offset)
 # defaults to ONE decay tau, i.e. INDICATOR_DECAY_TAU_SEC itself. It is deliberately NOT a separate module
@@ -330,11 +332,15 @@ def _default_near_radius_v(oc, ref, eye_ch=EYE_CH, rail_v=RAIL_V):
     "significantly smaller than the typical receptive field sizes" (0.3-0.8 deg at 3-5 deg eccentricity),
     https://doi.org/10.1016/j.cub.2017.11.039.
 
-    We have NO confirmed marmoset RF estimate for this area (PD). Working proxies, in order: macaque
-    face-patch PD/PITd or V4 RF size -- cf. Issa and DiCarlo 2012 J Neurosci, which maps face-patch RFs with a
-    3 deg probe at 1 deg resolution, https://doi.org/10.1523/JNEUROSCI.2391-12.2012 -- with marmoset MT as a
-    nearby-area check. Until such an estimate exists, the session-spread heuristic below is a STAND-IN, not a
-    principled tolerance: treat any degree-valued claim derived from it accordingly."""
+    No marmoset RF estimate exists for area PD specifically. Working proxies: (a) marmoset MT (nearby area) --
+    Rosa & Elston 1998 J Comp Neurol give RF size (sqrt of RF area) = 2.40 * ecc^0.58 deg, i.e. ~2.4 deg at the
+    fovea rising to ~7 deg at 6 deg eccentricity across our 12x7.2 deg stimulus (MTc slightly larger,
+    2.92*ecc^0.59); https://doi.org/10.1002/(sici)1096-9861(19980420)393:4<505::aid-cne9>3.0.co;2-4 . (b) PD is
+    a FACE patch, whose RFs are typically LARGER and more position-tolerant than MT (cf. macaque face-patch /
+    Issa & DiCarlo 2012 above), so loose fixation should matter even less. So the on-stimulus tolerance ought
+    to be a FEW degrees (MT-scale) to larger (face-patch); the session-spread heuristic below is a STAND-IN
+    until a marmoset PD RF is measured directly -- sanity-check it against these scales, and do not read its
+    volt value as a precise degree tolerance."""
     ai = oc['ai']
     m = calculate_phase_sample_masks(oc)['stim'] & ~calculate_eyepos_loss_mask(ai, eye_ch, rail_v)
     if not m.any():
