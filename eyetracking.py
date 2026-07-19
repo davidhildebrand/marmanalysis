@@ -38,22 +38,21 @@ CAL_RESID_FRAC_GOOD = 0.15  # residual < this fraction of grid half-range => 'go
 CAL_RESID_FRAC_DROP = 0.50  # residual > this fraction => 'unusable' (report volts only)
 
 # Indicator kinetics -> response timing.
-# PUBLISHED (jGCaMP8s; Zhang et al. Looger 2023 Nature, the jGCaMP8 paper): a few-MILLISECOND half-RISE --
-# negligible at our ~6 Hz imaging, so calcium tracks spike onset inside a single frame -- and a ~200 ms
-# half-DECAY in mouse brain, with ~2x the single-AP sensitivity of the best prior sensor.
-# RELATED BUT NOT THE SAME NUMBER: the v9 pipeline hands suite2p ``tau = 0.2`` (overriding suite2p's GCaMP6s
-# default of 1.0). suite2p's `tau` is an exponential decay TIME CONSTANT, not a half-decay: t_half = tau*ln2.
-# So v9's tau=0.2 s implies t_half ~0.14 s, and the paper's t_half ~0.20 s implies tau ~0.29 s. The two agree
-# only in ORDER OF MAGNITUDE -- do NOT read the shared "0.2" as independent confirmation of one value.
-# NB a ~0.2 s decay CANNOT manufacture the multi-second response plateau we observe: that plateau is sustained
-# FIRING, not indicator ringing.
-# Zhang et al. Looger 2023 Nature, https://doi.org/10.1038/s41586-023-05828-9
-INDICATOR_HALF_DECAY_SEC = 0.20        # jGCaMP8s 1-AP half-decay, mouse brain
-# HEURISTIC -- our judgement call, NOT a published constant and NOT from v9. How many indicator half-decays we
-# require for a look's response to have registered and still be lingering within the response window. It is
-# the only unsourced number here, so it is kept on its own line rather than buried inside a "derived" default.
-RESPONSE_REGISTER_HALF_DECAYS = 1.5
-EXPECTED_RESPONSE_DUR_SEC = RESPONSE_REGISTER_HALF_DECAYS * INDICATOR_HALF_DECAY_SEC   # 0.30 s
+# jGCaMP8s (Zhang et al. Looger 2023 Nature, https://doi.org/10.1038/s41586-023-05828-9): a few-MILLISECOND
+# half-RISE -- negligible at our ~6 Hz imaging, so calcium tracks spike onset inside a single frame -- and a
+# ~200 ms single-AP HALF-decay in mouse brain, with ~2x the 1-AP sensitivity of the best prior sensor.
+# We parameterise the decay by its TIME CONSTANT tau (fall to 1/e), because tau is the standard quantity: it
+# is what suite2p takes (process_with_suite2p.py now passes tau=0.29) and what the OASIS deconvolution and
+# most reports use. tau = t_half / ln2, so the paper's t_half ~0.20 s -> tau ~0.29 s. An empirical per-session
+# tau can be measured from spontaneous-transient decays via signal_quality.calculate_indicator_decay_tau, to
+# compare against this published value. NB a ~0.29 s decay CANNOT manufacture the multi-second response
+# plateau we observe: that plateau is sustained FIRING, not indicator ringing.
+INDICATOR_DECAY_TAU_SEC = 0.29         # jGCaMP8s decay time constant = paper half-decay 0.20 s / ln2
+# HEURISTIC -- our judgement call, NOT a published constant: how many decay time constants a look's response
+# needs to have registered and still be lingering within the response window. The only unsourced number here,
+# kept on its own line rather than buried inside a "derived" default.
+RESPONSE_REGISTER_TAUS = 1.0
+EXPECTED_RESPONSE_DUR_SEC = RESPONSE_REGISTER_TAUS * INDICATOR_DECAY_TAU_SEC   # 0.29 s
 
 
 def _find(session_path, pat):

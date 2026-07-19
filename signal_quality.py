@@ -159,3 +159,80 @@ def n_transients(dff, framerate, sigma=None, sigma_method='diff', isi_mask=None,
     for r in range(dff.shape[0]):
         counts[r] = _count_transient_runs(dff[r], onset * sigma[r], offset * sigma[r], min_frames)
     return counts
+
+
+def calculate_indicator_decay_tau(dff, framerate, isi_mask=None, min_amp_sigma=4.0, sigma_method='diff',
+                                  isolation_sec=1.0, decay_sec=2.0, tau_bounds=(0.05, 2.0),
+                                  max_peaks_per_roi=30, max_rois=None):
+    """Empirical indicator decay time constant tau (seconds) from ISOLATED calcium transients in the dF/F
+    traces -- a per-session, data-driven CHECK on the published jGCaMP8s value (tau ~0.29 s, from the paper's
+    ~0.20 s single-AP HALF-decay / ln2; cf. process_with_suite2p.py and eyetracking.INDICATOR_DECAY_TAU_SEC).
+
+    Per ROI: estimate the noise sigma; find peaks >= ``min_amp_sigma`` * sigma separated by >=
+    ``isolation_sec`` (isolated events, not shoulders of sustained firing; at most ``max_peaks_per_roi``, the
+    largest). For each, measure the HALF-decay time t_half -- the interpolated time from the peak until dF/F
+    falls to 50% of (peak - pre-peak baseline) -- and convert to a decay time constant tau = t_half / ln2.
+    The 50%-crossing is used rather than an exponential fit because calcium transients are not clean single
+    exponentials (rounded peak + slow tail), which biases exp-fit tau by fit window; t_half is baseline-robust
+    AND is exactly the quantity the jGCaMP8 paper reports, so the empirical value compares directly (its
+    t_half ~0.20 s). Transients that do not reach 50% within ``decay_sec`` are skipped. Pass ``isi_mask``
+    (per-frame bool, True on NON-stimulus frames) to measure only spontaneous decays -- stimulus-driven
+    SUSTAINED firing inflates the apparent decay, so this is an UPPER bound on the pure-indicator value:
+    compare it against the published value, do not blindly replace. (On the Cadbury PD session the median came
+    to ~0.30 s tau / ~0.21 s t_half, matching the published 0.29 / 0.20 s.) Returns {'tau_median', 'tau_iqr'
+    (q25,q75), 't_half_median', 'n_events', 'per_event_tau', 'per_event_roi'}.
+    """
+    from scipy.signal import find_peaks
+
+    dff = np.atleast_2d(np.asarray(dff, float))
+    n_roi, n_t = dff.shape
+    sig = noise_sigma(dff, framerate, sigma_method, isi_mask)
+    iso = max(1, int(round(isolation_sec * framerate)))
+    win = max(2, int(round(decay_sec * framerate)))
+    good = None if isi_mask is None else np.asarray(isi_mask, bool)
+    ln2 = np.log(2.0)
+
+    taus, tau_rois = [], []
+    for r in (range(n_roi) if max_rois is None else range(min(n_roi, max_rois))):
+        s = sig[r]
+        if not np.isfinite(s) or s <= 0:
+            continue
+        x = dff[r]
+        peaks, _ = find_peaks(x, height=min_amp_sigma * s, distance=iso)
+        if peaks.size == 0:
+            continue
+        if max_peaks_per_roi and peaks.size > max_peaks_per_roi:
+            peaks = peaks[np.argsort(x[peaks])[::-1][:max_peaks_per_roi]]   # keep the largest-amplitude events
+        for p in peaks:
+            if p < iso:
+                continue
+            end = min(p + win, n_t)
+            if good is not None:                                  # cut the window at the first non-spontaneous frame
+                bad = np.flatnonzero(~good[p:end])
+                if bad.size:
+                    end = p + bad[0]
+            if end - p < 2:
+                continue
+            base = float(np.percentile(x[max(0, p - 3 * win):p + 1], 20))   # pre-peak resting baseline
+            amp = x[p] - base
+            if amp <= min_amp_sigma * s:
+                continue
+            d = x[p:end] - base                                            # decay relative to baseline
+            below = np.flatnonzero(d <= 0.5 * amp)                         # first crossing of half-amplitude
+            if below.size == 0 or below[0] == 0:
+                continue
+            j = below[0]
+            y0, y1 = d[j - 1], d[j]                                         # interpolate the 50% crossing time
+            frac = (y0 - 0.5 * amp) / (y0 - y1) if y0 != y1 else 0.0
+            tau = ((j - 1 + frac) / framerate) / ln2                        # t_half -> tau (single-exponential)
+            if tau_bounds[0] < tau < tau_bounds[1]:
+                taus.append(float(tau)); tau_rois.append(r)
+    taus = np.array(taus)
+    if taus.size == 0:
+        return {'tau_median': float('nan'), 'tau_iqr': (float('nan'), float('nan')),
+                't_half_median': float('nan'), 'n_events': 0,
+                'per_event_tau': taus, 'per_event_roi': np.array(tau_rois, int)}
+    med = float(np.median(taus))
+    return {'tau_median': med, 'tau_iqr': (float(np.percentile(taus, 25)), float(np.percentile(taus, 75))),
+            't_half_median': med * ln2, 'n_events': int(taus.size),
+            'per_event_tau': taus, 'per_event_roi': np.array(tau_rois, int)}

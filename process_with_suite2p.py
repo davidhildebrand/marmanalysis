@@ -95,7 +95,12 @@ db['multiplane_parallel'] = False  # Run parallel pipeline on server.
 db['nplanes'] = 1
 db['nchannels'] = 1
 db['functional_chan'] = 1
-db['tau'] = 0.6
+# jGCaMP8s sensor decay time constant. suite2p's `tau` is the exponential-decay TIME CONSTANT (fall to 1/e),
+# used by the OASIS spike deconvolution. jGCaMP8s reports a single-action-potential HALF-decay of ~0.20 s in
+# mouse brain (Zhang et al. Looger 2023 Nature, https://doi.org/10.1038/s41586-023-05828-9); the decay time
+# constant is tau = t_half / ln(2) = 0.20 / 0.693 = 0.29 s. (The previous 0.6 was a GCaMP6f value.) The
+# empirical per-session decay can be measured + compared via signal_quality.calculate_indicator_decay_tau.
+db['tau'] = 0.29
 db['fs'] = md['framerate']
 db['mesoscan'] = False  # Load json file containing mesoscope metadata.
 # db['frames_include'] = -1  # Process only a subset of # frames.
