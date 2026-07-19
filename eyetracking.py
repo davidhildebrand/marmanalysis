@@ -387,8 +387,9 @@ def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_ra
                           min_fraction=0.5, min_eye_near_stim_sec=None,
                           expected_response_dur_sec=INDICATOR_DECAY_TAU_SEC, exclude_late_looks=True,
                           framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V):
-    """Per-trial eye-position gate with a SWITCHABLE criterion. Returns a dict: ``mode``, ``kept`` (bool array,
-    one per trial), the reference/radius/thresholds actually used, and EVERY per-trial quantity, so you can
+    """Per-trial eye-position gate with a SWITCHABLE criterion. Returns a dict: ``mode``, ``passed`` (bool array,
+    one per trial -- True where the trial PASSED the gate criterion, i.e. is kept), the reference/radius/
+    thresholds actually used, and EVERY per-trial quantity, so you can
     re-threshold or compare modes without recomputing. Default ``mode='none'`` -- eye tracking excludes nothing
     unless you ask, so any exclusion stays a deliberate, reversible choice.
 
@@ -424,11 +425,11 @@ def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_ra
     if mode not in GATE_MODES:
         raise ValueError('mode must be one of %s, got %r' % (GATE_MODES, mode))
     n_tr = len(oc['trials'])
-    trial_ids = np.array(sorted(oc['trials']))               # aligns 1:1 with ``kept`` (and every q array)
+    trial_ids = np.array(sorted(oc['trials']))               # aligns 1:1 with ``passed`` (and every q array)
     out = {'mode': mode, 'trial': trial_ids,
            'stim_derived_eyepos_ref': stim_derived_eyepos_ref, 'near_radius_v': near_radius_v}
     if mode == 'none':
-        out['kept'] = np.ones(n_tr, bool)
+        out['passed'] = np.ones(n_tr, bool)
         return out
     if stim_derived_eyepos_ref is None:
         stim_derived_eyepos_ref = calculate_stim_derived_eyepos_ref(oc, eye_ch=eye_ch, rail_v=rail_v)
@@ -438,17 +439,17 @@ def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_ra
         min_eye_near_stim_sec = expected_response_dur_sec
     q = _eyepos_trial_quantities(oc, stim_derived_eyepos_ref, near_radius_v, expected_response_dur_sec,
                                  exclude_late_looks, framerate, eye_ch, rail_v)
-    with np.errstate(invalid='ignore'):                     # NaN (no stim window) compares False = excluded
+    with np.errstate(invalid='ignore'):                     # NaN (no stim window) compares False = fails the gate
         if mode == 'fraction_open':
-            kept = q['fraction_open'] >= min_fraction
+            passed = q['fraction_open'] >= min_fraction
         elif mode == 'fraction_near':
-            kept = q['fraction_near'] >= min_fraction
+            passed = q['fraction_near'] >= min_fraction
         elif mode == 'duration_near':
-            kept = q['eye_near_stim_sec'] >= min_eye_near_stim_sec
+            passed = q['eye_near_stim_sec'] >= min_eye_near_stim_sec
         else:                                               # 'landing_window'
-            kept = np.isfinite(q['landing_sec']) & (q['drive_sec'] >= min_eye_near_stim_sec)
+            passed = np.isfinite(q['landing_sec']) & (q['drive_sec'] >= min_eye_near_stim_sec)
     out.update(q)
-    out.update({'kept': np.asarray(kept, bool), 'stim_derived_eyepos_ref': stim_derived_eyepos_ref,
+    out.update({'passed': np.asarray(passed, bool), 'stim_derived_eyepos_ref': stim_derived_eyepos_ref,
                 'near_radius_v': near_radius_v, 'min_fraction': min_fraction,
                 'min_eye_near_stim_sec': min_eye_near_stim_sec,
                 'expected_response_dur_sec': expected_response_dur_sec})
@@ -480,9 +481,9 @@ def compare_eyepos_gate_modes(oc, min_fraction=0.5, min_eye_near_stim_sec=None,
                 'duration_near': 'eye near stim >= %.2fs abs (late looks %s)'
                                  % (mn, 'excluded' if exclude_late_looks else 'counted'),
                 'landing_window': 'lands near stim anytime, then >= %.2fs drive' % mn}
-        print('    %-15s %6s %7s   %s' % ('mode', 'kept', 'excl', 'criterion'))
+        print('    %-15s %6s %7s   %s' % ('mode', 'pass', 'excl', 'criterion'))
         for m in GATE_MODES:
-            k = int(res[m]['kept'].sum())
+            k = int(res[m]['passed'].sum())
             print('    %-15s %6d %6.1f%%   %s' % (m, k, 100 * (1 - k / n), crit[m]))
     return res
 
@@ -509,9 +510,9 @@ def calculate_eyepos_stimlog_keep(oc, gate, stimlog, acqfr_col='acqfr_stim_i', m
     ``n_unmatched`` -- eye gating never drops a trial it has no evidence about. Returns (keep_rows, info),
     info summarizing the join (n_matched / n_unmatched / n_excluded) and the reference/radius the gate used."""
     eye_trials = sorted(oc['trials'])
-    kept = np.asarray(gate['kept'], bool)
-    if kept.shape[0] != len(eye_trials):
-        raise ValueError('gate kept length %d != n eye trials %d' % (kept.shape[0], len(eye_trials)))
+    passed = np.asarray(gate['passed'], bool)
+    if passed.shape[0] != len(eye_trials):
+        raise ValueError('gate passed length %d != n eye trials %d' % (passed.shape[0], len(eye_trials)))
     onset = np.array([_stim_onset_acqfr(oc['trials'][t]) for t in eye_trials], float)
     onset = np.where(np.isfinite(onset), onset, np.inf)      # trials without a stim window never match
     acq = np.asarray(stimlog[acqfr_col].to_numpy(dtype=float, na_value=np.nan), float)
@@ -524,7 +525,7 @@ def calculate_eyepos_stimlog_keep(oc, gate, stimlog, acqfr_col='acqfr_stim_i', m
         j = int(np.argmin(np.abs(onset - a)))
         if abs(onset[j] - a) <= match_tol_frames:
             n_matched += 1
-            if not kept[j]:
+            if not passed[j]:
                 keep_rows[i] = False
                 n_excluded += 1
         else:
