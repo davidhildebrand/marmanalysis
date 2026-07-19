@@ -161,9 +161,9 @@ def n_transients(dff, framerate, sigma=None, sigma_method='diff', isi_mask=None,
     return counts
 
 
-def calculate_indicator_decay_tau(dff, framerate, isi_mask=None, min_amp_sigma=4.0, sigma_method='diff',
-                                  isolation_sec=1.0, decay_sec=2.0, tau_bounds=(0.05, 2.0),
-                                  max_peaks_per_roi=30, max_rois=None):
+def calculate_indicator_decay_tau(dff, framerate, isi_mask=None, method='half_decay', min_amp_sigma=4.0,
+                                  sigma_method='diff', isolation_sec=1.0, decay_sec=2.0, tau_bounds=(0.05, 2.0),
+                                  max_peaks_per_roi=30, p0_tau=0.29, min_r2=0.8, max_rois=None):
     """Empirical indicator decay time constant tau (seconds) from ISOLATED calcium transients in the dF/F
     traces -- a per-session, data-driven CHECK on the published jGCaMP8s value (tau ~0.29 s, from the paper's
     ~0.20 s single-AP HALF-decay / ln2; cf. process_with_suite2p.py and eyetracking.INDICATOR_DECAY_TAU_SEC).
@@ -172,7 +172,9 @@ def calculate_indicator_decay_tau(dff, framerate, isi_mask=None, min_amp_sigma=4
     ``isolation_sec`` (isolated events, not shoulders of sustained firing; at most ``max_peaks_per_roi``, the
     largest). For each, measure the HALF-decay time t_half -- the interpolated time from the peak until dF/F
     falls to 50% of (peak - pre-peak baseline) -- and convert to a decay time constant tau = t_half / ln2.
-    The 50%-crossing is used rather than an exponential fit because calcium transients are not clean single
+    The 50%-crossing (``method='half_decay'``, default) is preferred over an exponential fit (available as
+    ``method='curve_fit'``, which fits A*exp(-t/tau)+b per transient, slower, keeping R^2 >= ``min_r2``)
+    because calcium transients are not clean single
     exponentials (rounded peak + slow tail), which biases exp-fit tau by fit window; t_half is baseline-robust
     AND is exactly the quantity the jGCaMP8 paper reports, so the empirical value compares directly (its
     t_half ~0.20 s). Transients that do not reach 50% within ``decay_sec`` are skipped. Pass ``isi_mask``
@@ -183,6 +185,14 @@ def calculate_indicator_decay_tau(dff, framerate, isi_mask=None, min_amp_sigma=4
     (q25,q75), 't_half_median', 'n_events', 'per_event_tau', 'per_event_roi'}.
     """
     from scipy.signal import find_peaks
+    if method not in ('half_decay', 'curve_fit'):
+        raise ValueError("method must be 'half_decay' or 'curve_fit', got %r" % method)
+    _curve_fit = None
+    if method == 'curve_fit':
+        from scipy.optimize import curve_fit as _curve_fit
+
+    def _exp_decay(tt, amp, tau, base):
+        return amp * np.exp(-tt / tau) + base
 
     dff = np.atleast_2d(np.asarray(dff, float))
     n_roi, n_t = dff.shape
@@ -217,14 +227,29 @@ def calculate_indicator_decay_tau(dff, framerate, isi_mask=None, min_amp_sigma=4
             amp = x[p] - base
             if amp <= min_amp_sigma * s:
                 continue
-            d = x[p:end] - base                                            # decay relative to baseline
-            below = np.flatnonzero(d <= 0.5 * amp)                         # first crossing of half-amplitude
-            if below.size == 0 or below[0] == 0:
-                continue
-            j = below[0]
-            y0, y1 = d[j - 1], d[j]                                         # interpolate the 50% crossing time
-            frac = (y0 - 0.5 * amp) / (y0 - y1) if y0 != y1 else 0.0
-            tau = ((j - 1 + frac) / framerate) / ln2                        # t_half -> tau (single-exponential)
+            if method == 'half_decay':
+                d = x[p:end] - base                                        # first 50%-of-amplitude crossing
+                below = np.flatnonzero(d <= 0.5 * amp)
+                if below.size == 0 or below[0] == 0:
+                    continue
+                j = below[0]
+                y0, y1 = d[j - 1], d[j]                                     # interpolate the crossing time
+                frac = (y0 - 0.5 * amp) / (y0 - y1) if y0 != y1 else 0.0
+                tau = ((j - 1 + frac) / framerate) / ln2                    # t_half -> tau (single-exponential)
+            else:                                                          # 'curve_fit': A*exp(-t/tau)+b
+                tt = np.arange(end - p) / framerate
+                seg = x[p:end]
+                try:
+                    popt, _ = _curve_fit(_exp_decay, tt, seg, p0=[amp, p0_tau, base],
+                                         bounds=([0.0, tau_bounds[0], -np.inf], [np.inf, tau_bounds[1], np.inf]),
+                                         maxfev=3000)
+                except Exception:
+                    continue
+                sst = float(np.sum((seg - seg.mean()) ** 2))
+                r2 = 1.0 - float(np.sum((seg - _exp_decay(tt, *popt)) ** 2)) / sst if sst > 0 else 0.0
+                if r2 < min_r2:
+                    continue
+                tau = float(popt[1])
             if tau_bounds[0] < tau < tau_bounds[1]:
                 taus.append(float(tau)); tau_rois.append(r)
     taus = np.array(taus)

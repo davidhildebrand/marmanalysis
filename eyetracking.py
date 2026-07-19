@@ -48,11 +48,11 @@ CAL_RESID_FRAC_DROP = 0.50  # residual > this fraction => 'unusable' (report vol
 # compare against this published value. NB a ~0.29 s decay CANNOT manufacture the multi-second response
 # plateau we observe: that plateau is sustained FIRING, not indicator ringing.
 INDICATOR_DECAY_TAU_SEC = 0.29         # jGCaMP8s decay time constant = paper half-decay 0.20 s / ln2
-# HEURISTIC -- our judgement call, NOT a published constant: how many decay time constants a look's response
-# needs to have registered and still be lingering within the response window. The only unsourced number here,
-# kept on its own line rather than buried inside a "derived" default.
-RESPONSE_REGISTER_TAUS = 1.0
-EXPECTED_RESPONSE_DUR_SEC = RESPONSE_REGISTER_TAUS * INDICATOR_DECAY_TAU_SEC   # 0.29 s
+# The gate's response-timing parameter (``expected_response_dur_sec``: how long a look's response takes to
+# register + linger -- used as BOTH the minimum viewing duration and the excluded tail before stim offset)
+# defaults to ONE decay tau, i.e. INDICATOR_DECAY_TAU_SEC itself. It is deliberately NOT a separate module
+# constant (it would just equal tau); pass a different multiple to the gate's ``expected_response_dur_sec``
+# argument if you ever want > 1 tau.
 
 
 def _find(session_path, pat):
@@ -267,7 +267,7 @@ def is_eye_near_stim(eyepos_x, eyepos_y, stim_derived_eyepos_ref, near_radius_v)
 
 
 def calculate_eye_near_stim_sec(oc, stim_derived_eyepos_ref, near_radius_v,
-                                expected_response_dur_sec=EXPECTED_RESPONSE_DUR_SEC,
+                                expected_response_dur_sec=INDICATOR_DECAY_TAU_SEC,
                                 exclude_late_looks=True, framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Per-trial SECONDS the (rough) eye position was near the stimulus during the countable part of the stim
     window -- the raw quantity a viewing-time gate thresholds (keep a trial when this >= a minimum, which
@@ -379,7 +379,7 @@ def _eyepos_trial_quantities(oc, ref, near_radius_v, expected_response_dur_sec, 
 
 def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_radius_v=None,
                           min_fraction=0.5, min_eye_near_stim_sec=None,
-                          expected_response_dur_sec=EXPECTED_RESPONSE_DUR_SEC, exclude_late_looks=True,
+                          expected_response_dur_sec=INDICATOR_DECAY_TAU_SEC, exclude_late_looks=True,
                           framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Per-trial eye-position gate with a SWITCHABLE criterion. Returns a dict: ``mode``, ``kept`` (bool array,
     one per trial), the reference/radius/thresholds actually used, and EVERY per-trial quantity, so you can
@@ -448,7 +448,7 @@ def gate_trials_by_eyepos(oc, mode='none', stim_derived_eyepos_ref=None, near_ra
 
 
 def compare_eyepos_gate_modes(oc, min_fraction=0.5, min_eye_near_stim_sec=None,
-                              expected_response_dur_sec=EXPECTED_RESPONSE_DUR_SEC, exclude_late_looks=True,
+                              expected_response_dur_sec=INDICATOR_DECAY_TAU_SEC, exclude_late_looks=True,
                               framerate=6.364, eye_ch=EYE_CH, rail_v=RAIL_V, verbose=True):
     """Run EVERY gate mode on one session and tabulate how many trials each keeps, so the cost of each
     criterion is visible rather than assumed (the point of keeping them switchable). The reference and radius
