@@ -122,9 +122,15 @@ def load_som(som_path, device='cpu'):
 
 
 def som_bmu(som, features):
-    """Best-matching-unit map location per feature vector: ``argmin`` L2 distance over the SOM's codebook units
-    (matches ``SOM.get_bmu`` / ``forward``). ``features`` is ``(n, input_size)``; returns ``(n, 2)`` map
-    coordinates (same units as ``som.locations``)."""
+    """Best-matching-unit map location per feature vector: ``argmin`` L2 distance over the SOM's codebook units,
+    via ``torch.cdist``. ``features`` is ``(n, input_size)``; returns ``(n, 2)`` map coordinates (same units as
+    ``som.locations``).
+
+    NB this is the INTENDED distance. Fenil's ``SOM.get_bmu``/``forward`` uses ``nn.PairwiseDistance`` on
+    ``(n, D, 1)`` vs ``(n, D, U)``, which under torch >= 2.x reduces the LAST axis and returns ``(n, D)`` instead
+    of ``(n, U)`` -- so his literal ``get_bmu`` yields a feature index, not a unit. ``cdist`` is the
+    version-robust equivalent; verified in ``parity_dnn_som.py`` (his ``get_all_som_corr_act`` SCA is unaffected
+    -- it reduces with an explicit ``sum``)."""
     features = torch.as_tensor(features, dtype=torch.float32)
     w = som.weight.detach().to(features)               # (input_size, n_units)
     dists = torch.cdist(features, w.t())               # (n, n_units) Euclidean
