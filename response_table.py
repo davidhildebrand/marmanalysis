@@ -19,6 +19,8 @@ never means "forgot to fill" -- both of those are represented explicitly -- whic
 class of bug where un-overwritten NaNs are mistaken for excluded trials.
 """
 
+import warnings
+
 import numpy as np
 import xarray as xr
 from scipy.stats import f_oneway, ttest_rel, wilcoxon, false_discovery_control
@@ -430,6 +432,81 @@ def split_half_reliability(ds, metric, n_splits=100, seed=0, spearman_brown=True
         if corrs:
             r_mean = float(np.mean(corrs))
             out[r] = (2 * r_mean / (1 + r_mean)) if (spearman_brown and (1 + r_mean) != 0) else r_mean
+    return out
+
+
+def _rowwise_corr(a, b):
+    """Per-row Pearson correlation between two (n_roi, n_cond) matrices, NaN-safe. Returns (n_roi,)."""
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    out = np.full(a.shape[0], np.nan)
+    for i in range(a.shape[0]):
+        ok = np.isfinite(a[i]) & np.isfinite(b[i])
+        if ok.sum() >= 3 and np.std(a[i][ok]) > 0 and np.std(b[i][ok]) > 0:
+            out[i] = np.corrcoef(a[i][ok], b[i][ok])[0, 1]
+    return out
+
+
+def calculate_temporal_split_stability(ds, metric='Fzsc', n_random=100, seed=0, roi_mask=None):
+    """Per-ROI stability of the condition-tuning profile between the EARLY and LATE halves of the session --
+    the drift/bleaching control (roadmap item 12f).
+
+    Conditions are interleaved, so the ``repeat`` index is a proxy for session time: repeats 0..h are early,
+    the last h are late. A slow nuisance that evolves through the session (z-drift, bleaching, arousal/state
+    drift) makes the tuning estimated early differ from the tuning estimated late; genuine tuning does not.
+
+    The diagnostic is the CONTRAST with a random split, NOT the temporal correlation alone: a random partition
+    of the same size has identical trial-count noise but no temporal structure, so
+    ``median(random_r) - median(temporal_r)`` isolates the time-varying component. A near-zero gap means the
+    tuning is time-stable and any spatial structure it produces is not drift-driven.
+
+    ``roi_mask`` (boolean, one per ROI) restricts the SUMMARY medians to a subset. In practice this matters a
+    lot: over ALL ROIs both medians sit near zero because most cells carry no reliable tuning, which washes the
+    contrast out — pass the responsive set so the comparison is made where tuning actually exists.
+
+    Returns {'temporal_r', 'random_r' (per-ROI arrays), 'temporal_median', 'random_median', 'gap', 'n_repeat',
+    'n_roi_used'}.
+    """
+    tr = trial_response(ds, metric).transpose('roi', 'condition', 'repeat').values
+    n_rep = tr.shape[2]
+    half = n_rep // 2
+    if half < 1:
+        raise ValueError('need >= 2 repeats for a temporal split (have %d)' % n_rep)
+    with warnings.catch_warnings():                      # all-NaN condition cells are expected (exclusions)
+        warnings.simplefilter('ignore', category=RuntimeWarning)
+        temporal_r = _rowwise_corr(np.nanmean(tr[:, :, :half], axis=2),
+                                   np.nanmean(tr[:, :, n_rep - half:], axis=2))
+        rng = np.random.default_rng(seed)
+        acc = []
+        for _ in range(n_random):
+            perm = rng.permutation(n_rep)
+            acc.append(_rowwise_corr(np.nanmean(tr[:, :, perm[:half]], axis=2),
+                                     np.nanmean(tr[:, :, perm[half:2 * half]], axis=2)))
+        random_r = np.nanmean(np.array(acc), axis=0)
+    m = np.ones(temporal_r.shape[0], bool) if roi_mask is None else np.asarray(roi_mask, bool)
+    tm, rm = float(np.nanmedian(temporal_r[m])), float(np.nanmedian(random_r[m]))
+    return {'temporal_r': temporal_r, 'random_r': random_r, 'temporal_median': tm,
+            'random_median': rm, 'gap': rm - tm, 'n_repeat': int(n_rep), 'n_roi_used': int(m.sum())}
+
+
+def shuffle_condition_labels(ds, seed=0):
+    """Return a copy of ``ds`` with trials permuted across the (condition, repeat) cells -- i.e. the stimulus
+    labels shuffled, DESTROYING tuning while leaving every trial's data intact (roadmap item 12g).
+
+    The null for "this spatial map reflects stimulus tuning": recompute the map on the shuffled table and ask
+    whether the spatial structure survives. If it does, the structure comes from something other than
+    condition-tuning (a cell-intrinsic property such as SNR/depth, or a condition-independent nuisance), not
+    from what the cells are tuned to. Each trial keeps its own samples, so per-cell noise and amplitude
+    statistics are preserved exactly; only the condition assignment is randomised.
+    """
+    rng = np.random.default_rng(seed)
+    n_cond, n_rep = ds.sizes['condition'], ds.sizes['repeat']
+    perm = rng.permutation(n_cond * n_rep)
+    out = ds.copy()
+    for m in ds.data_vars:
+        arr = ds[m].transpose('roi', 'condition', 'repeat', 'time').values
+        n_roi, _, _, n_t = arr.shape
+        flat = arr.reshape(n_roi, n_cond * n_rep, n_t)[:, perm, :]
+        out[m] = (('roi', 'condition', 'repeat', 'time'), flat.reshape(n_roi, n_cond, n_rep, n_t))
     return out
 
 
