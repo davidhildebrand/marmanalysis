@@ -195,6 +195,27 @@ def exclude_trials_by_stimlog(ds, stimlog, keep_mask, cond_col='cond'):
     return exclude_trials(ds, dropped), dropped
 
 
+def map_stimlog_values_to_cells(stimlog, values, cond_col='cond'):
+    """Map a per-stimlog-ROW value array onto the (condition, repeat) grid, using the SAME grouping as
+    ``build_response_table`` (group by condition value; repeat = positional order within that group).
+
+    Returns an (n_condition, n_repeat) float array, NaN where no row maps to a cell. Use it to carry a
+    per-trial quantity into the response table's coordinate system -- e.g. the eye gate's ``landing_sec``, so a
+    per-trial response window can be shifted to when the animal actually looked (see ``trial_response_shifted``).
+    """
+    values = np.asarray(values, float)
+    if values.shape[0] != len(stimlog):
+        raise ValueError('values length %d != stimlog rows %d' % (values.shape[0], len(stimlog)))
+    conditions = np.unique(stimlog[cond_col].values)
+    n_rep = max(int((stimlog[cond_col] == c).to_numpy(dtype=bool, na_value=False).sum()) for c in conditions)
+    out = np.full((len(conditions), n_rep), np.nan)
+    for ci, c in enumerate(conditions):
+        rows = np.where((stimlog[cond_col] == c).to_numpy(dtype=bool, na_value=False))[0]
+        for t, ridx in enumerate(rows):
+            out[ci, t] = values[int(ridx)]
+    return out
+
+
 def _valid(ds, metric):
     """Metric values with excluded trials masked to NaN (without mutating ds)."""
     return ds[metric].where(~ds['excluded'])
@@ -354,6 +375,52 @@ def trial_response(ds, metric, epoch=EPOCH_STIM, reduce='mean', framerate=None,
     if reduce == 'auc':
         return win.sum('time', skipna=True) / float(framerate or 1.0)
     raise ValueError("unknown reduce %r; expected 'mean', 'peak', or 'auc'" % reduce)
+
+
+def trial_response_shifted(ds, metric, offset_sec, framerate, response_window_sec=None,
+                           epoch=EPOCH_STIM, reduce='mean'):
+    """Per-(roi, condition, repeat) response over a PER-TRIAL window whose start is shifted by
+    ``offset_sec[condition, repeat]`` seconds from the epoch onset -- the counterpart to ``trial_response``,
+    whose ``offset_response_window_sec`` is a single value shared by every trial.
+
+    Motivation: the eye gate's ``landing_window`` mode keeps a trial whose look arrives LATE and reports when
+    it arrived (``landing_sec``). Under a fixed full-stim-window mean, such a trial is measured over a window
+    that largely PRECEDES its response, so the response is diluted. Shifting the window to start at the landing
+    measures the response where the calcium actually is -- and because jGCaMP8s decays with tau ~0.29 s, the
+    window may legitimately run past stimulus offset into the early ISI.
+
+    ``offset_sec`` is (n_condition, n_repeat) -- e.g. from ``map_stimlog_values_to_cells`` applied to the gate's
+    per-trial ``landing_sec``. A NaN offset (no landing) yields NaN for that trial. The window is clipped to the
+    trial and is ``response_window_sec`` long (default: the epoch's own length). Excluded trials are NaN via the
+    exclusion mask, as in ``trial_response``.
+    """
+    if framerate is None:
+        raise ValueError('trial_response_shifted requires framerate')
+    epoch_idx = np.where(ds['epoch'].values == epoch)[0]
+    if epoch_idx.size == 0:
+        raise ValueError('no %r frames in the response table' % epoch)
+    n_win = epoch_idx.size if response_window_sec is None else max(1, int(round(response_window_sec * framerate)))
+    vals = _valid(ds, metric).transpose('roi', 'condition', 'repeat', 'time').values
+    off = np.asarray(offset_sec, float)
+    n_roi, n_cond, n_rep, n_time = vals.shape
+    if off.shape != (n_cond, n_rep):
+        raise ValueError('offset_sec must be (n_condition, n_repeat) = %s, got %s'
+                         % ((n_cond, n_rep), off.shape))
+    out = np.full((n_roi, n_cond, n_rep), np.nan)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=RuntimeWarning)      # all-NaN (excluded) trials are expected
+        for c in range(n_cond):
+            for t in range(n_rep):
+                if not np.isfinite(off[c, t]):
+                    continue
+                start = int(epoch_idx[0] + round(off[c, t] * framerate))
+                i0, i1 = max(start, 0), min(start + n_win, n_time)
+                if i1 <= i0:
+                    continue
+                win = vals[:, c, t, i0:i1]
+                out[:, c, t] = np.nanmax(win, axis=1) if reduce == 'peak' else np.nanmean(win, axis=1)
+    return xr.DataArray(out, dims=('roi', 'condition', 'repeat'),
+                        coords={'roi': ds['roi'], 'condition': ds['condition'], 'repeat': ds['repeat']})
 
 
 def anova_selective(ds, metric='Fzsc', exclude_blank=True, reduce='mean', framerate=None,

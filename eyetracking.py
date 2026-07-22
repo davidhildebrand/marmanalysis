@@ -516,7 +516,9 @@ def calculate_eyepos_stimlog_keep(oc, gate, stimlog, acqfr_col='acqfr_stim_i', m
     onset = np.array([_stim_onset_acqfr(oc['trials'][t]) for t in eye_trials], float)
     onset = np.where(np.isfinite(onset), onset, np.inf)      # trials without a stim window never match
     acq = np.asarray(stimlog[acqfr_col].to_numpy(dtype=float, na_value=np.nan), float)
+    landing = np.asarray(gate.get('landing_sec', np.full(len(eye_trials), np.nan)), float)
     keep_rows = np.ones(len(acq), bool)
+    landing_rows = np.full(len(acq), np.nan)        # per-stimlog-row landing time (for a shifted response window)
     n_matched = n_unmatched = n_excluded = 0
     for i, a in enumerate(acq):
         if not np.isfinite(a):
@@ -525,12 +527,15 @@ def calculate_eyepos_stimlog_keep(oc, gate, stimlog, acqfr_col='acqfr_stim_i', m
         j = int(np.argmin(np.abs(onset - a)))
         if abs(onset[j] - a) <= match_tol_frames:
             n_matched += 1
+            if j < landing.size:
+                landing_rows[i] = landing[j]
             if not passed[j]:
                 keep_rows[i] = False
                 n_excluded += 1
         else:
             n_unmatched += 1
-    info = {'mode': gate.get('mode'), 'n_rows': int(len(acq)), 'n_matched': n_matched,
+    info = {'landing_sec_rows': landing_rows,
+            'mode': gate.get('mode'), 'n_rows': int(len(acq)), 'n_matched': n_matched,
             'n_unmatched': n_unmatched, 'n_excluded': n_excluded, 'match_tol_frames': match_tol_frames,
             'stim_derived_eyepos_ref': gate.get('stim_derived_eyepos_ref'),
             'near_radius_v': gate.get('near_radius_v')}

@@ -153,7 +153,7 @@ def denoise_psn(ds, metric='Fzsc', mode='conservative', diagnostic=True, outdir=
     return ds_denoised, info
 
 
-def calculate_psn_heldout_gain(ds, metric='Fzsc', mode='conservative', n_splits=10, seed=0):
+def calculate_psn_heldout_gain(ds, metric='Fzsc', mode='conservative', n_splits=10, seed=0, exclude=None):
     """HELD-OUT GENERALIZATION TEST -- the decision rule for whether PSN may be used for a given analysis.
 
     Jacob Prince's (PSN author) prescription: the question is not whether PSN mixes units (it does -- every
@@ -173,6 +173,12 @@ def calculate_psn_heldout_gain(ds, metric='Fzsc', mode='conservative', n_splits=
     not), which is fatal for topography/RSA. Per-ROI values are still useful as a DIAGNOSTIC -- in particular,
     check whether the cells PSN helps cluster spatially, which would be a red flag.
 
+    ``exclude`` : optional (n_condition, n_repeat) boolean, True = drop that trial when AVERAGING trials into
+    the profile. Pass an UNGATED ``ds`` together with a trial gate's exclusion mask: PSN then fits on the
+    COMPLETE trial tensor -- it assumes complete trials, since a NaN at any unit propagates across ALL units for
+    that trial -- while the profiles still respect the gate. This ORDER matters: denoising an already-gated
+    table feeds PSN NaN columns and degrades its estimate, which understates the gain.
+
     Returns {'r_raw', 'r_psn' (per-ROI), 'raw_median', 'psn_median', 'gain' (psn_median - raw_median),
     'frac_improved', 'n_splits', 'mode'}.
     """
@@ -180,21 +186,32 @@ def calculate_psn_heldout_gain(ds, metric='Fzsc', mode='conservative', n_splits=
     half = n_rep // 2
     if half < 2:
         raise ValueError('need >= 4 repeats for a held-out half-split (have %d)' % n_rep)
+    if exclude is not None:
+        exclude = np.asarray(exclude, bool)
+        want = (ds.sizes['condition'], n_rep)
+        if exclude.shape != want:
+            raise ValueError('exclude must be (n_condition, n_repeat) = %s, got %s' % (want, exclude.shape))
     rng = np.random.default_rng(seed)
     raw_acc, psn_acc = [], []
 
-    def _profile(d):
+    def _profile(d, exc):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=RuntimeWarning)
-            return np.nanmean(trial_response(d, metric).transpose('roi', 'condition', 'repeat').values, axis=2)
+            v = trial_response(d, metric).transpose('roi', 'condition', 'repeat').values.copy()
+            if exc is not None:
+                v[:, exc] = np.nan                       # drop gated trials at AVERAGING time only
+            return np.nanmean(v, axis=2)
 
     for _ in range(n_splits):
         perm = rng.permutation(n_rep)
-        ds_a, ds_b = ds.isel(repeat=perm[:half]), ds.isel(repeat=perm[half:2 * half])
-        raw_a, raw_b = _profile(ds_a), _profile(ds_b)
+        ia, ib = perm[:half], perm[half:2 * half]
+        ds_a, ds_b = ds.isel(repeat=ia), ds.isel(repeat=ib)
+        exc_a = None if exclude is None else exclude[:, ia]
+        exc_b = None if exclude is None else exclude[:, ib]
+        raw_a, raw_b = _profile(ds_a, exc_a), _profile(ds_b, exc_b)
         ds_a_denoised, _ = denoise_psn(ds_a, metric=metric, mode=mode, diagnostic=False)
         raw_acc.append(_rowwise_corr(raw_a, raw_b))
-        psn_acc.append(_rowwise_corr(_profile(ds_a_denoised), raw_b))
+        psn_acc.append(_rowwise_corr(_profile(ds_a_denoised, exc_a), raw_b))
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=RuntimeWarning)
