@@ -24,13 +24,14 @@ fidelity rather than assuming it.
 Kay et al. 2025 PLoS Comput Biol https://doi.org/10.1371/journal.pcbi.1012092
 """
 import os
+import warnings
 from datetime import datetime, timezone
 from warnings import warn
 
 import numpy as np
 import xarray as xr
 
-from response_table import trial_response, EPOCH_STIM
+from response_table import trial_response, EPOCH_STIM, _rowwise_corr
 
 # PSN named modes (see the PSN README / psn() docstring). 'conservative' = 99% signal-variance retention.
 PSN_MODES = ('conservative', 'standard', 'aggressive', 'compare', 'wiener')
@@ -150,6 +151,59 @@ def denoise_psn(ds, metric='Fzsc', mode='conservative', diagnostic=True, outdir=
         'figure_path': figure_path, 'psn': result,
     }
     return ds_denoised, info
+
+
+def calculate_psn_heldout_gain(ds, metric='Fzsc', mode='conservative', n_splits=10, seed=0):
+    """HELD-OUT GENERALIZATION TEST -- the decision rule for whether PSN may be used for a given analysis.
+
+    Jacob Prince's (PSN author) prescription: the question is not whether PSN mixes units (it does -- every
+    denoised unit is a linear combination of the population), but whether the PSN estimate is CLOSER TO THE
+    TRUTH than the noisy raw trial-average. With few trials the raw mean is itself a poor estimate, so it is
+    not automatically privileged.
+
+    Procedure, averaged over ``n_splits`` random half-splits of the repeats: estimate each ROI's condition
+    profile from half A two ways -- RAW trial-average, and PSN-denoised (PSN fit on half A ONLY, never seeing
+    half B) -- then ask which better predicts the HELD-OUT RAW trial-average from half B. If ``r_psn > r_raw``,
+    PSN is moving the estimate toward the underlying response profile despite the mixing, and is licensed for
+    that analysis; if not, stay raw.
+
+    Decide GLOBALLY per analysis from the population summary and apply uniformly -- NOT per cell. A per-cell
+    switch selects on noise across hundreds of cells and yields a mixed raw/denoised population whose
+    cross-cell similarity structure is distorted (denoised cells share the population subspace, raw ones do
+    not), which is fatal for topography/RSA. Per-ROI values are still useful as a DIAGNOSTIC -- in particular,
+    check whether the cells PSN helps cluster spatially, which would be a red flag.
+
+    Returns {'r_raw', 'r_psn' (per-ROI), 'raw_median', 'psn_median', 'gain' (psn_median - raw_median),
+    'frac_improved', 'n_splits', 'mode'}.
+    """
+    n_rep = ds.sizes['repeat']
+    half = n_rep // 2
+    if half < 2:
+        raise ValueError('need >= 4 repeats for a held-out half-split (have %d)' % n_rep)
+    rng = np.random.default_rng(seed)
+    raw_acc, psn_acc = [], []
+
+    def _profile(d):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            return np.nanmean(trial_response(d, metric).transpose('roi', 'condition', 'repeat').values, axis=2)
+
+    for _ in range(n_splits):
+        perm = rng.permutation(n_rep)
+        ds_a, ds_b = ds.isel(repeat=perm[:half]), ds.isel(repeat=perm[half:2 * half])
+        raw_a, raw_b = _profile(ds_a), _profile(ds_b)
+        ds_a_denoised, _ = denoise_psn(ds_a, metric=metric, mode=mode, diagnostic=False)
+        raw_acc.append(_rowwise_corr(raw_a, raw_b))
+        psn_acc.append(_rowwise_corr(_profile(ds_a_denoised), raw_b))
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=RuntimeWarning)
+        r_raw = np.nanmean(np.array(raw_acc), axis=0)
+        r_psn = np.nanmean(np.array(psn_acc), axis=0)
+        mr, mp = float(np.nanmedian(r_raw)), float(np.nanmedian(r_psn))
+        frac = float(np.nanmean(r_psn > r_raw))
+    return {'r_raw': r_raw, 'r_psn': r_psn, 'raw_median': mr, 'psn_median': mp,
+            'gain': mp - mr, 'frac_improved': frac, 'n_splits': int(n_splits), 'mode': mode}
 
 
 def denoise_psn_xval(ds, metric='Fzsc', mode='conservative', n_folds=5):
