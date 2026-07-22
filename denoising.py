@@ -206,44 +206,6 @@ def calculate_psn_heldout_gain(ds, metric='Fzsc', mode='conservative', n_splits=
             'gain': mp - mr, 'frac_improved': frac, 'n_splits': int(n_splits), 'mode': mode}
 
 
-def denoise_psn_xval(ds, metric='Fzsc', mode='conservative', n_folds=5):
-    """Cross-validated PSN denoise -- the HONEST version for downstream significance gates.
-
-    In-sample ``denoise_psn`` drives within-condition trial scatter toward zero, and that scatter IS the
-    ANOVA error term, so every significance test inflates (the ``selective -> all cells`` artifact). Here the
-    denoiser for each trial is learned on OTHER trials: the repeats are split into ``n_folds`` folds; for
-    each fold PSN is fit on the remaining folds and applied to the held-out repeats. Every trial is denoised
-    OUT-OF-FOLD, so within-condition scatter is reduced but not self-collapsed, and gate counts computed on
-    the result are trustworthy. Returns ``(ds_denoised, info)`` with ``info['fold_signal_dims']`` (dims
-    retained per fold). Only stim-window frames are replaced (ISI kept raw), as in ``denoise_psn``.
-    """
-    if mode not in PSN_MODES:
-        raise ValueError('mode %r not in %s' % (mode, PSN_MODES))
-    if metric not in ds.data_vars:
-        raise ValueError('metric %r not a data variable of ds' % metric)
-    from psn import psn
-
-    X = trial_response(ds, metric).transpose('roi', 'condition', 'repeat')
-    Xv = np.asarray(X.values, float)
-    n_rep = Xv.shape[2]
-    n_folds = int(min(n_folds, n_rep))
-    if n_folds < 2:
-        raise ValueError('cross-validated denoising needs >=2 repeats')
-    Xd = np.full_like(Xv, np.nan)
-    fold_signal_dims = []
-    for test_idx in np.array_split(np.arange(n_rep), n_folds):
-        train_idx = np.setdiff1d(np.arange(n_rep), test_idx)
-        if train_idx.size < 2:
-            raise ValueError('n_folds=%d leaves <2 training repeats (n_rep=%d)' % (n_folds, n_rep))
-        res = psn(Xv[:, :, train_idx], mode, {'wantfig': False, 'wantverbose': False})
-        Xd[:, :, test_idx] = _apply_denoiser_per_trial(Xv[:, :, test_idx], res['denoiser'], res['unit_means'])
-        fold_signal_dims.append(res['best_threshold'])
-    Xd = xr.DataArray(Xd, dims=('roi', 'condition', 'repeat'), coords=X.coords)
-    ds_denoised = _inject_denoised(ds, metric, Xd)
-    info = {'mode': mode, 'metric': metric, 'n_folds': n_folds, 'fold_signal_dims': fold_signal_dims}
-    return ds_denoised, info
-
-
 def denoise_psn_xval(ds, metric='Fzsc', mode='conservative', n_folds=5, seed=0):
     """Cross-validated PSN denoise: each trial is denoised by a denoiser fit on the OTHER trials.
 
@@ -276,13 +238,14 @@ def denoise_psn_xval(ds, metric='Fzsc', mode='conservative', n_folds=5, seed=0):
         train = np.where(fold != k)[0]
         test = np.where(fold == k)[0]
         if train.size < 2 or test.size == 0:
-            continue
+            raise ValueError('n_folds=%d leaves fold %d with %d train / %d test repeats (n_repeats=%d); '
+                             'skipping it would silently emit NaN trials'
+                             % (n_folds, k, train.size, test.size, n_rep))
         res = psn(Xv[:, :, train], mode, {'wantfig': False, 'wantverbose': False})
         Xd[:, :, test] = _apply_denoiser_per_trial(Xv[:, :, test], res['denoiser'], res['unit_means'])
         fold_dims.append(int(np.ravel(res['best_threshold'])[0]))
 
     Xd = xr.DataArray(Xd, dims=('roi', 'condition', 'repeat'), coords=X.coords)
-    ds_denoised = ds.copy()
-    ds_denoised[metric] = xr.where(ds['epoch'] == EPOCH_STIM, Xd, ds[metric]).transpose(*ds[metric].dims)
+    ds_denoised = _inject_denoised(ds, metric, Xd)
     info = {'mode': mode, 'metric': metric, 'n_folds': n_folds, 'fold_signal_dims': fold_dims}
     return ds_denoised, info
