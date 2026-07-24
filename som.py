@@ -49,31 +49,87 @@ def build_rdm(matrix, metric='correlation'):
     return squareform(pdist(np.asarray(matrix, float), metric=metric))
 
 
-def rsa(rdm_a, rdm_b, n_perm=5000, seed=0):
-    """Second-order RSA: Spearman correlation between the upper triangles of two RDMs, with a condition-label
-    permutation p-value (relabel rdm_b's items and recompute). One-sided (H1: positive association), since a
-    representational MATCH is a positive RDM correlation. Returns {'r', 'p', 'n_perm', 'null_mean'}."""
+def _rc(v):
+    """Mean-centred ranks of a vector (Spearman = Pearson on these)."""
+    r = rankdata(v).astype(float)
+    return r - r.mean()
+
+
+def _spearman(a, b):
+    """Spearman correlation between two vectors."""
+    ra, rb = _rc(a), _rc(b)
+    da, db = np.sqrt((ra ** 2).sum()), np.sqrt((rb ** 2).sum())
+    return float((ra * rb).sum() / (da * db)) if da > 0 and db > 0 else np.nan
+
+
+def _partial_spearman(a, b, c):
+    """Partial Spearman correlation of a and b, controlling for c (partial Pearson on ranks)."""
+    ra, rb, rc = _rc(a), _rc(b), _rc(c)
+
+    def cor(x, y):
+        dx, dy = np.sqrt((x ** 2).sum()), np.sqrt((y ** 2).sum())
+        return (x * y).sum() / (dx * dy) if dx > 0 and dy > 0 else np.nan
+
+    rab, rac, rbc = cor(ra, rb), cor(ra, rc), cor(rb, rc)
+    denom = np.sqrt((1 - rac ** 2) * (1 - rbc ** 2))
+    return float((rab - rac * rbc) / denom) if denom > 0 else np.nan
+
+
+def rsa(rdm_a, rdm_b, control=None, n_perm=5000, seed=0):
+    """Second-order RSA: Spearman correlation between the upper triangles of two RDMs (``control`` given -> the
+    PARTIAL Spearman controlling for a third RDM, e.g. the category model). One-sided permutation p-value: the
+    items of ``rdm_b`` are relabelled and the (partial) correlation recomputed, with ``rdm_a`` and ``control``
+    held fixed. H1 = positive association. Returns {'r', 'p', 'n_perm', 'null_mean'}."""
     n = rdm_a.shape[0]
     iu = np.triu_indices(n, k=1)
-    ra = rankdata(rdm_a[iu]); ra = ra - ra.mean()
-    da = np.sqrt((ra ** 2).sum())
+    a = rdm_a[iu]
+    c = None if control is None else control[iu]
 
-    def spearman(bt):
-        rb = rankdata(bt); rb = rb - rb.mean()
-        db = np.sqrt((rb ** 2).sum())
-        return float((ra * rb).sum() / (da * db)) if da > 0 and db > 0 else np.nan
+    def stat(bt):
+        return _spearman(a, bt) if c is None else _partial_spearman(a, bt, c)
 
-    r = spearman(rdm_b[iu])
+    r = stat(rdm_b[iu])
     rng = np.random.default_rng(seed)
-    null = np.array([spearman(rdm_b[np.ix_(p, p)][iu]) for p in (rng.permutation(n) for _ in range(n_perm))])
+    null = np.array([stat(rdm_b[np.ix_(p, p)][iu]) for p in (rng.permutation(n) for _ in range(n_perm))])
     p = (1 + int(np.sum(null >= r))) / (1 + n_perm)
     return {'r': r, 'p': p, 'n_perm': n_perm, 'null_mean': float(np.nanmean(null))}
+
+
+def category_model_rdm(categories):
+    """Binary category-model RDM: 0 if two conditions share a category, 1 otherwise. Partialling this out of an
+    RSA removes the coarse between-category block structure, isolating any FINER (within/cross-category) match."""
+    c = np.asarray([str(x) for x in categories])
+    return (c[:, None] != c[None, :]).astype(float)
 
 
 def cortical_rdm(response, metric='correlation'):
     """Condition x condition RDM from a (n_roi x n_condition) response matrix (dissimilarity between the
     across-ROI response patterns of each pair of conditions)."""
     return build_rdm(np.asarray(response, float).T, metric=metric)
+
+
+def rsa_difference_bootstrap(rdm_target, rdm_a, rdm_b, control=None, n_boot=5000, seed=0):
+    """Does model A match ``rdm_target`` BETTER than model B? Stimulus bootstrap on the RSA difference
+    r(target, A) - r(target, B) (PARTIAL, controlling for ``control``, if given). Resamples conditions with
+    replacement, excluding duplicate-condition pairs (their dissimilarity is a spurious 0). Returns the mean
+    difference, a 95% percentile CI, and a one-sided p = fraction of bootstraps with difference <= 0
+    (i.e. A NOT better than B)."""
+    n = rdm_target.shape[0]
+    iu = np.triu_indices(n, k=1)
+    rng = np.random.default_rng(seed)
+    diffs = np.empty(n_boot)
+    for k in range(n_boot):
+        idx = rng.integers(0, n, n)
+        I, J = idx[iu[0]], idx[iu[1]]
+        m = I != J
+        t, a, b = rdm_target[I, J][m], rdm_a[I, J][m], rdm_b[I, J][m]
+        if control is None:
+            diffs[k] = _spearman(t, a) - _spearman(t, b)
+        else:
+            cc = control[I, J][m]
+            diffs[k] = _partial_spearman(t, a, cc) - _partial_spearman(t, b, cc)
+    return {'diff_mean': float(np.nanmean(diffs)), 'ci': [float(x) for x in np.nanpercentile(diffs, [2.5, 97.5])],
+            'p_le0': float(np.nanmean(diffs <= 0)), 'n_boot': int(n_boot)}
 
 
 def plot_rdms(rdms, labels, rsa_to=None, outdir='output', tag=None):
