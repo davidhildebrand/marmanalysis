@@ -41,7 +41,8 @@ def calculate_roi_centroids_um(rois, resolution_umpx):
 
 
 def build_response_matrix(session_path, metric='Fzsc', eye_gate_mode='landing_window', variant=None,
-                          denoise=False, psn_mode='conservative', normalize=None, reliability_splits=100):
+                          denoise=False, psn_mode='conservative', normalize=None, reliability_splits=100,
+                          neuropil_subtract=True, neucoeff=0.7):
     """Assemble the (roi x condition) response matrix + positions + condition map for one session.
 
     Returns a dict for ALL ROIs (no gate applied) so a caller can subset for several gates without
@@ -54,14 +55,16 @@ def build_response_matrix(session_path, metric='Fzsc', eye_gate_mode='landing_wi
     normalising hands a weak noisy cell the same weight as a strongly driven one.
     """
     ds, ctx = sessionio.build_session_response_table(session_path, variant=variant,
-                                                     eye_gate_mode=eye_gate_mode)
+                                                     eye_gate_mode=eye_gate_mode,
+                                                     neuropil_subtract=neuropil_subtract, neucoeff=neucoeff)
     excluded = ds['excluded'].transpose('condition', 'repeat').values
 
     if denoise:
         # PSN assumes COMPLETE trials -> fit on the ungated tensor, apply the gate only at averaging time.
         import denoising
         ds_full, _ = sessionio.build_session_response_table(session_path, variant=variant,
-                                                            eye_gate_mode='none')
+                                                            eye_gate_mode='none',
+                                                            neuropil_subtract=neuropil_subtract, neucoeff=neucoeff)
         ds_den, _ = denoising.denoise_psn(ds_full, metric=metric, mode=psn_mode, diagnostic=False)
         trials = rt.trial_response(ds_den, metric).transpose('roi', 'condition', 'repeat').values.copy()
         trials[:, excluded] = np.nan
@@ -90,6 +93,7 @@ def build_response_matrix(session_path, metric='Fzsc', eye_gate_mode='landing_wi
         'conditions': images.build_condition_metadata(ctx['stimlog']),
         'condition_ids': ds['condition'].values,
         'metric': metric, 'eye_gate_mode': eye_gate_mode, 'denoise': bool(denoise),
+        'neuropil_subtract': ctx['neuropil']['subtracted'], 'neucoeff': ctx['neuropil']['neucoeff'],
         'normalize': normalize, 'n_trials_excluded': int(excluded.sum()),
         'framerate': ctx['md']['framerate'], 'session': os.path.basename(session_path.rstrip('/')),
         'ds': ds, 'ctx': ctx,

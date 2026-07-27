@@ -274,8 +274,9 @@ def find_suite2p_dir(session_path, variant=None):
 
 def load_suite2p(session_path, variant=None, threshold_cellprob=0.0):
     """Load a session's suite2p plane0 outputs and select accepted, active ROIs.
-    Replicates analysis_for_images.py:954-975. Returns a dict with Frois, ROIs (stat), ops,
-    badframes, cellinds, iscell, fov_image, fov_size, path.
+    Replicates analysis_for_images.py:954-975. Returns a dict with Frois, Fneu (the per-ROI neuropil
+    trace, aligned to Frois, or None if the extraction has no Fneu.npy), ROIs (stat), ops, badframes,
+    cellinds, iscell, fov_image, fov_size, path.
     """
     s2p_dir = find_suite2p_dir(session_path, variant=variant)
     plane = os.path.join(s2p_dir, 'plane0')
@@ -283,6 +284,8 @@ def load_suite2p(session_path, variant=None, threshold_cellprob=0.0):
         raise RuntimeError('Could not find suite2p plane0 in {}.'.format(s2p_dir))
     iscell = np.load(os.path.join(plane, 'iscell.npy'))
     F = np.load(os.path.join(plane, 'F.npy'))
+    fneu_path = os.path.join(plane, 'Fneu.npy')                # suite2p neuropil trace (for correction)
+    Fneu = np.load(fneu_path) if os.path.isfile(fneu_path) else None
     stat = np.load(os.path.join(plane, 'stat.npy'), allow_pickle=True)
     ops = np.load(os.path.join(plane, 'ops.npy'), allow_pickle=True).item()
 
@@ -294,6 +297,7 @@ def load_suite2p(session_path, variant=None, threshold_cellprob=0.0):
     return {
         'path': s2p_dir,
         'Frois': F[cellinds],
+        'Fneu': (Fneu[cellinds] if Fneu is not None else None),
         'ROIs': stat[cellinds],
         'ops': ops,
         'badframes': np.where(ops['badframes'])[0],
@@ -304,16 +308,35 @@ def load_suite2p(session_path, variant=None, threshold_cellprob=0.0):
     }
 
 
-def compute_fluorescence_metrics(frois, framerate, window=60, method='medianbw'):
+def compute_fluorescence_metrics(frois, framerate, window=60, method='medianbw',
+                                 fneu=None, neucoeff=0.7, neuropil_subtract=True):
     """Baseline F0 and the dF/F + z-scored traces from raw ROI fluorescence.
     Replicates analysis_for_images.py:985-994 (images use method='medianbw', dots use 'meanbw').
     Returns {'FdFF', 'Fzsc', 'F0', 'Fraw'}.
+
+    Neuropil correction (opt-out). When ``neuropil_subtract`` is True AND a neuropil trace ``fneu`` is
+    provided, the ROI trace is corrected as ``Fc = F - neucoeff * (Fneu - median(Fneu))`` BEFORE the
+    baseline/dF-F, matching v9 (def_load_data.py:1717) and suite2p's convention (``neucoeff`` default 0.7).
+    Subtracting the neuropil FLUCTUATIONS (with the per-ROI median added back) is baseline-preserving:
+    the DC level of Fc stays ~F, so F0 stays positive and dF/F is unaffected by the additive shift -- unlike
+    naive ``F - r*Fneu``, which pulls the baseline down and can go negative. All downstream metrics (dF/F,
+    z-score, and thus every responsiveness/RSA/topography result) then run on the corrected trace, since it
+    is the single trace the baseline is computed from. ``Fraw`` in the returned dict is this corrected trace
+    (== the input ``frois`` object when correction is off), so ``Fraw == F0 * (1 + FdFF)`` always holds.
+
+    With ``fneu is None`` (e.g. a direct call, or a suite2p extraction lacking Fneu.npy) NO correction is
+    applied regardless of ``neuropil_subtract``, and ``Fraw is frois``. Set ``neuropil_subtract=False`` to
+    force the uncorrected traces even when a neuropil trace is available (the side-by-side comparison).
     """
-    f0 = filters.calculate_baselines(frois, framerate=framerate, window=window, method=method)
-    fd = frois - f0
+    if neuropil_subtract and fneu is not None:
+        fc = frois - neucoeff * (fneu - np.median(fneu, axis=1, keepdims=True))
+    else:
+        fc = frois                                            # identity: Fraw stays the input object
+    f0 = filters.calculate_baselines(fc, framerate=framerate, window=window, method=method)
+    fd = fc - f0
     fdff = fd / f0
     fzsc = (fd - np.mean(fd, axis=1)[:, np.newaxis]) / np.std(fd, axis=1)[:, np.newaxis]
-    return {'FdFF': fdff, 'Fzsc': fzsc, 'F0': f0, 'Fraw': frois}
+    return {'FdFF': fdff, 'Fzsc': fzsc, 'F0': f0, 'Fraw': fc}
 
 
 def correct_acqfr_index(stimlog):
@@ -374,7 +397,8 @@ def _apply_eyepos_gate(ds, session_path, stimlog, framerate, mode, gate_kw):
 
 def build_session_response_table(session_path, variant=None, baseline_method='medianbw',
                                  paradigm='auto', threshold_cellprob=0.0,
-                                 eye_gate_mode='none', eye_gate_kw=None):
+                                 eye_gate_mode='none', eye_gate_kw=None,
+                                 neuropil_subtract=True, neucoeff=0.7):
     """Load a session end-to-end into a response_table xarray Dataset.
 
     Orchestrates load_metadata -> load_suite2p -> compute_fluorescence_metrics -> load_stimlog ->
@@ -390,10 +414,18 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
     ``min_eye_near_stim_sec``); a per-session summary lands in ``context['eye_gate']``. The DEFAULT ``'none'``
     changes nothing (no eye data is even loaded), keeping eye exclusion a deliberate choice; and a session
     with no eye recording is a warned no-op rather than an error. See eyetracking.GATE_MODES for the modes.
+
+    Neuropil correction (on by default). ``neuropil_subtract=True`` applies ``Fc = F - neucoeff*(Fneu -
+    median(Fneu))`` in compute_fluorescence_metrics before the baseline (v9 form; ``neucoeff`` default 0.7),
+    so every downstream metric runs on the corrected trace. It no-ops when the extraction has no Fneu.npy.
+    Pass ``neuropil_subtract=False`` for the uncorrected traces (the with/without side-by-side).
+    ``context['neuropil']`` records what was applied.
     """
     md = load_metadata(session_path)
     s2p = load_suite2p(session_path, variant=variant, threshold_cellprob=threshold_cellprob)
-    traces = compute_fluorescence_metrics(s2p['Frois'], md['framerate'], method=baseline_method)
+    traces = compute_fluorescence_metrics(s2p['Frois'], md['framerate'], method=baseline_method,
+                                          fneu=s2p['Fneu'], neucoeff=neucoeff,
+                                          neuropil_subtract=neuropil_subtract)
     n_frames = s2p['Frois'].shape[1]
 
     stimlog, stim_prov = load_stimlog(session_path, paradigm=paradigm)
@@ -404,7 +436,9 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
     ds = response_table.build_response_table(
         traces, stimlog, n_samp_isi, n_samp_stim, framerate=md['framerate'])
     context = {'md': md, 's2p': s2p, 'traces': traces, 'stimlog': stimlog,
-               'n_samp_isi': n_samp_isi, 'n_samp_stim': n_samp_stim, 'stim_provenance': stim_prov}
+               'n_samp_isi': n_samp_isi, 'n_samp_stim': n_samp_stim, 'stim_provenance': stim_prov,
+               'neuropil': {'subtracted': bool(neuropil_subtract and s2p['Fneu'] is not None),
+                            'neucoeff': neucoeff}}
     if eye_gate_mode != 'none':
         ds, context['eye_gate'] = _apply_eyepos_gate(
             ds, session_path, stimlog, md['framerate'], eye_gate_mode, eye_gate_kw or {})
