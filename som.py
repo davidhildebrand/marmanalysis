@@ -15,7 +15,7 @@ import os
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
-from scipy.stats import rankdata
+from scipy.stats import rankdata, spearmanr
 
 import dnn_som
 
@@ -130,6 +130,58 @@ def rsa_difference_bootstrap(rdm_target, rdm_a, rdm_b, control=None, n_boot=5000
             diffs[k] = _partial_spearman(t, a, cc) - _partial_spearman(t, b, cc)
     return {'diff_mean': float(np.nanmean(diffs)), 'ci': [float(x) for x in np.nanpercentile(diffs, [2.5, 97.5])],
             'p_le0': float(np.nanmean(diffs <= 0)), 'n_boot': int(n_boot)}
+
+
+def assign_bmu_units(response, sca):
+    """Assign each cortical ROI to the SOM unit whose simulated-cortical-activation (SCA) profile over the stimuli
+    best matches the ROI's response profile (a best-matching-unit in stimulus space). ``response`` is
+    (n_roi x n_cond), ``sca`` is (n_cond x n_units) -- both indexed by the SAME stimulus order (see
+    ``condition_image_paths``); ``sca`` is auto-transposed if given (n_units x n_cond). Returns (unit_idx [n_roi],
+    match [n_roi]) where ``match`` is the Pearson correlation of the ROI with its assigned unit -- the tuning-match
+    quality; a low match means a noisy/arbitrary assignment."""
+    R = np.asarray(response, float)
+    S = np.asarray(sca, float)
+    if S.shape[0] != R.shape[1] and S.shape[1] == R.shape[1]:
+        S = S.T                                             # orient to (n_cond x n_units)
+    Rz = R - R.mean(1, keepdims=True)
+    Rz = Rz / (np.linalg.norm(Rz, axis=1, keepdims=True) + 1e-12)
+    Sz = S - S.mean(0, keepdims=True)
+    Sz = Sz / (np.linalg.norm(Sz, axis=0, keepdims=True) + 1e-12)
+    C = Rz @ Sz                                             # (n_roi x n_units) Pearson correlation
+    C = np.where(np.isfinite(C), C, -np.inf)
+    idx = np.argmax(C, axis=1)
+    return idx, C[np.arange(C.shape[0]), idx]
+
+
+def map_alignment(cortex_xy, som_xy, n_perm=1000, seed=0, groups=None):
+    """SOM step 5 -- does the SOM's spatial map predict the cortical layout? Mantel-style Spearman correlation
+    between cortical pairwise distance and the pairwise distance of the ASSIGNED SOM-unit grid positions, over ROI
+    pairs. Positive => ROIs nearby in cortex map to units nearby in the SOM (topography-preserving).
+
+    The null permutes ROI labels on the SOM side. With ``groups`` (one label per ROI, e.g. category preference)
+    the permutation is WITHIN group, so a surviving r means correspondence FINER than that grouping -- the
+    beyond-category test (a plain shuffle is beaten by the mere coarse category gradient shared by cortex and the
+    SOM). Returns {'r','p','null_mean','n_perm'}."""
+    dc = pdist(np.asarray(cortex_xy, float))
+    Dsq = squareform(pdist(np.asarray(som_xy, float)))
+    ds = squareform(Dsq)
+    ok = np.isfinite(dc) & np.isfinite(ds)
+    r = float(spearmanr(dc[ok], ds[ok]).statistic)
+    n = Dsq.shape[0]
+    rng = np.random.default_rng(seed)
+    grp = None if groups is None else np.asarray(groups)
+    null = np.empty(n_perm)
+    for k in range(n_perm):
+        if grp is None:
+            p = rng.permutation(n)
+        else:
+            p = np.arange(n)
+            for g in np.unique(grp):
+                gi = np.where(grp == g)[0]
+                p[gi] = gi[rng.permutation(gi.size)]
+        null[k] = spearmanr(dc[ok], squareform(Dsq[np.ix_(p, p)])[ok]).statistic
+    return {'r': r, 'p': (1 + int(np.sum(null >= r))) / (1 + n_perm), 'null_mean': float(np.nanmean(null)),
+            'n_perm': int(n_perm)}
 
 
 def plot_rdms(rdms, labels, rsa_to=None, outdir='output', tag=None):
