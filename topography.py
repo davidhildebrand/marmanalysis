@@ -152,6 +152,49 @@ def _matched_field_operator(dist, a, lam):
     return V * np.sqrt(np.clip(w, 0.0, None))
 
 
+def _scalar_autocorrelation(values, dist, max_dist=None):
+    """Fit ``corr(d) ~ a*exp(-d/lam)`` to the empirical spatial autocorrelation of ONE scalar field over the ROI
+    positions (e.g. a single tuning-PC score), returning (a, lam), a in [0,1]. Used to calibrate the template
+    detector's null to each PC's OWN spatial autocorrelation, so a smoothly-graded PC is reproduced by its null
+    (no spurious 'characteristic scale') and only a genuine periodic/domain bump BEYOND the exponential shows up.
+    Autocorrelation is estimated from the binned product of the z-scored field over pairs at each distance."""
+    v = np.asarray(values, float)
+    v = v - np.nanmean(v)
+    sd = np.nanstd(v)
+    n = dist.shape[0]
+    iu = np.triu_indices(n, 1)
+    du = dist[iu]
+    lam_cap = 0.5 * float(np.nanpercentile(du, 95))
+    if sd == 0:
+        return 0.0, float(np.clip(np.nanmedian(du), 1.0, lam_cap))
+    z = v / sd
+    d = du
+    pr = z[iu[0]] * z[iu[1]]                                   # E[z_i z_j | d] ~ correlation at distance d
+    ok = np.isfinite(d) & np.isfinite(pr)
+    if max_dist is not None:
+        ok &= d <= max_dist
+    d, pr = d[ok], pr[ok]
+    nb = 20
+    edges = np.linspace(0.0, d.max(), nb + 1)
+    dc, cc = [], []
+    for i in range(nb):
+        m = (d >= edges[i]) & ((d < edges[i + 1]) if i < nb - 1 else (d <= edges[i + 1]))
+        if m.sum() > 5:
+            dc.append(0.5 * (edges[i] + edges[i + 1])); cc.append(float(pr[m].mean()))
+    dc, cc = np.asarray(dc), np.asarray(cc)
+    if len(dc) < 3:
+        return 0.0, float(np.clip(np.nanmedian(du), 1.0, lam_cap))
+    from scipy.optimize import curve_fit
+    try:
+        popt, _ = curve_fit(lambda x, a, lam: a * np.exp(-x / lam), dc, cc,
+                            p0=[float(np.clip(cc[0], 0.05, 1.0)), max(float(np.median(dc)), 50.0)],
+                            bounds=([0.0, 1.0], [1.0, 1e4]), maxfev=8000)
+        a, lam = float(popt[0]), float(popt[1])
+    except Exception:
+        a, lam = float(np.clip(cc[0], 0.0, 1.0)), float(np.median(dc))
+    return float(np.clip(a, 0.0, 1.0)), float(np.clip(lam, 1.0, lam_cap))
+
+
 def variogram_matched_null(response, xy_um, score=None, n_perm=1000, seed=0, lam=None,
                            max_dist=None, min_dist=None, exclude=None):
     """Autocorrelation-PRESERVING null for ``topography_score`` (roadmap 12c) -- the rigorous upgrade of
@@ -252,9 +295,10 @@ def nuisance_similarity(scalar):
 def rasterize_tuning(response, xy_um, n_grid=32, n_pc=3):
     """Rasterise the top-``n_pc`` principal components of the (n_roi x n_condition) tuning onto an
     ``n_grid`` x ``n_grid`` FOV grid (per-bin mean of the PC score; empty bins = NaN). Returns
-    (maps [n_pc, n_grid, n_grid], explained_var [n_pc], bin_um). The PCs compress the multivariate tuning to the
-    few scalar spatial fields whose spatial-frequency content the template detector then examines. Assumes a
-    roughly square FOV (bin_um is the mean of the x/y extents over the grid)."""
+    (maps [n_pc, n_grid, n_grid], explained_var [n_pc], bin_um, scores [n_roi, n_pc]). The PCs compress the
+    multivariate tuning to the few scalar spatial fields whose spatial-frequency content the template detector
+    examines; ``scores`` are the per-ROI PC scores (to calibrate the detector's null to each PC's own
+    autocorrelation). Assumes a roughly square FOV (bin_um is the mean of the x/y extents over the grid)."""
     R = np.nan_to_num(np.asarray(response, float) - np.nanmean(response, axis=0, keepdims=True))
     U, s, _ = np.linalg.svd(R, full_matrices=False)
     K = int(min(n_pc, s.size))
@@ -273,7 +317,7 @@ def rasterize_tuning(response, xy_um, n_grid=32, n_pc=3):
         np.add.at(acc, (yi, xi), scores[:, k]); np.add.at(cnt, (yi, xi), 1.0)
         maps[k] = np.divide(acc, cnt, out=np.full_like(acc, np.nan), where=cnt > 0)
     extent = 0.5 * ((xy[:, 0].max() - xy[:, 0].min()) + (xy[:, 1].max() - xy[:, 1].min()))
-    return maps, ev, float(extent / (n_grid - 1) if n_grid > 1 else 1.0)
+    return maps, ev, float(extent / (n_grid - 1) if n_grid > 1 else 1.0), scores
 
 
 def radial_power_spectrum(map2d, bin_um, n_rbins=None):
@@ -312,9 +356,12 @@ def spatial_frequency_detector(response, xy_um, n_grid=32, n_pc=3, n_perm=500, s
 
     Rasterise each of the top ``n_pc`` tuning PCs (``rasterize_tuning``), take its radial power spectrum, and
     test for EXCESS power at a nonzero spatial frequency versus variogram-matched surrogates -- Gaussian random
-    fields on the SAME ROI positions with the matched autocorrelation ``lam`` (from the tuning-similarity length
-    constant), rasterised identically. Matched-autocorrelation fields have monotonically-decaying spectra with no
-    intrinsic scale, so a genuine domain periodicity shows up as a spectral bump above them. Each spectrum is
+    fields on the SAME ROI positions matched to EACH PC's OWN spatial autocorrelation (``_scalar_autocorrelation``,
+    both amplitude and range), rasterised identically. This is the fix over calibrating to the full-tuning (weak)
+    autocorrelation, which over-flagged the dominant PC. A smoothly-GRADED PC is now reproduced by its own null (a
+    gradient is not a 'characteristic scale'), so ONLY a genuine periodic/domain bump beyond the exponential
+    survives. Matched-autocorrelation fields have monotonically-decaying spectra with no intrinsic scale. Each
+    spectrum is
     power-normalised (shape only, amplitude removed) and the statistic is the MAX over frequency of the observed
     excess z (vs the surrogate mean/SD per frequency); the p-value compares it to the surrogates' own max-excess
     (a max-statistic that controls for scanning many frequency bins). ``min_wavelength_um`` ignores the very
@@ -324,33 +371,32 @@ def spatial_frequency_detector(response, xy_um, n_grid=32, n_pc=3, n_perm=500, s
     p >= ~0.05 => no scale beyond matched smoothness (the expected outcome unless real domains exist)."""
     resp = np.asarray(response, float)
     n, ncond = resp.shape
-    maps, ev, bin_um = rasterize_tuning(resp, xy_um, n_grid=n_grid, n_pc=n_pc)
+    maps, ev, bin_um, scores = rasterize_tuning(resp, xy_um, n_grid=n_grid, n_pc=n_pc)
     K = maps.shape[0]
     dist = pairwise_distance(xy_um)
-    a, lam_fit = _matched_correlation(pairwise_tuning_similarity(resp), dist, max_dist=None)
-    lam = lam_fit if lam is None else float(lam)
-    L = _matched_field_operator(dist, a, lam)
     rng = np.random.default_rng(seed)
     xy = np.asarray(xy_um, float)
-
-    freq_ref = None
     fmax = (1.0 / min_wavelength_um) if min_wavelength_um else np.inf
-    out = {'lambda_um': float(lam)}
+    out = {}
     for k in range(K):
+        # null calibrated to THIS PC's OWN spatial autocorrelation: a smooth gradient is reproduced by its own
+        # null (no spurious 'characteristic scale'), so only a periodic/domain bump BEYOND the exponential survives.
+        a_k, lam_k = _scalar_autocorrelation(scores[:, k], dist)
+        if lam is not None:
+            lam_k = float(lam)
+        Lk = _matched_field_operator(dist, a_k, lam_k)
         f_obs, p_obs = radial_power_spectrum(maps[k], bin_um)
-        if freq_ref is None:
-            freq_ref = f_obs
         band = f_obs <= fmax
         obs_norm = p_obs / (p_obs[band].sum() + 1e-12)
-        # surrogate spectra: scalar GRF fields matched to lam, this PC's spatial variance, rasterised the same
-        null_specs = np.empty((n_perm, f_obs.size))
         sd = float(np.nanstd(maps[k][np.isfinite(maps[k])]) or 1.0)
+        null_specs = np.full((n_perm, f_obs.size), np.nan)
         for b in range(n_perm):
-            g = L @ rng.standard_normal(n)
+            g = Lk @ rng.standard_normal(n)
             g = (g - g.mean()) / (g.std() + 1e-12) * sd
-            gm, _, _ = rasterize_tuning(g[:, None], xy, n_grid=n_grid, n_pc=1)
+            gm, _, _, _ = rasterize_tuning(g[:, None], xy, n_grid=n_grid, n_pc=1)
             _, pb = radial_power_spectrum(gm[0], bin_um)
-            null_specs[b] = pb / (pb[band].sum() + 1e-12) if pb.size == f_obs.size else np.nan
+            if pb.size == f_obs.size:
+                null_specs[b] = pb / (pb[band].sum() + 1e-12)
         mu, sg = np.nanmean(null_specs, 0), np.nanstd(null_specs, 0) + 1e-12
         excess = (obs_norm - mu) / sg
         null_excess_max = np.nanmax(((null_specs - mu) / sg)[:, band], axis=1)
@@ -358,8 +404,8 @@ def spatial_frequency_detector(response, xy_um, n_grid=32, n_pc=3, n_perm=500, s
         peak = int(np.nanargmax(np.where(band, excess, -np.inf)))
         out[k] = {'peak_wavelength_um': float(1.0 / f_obs[peak]) if f_obs[peak] > 0 else np.inf,
                   'peak_freq': float(f_obs[peak]), 'stat': stat,
-                  'p': float((1 + np.sum(null_excess_max >= stat)) / (1 + n_perm)),
-                  'explained_var': float(ev[k])}
+                  'p': float((1 + np.nansum(null_excess_max >= stat)) / (1 + n_perm)),
+                  'amplitude': float(a_k), 'lambda_um': float(lam_k), 'explained_var': float(ev[k])}
     return out
 
 
