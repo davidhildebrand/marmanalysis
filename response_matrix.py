@@ -42,7 +42,8 @@ def calculate_roi_centroids_um(rois, resolution_umpx):
 
 def build_response_matrix(session_path, metric='Fzsc', eye_gate_mode='landing_window', variant=None,
                           denoise=False, psn_mode='conservative', normalize=None, reliability_splits=100,
-                          neuropil_subtract=True, neucoeff=0.7):
+                          neuropil_subtract=True, neucoeff=0.7, roi_subsample=None, roi_subsample_seed=0,
+                          equalize_repeats=False):
     """Assemble the (roi x condition) response matrix + positions + condition map for one session.
 
     Returns a dict for ALL ROIs (no gate applied) so a caller can subset for several gates without
@@ -56,7 +57,9 @@ def build_response_matrix(session_path, metric='Fzsc', eye_gate_mode='landing_wi
     """
     ds, ctx = sessionio.build_session_response_table(session_path, variant=variant,
                                                      eye_gate_mode=eye_gate_mode,
-                                                     neuropil_subtract=neuropil_subtract, neucoeff=neucoeff)
+                                                     neuropil_subtract=neuropil_subtract, neucoeff=neucoeff,
+                                                     roi_subsample=roi_subsample, roi_subsample_seed=roi_subsample_seed,
+                                                     equalize_repeats=equalize_repeats)
     excluded = ds['excluded'].transpose('condition', 'repeat').values
 
     if denoise:
@@ -64,7 +67,9 @@ def build_response_matrix(session_path, metric='Fzsc', eye_gate_mode='landing_wi
         import denoising
         ds_full, _ = sessionio.build_session_response_table(session_path, variant=variant,
                                                             eye_gate_mode='none',
-                                                            neuropil_subtract=neuropil_subtract, neucoeff=neucoeff)
+                                                            neuropil_subtract=neuropil_subtract, neucoeff=neucoeff,
+                                                            roi_subsample=roi_subsample, roi_subsample_seed=roi_subsample_seed,
+                                                            equalize_repeats=equalize_repeats)
         ds_den, _ = denoising.denoise_psn(ds_full, metric=metric, mode=psn_mode, diagnostic=False)
         trials = rt.trial_response(ds_den, metric).transpose('roi', 'condition', 'repeat').values.copy()
         trials[:, excluded] = np.nan

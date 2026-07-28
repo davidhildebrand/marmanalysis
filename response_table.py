@@ -43,7 +43,7 @@ def trial_epochs(n_samp_isi, n_samp_stim):
 
 def build_response_table(traces, stimlog, n_samp_isi, n_samp_stim,
                          condition_coords=None, framerate=None,
-                         acqfr_col='acqfr_stim_i', cond_col='cond'):
+                         acqfr_col='acqfr_stim_i', cond_col='cond', equalize_repeats=False):
     """Sort full-length fluorescence traces into a trial-aligned xarray Dataset.
 
     Mirrors the windowing in analysis_for_images.py:1604-1667 so results are directly
@@ -88,9 +88,13 @@ def build_response_table(traces, stimlog, n_samp_isi, n_samp_stim,
     n_samp_trial = n_samp_isi + n_samp_stim + n_samp_isi
     counts = stimlog[cond_col].value_counts()
     if counts.nunique() != 1:
-        raise ValueError('Conditions have unequal repeat counts {}; ragged repeats are not '
-                         'yet supported by this prototype.'.format(dict(counts)))
-    n_reps = int(counts.iloc[0])
+        if not equalize_repeats:
+            raise ValueError('Conditions have unequal repeat counts {}; ragged repeats are not '
+                             'yet supported by this prototype (pass equalize_repeats=True to truncate each '
+                             'condition to the min repeat count).'.format(dict(counts)))
+        warn('Conditions have unequal repeat counts (min %d, max %d); truncating each to the min %d.'
+             % (int(counts.min()), int(counts.max()), int(counts.min())))
+    n_reps = int(counts.min()) if equalize_repeats else int(counts.iloc[0])
 
     # Initialise to NaN so that any cell left unfilled is detectable (the completeness
     # invariant), exactly as np.zeros(...) then data[m] = np.nan does for the structured array.
