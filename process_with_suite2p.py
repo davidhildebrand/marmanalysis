@@ -9,7 +9,7 @@ import suite2p
 from warnings import warn
 
 import indicators
-import metadata
+import sessionio
 
 # TODO Write a function to merge registered TIF files into a single file and also save as registered h5.
 
@@ -22,6 +22,28 @@ parser.add_argument(
 parser.add_argument(
     '-ps', '--preprocstr', type=str, default='*preprocd_olap00px*.h5',
     help='String contained in filename of preprocessed data file. [optional, default: \'*preprocd_olap00px*\']')
+# Detection / extraction overrides for parameter sweeps (roadmap item 1). Each defaults to None = keep the
+# hard-coded value below, so plain invocations behave exactly as before; the save_folder name encodes the
+# effective detection settings, so every sweep point lands in its own folder next to the existing ones.
+parser.add_argument('--anatomical-only', type=int, default=None,
+                    help='cellpose mode: 0=functional, 1=max/mean, 2=mean_img, 3=mean_img_enhanced, 4=max_proj. [default: 3]')
+parser.add_argument('--diameter', type=float, default=None,
+                    help='cellpose cell diameter (px); default = metadata neuron diameter - 1. 0 = cellpose auto.')
+parser.add_argument('--cellprob', type=float, default=None,
+                    help='cellpose cellprob_threshold, -6 (most permissive) .. 6. [default: -3.5; v9 uses -6]')
+parser.add_argument('--flow', type=float, default=None,
+                    help='cellpose flow_threshold; higher = more ROIs kept. [default: 1.5; v9 uses 0]')
+parser.add_argument('--threshold-scaling', type=float, default=None,
+                    help='functional-detection threshold multiplier; lower = more ROIs. [default: 0.2]')
+parser.add_argument('--max-overlap', type=float, default=None,
+                    help='allowed ROI overlap fraction. [default: 0.9; v9 uses 0.75]')
+parser.add_argument('--keep-bin', action='store_true',
+                    help='keep the registered binary (plane0/data.bin) for FISSA / detection-only re-runs '
+                         '(~2 bytes/px/frame, e.g. ~17 GB for the PD session). [default: delete it]')
+parser.add_argument('--no-reg-tif', action='store_true', help='do not write registered TIFF stacks (saves disk).')
+parser.add_argument('--indicator', type=str, default='jGCaMP8s',
+                    help="indicator for the tau lookup, e.g. 'jGCaMP8s', 'ribo-jGCaMP8s', 'soma-jGCaMP8s'. [default: jGCaMP8s]")
+parser.add_argument('--tag', type=str, default='', help='extra suffix appended to save_folder (e.g. a sweep label).')
 opts = parser.parse_args()
 
 if os.path.isfile(opts.source):
@@ -54,9 +76,10 @@ if len(preproc_list) > 0:
 else:
     raise RuntimeError('Could not find preprocessed data file.')
 
-# Load metadata.
-amd = metadata.get_metadata(source)
-md = metadata.extract_useful_metadata(amd)
+# Load metadata -- prefer the *_metadata.pickle that reshape_mrois_to_planes.py saved next to the data (same keys,
+# instant); sessionio.load_metadata falls back to parsing the raw ScanImage TIFF only if no pickle exists (that
+# parse scans the whole multi-GB file and takes minutes).
+md = sessionio.load_metadata(source_path)
 
 # Initialize options without suite2p defaults.
 ops = dict()
@@ -101,7 +124,7 @@ db['functional_chan'] = 1
 # and its published/empirical provenance (indicators.py); tau = published 1-AP half-decay / ln2. Set
 # `indicator` to the construct imaged -- 'jGCaMP8s' (default), 'ribo-jGCaMP8s', 'soma-jGCaMP8s', 'GCaMP6s', ...
 # (The previous hard-coded 0.6 was a GCaMP6f value.) Empirical per-session decay: report_indicator_tau.py.
-indicator = 'jGCaMP8s'
+indicator = opts.indicator
 db['tau'] = indicators.indicator_tau(indicator)
 db['fs'] = md['framerate']
 db['mesoscan'] = False  # Load json file containing mesoscope metadata.
@@ -116,8 +139,8 @@ ops['do_bidiphase'] = True
 ops['do_registration'] = True
 # db['align_by_chan'] = 1
 ops['keep_movie_raw'] = False  # Save binary file of non-registered frames.
-ops['delete_bin'] = True  # Delete binary file of registered frames.
-ops['reg_tif'] = True  # Save registered image stacks.
+ops['delete_bin'] = not opts.keep_bin  # Delete binary file of registered frames (--keep-bin retains data.bin).
+ops['reg_tif'] = not opts.no_reg_tif  # Save registered image stacks.
 ops['reg_tif_chan2'] = False
 # ops['force_refImg'] = False  # Use refImg from path stored in saved ops.
 ops['two_step_registration'] = False  # Run registration twice (for low SNR data), requires 'keep_movie_raw' to be True.
@@ -152,7 +175,7 @@ ops['maxregshiftNR'] = 5.0  # Max non-rigid pixel shift relative to rigid result
 # - Cell detection settings
 # Anatomical cell detection settings to use cellpose to detect ROIs (if anatomical_only > 0)
 #     Options for anatomical_only are: 1 = max_proj / mean_img, 2 = mean_img, 3 = mean_img_enhanced, 4 = max_proj
-ops['anatomical_only'] = 3
+ops['anatomical_only'] = 3 if opts.anatomical_only is None else opts.anatomical_only
 if ops['anatomical_only'] > 0:
     if md['fov']['neurondiameter_px'] is not None:
         # Set estimated cell diameter (px) for cellpose.
@@ -163,6 +186,12 @@ if ops['anatomical_only'] > 0:
         ops['diameter'] = 0
     ops['cellprob_threshold'] = -3.5  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
     ops['flow_threshold'] = 1.5  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
+    if opts.diameter is not None:
+        ops['diameter'] = opts.diameter
+    if opts.cellprob is not None:
+        ops['cellprob_threshold'] = opts.cellprob
+    if opts.flow is not None:
+        ops['flow_threshold'] = opts.flow
     # ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
     # ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
     # ops['chan2_thres']  # Threshold for detecting an ROI in channel 2.
@@ -190,6 +219,10 @@ ops['nbinned'] = 5000  # Max binned frames for cell detection, default 5000.
 ops['max_iterations'] = 25  # 50
 ops['threshold_scaling'] = 0.2  # Multiplier for ROI detection threshold. Lower values yield more ROIs. Default '1.0'.
 ops['max_overlap'] = 0.9  # Allowed overlap proportion between ROIs. Default '0.75'.
+if opts.threshold_scaling is not None:
+    ops['threshold_scaling'] = opts.threshold_scaling
+if opts.max_overlap is not None:
+    ops['max_overlap'] = opts.max_overlap
 ops['high_pass'] = 100  # Mean subtraction across time is performed with window of size ‘high_pass’ (frames?).
 ops['spatial_hp_detect'] = 25.0  # Spatial high-pass window size for neuropil subtraction.
 
@@ -222,13 +255,17 @@ ops['save_mat'] = False
 if ops['roidetect'] and ops['anatomical_only'] <= 0 and ops['spatial_scale'] != 0:
     db['save_folder'] = 'suite2p_func{}px'.format(spatial_scales[ops['spatial_scale']])
 elif ops['anatomical_only'] > 0:
+    # {:g} keeps the historical folder names (14 -> '14px', -3.5 -> 'pt-3p5', 1.5 -> 'ft1p5') while giving clean
+    # names for sweep values passed as floats (-6.0 -> 'pt-6', 0.0 -> 'ft0').
     if ops['diameter'] > 0:
-        d_str = '{}px'.format(ops['diameter'])
+        d_str = '{:g}px'.format(ops['diameter'])
     else:
         d_str = '0'
-    cpt_str = '{}'.format(ops['cellprob_threshold']).replace('.', 'p')
-    ft_str = '{}'.format(ops['flow_threshold']).replace('.', 'p')
+    cpt_str = '{:g}'.format(ops['cellprob_threshold']).replace('.', 'p')
+    ft_str = '{:g}'.format(ops['flow_threshold']).replace('.', 'p')
     db['save_folder'] = 'suite2p_cellpose{}_d{}_pt{}_ft{}'.format(ops['anatomical_only'], d_str, cpt_str, ft_str)
+if opts.tag:
+    db['save_folder'] += '_' + opts.tag
 # ops['reg_file'] = os.path.join(db['save_path0'], db['save_folder'], 'plane0', 'data.bin')
 
 # Run suite2p.

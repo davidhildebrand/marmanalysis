@@ -146,17 +146,20 @@ def main():
             if sd is None:
                 print('  (stimulus dir for %s not found under stimuli/; skipping)' % token); continue
             pths = [os.path.join(sd, str(x)) for x in nm]
-            miss = [p for p in pths if not os.path.exists(p)]
-            if miss:
-                print('  (%d/%d image files missing under %s; skipping)' % (len(miss), len(pths), sd)); continue
-            f2s = (relu7_for(pths) - mu) @ Vt[FEAT]              # coordinates on PD's feature-2 direction
+            keep = np.array([os.path.exists(p) for p in pths])   # conditions with an image file (drops e.g. blank)
+            if keep.sum() < 0.8 * len(pths):
+                print('  (%d/%d image files missing under %s; skipping)' % (int((~keep).sum()), len(pths), sd)); continue
+            if not keep.all():
+                print('  dropping %d condition(s) with no image file (e.g. blank): %s'
+                      % (int((~keep).sum()), [str(nm[i])[:20] for i in np.where(~keep)[0]]))
+            f2s = (relu7_for([p for p, k in zip(pths, keep) if k]) - mu) @ Vt[FEAT]   # coords on PD's feature-2
             rmask = rt.classify_responses(dd['ds'], metric='Fzsc', framerate=dd['framerate'], alpha=0.05)['responsive']
             fov = dd['roi_xy_um'].max(0) - dd['roi_xy_um'].min(0)
             print('  stim dir: %s | %d images | FOV~%.0fx%.0f um | subsample n=%d, responsive=%d'
                   % (sd, len(pths), fov[0], fov[1], dd['response'].shape[0], int(rmask.sum())))
             for lab, m in (('all-subsample', np.ones(dd['response'].shape[0], bool)), ('responsive', rmask)):
                 sub = rm.apply_roi_mask(dd, m)
-                pf = rowcorr(sub['response'], f2s)
+                pf = rowcorr(sub['response'][:, keep], f2s)
                 rr = tg.scalar_map_periodicity(pf, sub['roi_xy_um'], n_grid=28, n_perm=1000, min_wavelength_um=30)[0]
                 print('  %-14s n=%4d  feature-%d map a=%.2f lam=%4.0fum | periodicity peak_wl=%5.0fum  p=%.3f'
                       % (lab, sub['response'].shape[0], FEAT, rr['amplitude'], rr['lambda_um'],
