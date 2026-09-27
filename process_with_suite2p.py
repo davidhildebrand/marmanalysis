@@ -37,6 +37,9 @@ parser.add_argument('--threshold-scaling', type=float, default=None,
                     help='functional-detection threshold multiplier; lower = more ROIs. [default: 0.2]')
 parser.add_argument('--max-overlap', type=float, default=None,
                     help='allowed ROI overlap fraction. [default: 0.9; v9 uses 0.75]')
+parser.add_argument('--spatial-hp-cp', type=float, default=None,
+                    help='cellpose spatial high-pass window (fraction of diameter) applied to the mean image before '
+                         'detection. [default: suite2p default 0 = off; v9 uses 0.5]')
 parser.add_argument('--keep-bin', action='store_true',
                     help='keep the registered binary (plane0/data.bin) for FISSA / detection-only re-runs '
                          '(~2 bytes/px/frame, e.g. ~17 GB for the PD session). [default: delete it]')
@@ -192,6 +195,8 @@ if ops['anatomical_only'] > 0:
         ops['cellprob_threshold'] = opts.cellprob
     if opts.flow is not None:
         ops['flow_threshold'] = opts.flow
+    if opts.spatial_hp_cp is not None:
+        ops['spatial_hp_cp'] = opts.spatial_hp_cp  # Spatial high-pass filtering window size (v9: 0.5).
     # ops['spatial_hp_cp'] = 0  # Spatial high-pass filtering window size.
     # ops['pretrained_model'] = 'cyto'  # Path to pretrained model.
     # ops['chan2_thres']  # Threshold for detecting an ROI in channel 2.

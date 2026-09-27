@@ -50,21 +50,29 @@ def prep_dnn_model(device='cpu'):
     return model.eval().to(device), RELU7_LAYER
 
 
-def dnn_transform(img_dim=IMG_DIM):
-    """PIL-image -> tensor transform matching Fenil's probe pipeline: ``Resize -> CenterCrop(square) ->
-    ToTensor``, with NO ImageNet normalization. Apply to RGB images (see ``load_images_rgb``)."""
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
+
+
+def dnn_transform(img_dim=IMG_DIM, normalize=False):
+    """PIL-image -> tensor transform: ``Resize -> CenterCrop(square) -> ToTensor``. ``normalize=False`` (default)
+    matches Fenil's PROBE notebooks (no ImageNet normalization; parity-tested); ``normalize=True`` appends the
+    ImageNet mean/std ``Normalize`` his TRAINING notebook uses (the input scale the network and the shipped SOM
+    codebook were built on). ``probe_normalization_check.py`` (2026-09-27) shows the normalized probe gives a
+    better-spread map and higher cortex~SOM / cortex~relu7 RSA on PD. Apply to RGB images (see ``load_images_rgb``)."""
     from torchvision import transforms
-    return transforms.Compose([transforms.Resize(img_dim),
-                               transforms.CenterCrop((img_dim, img_dim)),
-                               transforms.ToTensor()])
+    steps = [transforms.Resize(img_dim), transforms.CenterCrop((img_dim, img_dim)), transforms.ToTensor()]
+    if normalize:
+        steps.append(transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD))
+    return transforms.Compose(steps)
 
 
-def load_images_rgb(paths, img_dim=IMG_DIM):
+def load_images_rgb(paths, img_dim=IMG_DIM, normalize=False):
     """Load image files -> a preprocessed ``(n, 3, img_dim, img_dim)`` float tensor. Each image is opened and
     ``.convert('RGB')``-ed (dropping alpha, as in Fenil's ImageFolder loader) then passed through
-    ``dnn_transform``."""
+    ``dnn_transform(img_dim, normalize)``."""
     from PIL import Image
-    tf = dnn_transform(img_dim)
+    tf = dnn_transform(img_dim, normalize)
     return torch.stack([tf(Image.open(p).convert('RGB')) for p in paths])
 
 
@@ -112,13 +120,25 @@ def _register_som_stub():
 
 
 def load_som(som_path, device='cpu'):
-    """Load a shipped SOM checkpoint (e.g. ``.../models_from_paper/som_weights/objectrec_imagenet_trained_som.pth``).
-    The checkpoint is a pickled SOM instance; a lightweight stub class is registered so it unpickles without
-    Fenil's heavy imports. Returns the SOM module, whose ``.weight`` is ``(input_size, n_units)`` and
-    ``.locations`` is ``(n_units, 2)``."""
-    _register_som_stub()
-    som = torch.load(som_path, map_location=device, weights_only=False)
-    return som.to(device)
+    """Load a SOM checkpoint. Two formats:
+      * a SHIPPED Doshi checkpoint (e.g. ``.../models_from_paper/som_weights/objectrec_imagenet_trained_som.pth``):
+        a pickled SOM instance; a lightweight stub class is registered so it unpickles without Fenil's heavy imports;
+      * one of OUR retrained maps (``som_train.py``): a plain dict ``{'weight', 'locations', 'out_size', ...}``,
+        wrapped here into the same stub module.
+    Returns the SOM module, whose ``.weight`` is ``(input_size, n_units)`` and ``.locations`` is ``(n_units, 2)``;
+    our checkpoints additionally carry ``.meta`` (training provenance)."""
+    SOM = _register_som_stub()
+    obj = torch.load(som_path, map_location=device, weights_only=False)
+    if isinstance(obj, dict) and 'weight' in obj:
+        som = SOM()
+        som.weight = nn.Parameter(torch.as_tensor(obj['weight'], dtype=torch.float32), requires_grad=False)
+        som.locations = nn.Parameter(torch.as_tensor(obj['locations'], dtype=torch.float32), requires_grad=False)
+        som.out_size = tuple(int(v) for v in obj.get('out_size', (int(som.locations[:, 0].max()) + 1,
+                                                                    int(som.locations[:, 1].max()) + 1)))
+        som.input_size = int(som.weight.shape[0])
+        som.meta = {k: v for k, v in obj.items() if k not in ('weight', 'locations')}
+        return som.to(device)
+    return obj.to(device)
 
 
 def som_bmu(som, features):
