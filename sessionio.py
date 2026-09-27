@@ -399,8 +399,14 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
                                  paradigm='auto', threshold_cellprob=0.0,
                                  eye_gate_mode='none', eye_gate_kw=None,
                                  neuropil_subtract=True, neucoeff=0.7,
-                                 roi_subsample=None, roi_subsample_seed=0, equalize_repeats=False):
+                                 roi_subsample=None, roi_subsample_seed=0, equalize_repeats=False,
+                                 roi_select=None):
     """Load a session end-to-end into a response_table xarray Dataset.
+
+    ROI selection (large sessions). ``roi_subsample=N`` takes a seeded random subset of N ROIs; ``roi_select``
+    takes an EXPLICIT index array into the loaded (cellinds-ordered) ROI arrays instead -- e.g. every ROI whose
+    centroid lies in one spatial tile, so a 3 mm field can be analysed at full density tile by tile. The two are
+    exclusive (``roi_select`` wins).
 
     Orchestrates load_metadata -> load_suite2p -> compute_fluorescence_metrics -> load_stimlog ->
     acqfr correction / timing / trim -> response_table.build_response_table. Returns
@@ -424,12 +430,16 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
     """
     md = load_metadata(session_path)
     s2p = load_suite2p(session_path, variant=variant, threshold_cellprob=threshold_cellprob)
-    if roi_subsample is not None and s2p['Frois'].shape[0] > roi_subsample:
+    sel = None
+    if roi_select is not None:
+        sel = np.unique(np.asarray(roi_select, int))
+    elif roi_subsample is not None and s2p['Frois'].shape[0] > roi_subsample:
         # Random ROI subsample BEFORE building the trial tensor -- large-FOV sessions carry 5-16k ROIs whose full
         # (roi, cond, repeat, time) table is multi-GB, and the pairwise topography controls are O(n^2)-O(n^3).
         # Subsampling here (seeded, sorted to keep order) keeps the spatial point pattern representative.
         rng = np.random.default_rng(roi_subsample_seed)
         sel = np.sort(rng.choice(s2p['Frois'].shape[0], int(roi_subsample), replace=False))
+    if sel is not None:
         s2p = dict(s2p)
         s2p['Frois'] = s2p['Frois'][sel]
         s2p['Fneu'] = None if s2p['Fneu'] is None else s2p['Fneu'][sel]
