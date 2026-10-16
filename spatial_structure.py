@@ -65,9 +65,10 @@ TOPQ = 0.2
 KR = np.array([25, 50, 75, 100, 150, 200], float)
 OUTDIR = 'output'
 
+# Stimulus images are located from each session's own stimulus log (images.local_stimulus_path), not configured here.
 SESSIONS = {
-    'pd': dict(path=nc.PD, zeta=nc.ZETA_CSV, stim_dir=v2.STIM_DIR, kw={}, gate='zeta', tile_um=0),
-    'curly': dict(glob=nc.CURLY_GLOB, zeta=None, stim_dir='stimuli/StimSpace/FOBmin230728d',
+    'pd': dict(path=nc.PD, zeta=nc.ZETA_CSV, kw={}, gate='zeta', tile_um=0),
+    'curly': dict(glob=nc.CURLY_GLOB, zeta=None,
                   kw=dict(equalize_repeats=True, eye_gate_mode='none'), gate='all', tile_um=1500),
 }
 
@@ -154,14 +155,18 @@ def pval(null, obs):
 
 
 def category_dprime(resp, ck, key):
+    """d' of category ``key`` vs the REST of the stimuli (blank conditions excluded from both sides)."""
     m = ck == key
-    a, b = resp[:, m], resp[:, ~m]
+    rest = (~m) & (ck != 'blank')
+    a, b = resp[:, m], resp[:, rest]
     return (np.nanmean(a, 1) - np.nanmean(b, 1)) / np.sqrt(0.5 * (np.nanvar(a, 1) + np.nanvar(b, 1)) + 1e-12)
 
 
 def cat_key(c):
     c = str(c).lower()
-    return 'face' if 'face' in c else ('body' if 'body' in c else 'object')
+    if 'blank' in c:
+        return 'blank'
+    return 'face' if 'face' in c else ('body' if 'body' in c else 'object')     # food etc. count as object
 
 
 def face_axis_map(resp, ck):
@@ -179,14 +184,23 @@ def resolve_session(key):
     return cfg
 
 
-def feature_pcs(data, stim_dir):
-    """relu7 PC scores of the presented images (for the random-feature null); None if images are missing."""
-    paths = som.condition_image_paths(data, stim_dir)
-    if not all(os.path.exists(p) for p in paths):
-        print('  (stimulus images not all found under %s -> random-feature null skipped)' % stim_dir)
+def feature_pcs(data, ck):
+    """relu7 PC scores of the presented images (for the random-feature null), plus the mask of conditions used: those
+    whose logged image file exists locally, blank conditions excluded (as in the category d'). None if fewer than 10."""
+    paths = som.condition_image_paths(data)
+    keep = np.array([p is not None and os.path.exists(p) for p in paths]) & (ck != 'blank')
+    n_img = int((ck != 'blank').sum())
+    folders = sorted({os.path.dirname(p) for p in paths if p is not None})
+    if keep.sum() < 10:
+        print('  (only %d/%d logged stimulus images found locally in %s -> random-feature null skipped)'
+              % (keep.sum(), n_img, folders))
         return None
-    feats = dnn_som.extract_dnn_features(*dnn_som.prep_dnn_model('cpu'), dnn_som.load_images_rgb(paths), 'cpu').numpy()
-    return v2.pcs(feats)[0]
+    print('  random-feature null: %d/%d logged stimulus images found in %s' % (keep.sum(), n_img, folders))
+    if keep.sum() < n_img:
+        print('  missing: %s' % [p for p, k, c in zip(paths, keep, ck) if not k and c != 'blank'])
+    feats = dnn_som.extract_dnn_features(*dnn_som.prep_dnn_model('cpu'),
+                                         dnn_som.load_images_rgb([p for p, k in zip(paths, keep) if k]), 'cpu').numpy()
+    return v2.pcs(feats)[0], keep
 
 
 def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path):
@@ -201,8 +215,9 @@ def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path):
     Uc = rng.standard_normal((resp.shape[1], n_perm)); Uc /= np.linalg.norm(Uc, axis=0, keepdims=True)
     NRP = null_stats(G, (R @ Uc).T)
     if Fpc is not None:
-        Uf = rng.standard_normal((Fpc.shape[1], n_perm)); Uf /= np.linalg.norm(Uf, axis=0, keepdims=True)
-        NRF = null_stats(G, np.column_stack([v2.rowcorr(resp, Fpc @ Uf[:, k]) for k in range(n_perm)]).T)
+        F, keep = Fpc
+        Uf = rng.standard_normal((F.shape[1], n_perm)); Uf /= np.linalg.norm(Uf, axis=0, keepdims=True)
+        NRF = null_stats(G, np.column_stack([v2.rowcorr(resp[:, keep], F @ Uf[:, k]) for k in range(n_perm)]).T)
     else:
         NRF = NRP
     results = {}
@@ -363,7 +378,7 @@ def main():
         resp, xy = d['response'], d['roi_xy_um']
         label = '%s%s (corrected 0.7, gate=%s, %d/%d cells)' % (a.session.upper(), ' ' + tname if tname else '', gate, resp.shape[0], n_all)
         if Fpc is None:
-            Fpc = feature_pcs(data, cfg['stim_dir'])
+            Fpc = feature_pcs(data, ck)
         if a.session == 'pd':
             G0 = Geometry(xy)
             cls = rt.classify_responses(data['ds'], metric='Fzsc', framerate=data['framerate'], alpha=0.05)

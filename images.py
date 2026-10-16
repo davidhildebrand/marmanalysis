@@ -5,6 +5,7 @@ response container (response_table).
 
 Factors the image-specific logic out of analysis_for_images.py into reusable functions:
   * classify_image            -- stimulus image basename -> (cond, cat, identity, pitch, yaw, roll)
+  * local_stimulus_path       -- image path recorded by the stimulus PC -> local mirror of Stimulus/Sets
   * build_condition_metadata  -- per-condition classification table from a stimlog
   * attach_condition_metadata -- put that metadata onto an xarray response Dataset as coords
   * supercategory_bools       -- face / non-face / non-face-object masks over conditions
@@ -25,6 +26,14 @@ from scipy.stats import f_oneway
 import response_table
 import sessionio
 
+
+# Stimulus logs record image paths as seen on the stimulus PC (C:\FreiwaldSync\MarmoScope\Stimulus\...); older
+# logs used Stimulus/Images, current ones Stimulus/Sets. Both map onto the local mirror of Stimulus/Sets, reached
+# through the in-project 'stimuli' symlink (analysis_for_images.py:635-638, 1400-1408).
+LOGGED_STIMULUS_ROOT = re.compile(r'^.*?/FreiwaldSync/MarmoScope/Stimulus/(Sets|Images)')
+LOCAL_STIMULUS_ROOT = 'stimuli'
+# Folders renamed on the Sets side after they were logged: (as logged, as now on disk).
+STIMULUS_FOLDER_RENAMES = [('Song_etal_Wang_2020_NatCommun', 'Song_etal_Wang_2022_NatCommun')]
 
 # Plot/template ordering for categories (analysis_for_images.py:74-77).
 TEMPLATE = np.array([b'blank', b'scram_s', b'scram_p',
@@ -145,11 +154,25 @@ def classify_image(imn):
     return cond, cat, identity, pitch, yaw, roll
 
 
-def build_condition_metadata(stimlog, cond_col='cond', image_col='image'):
+def local_stimulus_path(logged_path, local_root=LOCAL_STIMULUS_ROOT):
+    """Local path of an image file whose path was recorded by the stimulus PC, or None if the logged path is
+    missing or not under the stimulus root. The result is not checked for existence."""
+    if logged_path is None or (isinstance(logged_path, float) and np.isnan(logged_path)):
+        return None
+    path = str(logged_path).strip().rstrip(',').replace('\\', '/')       # text-log parser leaves a trailing comma
+    for as_logged, on_disk in STIMULUS_FOLDER_RENAMES:
+        path = path.replace(as_logged, on_disk)
+    local, n_sub = LOGGED_STIMULUS_ROOT.subn(lambda m: local_root, path, count=1)
+    return os.path.normpath(local) if n_sub else None
+
+
+def build_condition_metadata(stimlog, cond_col='cond', image_col='image', path_col='image_path'):
     """Per-condition image classification table, indexed by condition id, with columns
-    cond, cat, id, pitch, yaw, roll, imagename. One row per unique condition (the image is
-    expected to be constant within a condition)."""
+    cond, cat, id, pitch, yaw, roll, imagename, imagepath. One row per unique condition (the image is
+    expected to be constant within a condition). ``imagepath`` is the local path of the image the stimulus log
+    recorded (see local_stimulus_path); None when the log has no image path."""
     conditions = np.unique(stimlog[cond_col].dropna().to_numpy())
+    has_paths = path_col in stimlog.columns
     rows = []
     for c in conditions:
         names = pd.unique(stimlog.loc[stimlog[cond_col] == c, image_col].dropna().values)
@@ -158,8 +181,16 @@ def build_condition_metadata(stimlog, cond_col='cond', image_col='image'):
         imagename = names[0] if len(names) else None
         imn = os.path.splitext(str(imagename))[0] if imagename is not None else ''
         cond, cat, identity, pitch, yaw, roll = classify_image(imn)
+        imagepath = None
+        if has_paths:
+            logged = pd.unique(stimlog.loc[stimlog[cond_col] == c, path_col].dropna().values)
+            if len(logged) > 1:
+                warn('Condition {} is associated with {} distinct image paths.'.format(c, len(logged)))
+            imagepath = local_stimulus_path(logged[0]) if len(logged) else None
+            if imagepath is not None and imagename is not None and not os.path.splitext(imagepath)[1]:
+                imagepath = os.path.join(imagepath, str(imagename))         # log recorded the folder only
         rows.append({'condition': c, 'cond': cond, 'cat': cat, 'id': identity,
-                     'pitch': pitch, 'yaw': yaw, 'roll': roll, 'imagename': imagename})
+                     'pitch': pitch, 'yaw': yaw, 'roll': roll, 'imagename': imagename, 'imagepath': imagepath})
     return pd.DataFrame(rows).set_index('condition')
 
 

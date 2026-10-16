@@ -23,10 +23,18 @@ DEFAULT_SOM = ('Doshi_and_Konkle_2023_SciAdv/Code/models_from_paper/'
                'som_weights/objectrec_imagenet_trained_som.pth')
 
 
-def condition_image_paths(data, stimulus_dir):
-    """Ordered image-file paths aligned to ``data['condition_ids']`` via the condition->imagename map (from
-    ``response_matrix.build_response_matrix``). So model rows line up with cortical response columns."""
+def condition_image_paths(data, stimulus_dir=None):
+    """Ordered image-file paths aligned to ``data['condition_ids']`` (from ``response_matrix.build_response_matrix``),
+    so model rows line up with cortical response columns.
+
+    With ``stimulus_dir=None`` (preferred) the paths are the images the session's stimulus log recorded, mapped to
+    the local stimulus mirror (``conditions['imagepath']``, see images.local_stimulus_path); entries are None where
+    the log has no path. Passing ``stimulus_dir`` joins that folder with each condition's image name instead."""
     conds = data['conditions'].reindex(data['condition_ids'])
+    if stimulus_dir is None:
+        if 'imagepath' not in conds.columns:
+            raise KeyError("conditions table has no 'imagepath' column; rebuild it with images.build_condition_metadata")
+        return [None if p is None or (isinstance(p, float) and np.isnan(p)) else str(p) for p in conds['imagepath'].values]
     return [os.path.join(stimulus_dir, str(name)) for name in conds['imagename'].values]
 
 
