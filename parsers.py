@@ -376,14 +376,56 @@ STIMLOG_FLOAT_COLS = (
 )
 
 
+def encode_text_conditions(log, cond_col='cond'):
+    """Give text condition ids integer ids instead of losing them.
+
+    Code-generated conditions are logged with TEXT ids -- 'blank' (``include_blank``) and vocalization file paths --
+    which the Int64 cast would turn into NA, silently dropping those trials. Each distinct text id gets a new integer
+    id after the largest numeric id, in sorted text order (as the paper's v9 pipeline does); the text is kept in
+    ``cond_label``. 'blank' trials get stim_mode / stim_class 'blank'; vocalization paths get stim_class
+    'vocalization' and ``voc_path``. Idempotent: a log whose condition ids are all numeric is returned unchanged.
+    """
+    if cond_col not in log.columns:
+        return log
+    raw = log[cond_col]
+    num = pd.to_numeric(raw, errors='coerce')
+    text = raw.notna() & num.isna() & raw.astype(str).str.strip().ne('')
+    if not text.any():
+        return log
+    labels = raw[text].astype(str).str.strip()
+    start = int(np.nanmax(num.to_numpy(dtype=float))) + 1 if num.notna().any() else 0
+    new_id = {lab: start + i for i, lab in enumerate(sorted(labels.unique()))}
+    log = log.copy()
+    if 'cond_label' not in log.columns:
+        log['cond_label'] = pd.Series([None] * len(log), index=log.index, dtype=object)
+    log.loc[labels.index, 'cond_label'] = labels
+    log[cond_col] = num.astype(object)
+    log.loc[labels.index, cond_col] = labels.map(new_id)
+    blank_idx = labels.index[labels.str.lower().eq('blank')]
+    voc_idx = labels.index[labels.str.contains('vocalization', case=False)]
+    for col, idx, value in (('stim_mode', blank_idx, 'blank'), ('stim_class', blank_idx, 'blank'),
+                            ('stim_class', voc_idx, 'vocalization')):
+        if len(idx):
+            if col not in log.columns:
+                log[col] = pd.Series([None] * len(log), index=log.index, dtype=object)
+            log[col] = log[col].astype(object)
+            log.loc[idx, col] = value
+    if len(voc_idx):
+        if 'voc_path' not in log.columns:
+            log['voc_path'] = pd.Series([None] * len(log), index=log.index, dtype=object)
+        log.loc[voc_idx, 'voc_path'] = labels.loc[voc_idx]
+    return log
+
+
 def normalize_stimlog_dtypes(log, object_fill=False):
     """
     Cast a stimlog to canonical dtypes: nullable Int64 for integer columns (frame indices and
     condition ids -- true integers that can still be missing as pd.NA) and float64 for
     durations/times. Label/tuple/array columns are left untouched, or coerced to object when
     object_fill=True (used at build time, where every non-numeric column is still empty).
+    Text condition ids are first given integer ids (encode_text_conditions) so their trials are kept.
     """
-    log = log.copy()
+    log = encode_text_conditions(log.copy())
     for c in STIMLOG_INT_COLS:
         if c in log.columns:
             log[c] = pd.to_numeric(log[c], errors='coerce').astype('Int64')

@@ -47,6 +47,22 @@ def test_normalize_stimlog_dtypes_casts_and_preserves():
     assert str(out['dots_dir'].dtype) == 'float64'        # untouched (object_fill=False default)
 
 
+def test_normalize_keeps_text_condition_ids():
+    """Code-generated conditions logged with text ids ('blank', vocalization paths) must keep their trials:
+    new integer ids after the largest numeric id, text kept in cond_label, blank / vocalization labelled."""
+    voc = '/FreiwaldSync/MarmoScope/Stimulus/Vocalizations/SubID1_x.npy'
+    df = pd.DataFrame({'cond': ['0', '1', 'blank', voc, '1', 'blank'],
+                       'stim_class': ['tone', 'tone', 'tone', 'tone', 'tone', 'tone']})
+    out = parsers.normalize_stimlog_dtypes(df)
+    assert str(out['cond'].dtype) == 'Int64'
+    assert out['cond'].tolist() == [0, 1, 3, 2, 1, 3]          # sorted text ids: '/Freiwald...' -> 2, 'blank' -> 3
+    assert out['cond_label'].tolist() == [None, None, 'blank', voc, None, 'blank']
+    assert out['stim_class'].tolist() == ['tone', 'tone', 'blank', 'vocalization', 'tone', 'blank']
+    assert out.loc[3, 'voc_path'] == voc
+    again = parsers.normalize_stimlog_dtypes(out)                # idempotent
+    assert again['cond'].tolist() == out['cond'].tolist()
+
+
 def test_normalize_keeps_missing_as_na_in_int_column():
     out = parsers.normalize_stimlog_dtypes(pd.DataFrame({'acqfr_stim_i': [10.0, np.nan, 30.0]}))
     assert str(out['acqfr_stim_i'].dtype) == 'Int64'
