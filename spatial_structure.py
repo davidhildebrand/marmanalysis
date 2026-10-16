@@ -184,20 +184,20 @@ def resolve_session(key):
     return cfg
 
 
-def feature_pcs(data, ck):
-    """relu7 PC scores of the presented images (for the random-feature null), plus the mask of conditions used: those
-    whose logged image file exists locally, blank conditions excluded (as in the category d'). None if fewer than 10."""
+def feature_pcs(data):
+    """relu7 PC scores of the presented images (for the random-feature null), plus the mask of conditions used: every
+    presented condition, blanks included, whose image resolves to a local file (images.build_condition_metadata;
+    a blank without its own file uses the set's common blank image). None if fewer than 10 resolve."""
     paths = som.condition_image_paths(data)
-    keep = np.array([p is not None and os.path.exists(p) for p in paths]) & (ck != 'blank')
-    n_img = int((ck != 'blank').sum())
+    keep = np.array([p is not None and os.path.exists(p) for p in paths])
     folders = sorted({os.path.dirname(p) for p in paths if p is not None})
     if keep.sum() < 10:
-        print('  (only %d/%d logged stimulus images found locally in %s -> random-feature null skipped)'
-              % (keep.sum(), n_img, folders))
+        print('  (only %d/%d stimulus images resolved locally in %s -> random-feature null skipped)'
+              % (keep.sum(), keep.size, folders))
         return None
-    print('  random-feature null: %d/%d logged stimulus images found in %s' % (keep.sum(), n_img, folders))
-    if keep.sum() < n_img:
-        print('  missing: %s' % [p for p, k, c in zip(paths, keep, ck) if not k and c != 'blank'])
+    print('  random-feature null: %d/%d presented conditions have a local image in %s' % (keep.sum(), keep.size, folders))
+    if not keep.all():
+        print('  no local image for: %s' % [p for p, k in zip(paths, keep) if not k])
     feats = dnn_som.extract_dnn_features(*dnn_som.prep_dnn_model('cpu'),
                                          dnn_som.load_images_rgb([p for p, k in zip(paths, keep) if k]), 'cpu').numpy()
     return v2.pcs(feats)[0], keep
@@ -378,7 +378,7 @@ def main():
         resp, xy = d['response'], d['roi_xy_um']
         label = '%s%s (corrected 0.7, gate=%s, %d/%d cells)' % (a.session.upper(), ' ' + tname if tname else '', gate, resp.shape[0], n_all)
         if Fpc is None:
-            Fpc = feature_pcs(data, ck)
+            Fpc = feature_pcs(data)
         if a.session == 'pd':
             G0 = Geometry(xy)
             cls = rt.classify_responses(data['ds'], metric='Fzsc', framerate=data['framerate'], alpha=0.05)

@@ -135,16 +135,13 @@ def main():
             nm = cd['imagename'].to_numpy()
             pths = som.condition_image_paths(dd)             # images recorded in the session's stimulus log
             sd = sorted({os.path.dirname(p) for p in pths if p is not None})
-            blank = np.array(['blank' in str(c) for c in cd['cat'].to_numpy()])
-            found = np.array([p is not None and os.path.exists(p) for p in pths])
-            keep = found & ~blank                            # blank conditions are not images of anything
-            if keep.sum() < 0.8 * (~blank).sum():
-                print('  (%d/%d logged image files missing locally in %s; skipping)'
-                      % (int((~found & ~blank).sum()), int((~blank).sum()), sd)); continue
+            keep = np.array([p is not None and os.path.exists(p) for p in pths])   # every presented condition, blanks included
+            if keep.sum() < 0.8 * len(pths):
+                print('  (%d/%d presented conditions have no local image in %s; skipping)'
+                      % (int((~keep).sum()), len(pths), sd)); continue
             if not keep.all():
-                print('  dropping %d condition(s): %d blank, %d logged image not found locally: %s'
-                      % (int((~keep).sum()), int(blank.sum()), int((~found & ~blank).sum()),
-                         [str(nm[i])[:20] for i in np.where(~keep)[0]]))
+                print('  no local image for %d condition(s): %s'
+                      % (int((~keep).sum()), [str(nm[i])[:20] for i in np.where(~keep)[0]]))
             f2s = (relu7_for([p for p, k in zip(pths, keep) if k]) - mu) @ Vt[FEAT]   # coords on PD's feature-2
             rmask = rt.classify_responses(dd['ds'], metric='Fzsc', framerate=dd['framerate'], alpha=0.05)['responsive']
             fov = dd['roi_xy_um'].max(0) - dd['roi_xy_um'].min(0)

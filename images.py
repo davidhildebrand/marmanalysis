@@ -32,8 +32,14 @@ import sessionio
 # through the in-project 'stimuli' symlink (analysis_for_images.py:635-638, 1400-1408).
 LOGGED_STIMULUS_ROOT = re.compile(r'^.*?/FreiwaldSync/MarmoScope/Stimulus/(Sets|Images)')
 LOCAL_STIMULUS_ROOT = 'stimuli'
-# Folders renamed on the Sets side after they were logged: (as logged, as now on disk).
-STIMULUS_FOLDER_RENAMES = [('Song_etal_Wang_2020_NatCommun', 'Song_etal_Wang_2022_NatCommun')]
+# Folders renamed on the Sets side after they were logged: (as logged, as now on disk), applied in order.
+STIMULUS_FOLDER_RENAMES = [
+    ('Song_etal_Wang_2020_NatCommun', 'Song_etal_Wang_2022_NatCommun'),
+    ('/480288_equalized_transparency/', '/480288_equalized_RGBA/'),   # all 160 logged files present (+ blank.png)
+    ('/MinFOB_MarmOnly/20230703d', '/FOBmin_MarmOnly/Images/20230703d_NotSameAs20230728d'),
+    ('/MinFOB/', '/FOBmin/'),
+]
+BLANK_IMAGE_NAME = 'blank.png'
 
 # Plot/template ordering for categories (analysis_for_images.py:74-77).
 TEMPLATE = np.array([b'blank', b'scram_s', b'scram_p',
@@ -166,32 +172,106 @@ def local_stimulus_path(logged_path, local_root=LOCAL_STIMULUS_ROOT):
     return os.path.normpath(local) if n_sub else None
 
 
+def blank_trial_mask(stimlog, cond_col='cond', image_col='image'):
+    """Per-trial boolean: was a blank presented? True when stim_mode / stim_class / stim_subclass is 'blank' (code-
+    generated blanks, e.g. multimodal ``present_blank`` or ``include_blank``), the condition id contains 'blank', or
+    the logged image is a blank image (``blank.png`` or ``<set>_blank.png``). File existence plays no part."""
+    m = pd.Series(False, index=stimlog.index)
+    for col in ('stim_mode', 'stim_class', 'stim_subclass'):
+        if col in stimlog.columns:
+            m |= stimlog[col].astype(str).str.strip().str.lower().eq('blank')
+    for col in (cond_col, 'cond_label'):                           # cond_label: text id kept by the normaliser
+        if col in stimlog.columns:
+            m |= stimlog[col].astype(str).str.lower().str.contains('blank')
+    if image_col in stimlog.columns:
+        stem = stimlog[image_col].map(lambda v: '' if pd.isna(v) else os.path.splitext(
+            os.path.basename(str(v).strip().rstrip(',').replace('\\', '/')))[0].lower())
+        m |= stem.eq('blank') | stem.str.endswith('_blank')
+    return m
+
+
+def _shared_blank_image(folder, local_root=LOCAL_STIMULUS_ROOT):
+    """The stimulus set's common blank image: BLANK_IMAGE_NAME in ``folder`` or the nearest parent folder below the
+    local stimulus root; None if there is none."""
+    root = os.path.normpath(local_root)
+    folder = os.path.normpath(folder)
+    while folder and folder != root and folder.startswith(root):
+        candidate = os.path.join(folder, BLANK_IMAGE_NAME)
+        if os.path.exists(candidate):
+            return candidate
+        folder = os.path.dirname(folder)
+    return None
+
+
 def build_condition_metadata(stimlog, cond_col='cond', image_col='image', path_col='image_path'):
     """Per-condition image classification table, indexed by condition id, with columns
-    cond, cat, id, pitch, yaw, roll, imagename, imagepath. One row per unique condition (the image is
-    expected to be constant within a condition). ``imagepath`` is the local path of the image the stimulus log
-    recorded (see local_stimulus_path); None when the log has no image path."""
+    cond, cat, id, pitch, yaw, roll, imagename, imagepath, imagepath_source. One row per unique condition (the image
+    is expected to be constant within a condition); every logged condition is kept, whether or not its file exists.
+
+    Blank conditions are identified from the log (blank_trial_mask), not from files, and get cond = cat = b'blank'.
+    ``blank_source`` says how each blank was produced: 'image' (an image-set blank.png), 'code' (a code-generated
+    blank with no image, e.g. multimodal present_blank) or 'image+code'. Some sessions presented BOTH kinds, i.e.
+    two blank conditions with the same number of repeats (twice the blank trials); both are kept as conditions.
+
+    ``imagepath`` is the local file of the image the stimulus log recorded (see local_stimulus_path), in order:
+      'logged'         the logged path (a logged folder is completed with the condition's image name)
+      'session folder' the log gave only a file name: the folder the log records for the session's other conditions
+      'shared blank'   a blank condition whose own file is not on disk: the set's common blank image (the stimulus
+                       code sometimes drew blanks from a common file), see _shared_blank_image
+    and None when nothing can be resolved. Existence is checked only for the two fallbacks."""
     conditions = np.unique(stimlog[cond_col].dropna().to_numpy())
     has_paths = path_col in stimlog.columns
+    blank_rows = blank_trial_mask(stimlog, cond_col, image_col)
     rows = []
     for c in conditions:
-        names = pd.unique(stimlog.loc[stimlog[cond_col] == c, image_col].dropna().values)
-        if len(names) != 1:
+        in_c = stimlog[cond_col] == c
+        names = pd.unique(stimlog.loc[in_c, image_col].dropna().values) if image_col in stimlog.columns else []
+        is_blank = bool(blank_rows[in_c].any())
+        if len(names) != 1 and not (is_blank and len(names) == 0):
             warn('Condition {} is associated with {} distinct images.'.format(c, len(names)))
         imagename = names[0] if len(names) else None
         imn = os.path.splitext(str(imagename))[0] if imagename is not None else ''
-        cond, cat, identity, pitch, yaw, roll = classify_image(imn)
-        imagepath = None
+        if is_blank:
+            cond, cat, identity, pitch, yaw, roll = classify_image('blank')     # same record as an image blank
+            blank_source = '+'.join(k for k, v in (('image', imagename is not None),
+                                                    ('code', stimlog.loc[in_c, image_col].isna().any()
+                                                     if image_col in stimlog.columns else True)) if v)
+        else:
+            cond, cat, identity, pitch, yaw, roll = classify_image(imn)
+            blank_source = None
+        imagepath, source, logged0 = None, None, None
         if has_paths:
             logged = pd.unique(stimlog.loc[stimlog[cond_col] == c, path_col].dropna().values)
             if len(logged) > 1:
                 warn('Condition {} is associated with {} distinct image paths.'.format(c, len(logged)))
-            imagepath = local_stimulus_path(logged[0]) if len(logged) else None
+            logged0 = logged[0] if len(logged) else None
+            imagepath = local_stimulus_path(logged0)
             if imagepath is not None and imagename is not None and not os.path.splitext(imagepath)[1]:
                 imagepath = os.path.join(imagepath, str(imagename))         # log recorded the folder only
-        rows.append({'condition': c, 'cond': cond, 'cat': cat, 'id': identity,
-                     'pitch': pitch, 'yaw': yaw, 'roll': roll, 'imagename': imagename, 'imagepath': imagepath})
-    return pd.DataFrame(rows).set_index('condition')
+            source = 'logged' if imagepath is not None else None
+        rows.append({'condition': c, 'cond': cond, 'cat': cat, 'id': identity, 'pitch': pitch, 'yaw': yaw,
+                     'roll': roll, 'imagename': imagename, 'imagepath': imagepath, 'imagepath_source': source,
+                     'blank_source': blank_source, '_logged': logged0})
+    meta = pd.DataFrame(rows).set_index('condition')
+
+    # Fallbacks need the session's image folder: the most common folder among the resolved logged paths.
+    folders = [os.path.dirname(p) for p in meta['imagepath'] if p is not None]
+    session_folder = pd.Series(folders).mode().iloc[0] if folders else None
+    if session_folder is not None:
+        for c in meta.index:
+            name = meta.at[c, 'imagename']
+            if meta.at[c, 'imagepath'] is None and (name is not None or meta.at[c, '_logged'] is not None):
+                base = os.path.basename(str(meta.at[c, '_logged'] or name).strip().rstrip(',').replace('\\', '/'))
+                candidate = os.path.join(session_folder, base)
+                if os.path.exists(candidate):
+                    meta.at[c, 'imagepath'], meta.at[c, 'imagepath_source'] = candidate, 'session folder'
+            is_blank = meta.at[c, 'cat'] is not None and b'blank' in bytes(meta.at[c, 'cat'])
+            path = meta.at[c, 'imagepath']
+            if is_blank and (path is None or not os.path.exists(path)):
+                shared = _shared_blank_image(os.path.dirname(path) if path else session_folder)
+                if shared is not None:
+                    meta.at[c, 'imagepath'], meta.at[c, 'imagepath_source'] = shared, 'shared blank'
+    return meta.drop(columns='_logged')
 
 
 def attach_condition_metadata(ds, meta):
