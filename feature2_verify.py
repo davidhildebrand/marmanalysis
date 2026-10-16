@@ -31,7 +31,6 @@ import topography as tg
 
 PD = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
       'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-STIM_PD = 'stimuli/Song_etal_Wang_2022_NatCommun/480288_equalized_RGBA_FOBonly'
 ZETA_CSV = 'tmp/responsiveness_pd.csv'
 LARGE = [('Dali', '20230810d', 'ImagesSongFOBonly'),
          ('Curly', '20231103d', 'ImagesFOBmin'),
@@ -52,15 +51,6 @@ def resolve(animal, date, token):
     hits = [h for h in sorted(glob.glob('suite2p_results/%s/%s/*%s*' % (animal, date, token)))
             if os.path.isdir(h) and glob.glob(os.path.join(h, 'suite2p*'))]
     return hits[0] if hits else None
-
-
-def resolve_stim_dir(imagenames):
-    """Find the stimulus dir holding a session's images by locating the first few filenames under stimuli/."""
-    for nm in list(imagenames)[:3]:
-        hits = glob.glob('stimuli/**/' + os.path.basename(str(nm)), recursive=True)
-        if hits:
-            return os.path.dirname(hits[0])
-    return None
 
 
 def relu7_for(paths):
@@ -90,7 +80,7 @@ def main():
     conds = data['conditions'].reindex(data['condition_ids'])
     cats = np.array([str(c) for c in conds['cat'].to_numpy()])
     names = conds['imagename'].to_numpy()
-    r7 = relu7_for(som.condition_image_paths(data, STIM_PD))
+    r7 = relu7_for(som.condition_image_paths(data))   # images recorded in the session's stimulus log
     mu = r7.mean(0, keepdims=True)
     U, S, Vt = np.linalg.svd(r7 - mu, full_matrices=False)
     feat, fev = U[:, :20] * S[:20], (S[:20] ** 2) / (S ** 2).sum()
@@ -141,22 +131,25 @@ def main():
             dd = rm.build_response_matrix(path, denoise=False, reliability_splits=3, eye_gate_mode='none',
                                           neuropil_subtract=True, neucoeff=0.7, roi_subsample=2000,
                                           equalize_repeats=True)
-            nm = dd['conditions'].reindex(dd['condition_ids'])['imagename'].to_numpy()
-            sd = STIM_PD if token == 'ImagesSongFOBonly' else resolve_stim_dir(nm)
-            if sd is None:
-                print('  (stimulus dir for %s not found under stimuli/; skipping)' % token); continue
-            pths = [os.path.join(sd, str(x)) for x in nm]
-            keep = np.array([os.path.exists(p) for p in pths])   # conditions with an image file (drops e.g. blank)
-            if keep.sum() < 0.8 * len(pths):
-                print('  (%d/%d image files missing under %s; skipping)' % (int((~keep).sum()), len(pths), sd)); continue
+            cd = dd['conditions'].reindex(dd['condition_ids'])
+            nm = cd['imagename'].to_numpy()
+            pths = som.condition_image_paths(dd)             # images recorded in the session's stimulus log
+            sd = sorted({os.path.dirname(p) for p in pths if p is not None})
+            blank = np.array(['blank' in str(c) for c in cd['cat'].to_numpy()])
+            found = np.array([p is not None and os.path.exists(p) for p in pths])
+            keep = found & ~blank                            # blank conditions are not images of anything
+            if keep.sum() < 0.8 * (~blank).sum():
+                print('  (%d/%d logged image files missing locally in %s; skipping)'
+                      % (int((~found & ~blank).sum()), int((~blank).sum()), sd)); continue
             if not keep.all():
-                print('  dropping %d condition(s) with no image file (e.g. blank): %s'
-                      % (int((~keep).sum()), [str(nm[i])[:20] for i in np.where(~keep)[0]]))
+                print('  dropping %d condition(s): %d blank, %d logged image not found locally: %s'
+                      % (int((~keep).sum()), int(blank.sum()), int((~found & ~blank).sum()),
+                         [str(nm[i])[:20] for i in np.where(~keep)[0]]))
             f2s = (relu7_for([p for p, k in zip(pths, keep) if k]) - mu) @ Vt[FEAT]   # coords on PD's feature-2
             rmask = rt.classify_responses(dd['ds'], metric='Fzsc', framerate=dd['framerate'], alpha=0.05)['responsive']
             fov = dd['roi_xy_um'].max(0) - dd['roi_xy_um'].min(0)
             print('  stim dir: %s | %d images | FOV~%.0fx%.0f um | subsample n=%d, responsive=%d'
-                  % (sd, len(pths), fov[0], fov[1], dd['response'].shape[0], int(rmask.sum())))
+                  % (sd, int(keep.sum()), fov[0], fov[1], dd['response'].shape[0], int(rmask.sum())))
             for lab, m in (('all-subsample', np.ones(dd['response'].shape[0], bool)), ('responsive', rmask)):
                 sub = rm.apply_roi_mask(dd, m)
                 pf = rowcorr(sub['response'][:, keep], f2s)

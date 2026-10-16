@@ -113,7 +113,7 @@ def main():
     d = rm.apply_roi_mask(data, zeta)
     resp = d['response']
     cats = data['conditions'].reindex(data['condition_ids'])['cat'].to_numpy()
-    paths = som.condition_image_paths(data, v2.STIM_DIR)
+    paths = som.condition_image_paths(data)          # images recorded in the session's stimulus log
     images = dnn_som.load_images_rgb(paths)
     model, _ = dnn_som.prep_dnn_model('cpu')
     feats = {nm: dnn_som.extract_dnn_features(model, layer, images, 'cpu').numpy() for nm, layer in v2.LAYERS.items()}

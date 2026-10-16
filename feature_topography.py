@@ -33,7 +33,6 @@ import topography as tg
 
 SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
            'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-STIM_DIR = 'stimuli/Song_etal_Wang_2022_NatCommun/480288_equalized_RGBA_FOBonly'
 ZETA_CSV = 'tmp/responsiveness_pd.csv'
 MAXD, MIND = 600.0, 15.0
 K_FEAT, K_NPC = 20, 20
@@ -106,7 +105,7 @@ def main():
                               per_img[kb]['peak_wavelength_um']))
 
     # ---- (C) per-feature maps ----
-    model = som.build_model_matrices(som.condition_image_paths(data, STIM_DIR))
+    model = som.build_model_matrices(som.condition_image_paths(data))   # images recorded in the stimulus log
     F = model['relu7'] - model['relu7'].mean(0, keepdims=True)
     U, S, Vt = np.linalg.svd(F, full_matrices=False)
     K = int(min(K_FEAT, S.size))

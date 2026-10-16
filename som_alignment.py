@@ -26,7 +26,6 @@ import som
 
 SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
            'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-STIM_DIR = 'stimuli/Song_etal_Wang_2022_NatCommun/480288_equalized_RGBA_FOBonly'
 ZETA_CSV = 'tmp/responsiveness_pd.csv'
 
 
@@ -54,7 +53,7 @@ def main():
     corr = rm.build_response_matrix(SESSION, denoise=False, reliability_splits=5,
                                     neuropil_subtract=True, neucoeff=0.7)
     cats = corr['conditions'].reindex(corr['condition_ids'])['cat'].to_numpy()
-    paths = som.condition_image_paths(corr, STIM_DIR)
+    paths = som.condition_image_paths(corr)          # images recorded in the session's stimulus log
     model = som.build_model_matrices(paths)
     sca = model['sca']
     som_xy = dnn_som.load_som(som.DEFAULT_SOM).locations.detach().numpy()

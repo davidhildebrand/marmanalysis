@@ -36,7 +36,6 @@ import topography as tg
 
 SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
            'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-STIM_DIR = 'stimuli/Song_etal_Wang_2022_NatCommun/480288_equalized_RGBA_FOBonly'
 ZETA_CSV = 'tmp/responsiveness_pd.csv'
 LAYERS = {'relu7': 'classifier.5', 'relu6': 'classifier.2', 'pool5': 'features.12'}
 K, N_PERM, NEAR, FAR, MIND, MAXD = 20, 300, 75.0, 150.0, 15.0, 600.0
@@ -122,7 +121,7 @@ def main():
           '%d-perm position shuffle, BH-FDR per basis' % (resp.shape[0], resp.shape[1], NEAR, FAR, N_PERM))
     print('  reference: D_activity vs D_phys r=%+.3f' % spearmanr(ref['dact'][ref['ok']], dd[ref['ok']]).statistic)
 
-    paths = som.condition_image_paths(data, STIM_DIR)
+    paths = som.condition_image_paths(data)          # images recorded in the session's stimulus log
     images = dnn_som.load_images_rgb(paths)
     model, _ = dnn_som.prep_dnn_model('cpu')
     feats = {nm: dnn_som.extract_dnn_features(model, layer, images, 'cpu').numpy() for nm, layer in LAYERS.items()}

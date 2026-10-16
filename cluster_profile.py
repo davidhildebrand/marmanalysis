@@ -99,7 +99,7 @@ def main():
           % (', '.join('%g-%g' % (EDGES[k], EDGES[k + 1]) for k in above), EDGES[max(above) + 1] if above else 0))
 
     # ---- (2) eye direction within faces ----
-    paths = som.condition_image_paths(data, v2.STIM_DIR)
+    paths = som.condition_image_paths(data)          # images recorded in the session's stimulus log
     images = dnn_som.load_images_rgb(paths)
     model, _ = dnn_som.prep_dnn_model('cpu')
     f5 = dnn_som.extract_dnn_features(model, v2.LAYERS['pool5'], images, 'cpu').numpy()

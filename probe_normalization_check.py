@@ -37,7 +37,7 @@ def main():
     zeta = pd.read_csv(v2.ZETA_CSV)['p_zeta'].to_numpy() < 0.05
     d = rm.apply_roi_mask(data, zeta)
     cats = data['conditions'].reindex(data['condition_ids'])['cat'].astype(str).to_numpy()
-    paths = som.condition_image_paths(data, v2.STIM_DIR)
+    paths = som.condition_image_paths(data)          # images recorded in the session's stimulus log
     x_plain = dnn_som.load_images_rgb(paths)
     x_norm = (x_plain - MEAN) / STD
     model, layer = dnn_som.prep_dnn_model('cpu')

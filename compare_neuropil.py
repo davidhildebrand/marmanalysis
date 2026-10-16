@@ -30,7 +30,6 @@ import topography as tg
 
 SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
            'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-STIM_DIR = 'stimuli/Song_etal_Wang_2022_NatCommun/480288_equalized_RGBA_FOBonly'
 ZETA_CSV = 'tmp/responsiveness_pd.csv'
 MAXD = 600.0          # cap pairwise distance near the FOV extent (sparse far tail)
 MIND = 15.0           # drop the shortest pairs: ROI-overlap / short-range-artifact control
@@ -54,8 +53,8 @@ def main():
     cats = data['without']['conditions'].reindex(data['without']['condition_ids'])['cat'].to_numpy()
 
     # model side is independent of the cortical correction -> build once
-    paths = som.condition_image_paths(data['without'], STIM_DIR)
-    missing = [p for p in paths if not os.path.exists(p)]
+    paths = som.condition_image_paths(data['without'])   # images recorded in the session's stimulus log
+    missing = [p for p in paths if p is None or not os.path.exists(p)]
     print('conditions=%d | images present=%d/%d' % (len(paths), len(paths) - len(missing), len(paths)))
     model = som.build_model_matrices(paths)
     rdm_sca, rdm_relu7 = som.build_rdm(model['sca']), som.build_rdm(model['relu7'])
