@@ -9,9 +9,16 @@ i.e. a periodic-only, column-like signature with no gradient). Before believing 
       their image dirs resolve, Curly FOBmin / Dali FOBmany by projecting THEIR images onto PD's feature-2
       direction (fixed axis across sessions);
   (d) the Cell-2025-style embedding-distance vs physical-distance test done RIGHT: each ROI's tuning z-scored so
-      Euclidean ~ correlation distance (the unnormalised run conflated per-cell gain with tuning shape).
+      Euclidean ~ correlation distance (the unnormalized run conflated per-cell gain with tuning shape).
+Stimulus images come from each session's stimulus log as EFFECTIVE stimuli by default (each condition composited
+as presented on the logged background; som.condition_image_paths). The AXIS CHECK compares PD's feature-PC2 from
+effective images with PC2 from the raw image files, the version the original lead was found with, so a change in
+the axis itself is visible. ``--replication-only`` skips the PD analyses (a), (b), (d): PD then only defines the
+axis. ``--sessions`` limits (c) to the named sessions (animal, or animal:date).
 Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/feature2_verify.py
+      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/feature2_verify.py --replication-only --sessions Curly
 """
+import argparse
 import glob
 import os
 import sys
@@ -72,7 +79,29 @@ def dist_vs_phys(coords, xy, maxd, label):
     print('      D_%-24s vs D_phys: Spearman r=%+.3f' % (label, spearmanr(de[ok], dp[ok]).statistic))
 
 
+def axis_check(data, feat, cats):
+    """Is PD's feature-PC2 from effective images the same feature as PC2 from the raw image files?"""
+    raw = relu7_for(som.condition_image_paths(data, effective=False))
+    Ur, Sr, _ = np.linalg.svd(raw - raw.mean(0, keepdims=True), full_matrices=False)
+    raw_axis = Ur[:, FEAT] * Sr[FEAT]
+    r = np.array([abs(np.corrcoef(raw_axis, feat[:, k])[0, 1]) for k in range(feat.shape[1])])
+    k = int(np.argmax(r))
+    print('  axis check: |r|(effective feature-PC%d, raw-image feature-PC%d) = %.2f over the %d PD images; '
+          'raw PC%d is best matched by effective PC%d (|r|=%.2f)' % (FEAT, FEAT, r[FEAT], len(raw_axis), FEAT, k, r[k]))
+    print('  category means on the effective feature-%d axis: %s'
+          % (FEAT, {c: round(float(feat[cats == c, FEAT].mean()), 2) for c in pd.unique(cats)}))
+
+
 def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--sessions', nargs='*', default=None,
+                    help='replication sessions to run, by animal or animal:date (default: all of LARGE)')
+    ap.add_argument('--replication-only', action='store_true',
+                    help='skip the PD analyses (a), (b), (d); PD only defines the feature axis')
+    a = ap.parse_args()
+    wanted = [s.lower() for s in (a.sessions or [])]
+    targets = [t for t in LARGE if not wanted or t[0].lower() in wanted or ('%s:%s' % (t[0], t[1])).lower() in wanted]
+
     data = rm.build_response_matrix(PD, denoise=False, reliability_splits=3, neuropil_subtract=True, neucoeff=0.7)
     zeta = pd.read_csv(ZETA_CSV)['p_zeta'].to_numpy() < 0.05
     d = rm.apply_roi_mask(data, zeta)
@@ -80,49 +109,50 @@ def main():
     conds = data['conditions'].reindex(data['condition_ids'])
     cats = np.array([str(c) for c in conds['cat'].to_numpy()])
     names = conds['imagename'].to_numpy()
-    r7 = relu7_for(som.condition_image_paths(data))   # images recorded in the session's stimulus log
+    r7 = relu7_for(som.condition_image_paths(data))   # effective stimuli from the session's stimulus log
     mu = r7.mean(0, keepdims=True)
     U, S, Vt = np.linalg.svd(r7 - mu, full_matrices=False)
     feat, fev = U[:, :20] * S[:20], (S[:20] ** 2) / (S ** 2).sum()
     f2 = feat[:, FEAT]
-    print('PD | ZETA n=%d | verifying relu7 feature-PC%d (fev=%.3f)' % (resp.shape[0], FEAT, fev[FEAT]))
-
-    # (a) what is feature-2?
-    o = np.argsort(f2)
-    print('  (a) feature-%d LOW  end: %s' % (FEAT, [(str(names[i])[:24], cats[i]) for i in o[:6]]))
-    print('      feature-%d HIGH end: %s' % (FEAT, [(str(names[i])[:24], cats[i]) for i in o[-6:]]))
-    print('      category means on feature-%d: %s'
-          % (FEAT, {c: round(float(f2[cats == c].mean()), 2) for c in pd.unique(cats)}))
-
-    # (b) tighter p + split-half stability
-    pref = rowcorr(resp, f2)
-    res = tg.scalar_map_periodicity(pref, xy, n_grid=24, n_perm=2000, min_wavelength_um=30)[0]
-    print('  (b) PD feature-%d map: a=%.2f lam=%.0fum | periodicity peak_wl=%.0fum  p=%.4f (n_perm=2000)'
-          % (FEAT, res['amplitude'], res['lambda_um'], res['peak_wavelength_um'], res['p']))
-    tr = rt.trial_response(d['ds'], 'Fzsc').transpose('roi', 'condition', 'repeat').values[zeta]
-    h = tr.shape[2] // 2
-    pe = rowcorr(np.nanmean(tr[:, :, :h], 2), f2)
-    pl = rowcorr(np.nanmean(tr[:, :, tr.shape[2] - h:], 2), f2)
-    ok = np.isfinite(pe) & np.isfinite(pl)
-    print('      split-half feature-%d map corr (early vs late trials) = %.3f' % (FEAT, np.corrcoef(pe[ok], pl[ok])[0, 1]))
-    re_ = tg.scalar_map_periodicity(pe, xy, n_grid=24, n_perm=500, min_wavelength_um=30)[0]
-    rl_ = tg.scalar_map_periodicity(pl, xy, n_grid=24, n_perm=500, min_wavelength_um=30)[0]
-    print('      periodicity early-half: wl=%.0fum p=%.3f | late-half: wl=%.0fum p=%.3f'
-          % (re_['peak_wavelength_um'], re_['p'], rl_['peak_wavelength_um'], rl_['p']))
-
-    # (d) embedding distance vs physical, done right (z-scored tuning)
-    print('  (d) embedding-distance vs physical (z-scored tuning => Euclidean ~ correlation distance; 15-600 um)')
-    Z = znorm(resp)
-    Uz, Sz, _ = np.linalg.svd(Z, full_matrices=False)
-    dist_vs_phys(Uz[:, :20] * Sz[:20], xy, 600.0, 'neuralPC20 (znorm)')
-    dist_vs_phys(Uz[:, :3] * Sz[:3], xy, 600.0, 'neuralPC3 (znorm)')
-    dist_vs_phys(Z, xy, 600.0, 'fullTuning (znorm)')
-    dist_vs_phys(znorm(np.column_stack([rowcorr(resp, feat[:, k]) for k in range(20)])), xy, 600.0,
-                 'featurePref20 (znorm)')
+    print('PD | ZETA n=%d | relu7 feature-PC%d from effective stimuli (fev=%.3f)' % (resp.shape[0], FEAT, fev[FEAT]))
+    axis_check(data, feat, cats)
     sys.stdout.flush()
 
+    if not a.replication_only:
+        # (a) what is feature-2?
+        o = np.argsort(f2)
+        print('  (a) feature-%d LOW  end: %s' % (FEAT, [(str(names[i])[:24], cats[i]) for i in o[:6]]))
+        print('      feature-%d HIGH end: %s' % (FEAT, [(str(names[i])[:24], cats[i]) for i in o[-6:]]))
+
+        # (b) tighter p + split-half stability
+        pref = rowcorr(resp, f2)
+        res = tg.scalar_map_periodicity(pref, xy, n_grid=24, n_perm=2000, min_wavelength_um=30)[0]
+        print('  (b) PD feature-%d map: a=%.2f lam=%.0fum | periodicity peak_wl=%.0fum  p=%.4f (n_perm=2000)'
+              % (FEAT, res['amplitude'], res['lambda_um'], res['peak_wavelength_um'], res['p']))
+        tr = rt.trial_response(d['ds'], 'Fzsc').transpose('roi', 'condition', 'repeat').values[zeta]
+        h = tr.shape[2] // 2
+        pe = rowcorr(np.nanmean(tr[:, :, :h], 2), f2)
+        pl = rowcorr(np.nanmean(tr[:, :, tr.shape[2] - h:], 2), f2)
+        ok = np.isfinite(pe) & np.isfinite(pl)
+        print('      split-half feature-%d map corr (early vs late trials) = %.3f' % (FEAT, np.corrcoef(pe[ok], pl[ok])[0, 1]))
+        re_ = tg.scalar_map_periodicity(pe, xy, n_grid=24, n_perm=500, min_wavelength_um=30)[0]
+        rl_ = tg.scalar_map_periodicity(pl, xy, n_grid=24, n_perm=500, min_wavelength_um=30)[0]
+        print('      periodicity early-half: wl=%.0fum p=%.3f | late-half: wl=%.0fum p=%.3f'
+              % (re_['peak_wavelength_um'], re_['p'], rl_['peak_wavelength_um'], rl_['p']))
+
+        # (d) embedding distance vs physical, done right (z-scored tuning)
+        print('  (d) embedding-distance vs physical (z-scored tuning => Euclidean ~ correlation distance; 15-600 um)')
+        Z = znorm(resp)
+        Uz, Sz, _ = np.linalg.svd(Z, full_matrices=False)
+        dist_vs_phys(Uz[:, :20] * Sz[:20], xy, 600.0, 'neuralPC20 (znorm)')
+        dist_vs_phys(Uz[:, :3] * Sz[:3], xy, 600.0, 'neuralPC3 (znorm)')
+        dist_vs_phys(Z, xy, 600.0, 'fullTuning (znorm)')
+        dist_vs_phys(znorm(np.column_stack([rowcorr(resp, feat[:, k]) for k in range(20)])), xy, 600.0,
+                     'featurePref20 (znorm)')
+        sys.stdout.flush()
+
     # (c) replication on the large-FOV sessions, same feature-2 direction
-    for animal, date, token in LARGE:
+    for animal, date, token in targets:
         path = resolve(animal, date, token)
         print('\n=== (c) replication: %s / %s / %s ===' % (animal, date, token))
         if path is None:
@@ -133,7 +163,7 @@ def main():
                                           equalize_repeats=True)
             cd = dd['conditions'].reindex(dd['condition_ids'])
             nm = cd['imagename'].to_numpy()
-            pths = som.condition_image_paths(dd)             # images recorded in the session's stimulus log
+            pths = som.condition_image_paths(dd)             # effective stimuli from the session's stimulus log
             sd = sorted({os.path.dirname(p) for p in pths if p is not None})
             keep = np.array([p is not None and os.path.exists(p) for p in pths])   # every presented condition, blanks included
             if keep.sum() < 0.8 * len(pths):
@@ -145,8 +175,8 @@ def main():
             f2s = (relu7_for([p for p, k in zip(pths, keep) if k]) - mu) @ Vt[FEAT]   # coords on PD's feature-2
             rmask = rt.classify_responses(dd['ds'], metric='Fzsc', framerate=dd['framerate'], alpha=0.05)['responsive']
             fov = dd['roi_xy_um'].max(0) - dd['roi_xy_um'].min(0)
-            print('  stim dir: %s | %d images | FOV~%.0fx%.0f um | subsample n=%d, responsive=%d'
-                  % (sd, int(keep.sum()), fov[0], fov[1], dd['response'].shape[0], int(rmask.sum())))
+            print('  session: %s | stim dir: %s | %d images | FOV~%.0fx%.0f um | subsample n=%d, responsive=%d'
+                  % (os.path.basename(path)[:10], sd, int(keep.sum()), fov[0], fov[1], dd['response'].shape[0], int(rmask.sum())))
             for lab, m in (('all-subsample', np.ones(dd['response'].shape[0], bool)), ('responsive', rmask)):
                 sub = rm.apply_roi_mask(dd, m)
                 pf = rowcorr(sub['response'][:, keep], f2s)
