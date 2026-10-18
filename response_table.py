@@ -612,41 +612,48 @@ def _late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames,
     return win.mean('time', skipna=True)
 
 
+def _blank_conditions(ds):
+    """Boolean mask over the condition axis: True for blank (no-stimulus) conditions. Uses the ``is_blank`` coord
+    (attached by sessionio.build_session_response_table from the stimulus log via images.blank_trial_mask) when
+    present, else the 'cat' coord (bytes or str), else no blanks. (Before 2026-10-18 only a bytes 'cat' coord was
+    read, which the session loader never attached -- so blanks silently counted as stimuli in both gates.)"""
+    if 'is_blank' in ds.coords:
+        return np.asarray(ds['is_blank'].values, bool)
+    if 'cat' in ds.coords:
+        return np.array([(c.decode() if isinstance(c, (bytes, np.bytes_)) else str(c)).strip().lower() == 'blank'
+                         for c in ds['cat'].values])
+    return np.zeros(ds.sizes['condition'], dtype=bool)
+
+
 def _stimulus_conditions(ds):
-    """Boolean mask over the condition axis: True for real-stimulus conditions (everything except the
-    no-stimulus 'blank'). Scrambles ARE stimuli and stay True. Uses the 'cat' coord if present, else all."""
-    if 'cat' not in ds.coords:
-        return np.ones(ds.sizes['condition'], dtype=bool)
-    return np.array([c != b'blank' for c in ds['cat'].values])
+    """Boolean mask over the condition axis: True for real-stimulus conditions (everything except blanks).
+    Scrambles ARE stimuli and stay True."""
+    return ~_blank_conditions(ds)
 
 
 def anova_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, min_baseline_frames=3,
                      reduce='mean', offset_response_window_sec=0.0, response_window_sec=None, match_baseline_len=False):
     """Per-ROI visual RESPONSIVENESS gate: is the mean response modulated across stimuli AND baseline?
 
-    A one-way ANOVA over [real-stimulus conditions] + [a no-stimulus baseline group], where the baseline is
-    the BLANK condition's trials when the session has one, else the LATE pre-stimulus ISI window
-    (_late_isi_baseline). Because it pools evidence exactly like the selectivity ANOVA (anova_selective)
-    but adds the baseline group, it is a true SUPERSET of selectivity -- "the cell responds to the stimulus
-    stream, including vs baseline". Scrambles count as stimuli; only blank is the baseline. For a stricter
-    "responds to a SPECIFIC stimulus" label see fdr_responsive. Returns a per-ROI p-value.
+    A one-way ANOVA over [real-stimulus conditions] + [the LATE pre-stimulus ISI baseline of those trials]
+    (_late_isi_baseline). BLANK conditions are excluded from the stimulus groups and are NEVER the baseline
+    (DH 2026-10-18): a cell that responds only to a blank is not responsive. (Earlier versions used the blank's
+    trials as the baseline when a session had one, which let a blank-only responder pass.) It pools evidence like
+    the selectivity ANOVA (anova_selective) and adds the baseline group; classify_responses takes the union of the
+    two. Scrambles count as stimuli. For a stricter "responds to a SPECIFIC stimulus" label see fdr_responsive.
+    Returns a per-ROI p-value.
     """
     tr = trial_response(ds, metric, EPOCH_STIM, reduce=reduce, framerate=framerate,
                         offset_response_window_sec=offset_response_window_sec, response_window_sec=response_window_sec
                         ).transpose('roi', 'condition', 'repeat').values
     is_stim = _stimulus_conditions(ds)
-    cats = ds['cat'].values if 'cat' in ds.coords else None
-    blank = None if cats is None else np.array([c == b'blank' for c in cats])
-    if blank is not None and blank.any():
-        base = tr[:, blank, :]                              # the measured no-stimulus (blank) condition
-    else:
-        n_win = None
-        if match_baseline_len and framerate is not None:    # length-match baseline to the stim window (fair peak)
-            n_stim = int((ds['epoch'].values == EPOCH_STIM).sum())
-            n_win = max(1, int(round(response_window_sec * framerate))) if response_window_sec else n_stim
-        base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames,
-                                   reduce=reduce, n_frames=n_win)
-                .transpose('roi', 'condition', 'repeat').values)
+    n_win = None
+    if match_baseline_len and framerate is not None:        # length-match baseline to the stim window (fair peak)
+        n_stim = int((ds['epoch'].values == EPOCH_STIM).sum())
+        n_win = max(1, int(round(response_window_sec * framerate))) if response_window_sec else n_stim
+    base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames,
+                               reduce=reduce, n_frames=n_win)
+            .transpose('roi', 'condition', 'repeat').values)[:, is_stim, :]
     stim = tr[:, is_stim, :]
     n_roi, n_stimcond = stim.shape[0], stim.shape[1]
     pvals = np.full(n_roi, np.nan)
@@ -679,9 +686,10 @@ def fdr_responsive(ds, metric='Fzsc', framerate=None, baseline_sec=1.0, test='tt
     better powered for that (anova_responsive_perm, staged separately). Returns per-ROI min BH-adjusted
     p (NaN where no condition had enough valid trials).
     """
-    stim = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values
+    is_stim = _stimulus_conditions(ds)                       # blanks never count (DH 2026-10-18)
+    stim = trial_response(ds, metric, EPOCH_STIM).transpose('roi', 'condition', 'repeat').values[:, is_stim, :]
     base = (_late_isi_baseline(ds, metric, framerate, baseline_sec, min_baseline_frames)
-            .transpose('roi', 'condition', 'repeat').values)
+            .transpose('roi', 'condition', 'repeat').values)[:, is_stim, :]
     n_roi, n_cond = stim.shape[0], stim.shape[1]
     out = np.full(n_roi, np.nan)
     for r in range(n_roi):

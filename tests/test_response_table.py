@@ -378,17 +378,30 @@ def test_anova_responsive_uses_late_isi_baseline():
     assert float(rt._late_isi_baseline(ds, 'Fzsc', 2.0, 5.0, 1).mean()) > 2.5   # late half (==3), not full (~1.5)
 
 
-def test_selectivity_excludes_blank_and_responsiveness_uses_blank():
+def test_blank_never_counts_toward_responsiveness():
+    """DH 2026-10-18: blanks are excluded from both gates and are never the baseline (the late ISI is), so a cell
+    that responds only to a blank is neither responsive nor selective -- whether the blank is marked by an
+    ``is_blank`` coord (what the session loader attaches) or a 'cat' coord stored as bytes or as str."""
     rng = np.random.default_rng(0)
-    n_cond, n_rep = 6, 10                                        # conds 0-4 = stimuli, 5 = blank
-    base_vals = rng.normal(size=(1, n_cond, n_rep))
-    stim_vals = 2.0 + 0.1 * rng.normal(size=(1, n_cond, n_rep))  # uniform +2 to all conditions
-    stim_vals[0, 5, :] = 0.0 + 0.1 * rng.normal(size=n_rep)      # blank: no response
-    ds = _ds_stim_base(stim_vals, base_vals).assign_coords(
-        cat=('condition', np.array([b'obj', b'face_mrm', b'body_mrm', b'scram_s', b'food', b'blank'], dtype=object)))
-    assert rt.anova_selective(ds, 'Fzsc', exclude_blank=True)[0] > 0.05    # 5 stimuli all ~2 -> not selective
-    assert rt.anova_selective(ds, 'Fzsc', exclude_blank=False)[0] < 0.05   # incl blank -> mislabeled selective
-    assert rt.anova_responsive(ds, 'Fzsc')[0] < 0.05                     # uses blank as baseline -> responsive
+    n_cond, n_rep = 6, 10                                         # conds 0-4 = stimuli, 5 = blank
+    base_vals = 0.1 * rng.normal(size=(2, n_cond, n_rep))
+    stim_vals = np.empty((2, n_cond, n_rep))
+    stim_vals[0] = 2.0 + 0.1 * rng.normal(size=(n_cond, n_rep))  # ROI 0: uniform drive by every stimulus ...
+    stim_vals[0, 5] = 0.1 * rng.normal(size=n_rep)               # ... and none by the blank
+    stim_vals[1] = 0.1 * rng.normal(size=(n_cond, n_rep))        # ROI 1: silent to every stimulus ...
+    stim_vals[1, 5] = 2.0 + 0.1 * rng.normal(size=n_rep)         # ... responds only to the blank
+    markers = ({'cat': ('condition', np.array([b'obj', b'face_mrm', b'body_mrm', b'scram_s', b'food', b'blank'], dtype=object))},
+               {'cat': ('condition', np.array(['obj', 'face_mrm', 'body_mrm', 'scram_s', 'food', 'blank']))},
+               {'is_blank': ('condition', np.array([False] * 5 + [True]))})
+    for marker in markers:
+        ds = _ds_stim_base(stim_vals, base_vals).assign_coords(**marker)
+        assert rt.anova_selective(ds, 'Fzsc', exclude_blank=True)[0] > 0.05    # 5 stimuli all ~2 -> not selective
+        assert rt.anova_selective(ds, 'Fzsc', exclude_blank=False)[0] < 0.05   # incl blank -> mislabeled selective
+        cls = rt.classify_responses(ds, 'Fzsc', framerate=6.0)
+        assert cls['responsive'][0] and not cls['selective'][0]               # driven by the stimuli
+        assert not cls['responsive'][1] and not cls['selective'][1]           # blank-only -> NOT responsive
+    ds = _ds_stim_base(stim_vals, base_vals)                                   # no marker: blank counts as a stimulus
+    assert rt.classify_responses(ds, 'Fzsc', framerate=6.0)['responsive'][1]
 
 
 def test_fdr_responsive_runs():

@@ -174,6 +174,47 @@ def shift_continuation_rows(stimlog, n_frames_prev):
     return out.reset_index(drop=True)
 
 
+def check_continuation_rows(rows, framerate, max_resid_frames=2.0):
+    """Guard against continuation trials that were NOT shown while the continuation was being imaged (DH 2026-10-18).
+
+    The stimulus program keeps running across the acquisition restart while the frame counter stands still, so a
+    trial shown during the gap would carry a stale, shared or bunched frame index. ``rows`` are the continuation's
+    rows already re-based to local frames (shift_continuation_rows). Drops, with a warning, every row that
+      (a) has a degenerate stimulus window (acqfr_stim_f <= acqfr_stim_i);
+      (b) shares its onset frame with another row;
+      (c) is off the continuation's clock: its stimulus-PC onset time t_stim_i deviates by more than
+          ``max_resid_frames`` frames from the line through all rows (onset time vs onset frame / framerate) -- a
+          stimulus shown during the gap but logged at the resumed counter lands far off that line;
+      (d) began its pre-stimulus ISI before the first imaged frame (local acqfr_isi_i < 1): the stimulus itself was
+          imaged, but its baseline was not (Dali 20230910d: the first continuation trial ran its ISI during the 44 s
+          gap and showed its image on the first imaged frame).
+    Returns (kept_rows, checks)."""
+    r = rows.reset_index(drop=True)
+    n = len(r)
+    zeros = np.zeros(n, bool)
+    si = r['acqfr_stim_i'].astype(float).to_numpy()
+    sf = r['acqfr_stim_f'].astype(float).to_numpy() if 'acqfr_stim_f' in r else si + 1
+    bad_window = np.isfinite(si) & np.isfinite(sf) & (sf <= si)
+    dup = r['acqfr_stim_i'].duplicated(keep=False).to_numpy()
+    isi_not_imaged = (r['acqfr_isi_i'].astype(float).to_numpy() < 1) if 'acqfr_isi_i' in r else zeros
+    off_clock, resid_max = zeros, np.nan
+    if 't_stim_i' in r and r['t_stim_i'].notnull().sum() >= 3 and framerate:
+        t = r['t_stim_i'].astype(float).to_numpy()
+        ok = np.isfinite(t) & np.isfinite(si) & ~bad_window & ~dup
+        if ok.sum() >= 3:
+            offset = np.median(t[ok] - si[ok] / framerate)
+            resid = (t - (offset + si / framerate)) * framerate          # in frames
+            off_clock = np.isfinite(resid) & (np.abs(resid) > max_resid_frames)
+            resid_max = float(np.nanmax(np.abs(resid[ok])))
+    drop = bad_window | dup | off_clock | isi_not_imaged
+    checks = {'n_degenerate_stim_window': int(bad_window.sum()), 'n_duplicate_onsets': int(dup.sum()),
+              'n_off_clock': int(off_clock.sum()), 'max_clock_residual_frames': resid_max,
+              'n_isi_not_imaged': int(isi_not_imaged.sum()), 'n_dropped': int(drop.sum())}
+    if drop.any():
+        warn('Continuation: dropping {} of {} trials not fully imaged ({}).'.format(int(drop.sum()), n, checks))
+    return r[~drop].reset_index(drop=True), checks
+
+
 def load_stimlog(session_path, paradigm='auto', backfill_from_text=True):
     """Load a normalized stimlog by merging the best structured source with the text log.
 
@@ -213,7 +254,8 @@ def load_stimlog(session_path, paradigm='auto', backfill_from_text=True):
         n_prev = int(load_metadata(parent)['n_frames'])
         n_source = len(stimlog)
         stimlog = shift_continuation_rows(stimlog, n_prev)
-        provenance.update({'continuation_of': parent, 'frame_offset': n_prev,
+        stimlog, checks = check_continuation_rows(stimlog, float(load_metadata(session_path)['framerate']))
+        provenance.update({'continuation_of': parent, 'frame_offset': n_prev, 'continuation_checks': checks,
                            'n_rows_source': n_source, 'n_rows_kept': int(len(stimlog))})
         if len(stimlog) == 0:
             warn('Continuation session {}: no trials beyond frame {} of {}.'.format(session_path, n_prev, parent))
@@ -462,6 +504,17 @@ def _apply_eyepos_gate(ds, session_path, stimlog, framerate, mode, gate_kw):
     return ds, info
 
 
+def attach_blank_flags(ds, stimlog, cond_col='cond'):
+    """Add a per-condition ``is_blank`` coordinate (images.blank_trial_mask: blank images and code-generated blanks),
+    so the response gates exclude blank conditions -- a cell that responds only to a blank is not responsive
+    (DH 2026-10-18). Without it the gates saw no category labels and counted blanks as stimuli."""
+    import images                                            # local import: images imports sessionio
+    trial_blank = images.blank_trial_mask(stimlog, cond_col=cond_col).to_numpy()
+    conds = stimlog[cond_col].to_numpy()
+    flags = np.array([bool(trial_blank[conds == c].any()) for c in ds['condition'].values])
+    return ds.assign_coords(is_blank=('condition', flags))
+
+
 def build_session_response_table(session_path, variant=None, baseline_method='medianbw',
                                  paradigm='auto', threshold_cellprob=0.0,
                                  eye_gate_mode='none', eye_gate_kw=None,
@@ -525,6 +578,7 @@ def build_session_response_table(session_path, variant=None, baseline_method='me
     ds = response_table.build_response_table(
         traces, stimlog, n_samp_isi, n_samp_stim, framerate=md['framerate'],
         equalize_repeats=equalize_repeats)
+    ds = attach_blank_flags(ds, stimlog)
     context = {'md': md, 's2p': s2p, 'traces': traces, 'stimlog': stimlog,
                'n_samp_isi': n_samp_isi, 'n_samp_stim': n_samp_stim, 'stim_provenance': stim_prov,
                'neuropil': {'subtracted': bool(neuropil_subtract and s2p['Fneu'] is not None),

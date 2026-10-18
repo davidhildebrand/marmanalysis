@@ -69,6 +69,20 @@ def test_shift_continuation_rows_synthetic():
     assert len(sessionio.shift_continuation_rows(log, 200)) == 0
 
 
+def test_check_continuation_rows_synthetic():
+    """A trial shown during the acquisition gap (logged at the resumed counter but off the frame clock) and a trial
+    whose ISI was not imaged are dropped; the rest are kept."""
+    fr = 4.0
+    onset = np.array([5, 17, 29, 41, 53], float)                 # local frames
+    t = 100.0 + onset / fr
+    t[0] -= 40.0                                                   # shown 40 s earlier, during the gap
+    log = pd.DataFrame({'cond': [0, 1, 2, 3, 4], 'acqfr_isi_i': [0, 9, 21, 33, 45], 'acqfr_isi_f': [4, 16, 28, 40, 52],
+                        'acqfr_stim_i': onset.astype(int), 'acqfr_stim_f': onset.astype(int) + 4, 't_stim_i': t})
+    kept, chk = sessionio.check_continuation_rows(log, fr)
+    assert kept['cond'].tolist() == [1, 2, 3, 4]
+    assert chk['n_off_clock'] == 1 and chk['n_isi_not_imaged'] == 1 and chk['n_dropped'] == 1
+
+
 def test_continuation_session_real():
     """Dali 20230910d: the log-less _Continuation folder is served from 170833tUTC's log (14,200-frame offset)."""
     if not os.path.isdir(CONTINUATION):
@@ -79,9 +93,14 @@ def test_continuation_session_real():
     stimlog, prov = sessionio.load_stimlog(CONTINUATION)
     assert prov['continuation_of'] == parent
     assert prov['frame_offset'] == 14200
-    assert prov['n_rows_kept'] == len(stimlog) == 60
     assert prov['n_rows_source'] == 1248
-    assert int(stimlog['acqfr_stim_i'].min()) >= 1 and int(stimlog['acqfr_stim_f'].max()) <= 1000
+    # 60 trials lie beyond the first recording; the first ran its ISI during the 44 s gap (baseline not imaged) and is
+    # dropped; every other trial sits on the continuation's frame clock and none was shown during the gap
+    chk = prov['continuation_checks']
+    assert chk['n_isi_not_imaged'] == 1 and chk['n_off_clock'] == 0 and chk['n_duplicate_onsets'] == 0
+    assert chk['max_clock_residual_frames'] < 1.0
+    assert prov['n_rows_kept'] == len(stimlog) == 59
+    assert int(stimlog['acqfr_isi_i'].min()) >= 1 and int(stimlog['acqfr_stim_f'].max()) <= 1000
     # the parent's own loading is untouched
     full, prov_full = sessionio.load_stimlog(parent)
     assert len(full) == 1248 and 'continuation_of' not in prov_full
