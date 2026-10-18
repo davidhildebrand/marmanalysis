@@ -104,6 +104,7 @@ def build_response_matrix(session_path, metric='Fzsc', eye_gate_mode='landing_wi
         'neuropil_subtract': ctx['neuropil']['subtracted'], 'neucoeff': ctx['neuropil']['neucoeff'],
         'normalize': normalize, 'n_trials_excluded': int(excluded.sum()),
         'framerate': ctx['md']['framerate'], 'session': os.path.basename(session_path.rstrip('/')),
+        'session_path': session_path,
         'ds': ds, 'ctx': ctx,
     }
 

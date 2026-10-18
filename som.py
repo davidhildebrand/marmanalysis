@@ -23,13 +23,21 @@ DEFAULT_SOM = ('Doshi_and_Konkle_2023_SciAdv/Code/models_from_paper/'
                'som_weights/objectrec_imagenet_trained_som.pth')
 
 
-def condition_image_paths(data, stimulus_dir=None):
-    """Ordered image-file paths aligned to ``data['condition_ids']`` (from ``response_matrix.build_response_matrix``),
+def condition_image_paths(data, stimulus_dir=None, effective=True, seed=0):
+    """Ordered image paths aligned to ``data['condition_ids']`` (from ``response_matrix.build_response_matrix``),
     so model rows line up with cortical response columns.
 
-    With ``stimulus_dir=None`` (preferred) the paths are the images the session's stimulus log recorded, mapped to
-    the local stimulus mirror (``conditions['imagepath']``, see images.local_stimulus_path); entries are None where
-    the log has no path. Passing ``stimulus_dir`` joins that folder with each condition's image name instead."""
+    ``effective=True`` (default): each condition as it appeared on screen -- the logged image composited over the
+    session's logged background (window color or regenerated pink noise, ``seed``), at its logged size, contrast
+    and opacity (effective_stimuli.effective_image_paths; rendered into the session folder on first use). Raw
+    files dropped their transparency in the model loader (objects on white; a transparent blank.png showed
+    whatever RGB it hides, e.g. a cartoon face in FOBmin 20230728d).
+    ``effective=False``: the images the session's stimulus log recorded, mapped to the local stimulus mirror
+    (``conditions['imagepath']``, see images.local_stimulus_path); entries are None where the log has no path.
+    Passing ``stimulus_dir`` joins that folder with each condition's image name instead (raw files)."""
+    if effective and stimulus_dir is None:
+        import effective_stimuli
+        return effective_stimuli.effective_image_paths(data, seed=seed)
     conds = data['conditions'].reindex(data['condition_ids'])
     if stimulus_dir is None:
         if 'imagepath' not in conds.columns:
