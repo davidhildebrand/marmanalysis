@@ -12,7 +12,7 @@
      direction whose saliency is the eyes; midlevel_features.py) -- for the window members vs all gated cells vs
      the 30 most face-selective cells -- plus each member's three best faces. Caveat: with 20 frontal faces of
      one type this can only say whether the members RANK faces along the eye direction, not that eyes drive them.
-Figure: output/cluster_profile_pd.png
+Figure: output/cluster_profile_<session slug>_<UTC>.png
 Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/cluster_profile.py
 """
 import os
@@ -150,7 +150,8 @@ def main():
     ax[3].set_title('members (red = face-selective, blue = not) vs population', fontsize=9)
     fig.suptitle('PD face-axis scan window: is it a sharp island or the peak of a gradient, and do its cells rank faces along the eye direction?', fontsize=10)
     fig.tight_layout()
-    out = os.path.join(OUTDIR, 'cluster_profile_pd_%s.png' % datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC'))
+    out = os.path.join(OUTDIR, 'cluster_profile_%s_%s.png' % (ss.sessionio.session_slug(nc.PD),
+                                                               datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
     fig.savefig(out, dpi=120)
     print('figure: %s' % out)
 

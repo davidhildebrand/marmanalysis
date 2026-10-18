@@ -357,7 +357,8 @@ def run_session(session, n_perm=1000):
         a.set_aspect('equal' if a is not axs[1, 0] else 'auto')
     fig.suptitle('TDANN (Margalit et al. 2024, alpha 0.25 SimCLR) probed with the PD stimuli (effective, ImageNet-normalized)', fontsize=10)
     fig.tight_layout()
-    out = os.path.join(OUTDIR, 'tdann_probe_%s_%s.png' % (session, STAMP))
+    import sessionio
+    out = os.path.join(OUTDIR, 'tdann_probe_%s_%s.png' % (sessionio.session_slug(v2.SESSION), STAMP))
     fig.savefig(out, dpi=120)
     print('\nfigure: %s' % out)
 

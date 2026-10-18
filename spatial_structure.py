@@ -4,8 +4,11 @@
 gradient in a map -- column-like clusters, patches, or segregation between preferences -- without assuming
 periodicity?
 
-Maps (one scalar per ROI, z-scored across ROIs): the face axis (neural PC0 score), and face / body / object
-preference (d' of the category vs the rest, blanks excluded). Statistics:
+Maps (one scalar per ROI, z-scored across ROIs): the neural PC0 score, and face / body / object preference (d' of the
+category vs the rest, blanks excluded). PC0 is called the FACE AXIS only where its condition loading tracks the face
+indicator (|r| >= FACE_MIN_R; PD 0.90). In the 3-mm Curly fields it does not (0.11-0.16), so there the map is
+labeled 'neural PC0' and the figure's face panels (red clusters on the mean image, Gi*) use the face d' map.
+Statistics:
   1. MARK-CORRELATION FUNCTION k(d) = mean(z_i z_j | d_ij in bin): the tuning correlation of two cells as a function
      of their distance; T = k(near) - k(far), and for standardized marks k(d) = 1 - gamma(d) (the semivariogram).
      Monotone decay = gradient; plateau then drop = patch of that size; a dip below the null = hole / periodicity.
@@ -21,7 +24,11 @@ preference (d' of the category vs the rest, blanks excluded). Statistics:
 Nulls for 1-3 (n_perm maps each): (a) POSITION SHUFFLE; (b) RANDOM PROJECTION in condition space (the generic
 smoothness ANY tuning direction inherits); (c) RANDOM FEATURE DIRECTION in relu7-PC space (Chang & Tsao 2017 STA-style).
 
-Geometry is SPARSE: only neighbor pairs within RMAX = 300 um (the largest distance any statistic uses), so a whole
+Sessions are named by their slug (sessionio.session_slug, AnimalDateTime, e.g. Curly20240130d172813t; aliases 'pd'
+and 'curly'), and every figure filename and title carries it (filenames also carry the gate and a non-default
+--rmax-um). Multimodal sessions are restricted to their image
+conditions. Geometry is SPARSE: only neighbor pairs within RMAX = 300 um (the largest distance any LOCAL statistic
+uses; ``--rmax-um`` keeps more pairs to extend the mark-correlation function to long range), so a whole
 3-mm field (~15k ROIs) is analyzed at once at full ROI density -- no tiles, no clusters cut at tile edges. Large
 sessions are LOADED in spatial chunks (``chunk_um``) only to bound memory; the analysis runs on the whole field.
 ``--tile-um`` still gives separate per-tile analyses. The figure shows the suite2p mean image next to the maps
@@ -57,25 +64,33 @@ import sessionio
 import som
 import topography as tg
 
-BINS = np.array([0, 25, 50, 75, 100, 150, 200, 300], float)
-RMAX = float(BINS[-1])
+BASE_BINS = [0, 25, 50, 75, 100, 150, 200, 300]
+LONG_BINS = [400, 600, 800, 1000, 1500, 2000, 3000]
+BINS = np.array(BASE_BINS, float)
+RMAX = float(BINS[-1])        # every LOCAL statistic needs <= 200 um; --rmax-um extends only the mark-correlation range
 RADII = (40.0, 60.0, 80.0, 100.0)
 R_GI = 50.0
 GI_THR = 2.58
 MIN_CLUSTER = 5
+FACE_MIN_R = 0.5          # neural PC0 is called the face axis only if |corr(its condition loading, face indicator)| >= this
 TOPQ = 0.2
 KR = np.array([25, 50, 75, 100, 150, 200], float)
 DENSE_MAX = 6000          # keep a dense distance matrix for fields this small (cluster_profile.py uses G.dist)
 OUTDIR = 'output'
 STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')   # project convention: every output file is UTC-stamped
 
-# Stimulus images are located from each session's own stimulus log (images.local_stimulus_path), not configured here.
+# Sessions are keyed by their slug (sessionio.session_slug: AnimalDateTime). Stimulus images are located from each
+# session's own stimulus log (images.local_stimulus_path), not configured here. Multimodal sessions are restricted to
+# their IMAGE conditions (and blanks) -- moving dots etc. carry no image category.
+_LARGE = dict(zeta=None, kw=dict(equalize_repeats=True, eye_gate_mode='none'), gate='all', chunk_um=1500)
 SESSIONS = {
-    'pd': dict(path=nc.PD, zeta=nc.ZETA_CSV, kw={}, gate='zeta', tile_um=0, chunk_um=0),
-    'curly': dict(glob=nc.CURLY_GLOB, zeta=None,
-                  kw=dict(equalize_repeats=True, eye_gate_mode='none'), gate='all', tile_um=0, chunk_um=1500),
+    'Cadbury20221016d152643t': dict(path=nc.PD, zeta=nc.ZETA_CSV, kw={}, gate='zeta', chunk_um=0),   # area PD, 730 um
+    'Curly20231103d162355t': dict(glob=nc.CURLY_GLOB, **_LARGE),                                       # FOBmin, 3 mm
+    'Curly20240130d172813t': dict(glob='suite2p_results/Curly/20240130d/172813tUTC*', **_LARGE),         # multimodal, 3 mm
 }
+ALIASES = {'pd': 'Cadbury20221016d152643t', 'curly': 'Curly20231103d162355t'}
 MAP_NAMES = ('face axis (nPC0)', "face d'", "body d'", "object d'")
+INTACT = ('face', 'body', 'object', 'animal')   # intact image categories; category d' contrasts within these
 
 
 def zs(v):
@@ -83,20 +98,30 @@ def zs(v):
     return (v - v.mean()) / (v.std() + 1e-12)
 
 
-class Geometry:
-    """Neighbor structure of a field of cells, sparse (pairs within RMAX)."""
+def bins_for(rmax_um):
+    """Mark-correlation distance bins: the local bins to 300 um plus long-range bins up to ``rmax_um``."""
+    return np.array(BASE_BINS + [b for b in LONG_BINS if b <= rmax_um], float)
 
-    def __init__(self, xy):
+
+class Geometry:
+    """Neighbor structure of a field of cells, sparse: pairs within ``rmax_um`` (default RMAX = 300 um, which covers
+    every local statistic; a larger value only adds long-range mark-correlation bins)."""
+
+    def __init__(self, xy, rmax_um=RMAX):
         self.xy = np.asarray(xy, float)
         self.n = len(self.xy)
-        pairs = cKDTree(self.xy).query_pairs(r=RMAX, output_type='ndarray')
+        self.bins = bins_for(max(float(rmax_um), RMAX))
+        pairs = cKDTree(self.xy).query_pairs(r=float(self.bins[-1]), output_type='ndarray').astype(np.int32)
         self.pi, self.pj = pairs[:, 0], pairs[:, 1]
+        del pairs
         self.pd = np.hypot(self.xy[self.pi, 0] - self.xy[self.pj, 0], self.xy[self.pi, 1] - self.xy[self.pj, 1])
-        self.nb = len(BINS) - 1
-        b = np.digitize(self.pd, BINS) - 1
+        self.nb = len(self.bins) - 1
+        b = np.digitize(self.pd, self.bins) - 1
         self.mc_ok = (b >= 0) & (b < self.nb)
         self.mc_bin = b[self.mc_ok]
         self.mc_count = np.bincount(self.mc_bin, minlength=self.nb).astype(float)
+        loc = self.pd <= KR.max()                       # Ripley / cross-K only need pairs within 200 um
+        self.li, self.lj, self.ld = self.pi[loc], self.pj[loc], self.pd[loc]
         self.M = {R: self._adjacency(R) for R in RADII}
         self.n_in = {R: np.asarray(self.M[R].sum(1)).ravel() for R in RADII}
         self.W_gi = self._adjacency(R_GI)
@@ -105,8 +130,8 @@ class Geometry:
         self.dist = tg.pairwise_distance(self.xy) if self.n <= DENSE_MAX else None
 
     def _adjacency(self, R):
-        m = self.pd <= R
-        i, j = self.pi[m], self.pj[m]
+        m = self.ld <= R
+        i, j = self.li[m], self.lj[m]
         A = coo_matrix((np.ones(2 * i.size), (np.r_[i, j], np.r_[j, i])), shape=(self.n, self.n)).tocsr()
         return (A + identity(self.n, format='csr')).tocsr()
 
@@ -157,13 +182,13 @@ class Geometry:
     def pair_counts(self, idx):
         m = np.zeros(self.n, bool)
         m[idx] = True
-        d = self.pd[m[self.pi] & m[self.pj]]
+        d = self.ld[m[self.li] & m[self.lj]]
         return np.array([(d <= r).sum() for r in KR], float)
 
     def cross_counts(self, ia, ib):
         A = np.zeros(self.n, bool); A[ia] = True
         B = np.zeros(self.n, bool); B[ib] = True
-        d = self.pd[(A[self.pi] & B[self.pj]) | (B[self.pi] & A[self.pj])]
+        d = self.ld[(A[self.li] & B[self.lj]) | (B[self.li] & A[self.lj])]
         return np.array([(d <= r).sum() for r in KR], float)
 
 
@@ -185,9 +210,10 @@ def pval(null, obs):
 
 
 def category_dprime(resp, ck, key):
-    """d' of category ``key`` vs the REST of the stimuli (blank conditions excluded from both sides)."""
+    """d' of category ``key`` vs the REST of the intact image categories (INTACT: face, body, object, animal); blanks,
+    scrambles and non-image conditions are excluded from both sides."""
     m = ck == key
-    rest = (~m) & (ck != 'blank')
+    rest = np.isin(ck, INTACT) & ~m
     a, b = resp[:, m], resp[:, rest]
     return (np.nanmean(a, 1) - np.nanmean(b, 1)) / np.sqrt(0.5 * (np.nanvar(a, 1) + np.nanvar(b, 1)) + 1e-12)
 
@@ -196,7 +222,17 @@ def cat_key(c):
     c = str(c).lower()
     if 'blank' in c:
         return 'blank'
-    return 'face' if 'face' in c else ('body' if 'body' in c else 'object')     # food etc. count as object
+    if c in ('none', 'nan', '', "b''"):
+        return 'other'                                   # a non-image condition (e.g. moving dots in multimodal sessions)
+    if 'scram' in c:
+        return 'scramble'
+    if 'face' in c:
+        return 'face'
+    if 'body' in c:
+        return 'body'
+    if 'animal' in c:
+        return 'animal'
+    return 'object'                                      # obj, food, ...
 
 
 def face_axis_map(resp, ck):
@@ -206,19 +242,33 @@ def face_axis_map(resp, ck):
     return m * np.sign(np.corrcoef(m, category_dprime(resp, ck, 'face'))[0, 1])
 
 
+def pc0_face_r(resp, ck):
+    """|corr| between the neural PC0 condition loading and the face indicator, and PC0's share of the variance:
+    is PC0 the face axis in this session? (PD 0.90 yes; Curly 3-mm fields 0.11-0.16 no.)"""
+    R = np.nan_to_num(resp - np.nanmean(resp, 0, keepdims=True))
+    _, S, Vt = np.linalg.svd(R, full_matrices=False)
+    return float(abs(np.corrcoef(Vt[0], (ck == 'face').astype(float))[0, 1])), float(S[0] ** 2 / (S ** 2).sum())
+
+
 def resolve_session(key):
-    cfg = dict(SESSIONS[key])
+    """Session config by slug or alias; adds 'path' and 'slug'."""
+    slug = ALIASES.get(key, key)
+    cfg = dict(SESSIONS[slug])
     if 'path' not in cfg:
         hits = [h for h in sorted(glob.glob(cfg['glob'])) if os.path.isdir(h) and glob.glob(os.path.join(h, 'suite2p*'))]
         cfg['path'] = hits[0]
+    cfg['slug'] = sessionio.session_slug(cfg['path'])
     return cfg
 
 
-def feature_pcs(data):
+def feature_pcs(data, cond_mask=None):
     """relu7 PC scores of the presented images (for the random-feature null), plus the mask of conditions used: every
     presented condition, blanks included, whose image resolves to a local file (images.build_condition_metadata;
-    a blank without its own file uses the set's common blank image). None if fewer than 10 resolve."""
+    a blank without its own file uses the set's common blank image). ``cond_mask`` restricts to the analyzed
+    conditions (e.g. a multimodal session's image conditions). None if fewer than 10 resolve."""
     paths = som.condition_image_paths(data)
+    if cond_mask is not None:
+        paths = [p for p, k in zip(paths, cond_mask) if k]
     keep = np.array([p is not None and os.path.exists(p) for p in paths])
     folders = sorted({os.path.dirname(p) for p in paths if p is not None})
     if keep.sum() < 10:
@@ -269,12 +319,18 @@ def cross_k(G, ia, ib, n_perm, rng):
     return cc / null.mean(0), p_lo, p_hi, np.percentile(null, [5, 95], axis=0) / null.mean(0), len(ia), len(ib)
 
 
-def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None):
+def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None, rmax_um=RMAX):
     n = resp.shape[0]
-    G = Geometry(xy)
+    G = Geometry(xy, rmax_um)
     print('\n##### %s: %d cells, hull area %.2f mm2, density %.0f / mm2, %d pairs within %g um'
-          % (label, n, G.area / 1e6, n / (G.area / 1e6), G.pd.size, RMAX))
-    maps = {'face axis (nPC0)': face_axis_map(resp, ck)}
+          % (label, n, G.area / 1e6, n / (G.area / 1e6), G.pd.size, G.bins[-1]))
+    face_r, pc0_var = pc0_face_r(resp, ck)
+    k0 = 'face axis (nPC0)' if face_r >= FACE_MIN_R else 'neural PC0'
+    kf = k0 if face_r >= FACE_MIN_R else "face d'"          # the map behind the figure's face panels
+    print('  neural PC0 (%.1f%% of the variance): |corr| of its condition loading with the face indicator %.2f%s'
+          % (100 * pc0_var, face_r, '' if face_r >= FACE_MIN_R else
+             " -> NOT a face axis here: its map is labeled 'neural PC0' and the face panels use the face d' map"))
+    maps = {k0: face_axis_map(resp, ck)}
     for k in ('face', 'body', 'object'):
         maps["%s d'" % k] = category_dprime(resp, ck, k)
 
@@ -288,7 +344,7 @@ def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None):
     else:
         NRF = NRP
     results = {}
-    print('=== mark-correlation k(d) [bins %s um] ===' % ' '.join('%g' % b for b in BINS))
+    print('=== mark-correlation k(d) [bins %s um] ===' % ' '.join('%g' % b for b in G.bins))
     print('  null p95 per bin: random projection %s' % ' '.join('%+.3f' % v for v in np.nanpercentile(NRP['mark_corr'], 95, axis=0)))
     print('                    random feature    %s' % ' '.join('%+.3f' % v for v in np.nanpercentile(NRF['mark_corr'], 95, axis=0)))
     for nm, m in maps.items():
@@ -314,6 +370,8 @@ def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None):
         print('  %-18s hotspot-count p: shuf %.3f rproj %.3f rfeat %.3f | largest-cluster p: shuf %.3f rproj %.3f rfeat %.3f'
               % ('', pval(r['shuf']['n_hot'], r['n_hot']), pval(NRP['n_hot'], r['n_hot']), pval(NRF['n_hot'], r['n_hot']),
                  pval(r['shuf']['largest'], r['largest']), pval(NRP['largest'], r['largest']), pval(NRF['largest'], r['largest'])))
+        if r['scan_i'] >= 0:
+            print('  %-18s best scan window centered at (%.0f, %.0f) um' % ('', xy[r['scan_i'], 0], xy[r['scan_i'], 1]))
     print('=== CLUSTERS: connected same-sign hotspot groups of >= %d cells; count vs the nulls (p = fraction of null maps with as many) ===' % MIN_CLUSTER)
     for nm, r in results.items():
         for sign, key, lab in ((1, 'pos', 'preferring'), (-1, 'neg', 'anti')):
@@ -322,7 +380,7 @@ def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None):
             print('  %-18s %-10s %2d clusters | null median shuf %.0f rproj %.0f rfeat %.0f | p shuf %.3f rproj %.3f rfeat %.3f'
                   % (nm, lab, len(groups), np.median(r['shuf'][nk]), np.median(NRP[nk]), np.median(NRF[nk]),
                      pval(r['shuf'][nk], len(groups)), pval(NRP[nk], len(groups)), pval(NRF[nk], len(groups))))
-            if groups and nm in ('face axis (nPC0)', "object d'", "face d'", "body d'"):
+            if groups:
                 print('  %-29s %s' % ('', '; '.join('#%d: %d cells at (%.0f, %.0f) um, mean z %+.2f'
                                                     % (k, c.size, xy[c, 0].mean(), xy[c, 1].mean(), r['z'][c].mean())
                                                     for k, c in enumerate(groups[:12], 1))))
@@ -348,23 +406,23 @@ def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None):
 
     # ---- figure ----
     fig, ax = plt.subplots(3, 3, figsize=(19, 18))
-    rf, ro = results['face axis (nPC0)'], results["object d'"]
+    r0, rf, ro = results[k0], results[kf], results["object d'"]
     if bg is not None:
         img, rx, ry = bg
         lo, hi = np.nanpercentile(img, [1, 99.5])
         ax[0, 0].imshow(img, cmap='gray', vmin=lo, vmax=hi, extent=(0, img.shape[1] * rx, img.shape[0] * ry, 0))
-        _draw_clusters(ax[0, 0], xy, rf['pos'], 'red', label='face-axis clusters')
+        _draw_clusters(ax[0, 0], xy, rf['pos'], 'red', label='%s clusters' % kf)
         _draw_clusters(ax[0, 0], xy, ro['pos'], 'cyan', marker='s', label='object-preferring clusters')
         ax[0, 0].legend(fontsize=7, loc='lower left')
         ax[0, 0].set_title('suite2p mean image with the numbered clusters', fontsize=9)
     _frame(ax[0, 0], xy)
-    sc = ax[0, 1].scatter(xy[:, 0], xy[:, 1], c=rf['z'], cmap='coolwarm', vmin=-2, vmax=2, s=6 if n > 3000 else 14, rasterized=True)
-    _draw_clusters(ax[0, 1], xy, rf['pos'], 'darkred', label='face-axis clusters (>= %d cells)' % MIN_CLUSTER)
-    if rf['scan_i'] >= 0:
-        ax[0, 1].add_patch(Circle(xy[rf['scan_i']], rf['scan_r'], fill=False, ec='k', lw=2, ls='--',
-                                  label='best scan window (stat %.2f, R=%g)' % (rf['scan'], rf['scan_r'])))
+    sc = ax[0, 1].scatter(xy[:, 0], xy[:, 1], c=r0['z'], cmap='coolwarm', vmin=-2, vmax=2, s=6 if n > 3000 else 14, rasterized=True)
+    _draw_clusters(ax[0, 1], xy, r0['pos'], 'darkred', label='%s clusters (>= %d cells)' % (k0, MIN_CLUSTER))
+    if r0['scan_i'] >= 0:
+        ax[0, 1].add_patch(Circle(xy[r0['scan_i']], r0['scan_r'], fill=False, ec='k', lw=2, ls='--',
+                                  label='best scan window (stat %.2f, R=%g)' % (r0['scan'], r0['scan_r'])))
     ax[0, 1].legend(fontsize=7, loc='lower left'); _frame(ax[0, 1], xy)
-    ax[0, 1].set_title('face axis z per cell: %d face-axis clusters' % len(rf['pos']), fontsize=9)
+    ax[0, 1].set_title('%s z per cell (|r| of PC0 with the face indicator %.2f): %d clusters' % (k0, face_r, len(r0['pos'])), fontsize=9)
     plt.colorbar(sc, ax=ax[0, 1], fraction=0.04)
     sc2 = ax[0, 2].scatter(xy[:, 0], xy[:, 1], c=ro['z'], cmap='coolwarm', vmin=-2, vmax=2, s=6 if n > 3000 else 14, rasterized=True)
     _draw_clusters(ax[0, 2], xy, ro['pos'], 'navy', marker='s', label='object-preferring clusters')
@@ -373,16 +431,22 @@ def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None):
     ax[0, 2].set_title("object d' z per cell: %d object-preferring, %d anti-object clusters" % (len(ro['pos']), len(ro['neg'])), fontsize=9)
     plt.colorbar(sc2, ax=ax[0, 2], fraction=0.04)
     ax[1, 0].scatter(xy[:, 0], xy[:, 1], c=rf['g'], cmap='coolwarm', vmin=-4, vmax=4, s=6 if n > 3000 else 14, rasterized=True)
-    _frame(ax[1, 0], xy); ax[1, 0].set_title('Getis-Ord Gi* (R=%g um) of the face axis' % R_GI, fontsize=9)
-    ctr = 0.5 * (BINS[1:] + BINS[:-1])
-    for nm, col in (('face axis (nPC0)', 'tab:red'), ("body d'", 'tab:green'), ("object d'", 'tab:blue')):
+    if rf['scan_i'] >= 0:
+        ax[1, 0].add_patch(Circle(xy[rf['scan_i']], rf['scan_r'], fill=False, ec='k', lw=2, ls='--',
+                                  label='best %s scan window (stat %.2f, R=%g)' % (kf, rf['scan'], rf['scan_r'])))
+        ax[1, 0].legend(fontsize=7, loc='lower left')
+    _frame(ax[1, 0], xy); ax[1, 0].set_title('Getis-Ord Gi* (R=%g um) of the %s map' % (R_GI, kf), fontsize=9)
+    ctr = 0.5 * (G.bins[1:] + G.bins[:-1])
+    if G.bins[-1] > RMAX:
+        ax[1, 1].set_xscale('log')
+    for nm, col in ((k0, 'tab:red'), ("face d'", 'tab:orange'), ("body d'", 'tab:green'), ("object d'", 'tab:blue')):
         ax[1, 1].plot(ctr, results[nm]['mc'], '-o', color=col, label=nm)
     for N_, col, lab in ((NRP, '0.3', 'random projection p5-p95'), (NRF, '0.6', 'random feature p5-p95')):
         lo_, hi_ = np.nanpercentile(N_['mark_corr'], [5, 95], axis=0)
         ax[1, 1].fill_between(ctr, lo_, hi_, color=col, alpha=0.3, label=lab)
     ax[1, 1].axhline(0, color='k', lw=0.5); ax[1, 1].set_xlabel('pair distance (um)'); ax[1, 1].set_ylabel('k(d) = mean z_i z_j')
     ax[1, 1].legend(fontsize=7); ax[1, 1].set_title('mark-correlation function', fontsize=9)
-    for nm, col in (('face axis (nPC0)', 'tab:red'), ("face d'", 'tab:orange'), ("body d'", 'tab:green'), ("object d'", 'tab:blue')):
+    for nm, col in ((k0, 'tab:red'), ("face d'", 'tab:orange'), ("body d'", 'tab:green'), ("object d'", 'tab:blue')):
         ax[1, 2].plot(KR, results[nm]['kratio'], '-o', color=col, label=nm)
     band = results["face d'"]['kband']
     ax[1, 2].fill_between(KR, band[0], band[1], color='0.5', alpha=0.3, label='random-labeling p5-p95')
@@ -397,14 +461,14 @@ def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None):
     ax[2, 1].hist(NRP['scan'], bins=30, alpha=0.6, color='0.3', label='random projection')
     ax[2, 1].hist(NRF['scan'], bins=30, alpha=0.6, color='0.7', label='random feature')
     ax[2, 1].hist(rf['shuf']['scan'], bins=30, alpha=0.6, color='tab:green', label='position shuffle')
-    for nm, col in (('face axis (nPC0)', 'tab:red'), ("body d'", 'tab:green'), ("object d'", 'tab:blue')):
+    for nm, col in ((k0, 'tab:red'), ("face d'", 'tab:orange'), ("body d'", 'tab:green'), ("object d'", 'tab:blue')):
         ax[2, 1].axvline(results[nm]['scan'], color=col, ls='--', lw=1.5, label='%s = %.2f' % (nm, results[nm]['scan']))
     ax[2, 1].set_xlabel('scan statistic (max over windows)'); ax[2, 1].legend(fontsize=7); ax[2, 1].set_title('scan statistic vs the three nulls', fontsize=9)
-    edges = np.arange(-0.5, max(NRP['n_pos'].max(), len(rf['pos']), len(ro['pos'])) + 1.5)
+    edges = np.arange(-0.5, max([NRP['n_pos'].max()] + [len(results[nm]['pos']) for nm in results]) + 1.5)
     ax[2, 2].hist(NRP['n_pos'], bins=edges, alpha=0.5, color='0.3', label='random projection (any direction)')
     ax[2, 2].hist(NRF['n_pos'], bins=edges, alpha=0.5, color='0.7', label='random feature')
-    ax[2, 2].axvline(len(rf['pos']), color='tab:red', ls='--', lw=1.5, label='face axis: %d' % len(rf['pos']))
-    ax[2, 2].axvline(len(ro['pos']), color='tab:blue', ls='--', lw=1.5, label="object d': %d" % len(ro['pos']))
+    for nm, col in ((k0, 'tab:red'), ("face d'", 'tab:orange'), ("body d'", 'tab:green'), ("object d'", 'tab:blue')):
+        ax[2, 2].axvline(len(results[nm]['pos']), color=col, ls='--', lw=1.5, label='%s: %d' % (nm, len(results[nm]['pos'])))
     ax[2, 2].set_xlabel('number of positive clusters (>= %d cells)' % MIN_CLUSTER); ax[2, 2].legend(fontsize=7)
     ax[2, 2].set_title('how many clusters vs a generic tuning direction', fontsize=9)
     fig.suptitle('%s: hotspot clusters, scan window, mark-correlation, Ripley K, cross-K (spatial panels in image orientation)' % label, fontsize=10)
@@ -468,24 +532,40 @@ def load_field(cfg, gate, chunk_um):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--session', default='pd', choices=sorted(SESSIONS))
+    ap.add_argument('--session', default='pd', choices=sorted(SESSIONS) + sorted(ALIASES),
+                    help='session slug (AnimalDateTime, sessionio.session_slug) or alias: %s' % ALIASES)
     ap.add_argument('--gate', default=None, choices=['zeta', 'responsive', 'all'])
     ap.add_argument('--tile-um', type=float, default=None, help='separate per-tile analyses with this tile edge (0 = whole field, default)')
     ap.add_argument('--min-tile-rois', type=int, default=300)
     ap.add_argument('--only-tile', default=None, help='with --tile-um: run a single tile by name (e.g. tile01)')
+    ap.add_argument('--rmax-um', type=float, default=RMAX,
+                    help='longest pair distance kept (default 300 um, enough for every local statistic); larger values '
+                         'add long-range mark-correlation bins up to this distance (memory and time grow with it)')
     ap.add_argument('--n-perm', type=int, default=1000)
     ap.add_argument('--no-sensitivity', action='store_true')
     a = ap.parse_args()
     rng = np.random.default_rng(0)
     cfg = resolve_session(a.session)
+    slug = cfg['slug']
+    is_pd = slug == ALIASES['pd']
     gate = a.gate or cfg['gate']
-    tile_um = cfg['tile_um'] if a.tile_um is None else a.tile_um
+    tile_um = cfg.get('tile_um', 0) if a.tile_um is None else a.tile_um
+    tag = 'gate-%s%s' % (gate, '' if a.rmax_um == RMAX else '_rmax%gum' % a.rmax_um)   # analysis choices in the filename
     os.makedirs(OUTDIR, exist_ok=True)
     bg = mean_image(cfg['path'])
+    print('session %s: %s' % (slug, cfg['path']))
+
+    def image_conditions(data):
+        ck_all = np.array([cat_key(c) for c in data['conditions'].reindex(data['condition_ids'])['cat'].to_numpy()])
+        keep = ck_all != 'other'
+        if not keep.all():
+            print('  analyzing the %d image / blank conditions; %d non-image conditions (e.g. moving dots) left out'
+                  % (keep.sum(), (~keep).sum()))
+        return ck_all[keep], keep
 
     if tile_um and tile_um > 0:
         tiles, n_total = spatial_chunks(cfg['path'], tile_um, a.min_tile_rois)
-        print('%s: %d ROIs total -> %d tiles of %g um: %s' % (a.session, n_total, len(tiles), tile_um,
+        print('%s: %d ROIs total -> %d tiles of %g um: %s' % (slug, n_total, len(tiles), tile_um,
                                                               ', '.join('%s (%d)' % (t, s.size) for t, s in tiles)))
         if a.only_tile:
             tiles = [t for t in tiles if t[0] == a.only_tile]
@@ -493,20 +573,21 @@ def main():
         for tname, sel in tiles:
             data = rm.build_response_matrix(cfg['path'], denoise=False, reliability_splits=3, neuropil_subtract=True,
                                             neucoeff=0.7, roi_select=sel, **cfg['kw'])
-            ck = np.array([cat_key(c) for c in data['conditions'].reindex(data['condition_ids'])['cat'].to_numpy()])
+            ck, keep = image_conditions(data)
             mask = gate_mask(data, gate, cfg)
             d = rm.apply_roi_mask(data, mask)
-            Fpc = feature_pcs(data) if Fpc is None else Fpc
-            label = '%s %s (corrected 0.7, gate=%s, %d/%d cells)' % (a.session.upper(), tname, gate, d['response'].shape[0], sel.size)
-            analyse(d['response'], d['roi_xy_um'], ck, label, a.n_perm, Fpc, rng,
-                    os.path.join(OUTDIR, 'spatial_structure_%s_%s_%s.png' % (a.session, tname, STAMP)), bg=bg)
+            Fpc = feature_pcs(data, keep) if Fpc is None else Fpc
+            label = '%s %s (corrected 0.7, gate=%s, %d/%d cells)' % (slug, tname, gate, d['response'].shape[0], sel.size)
+            analyse(d['response'][:, keep], d['roi_xy_um'], ck, label, a.n_perm, Fpc, rng,
+                    os.path.join(OUTDIR, 'spatial_structure_%s_%s_%s_%s.png' % (slug, tname, tag, STAMP)), bg=bg, rmax_um=a.rmax_um)
         return
 
     data, resp, xy, rel, mask, n_total = load_field(cfg, gate, cfg.get('chunk_um', 0))
-    ck = np.array([cat_key(c) for c in data['conditions'].reindex(data['condition_ids'])['cat'].to_numpy()])
-    Fpc = feature_pcs(data)
-    label = '%s whole field (corrected 0.7, gate=%s, %d/%d cells)' % (a.session.upper(), gate, resp.shape[0], n_total)
-    if a.session == 'pd':
+    ck, keep = image_conditions(data)
+    resp = resp[:, keep]
+    Fpc = feature_pcs(data, keep)
+    label = '%s whole field (corrected 0.7, gate=%s, %d/%d cells)' % (slug, gate, resp.shape[0], n_total)
+    if is_pd:
         cls = rt.classify_responses(data['ds'], metric='Fzsc', framerate=data['framerate'], alpha=0.05)
         sel_ = cls['selective'][mask]
         q = np.nanpercentile(rel, [25, 50, 75, 90])
@@ -519,9 +600,10 @@ def main():
         for nd in (500, 5000):
             T = fs.random_projection_T(resp, iu, near, far, n=nd, seed=1)
             print('random-projection T with %4d directions: median %+.4f  p95 %+.4f  p99 %+.4f' % (nd, np.median(T), np.percentile(T, 95), np.percentile(T, 99)))
-    analyse(resp, xy, ck, label, a.n_perm, Fpc, rng, os.path.join(OUTDIR, 'spatial_structure_%s_%s.png' % (a.session, STAMP)), bg=bg)
+    analyse(resp, xy, ck, label, a.n_perm, Fpc, rng, os.path.join(OUTDIR, 'spatial_structure_%s_%s_%s.png' % (slug, tag, STAMP)),
+            bg=bg, rmax_um=a.rmax_um)
 
-    if a.session == 'pd' and not a.no_sensitivity:
+    if is_pd and not a.no_sensitivity:
         print('\n=== face-axis scan / hotspots at other neuropil coefficients (random-projection null per build) ===')
         for cf in (None, 1.0):
             dd_ = rm.apply_roi_mask(nc.build(cfg['path'], cf), mask)

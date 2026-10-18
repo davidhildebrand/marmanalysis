@@ -127,6 +127,53 @@ def _parse_text(path, paradigm, required):
         return None
 
 
+def session_slug(session_path):
+    """Short session id 'AnimalDateTime', e.g. 'Curly20240130d172813t': the animal folder, the date folder and the
+    HHMMSS acquisition-start prefix of the session folder (extends the old 'Cadbury20221016d' script names). Use it
+    in output filenames and figure titles so every result names its session."""
+    p = os.path.normpath(session_path)
+    folder = os.path.basename(p)
+    date = os.path.basename(os.path.dirname(p))
+    animal = os.path.basename(os.path.dirname(os.path.dirname(p)))
+    m = re.match(r'(\d{6})tUTC', folder)
+    return '%s%s%s' % (animal, date, (m.group(1) + 't') if m else folder)
+
+
+def find_acquisition_gaps(stimlog, framerate, min_gap_sec=5.0, tol_frames=2.0, min_rows=5):
+    """Acquisition restarts inside one stimulus log, and any stimulus shown while no frames were acquired.
+
+    The frame counter only advances while frames are acquired, but the stimulus PC clock keeps running, so
+    t_stim_i - acqfr_stim_i / framerate is constant within a recording (up to frame jitter) and steps up by the
+    gap's length at a restart. Rows are taken in stimulus-clock order and split into runs of constant offset
+    (within ``tol_frames``); runs of >= ``min_rows`` are recordings. Each step of more than ``min_gap_sec`` between
+    consecutive recordings is a gap, and every row in between -- on neither recording's clock -- was shown during
+    that gap (``trials_in_gap``). Returns a list of dicts; empty when the log has no stimulus-PC times or no restart.
+    (DH 2026-10-18: continuations must be tested for stimuli shown in the gap, since handling may have changed.)"""
+    if 't_stim_i' not in stimlog.columns or 'acqfr_stim_i' not in stimlog.columns:
+        return []
+    t = pd.to_numeric(stimlog['t_stim_i'], errors='coerce').astype(float).to_numpy()
+    f = pd.to_numeric(stimlog['acqfr_stim_i'], errors='coerce').astype(float).to_numpy()
+    idx = np.flatnonzero(np.isfinite(t) & np.isfinite(f))
+    if idx.size < 2 * min_rows:
+        return []
+    order = idx[np.argsort(t[idx], kind='stable')]
+    r = t[order] - f[order] / framerate
+    tol = tol_frames / framerate
+    runs, start = [], 0
+    for k in range(1, len(r) + 1):
+        if k == len(r) or abs(r[k] - np.median(r[start:k])) > tol:
+            runs.append((start, k))
+            start = k
+    rec = [(a, b) for a, b in runs if b - a >= min_rows]
+    gaps = []
+    for (a0, b0), (a1, b1) in zip(rec[:-1], rec[1:]):
+        step = float(np.median(r[a1:b1]) - np.median(r[a0:b0]))
+        if step > min_gap_sec:
+            gaps.append({'row_before': int(order[b0 - 1]), 'row_after': int(order[a1]), 'gap_sec': step,
+                         'acqfr_after': float(f[order[a1]]), 'trials_in_gap': [int(order[k]) for k in range(b0, a1)]})
+    return gaps
+
+
 def is_continuation_session(session_path):
     """A ``..._Continuation`` imaging folder: the acquisition was restarted while the stimulus program kept
     running, so the folder has imaging files but NO stimulus log of its own -- its trials live at the end of the
