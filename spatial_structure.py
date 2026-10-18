@@ -35,6 +35,7 @@ import argparse
 import glob
 import os
 import sys
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -64,6 +65,7 @@ GI_THR = 2.58
 TOPQ = 0.2
 KR = np.array([25, 50, 75, 100, 150, 200], float)
 OUTDIR = 'output'
+STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')   # project convention: every output file is UTC-stamped
 
 # Stimulus images are located from each session's own stimulus log (images.local_stimulus_path), not configured here.
 SESSIONS = {
@@ -391,7 +393,7 @@ def main():
             for nd in (500, 5000):
                 T = fs.random_projection_T(resp, G0.iu, near, far, n=nd, seed=1)
                 print('random-projection T with %4d directions: median %+.4f  p95 %+.4f  p99 %+.4f' % (nd, np.median(T), np.percentile(T, 95), np.percentile(T, 99)))
-        fig_path = os.path.join(OUTDIR, 'spatial_structure_%s%s.png' % (a.session, '_' + tname if tname else ''))
+        fig_path = os.path.join(OUTDIR, 'spatial_structure_%s%s_%s.png' % (a.session, '_' + tname if tname else '', STAMP))
         analyse(resp, xy, ck, label, a.n_perm, Fpc, rng, fig_path)
 
         if a.session == 'pd' and not a.no_sensitivity:

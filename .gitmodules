@@ -2,3 +2,6 @@
 	path = external/psn
 	url = https://github.com/jacob-prince/PSN.git
 	branch = main
+[submodule "external/tdann"]
+	path = external/tdann
+	url = https://github.com/neuroailab/TDANN
