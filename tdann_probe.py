@@ -60,6 +60,12 @@ FILES = {   # key: (OSF file id, path under TDANN_ROOT)
                           'resnet18_retinotopic_init_fuzzy_swappedon_SineGrating2019_NBVER2/layer4.1.npz'),
 }
 LAYER = 'layer4.1'
+# The stored (version-1) positions are on the scale the models were TRAINED at, "meant to match closer to estimates in
+# macaque" (layer4.x: a 10 x 10 sheet, neighborhood width 4.545); the paper's analyses multiply them by these factors
+# to reach human VTC size (70 mm; spacetorch.analyses.core.get_positions). Applied here so the paper's patch recipe
+# (2.4 mm smoothing, >= 100 mm2) means what it means in the paper.
+POSITION_RESCALE = {'layer1.0': 0.6, 'layer1.1': 0.6, 'layer2.0': 1.5, 'layer2.1': 1.5,
+                    'layer3.0': 1.75, 'layer3.1': 1.4, 'layer4.0': 7.0, 'layer4.1': 7.0}
 SMOOTH_SIGMA_MM = 2.4
 PATCH_T = 2.0
 MIN_PATCH_MM2 = 100.0
@@ -153,12 +159,13 @@ def load_tdann(ckpt_path=None, device='cpu'):
     return model.eval().to(device)
 
 
-def load_positions(path):
-    """Unit coordinates (mm) and CHW dims of one layer; coordinate i belongs to unit i of the row-major flattened
-    (channel, row, column) layer output. Arrays only, no pickled objects."""
+def load_positions(path, layer=LAYER, rescale=True):
+    """Unit coordinates (mm, rescaled to the paper's human-VTC sheet unless ``rescale=False``) and CHW dims of one
+    layer; coordinate i belongs to unit i of the row-major flattened (channel, row, column) layer output. Arrays
+    only, no pickled objects."""
     st = np.load(path, allow_pickle=False)
     dims = tuple(int(d) for d in st['dims'])
-    xy = np.asarray(st['coordinates'], float)
+    xy = np.asarray(st['coordinates'], float) * (POSITION_RESCALE[layer] if rescale else 1.0)
     if int(np.prod(dims)) != len(xy):
         raise ValueError('positions %s: dims %s do not match %d coordinates' % (path, dims, len(xy)))
     return xy, dims

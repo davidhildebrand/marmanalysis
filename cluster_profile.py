@@ -17,6 +17,7 @@ Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/cl
 """
 import os
 import sys
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -149,8 +150,9 @@ def main():
     ax[3].set_title('members (red = face-selective, blue = not) vs population', fontsize=9)
     fig.suptitle('PD face-axis scan window: is it a sharp island or the peak of a gradient, and do its cells rank faces along the eye direction?', fontsize=10)
     fig.tight_layout()
-    fig.savefig(os.path.join(OUTDIR, 'cluster_profile_pd.png'), dpi=120)
-    print('figure: output/cluster_profile_pd.png')
+    out = os.path.join(OUTDIR, 'cluster_profile_pd_%s.png' % datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC'))
+    fig.savefig(out, dpi=120)
+    print('figure: %s' % out)
 
 
 if __name__ == '__main__':

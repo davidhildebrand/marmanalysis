@@ -18,7 +18,9 @@ Two tiers:
     expression-- median ROI brightness (mean F), fraction of zero-variance ROIs
     snr       -- nu-SNR median (signal_quality.active_mask), fraction active (k=7), median peak dF/F
     stability -- bleaching: fractional change of the session-mean F per minute (linear fit)
-    neuropil  -- median per-ROI corr(F, Fneu), median Fneu/F (contamination burden)
+    neuropil  -- median per-ROI corr(F, Fneu), median Fneu/F (contamination burden); ring geometry: median inner /
+                 outer ring distance from the ROI centroid (um), ring pixel count, and the fraction of the ring
+                 occupied by other detected ROIs (neuropil_ring_metrics)
   FULL (--full; needs the stimulus log / response table): responsive fraction (classify_responses), median
     split-half tuning reliability, temporal split-half drift gap (responsive set), n conditions / repeats.
 
@@ -55,6 +57,40 @@ def resolve(animal, date, token):
 def _nanmed(x):
     x = np.asarray(x, float)
     return float(np.nanmedian(x)) if x.size else np.nan
+
+
+def neuropil_ring_metrics(stat, Ly, Lx, um_per_px):
+    """suite2p neuropil-ring geometry per ROI, summarized as medians (DH 2026-10-18): the ring's inner and outer edge
+    distance from the ROI centroid (um), its pixel count, and the fraction of the ring annulus occupied by OTHER
+    detected ROIs (those pixels are excluded from Fneu; undetected somata are not). Read from each ROI's
+    ``neuropil_mask``; NaN where suite2p did not store one. ``stat`` = the analyzed ROIs, which in these sessions
+    is every detected ROI with cell probability >= 0."""
+    keys = ('ring_inner_um_med', 'ring_outer_um_med', 'ring_px_med', 'ring_occupied_frac_med')
+    if not len(stat) or 'neuropil_mask' not in stat[0]:
+        return dict.fromkeys(keys, np.nan)
+    occupied = np.zeros((Ly, Lx), bool)
+    for s in stat:
+        occupied[s['ypix'], s['xpix']] = True
+    inner, outer, npx, occ = [], [], [], []
+    for s in stat:
+        mask = np.asarray(s['neuropil_mask'], int)
+        if mask.size == 0:
+            continue
+        yy, xx = np.unravel_index(mask, (Ly, Lx))
+        cy, cx = s['med']
+        d = np.hypot(yy - cy, xx - cx)
+        r_in, r_out = float(d.min()), float(d.max())
+        y0, y1 = int(max(0, cy - r_out - 1)), int(min(Ly, cy + r_out + 2))
+        x0, x1 = int(max(0, cx - r_out - 1)), int(min(Lx, cx + r_out + 2))
+        Y, X = np.mgrid[y0:y1, x0:x1]
+        dist = np.hypot(Y - cy, X - cx)
+        ring = (dist >= r_in) & (dist <= r_out)
+        crop = occupied[y0:y1, x0:x1].copy()
+        own = (s['ypix'] >= y0) & (s['ypix'] < y1) & (s['xpix'] >= x0) & (s['xpix'] < x1)
+        crop[s['ypix'][own] - y0, s['xpix'][own] - x0] = False      # the ROI itself does not count as "other"
+        inner.append(r_in); outer.append(r_out); npx.append(mask.size); occ.append(float(crop[ring].mean()))
+    return {'ring_inner_um_med': _nanmed(inner) * um_per_px, 'ring_outer_um_med': _nanmed(outer) * um_per_px,
+            'ring_px_med': _nanmed(npx), 'ring_occupied_frac_med': _nanmed(occ)}
 
 
 def light_metrics(path):
@@ -132,6 +168,9 @@ def light_metrics(path):
             m['fneu_over_f_med'] = _nanmed(Fneu.mean(1) / F.mean(1))
     else:
         m['cell_fneu_corr_med'] = m['fneu_over_f_med'] = np.nan
+
+    # --- neuropil ring geometry: how far out Fneu is sampled and how much of the ring other ROIs occupy ---
+    m.update(neuropil_ring_metrics(s2p['ROIs'], int(ops['Ly']), int(ops['Lx']), float(res[0])))
     return m
 
 

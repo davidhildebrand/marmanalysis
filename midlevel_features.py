@@ -17,6 +17,7 @@ Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/mi
 """
 import os
 import sys
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -33,6 +34,7 @@ import response_matrix as rm
 import som
 
 OUTDIR = 'output'
+STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')   # project convention: every output file is UTC-stamped
 CAT_COLORS = {'face': 'tab:red', 'body': 'tab:green', 'object': 'tab:blue'}
 
 
@@ -151,10 +153,10 @@ def main():
     fig, axg = plt.subplots(6, 10, figsize=(15, 9.6))
     montage(axg, np.argsort(p5), images, cats, p5, 'PD images ranked by pool5-PC0 (low -> high, row-major); frame = category (red face, green body, blue object); '
             'number = PC0 score', fig)
-    fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_montage_pool5pc0_pd.png'), dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_montage_pool5pc0_pd_%s.png' % STAMP), dpi=110); plt.close(fig)
     fig, axg = plt.subplots(6, 10, figsize=(15, 9.6))
     montage(axg, np.argsort(npc0), images, cats, npc0, 'PD images ranked by the NEURAL PC0 loading (the face axis; low -> high); frame = category; number = loading', fig)
-    fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_montage_neuralpc0_pd.png'), dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_montage_neuralpc0_pd_%s.png' % STAMP), dpi=110); plt.close(fig)
 
     # (3) image statistics
     st = pd.DataFrame([image_stats(images[j]) for j in range(len(images))])
@@ -184,8 +186,8 @@ def main():
         for a in axg[:, c]:
             a.set_xticks([]); a.set_yticks([])
     fig.suptitle('input-gradient saliency of the pool5-PC0 projection: 4 highest (left) and 4 lowest (right) images; bright = pixels that move the score', fontsize=9)
-    fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_saliency_pool5pc0_pd.png'), dpi=110); plt.close(fig)
-    print('\nfigures: output/midlevel_montage_pool5pc0_pd.png, output/midlevel_montage_neuralpc0_pd.png, output/midlevel_saliency_pool5pc0_pd.png')
+    fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_saliency_pool5pc0_pd_%s.png' % STAMP), dpi=110); plt.close(fig)
+    print('\nfigures: output/midlevel_{montage_pool5pc0,montage_neuralpc0,saliency_pool5pc0}_pd_%s.png' % STAMP)
 
 
 if __name__ == '__main__':
