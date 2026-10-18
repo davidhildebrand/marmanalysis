@@ -127,12 +127,65 @@ def _parse_text(path, paradigm, required):
         return None
 
 
+def is_continuation_session(session_path):
+    """A ``..._Continuation`` imaging folder: the acquisition was restarted while the stimulus program kept
+    running, so the folder has imaging files but NO stimulus log of its own -- its trials live at the end of the
+    preceding same-date session's log (e.g. Dali 20230910d 180205tUTC ... FOBmany_Continuation, whose 60 trials
+    are the last rows of 170833tUTC's log). Folders named ``..._withContinuation`` are a different convention
+    (own log; second recording concatenated by suite2p) and load through the normal path."""
+    return 'continuation' in os.path.basename(os.path.normpath(session_path)).lower()
+
+
+def _utc_time_prefix(path):
+    m = re.match(r'(\d{6})tUTC', os.path.basename(os.path.normpath(path)))
+    return int(m.group(1)) if m else None
+
+
+def find_continuation_parent(session_path):
+    """The latest EARLIER session folder on the same date (by the ``HHMMSStUTC`` prefix) that has a stimulus log
+    of its own -- the recording whose log carries the continuation's trials. None if there is none."""
+    session_path = os.path.normpath(session_path)
+    t0 = _utc_time_prefix(session_path)
+    if t0 is None:
+        return None
+    best = None
+    for d in glob.glob(os.path.join(os.path.dirname(session_path), '*tUTC*')):
+        if not os.path.isdir(d) or os.path.normpath(d) == session_path:
+            continue
+        t = _utc_time_prefix(d)
+        if t is None or t >= t0:
+            continue
+        if any(find_stimlog_sources(d).values()) and (best is None or t > best[0]):
+            best = (t, os.path.normpath(d))
+    return best[1] if best else None
+
+
+def shift_continuation_rows(stimlog, n_frames_prev):
+    """Keep the trials whose stimulus onset lies beyond the first ``n_frames_prev`` acquisition frames (the
+    preceding recording) and re-base every ``acqfr_*`` column onto the continuation recording: local frame =
+    acqfr - n_frames_prev. The acquisition-frame counter did NOT reset across the restart (Dali 20230910d: the
+    first recording has 14,200 frames, trial 1,187 ends at acqfr 14,200 and trial 1,188 starts at 14,201 after
+    a 44 s pause). A first trial whose pre-stimulus ISI began before the restart gets the response table's usual
+    first-trial padding."""
+    keep = (stimlog['acqfr_stim_i'] > n_frames_prev).fillna(False).astype(bool)
+    out = stimlog[keep].copy()
+    for c in [c for c in out.columns if 'acqfr' in c]:
+        out[c] = out[c] - n_frames_prev
+    return out.reset_index(drop=True)
+
+
 def load_stimlog(session_path, paradigm='auto', backfill_from_text=True):
     """Load a normalized stimlog by merging the best structured source with the text log.
 
     The structured source (pickle > h5 > csv) is the base; the text .log fills missing/NaN values
     (overwrite=False) and becomes the base when no structured source exists. All sources are
     normalized to the parsers.create_stimulus_record schema.
+
+    Continuation sessions. A ``..._Continuation`` folder with no log of its own (``is_continuation_session``)
+    is served from the latest earlier same-date session that has a log (``find_continuation_parent``): the rows
+    whose stimulus onset lies beyond that recording's frame count are kept and re-based onto the continuation
+    (``shift_continuation_rows``); ``provenance`` then also carries ``continuation_of`` (the source session),
+    ``frame_offset`` (the frames subtracted), ``n_rows_source`` and ``n_rows_kept``.
 
     Parameters
     ----------
@@ -151,6 +204,20 @@ def load_stimlog(session_path, paradigm='auto', backfill_from_text=True):
         and any base/text disagreements on windowing-critical columns.
     """
     sources = find_stimlog_sources(session_path)
+    if not any(sources.values()) and is_continuation_session(session_path):
+        parent = find_continuation_parent(session_path)
+        if parent is None:
+            raise RuntimeError('Continuation session {} has no stimlog and no earlier same-date session with '
+                               'one was found.'.format(session_path))
+        stimlog, provenance = load_stimlog(parent, paradigm=paradigm, backfill_from_text=backfill_from_text)
+        n_prev = int(load_metadata(parent)['n_frames'])
+        n_source = len(stimlog)
+        stimlog = shift_continuation_rows(stimlog, n_prev)
+        provenance.update({'continuation_of': parent, 'frame_offset': n_prev,
+                           'n_rows_source': n_source, 'n_rows_kept': int(len(stimlog))})
+        if len(stimlog) == 0:
+            warn('Continuation session {}: no trials beyond frame {} of {}.'.format(session_path, n_prev, parent))
+        return stimlog, provenance
     if paradigm == 'auto':
         paradigm = infer_paradigm(session_path, sources['text'])
 

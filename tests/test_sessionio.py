@@ -52,6 +52,46 @@ def test_load_stimlog_real_sessions(expected_base, expected_paradigm, path):
         assert not stimlog[c].isnull().all(), 'all-null column ' + c
 
 
+CONTINUATION = (BASE + '/Dali/20230910d/180205tUTC_SP_depth200um_fov2628x2600um_res3p00x3p00umpx_fr04p484Hz_'
+                'pow060p4mW_stimImagesFOBmany_Continuation')
+
+
+def test_shift_continuation_rows_synthetic():
+    """Rows whose onset lies beyond the previous recording are kept and every acqfr column is re-based."""
+    log = pd.DataFrame({'cond': [0, 1, 2, 3],
+                        'acqfr_isi_i': [90, 95, 101, 110], 'acqfr_isi_f': [94, 99, 104, 114],
+                        'acqfr_stim_i': [95, 100, 105, 115], 'acqfr_stim_f': [98, 103, 108, 118]})
+    out = sessionio.shift_continuation_rows(log, 100)
+    assert out['cond'].tolist() == [2, 3]
+    assert out['acqfr_stim_i'].tolist() == [5, 15]
+    assert out['acqfr_isi_i'].tolist() == [1, 10]
+    assert out['acqfr_stim_f'].tolist() == [8, 18]
+    assert len(sessionio.shift_continuation_rows(log, 200)) == 0
+
+
+def test_continuation_session_real():
+    """Dali 20230910d: the log-less _Continuation folder is served from 170833tUTC's log (14,200-frame offset)."""
+    if not os.path.isdir(CONTINUATION):
+        pytest.skip('session data not present')
+    assert sessionio.is_continuation_session(CONTINUATION)
+    parent = sessionio.find_continuation_parent(CONTINUATION)
+    assert parent is not None and os.path.basename(parent).startswith('170833tUTC')
+    stimlog, prov = sessionio.load_stimlog(CONTINUATION)
+    assert prov['continuation_of'] == parent
+    assert prov['frame_offset'] == 14200
+    assert prov['n_rows_kept'] == len(stimlog) == 60
+    assert prov['n_rows_source'] == 1248
+    assert int(stimlog['acqfr_stim_i'].min()) >= 1 and int(stimlog['acqfr_stim_f'].max()) <= 1000
+    # the parent's own loading is untouched
+    full, prov_full = sessionio.load_stimlog(parent)
+    assert len(full) == 1248 and 'continuation_of' not in prov_full
+    # end-to-end: the continuation builds a (small) response table from its own 1,000 frames
+    ds, ctx = sessionio.build_session_response_table(CONTINUATION, equalize_repeats=True)
+    assert ctx['stim_provenance']['frame_offset'] == 14200
+    assert 0 < ds.sizes['condition'] <= 60
+    assert ctx['s2p']['Frois'].shape[1] == 1000
+
+
 def test_infer_paradigm_tokens_and_log_precedence():
     """infer_paradigm recognizes each stimulus token and prefers the (more reliable) log filename
     over the session directory name, which is occasionally mislabeled."""
