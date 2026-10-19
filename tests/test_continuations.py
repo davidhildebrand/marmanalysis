@@ -68,9 +68,12 @@ def test_find_acquisition_gaps_synthetic():
 
 
 def test_session_slug():
+    """Same string as the main-branch scripts' save_pfix (animal_str + date_str + session_abbrev_str)."""
     p = BASE + '/Curly/20240130d/172813tUTC_SP_depth200um_fov3066x3000um_res3p00x3p00umpx_fr03p349Hz_pow060p2mW_stimMultimodal'
-    assert sessionio.session_slug(p) == 'Curly20240130d172813t'
-    assert sessionio.session_slug(p + '/') == 'Curly20240130d172813t'
+    assert sessionio.session_slug(p) == 'Curly20240130d172813tUTC'
+    assert sessionio.session_slug(p + '/') == 'Curly20240130d172813tUTC'
+    assert sessionio.session_slug(BASE + '/Dali/20230910d/180205tUTC_Continuation') == 'Dali20230910d180205tUTC'
+    assert sessionio.session_slug(BASE + '/Dali/20230910d/nounderscore') == 'Dali20230910d'
 
 
 @pytest.mark.parametrize('session, log_session', CASES, ids=[sessionio.session_slug(c[0]) for c in CASES])

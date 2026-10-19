@@ -128,15 +128,16 @@ def _parse_text(path, paradigm, required):
 
 
 def session_slug(session_path):
-    """Short session id 'AnimalDateTime', e.g. 'Curly20240130d172813t': the animal folder, the date folder and the
-    HHMMSS acquisition-start prefix of the session folder (extends the old 'Cadbury20221016d' script names). Use it
-    in output filenames and figure titles so every result names its session."""
+    """Short session id 'AnimalDateTime', e.g. 'Curly20240130d172813tUTC' -- the same string as the ``save_pfix`` of
+    the main-branch analysis scripts (``animal_str + date_str + session_abbrev_str``, where ``session_abbrev_str`` is
+    the session folder name up to its first '_'; empty if it has none). Use it in output filenames and figure titles
+    so every result names its session."""
     p = os.path.normpath(session_path)
     folder = os.path.basename(p)
     date = os.path.basename(os.path.dirname(p))
     animal = os.path.basename(os.path.dirname(os.path.dirname(p)))
-    m = re.match(r'(\d{6})tUTC', folder)
-    return '%s%s%s' % (animal, date, (m.group(1) + 't') if m else folder)
+    abbrev = folder[:folder.find('_')] if '_' in folder else ''
+    return animal + date + abbrev
 
 
 def find_acquisition_gaps(stimlog, framerate, min_gap_sec=5.0, tol_frames=2.0, min_rows=5):

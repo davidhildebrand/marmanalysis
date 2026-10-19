@@ -24,11 +24,12 @@ Statistics:
 Nulls for 1-3 (n_perm maps each): (a) POSITION SHUFFLE; (b) RANDOM PROJECTION in condition space (the generic
 smoothness ANY tuning direction inherits); (c) RANDOM FEATURE DIRECTION in relu7-PC space (Chang & Tsao 2017 STA-style).
 
-Sessions are named by their slug (sessionio.session_slug, AnimalDateTime, e.g. Curly20240130d172813t; aliases 'pd'
-and 'curly'), and every figure filename and title carries it (filenames also carry the gate and a non-default
---rmax-um). Multimodal sessions are restricted to their image
-conditions. Geometry is SPARSE: only neighbor pairs within RMAX = 300 um (the largest distance any LOCAL statistic
-uses; ``--rmax-um`` keeps more pairs to extend the mark-correlation function to long range), so a whole
+Sessions are named by their slug (sessionio.session_slug, AnimalDateTime, e.g. Curly20240130d172813tUTC; aliases 'pd'
+and 'curly'), and every figure filename and title carries it (filenames also carry the gate and the curve's range).
+Multimodal sessions are restricted to their image conditions. Geometry is SPARSE: the mark-correlation (tuning
+similarity vs distance) curve uses every pair within ``--rmax-um`` (default RMAX_CURVE = 1,500 um, well beyond column
+scale: ~43 M pairs for a 3-mm field, ~1 h with 500 permutations; 3,000 um = every pair, about twice as many), while
+the LOCAL statistics need only pairs within 300 um, so a whole
 3-mm field (~15k ROIs) is analyzed at once at full ROI density -- no tiles, no clusters cut at tile edges. Large
 sessions are LOADED in spatial chunks (``chunk_um``) only to bound memory; the analysis runs on the whole field.
 ``--tile-um`` still gives separate per-tile analyses. The figure shows the suite2p mean image next to the maps
@@ -68,6 +69,7 @@ BASE_BINS = [0, 25, 50, 75, 100, 150, 200, 300]
 LONG_BINS = [400, 600, 800, 1000, 1500, 2000, 3000]
 BINS = np.array(BASE_BINS, float)
 RMAX = float(BINS[-1])        # every LOCAL statistic needs <= 200 um; --rmax-um extends only the mark-correlation range
+RMAX_CURVE = 1500.0           # default range of the mark-correlation curve (DH 2026-10-18: not capped at 300 um)
 RADII = (40.0, 60.0, 80.0, 100.0)
 R_GI = 50.0
 GI_THR = 2.58
@@ -84,11 +86,11 @@ STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')   # project con
 # their IMAGE conditions (and blanks) -- moving dots etc. carry no image category.
 _LARGE = dict(zeta=None, kw=dict(equalize_repeats=True, eye_gate_mode='none'), gate='all', chunk_um=1500)
 SESSIONS = {
-    'Cadbury20221016d152643t': dict(path=nc.PD, zeta=nc.ZETA_CSV, kw={}, gate='zeta', chunk_um=0),   # area PD, 730 um
-    'Curly20231103d162355t': dict(glob=nc.CURLY_GLOB, **_LARGE),                                       # FOBmin, 3 mm
-    'Curly20240130d172813t': dict(glob='suite2p_results/Curly/20240130d/172813tUTC*', **_LARGE),         # multimodal, 3 mm
+    'Cadbury20221016d152643tUTC': dict(path=nc.PD, zeta=nc.ZETA_CSV, kw={}, gate='zeta', chunk_um=0),   # area PD, 730 um
+    'Curly20231103d162355tUTC': dict(glob=nc.CURLY_GLOB, **_LARGE),                                       # FOBmin, 3 mm
+    'Curly20240130d172813tUTC': dict(glob='suite2p_results/Curly/20240130d/172813tUTC*', **_LARGE),         # PD/MT border, 3 mm
 }
-ALIASES = {'pd': 'Cadbury20221016d152643t', 'curly': 'Curly20231103d162355t'}
+ALIASES = {'pd': 'Cadbury20221016d152643tUTC', 'curly': 'Curly20231103d162355tUTC'}
 MAP_NAMES = ('face axis (nPC0)', "face d'", "body d'", "object d'")
 INTACT = ('face', 'body', 'object', 'animal')   # intact image categories; category d' contrasts within these
 
@@ -319,7 +321,7 @@ def cross_k(G, ia, ib, n_perm, rng):
     return cc / null.mean(0), p_lo, p_hi, np.percentile(null, [5, 95], axis=0) / null.mean(0), len(ia), len(ib)
 
 
-def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None, rmax_um=RMAX):
+def analyse(resp, xy, ck, label, n_perm, Fpc, rng, fig_path, bg=None, rmax_um=RMAX_CURVE):
     n = resp.shape[0]
     G = Geometry(xy, rmax_um)
     print('\n##### %s: %d cells, hull area %.2f mm2, density %.0f / mm2, %d pairs within %g um'
@@ -538,9 +540,9 @@ def main():
     ap.add_argument('--tile-um', type=float, default=None, help='separate per-tile analyses with this tile edge (0 = whole field, default)')
     ap.add_argument('--min-tile-rois', type=int, default=300)
     ap.add_argument('--only-tile', default=None, help='with --tile-um: run a single tile by name (e.g. tile01)')
-    ap.add_argument('--rmax-um', type=float, default=RMAX,
-                    help='longest pair distance kept (default 300 um, enough for every local statistic); larger values '
-                         'add long-range mark-correlation bins up to this distance (memory and time grow with it)')
+    ap.add_argument('--rmax-um', type=float, default=RMAX_CURVE,
+                    help='range of the mark-correlation curve (default %g um; bins %s up to it; 3000 = a whole 3-mm '
+                         'field). Local statistics always use pairs within 300 um.' % (RMAX_CURVE, LONG_BINS))
     ap.add_argument('--n-perm', type=int, default=1000)
     ap.add_argument('--no-sensitivity', action='store_true')
     a = ap.parse_args()
@@ -550,7 +552,7 @@ def main():
     is_pd = slug == ALIASES['pd']
     gate = a.gate or cfg['gate']
     tile_um = cfg.get('tile_um', 0) if a.tile_um is None else a.tile_um
-    tag = 'gate-%s%s' % (gate, '' if a.rmax_um == RMAX else '_rmax%gum' % a.rmax_um)   # analysis choices in the filename
+    tag = 'gate-%s_rmax%gum' % (gate, a.rmax_um)            # analysis choices in the filename
     os.makedirs(OUTDIR, exist_ok=True)
     bg = mean_image(cfg['path'])
     print('session %s: %s' % (slug, cfg['path']))
