@@ -58,7 +58,16 @@ FILES = {   # key: (OSF file id, path under TDANN_ROOT)
                             'model_final_checkpoint_phase199.torch'),
     'layer4.1': ('dnh7g', 'tdann/positions/simclr_spatial_resnet18_fuzzy_swappedon_SineGrating2019_lw0/'
                           'resnet18_retinotopic_init_fuzzy_swappedon_SineGrating2019_NBVER2/layer4.1.npz'),
+    'checkpoint_lw0': ('8q32t', 'tdann/checkpoints/simclr_spatial_resnet18_swappedon_SineGrating2019_isoswap_3_lw0_checkpoints/'
+                                'model_final_checkpoint_phase199.torch'),
+    'checkpoint_lwx10': ('fp9eh', 'tdann/checkpoints/simclr_spatial_resnet18_swappedon_SineGrating2019_isoswap_3_lwx10_checkpoints/'
+                                  'model_final_checkpoint_phase199.torch'),
 }
+# The spatial-weight sweep (analysis_configs/simclr/*isoswap_3*.yaml): every variant uses the SAME positions folder
+# (position_dir ..._lw0/..._NBVER2, no version.txt -> version 1 -> x7 for layer4.x), so the rescale is identical.
+MODELS = {'main': ('checkpoint', 'alpha 0.25 (paper main model)'),
+          'lw0': ('checkpoint_lw0', 'alpha 0: no spatial loss (control)'),
+          'lwx10': ('checkpoint_lwx10', 'alpha 2.5: 10x the main spatial weight')}
 LAYER = 'layer4.1'
 # The stored (version-1) positions are on the scale the models were TRAINED at, "meant to match closer to estimates in
 # macaque" (layer4.x: a 10 x 10 sheet, neighborhood width 4.545); the paper's analyses multiply them by these factors
@@ -89,9 +98,11 @@ def _hash(path, algo):
     return h.hexdigest()
 
 
-def fetch(force=False, retries=3):
-    """Download the main checkpoint and the layer4.1 positions from OSF, verifying size and the OSF hash."""
-    for key, (osf_id, rel) in FILES.items():
+def fetch(force=False, retries=3, keys=('checkpoint', 'layer4.1')):
+    """Download the requested files (default: the main checkpoint and the layer4.1 positions) from OSF, verifying
+    size and the OSF hash."""
+    for key in keys:
+        osf_id, rel = FILES[key]
         dest = os.path.join(TDANN_ROOT, rel)
         meta = json.load(urllib.request.urlopen('https://api.osf.io/v2/files/%s/' % osf_id, timeout=60))['data']['attributes']
         size = int(meta['size'])
@@ -245,15 +256,17 @@ def roi_category(response, ck):
 
 
 # ------------------------------------------------------------------------------------------------- analysis ----
-def run_session(session, n_perm=1000):
+def run_session(session, n_perm=1000, model_key='main'):
     import dnn_som
     import feature_topography_v2 as v2
     import response_matrix as rm
     if session != 'pd':
         raise NotImplementedError('only the PD session is wired so far')
-    for key in FILES:
+    ckpt_key, model_label = MODELS[model_key]
+    for key in (ckpt_key, LAYER):
         if not os.path.exists(path_of(key)):
-            raise FileNotFoundError('%s missing (%s); run with --fetch first' % (key, path_of(key)))
+            raise FileNotFoundError('%s missing (%s); run with --fetch --model %s first' % (key, path_of(key), model_key))
+    print('TDANN model: %s (%s)' % (model_key, model_label))
     data = rm.build_response_matrix(v2.SESSION, denoise=False, reliability_splits=3, neuropil_subtract=True, neucoeff=0.7)
     zeta = pd.read_csv(v2.ZETA_CSV)['p_zeta'].to_numpy() < 0.05
     d = rm.apply_roi_mask(data, zeta)
@@ -262,7 +275,7 @@ def run_session(session, n_perm=1000):
     ck = np.array([cat_key(c) for c in cats])
     paths = som.condition_image_paths(data)                       # effective stimuli
     images = dnn_som.load_images_rgb(paths, normalize=True)       # TDANN was trained on ImageNet-normalized images
-    model = load_tdann(path_of('checkpoint'))
+    model = load_tdann(path_of(ckpt_key))
     F = layer_responses(model, images)
     sheet_xy, dims = load_positions(path_of(LAYER))
     if F.shape[1] != len(sheet_xy):
@@ -355,10 +368,11 @@ def run_session(session, n_perm=1000):
     axs[1, 1].set_title('where the %d PD ROIs land: their best-matching units (Mantel r=%+.3f)' % (len(units), ap['r']), fontsize=9)
     for a in axs.ravel():
         a.set_aspect('equal' if a is not axs[1, 0] else 'auto')
-    fig.suptitle('TDANN (Margalit et al. 2024, alpha 0.25 SimCLR) probed with the PD stimuli (effective, ImageNet-normalized)', fontsize=10)
+    fig.suptitle('TDANN (Margalit et al. 2024, SimCLR, %s) probed with the PD stimuli (effective, ImageNet-normalized)'
+                 % model_label, fontsize=10)
     fig.tight_layout()
     import sessionio
-    out = os.path.join(OUTDIR, 'tdann_probe_%s_%s.png' % (sessionio.session_slug(v2.SESSION), STAMP))
+    out = os.path.join(OUTDIR, 'tdann_probe_%s_model-%s_%s.png' % (sessionio.session_slug(v2.SESSION), model_key, STAMP))
     fig.savefig(out, dpi=120)
     print('\nfigure: %s' % out)
 
@@ -404,16 +418,18 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--selftest', action='store_true')
-    ap.add_argument('--fetch', action='store_true', help='download + verify the checkpoint and layer4.1 positions (173 MB)')
+    ap.add_argument('--fetch', action='store_true', help='download + verify the --model checkpoint (92 MB) and the '
+                                                           'layer4.1 positions (80 MB, shared by all models)')
+    ap.add_argument('--model', default='main', choices=sorted(MODELS), help='%s' % {k: v[1] for k, v in MODELS.items()})
     ap.add_argument('--session', default=None, choices=['pd'])
     ap.add_argument('--n-perm', type=int, default=1000)
     a = ap.parse_args()
     if a.selftest:
         selftest()
     if a.fetch:
-        fetch()
+        fetch(keys=(MODELS[a.model][0], LAYER))
     if a.session:
-        run_session(a.session, a.n_perm)
+        run_session(a.session, a.n_perm, a.model)
 
 
 if __name__ == '__main__':

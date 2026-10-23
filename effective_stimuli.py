@@ -22,8 +22,12 @@ Everything is read from the session's own logs (never assumed):
 Rendering per condition (psychopy semantics, in its -1..1 rgb space): the image is stretched to its logged size
 in screen pixels (nearest-neighbour when ``interpolate=False``, as logged), its rgb multiplied by ``color`` and
 ``contrast``, its alpha multiplied by ``opacity``, and alpha-blended over the background pixels it covered
-(``blendMode='avg'``). The render is the on-screen square the image occupied (plus ``margin_deg`` of
-surround), saved as RGB PNG without alpha. Code-generated blank conditions render the background alone. Monitor
+(``blendMode='avg'``). The render is the on-screen SQUARE around the image (side = its longer dimension, plus
+``margin_deg``), filled with the real surround -- so a non-square image keeps its presented size and aspect and a
+DNN's center crop removes nothing -- saved as RGB PNG without alpha. Both log formats are parsed: the older
+``Created image<k>:<name>`` / ``Created background<k>:<type><intensity>`` and the newer ``Created <name>.png`` /
+``Created background_<type>_intensity<n>`` (multimodal stimcode; recipe 1 missed these and fell back to an 8 x 8
+deg square on gray). Code-generated blank conditions render the background alone. Monitor
 gamma is recorded, not applied: renders are the intended frame-buffer values, as the image files are.
 
 Output (written inside the imaging session folder, as David asked):
@@ -40,7 +44,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-RECIPE_VERSION = 1
+RECIPE_VERSION = 2       # 2 (2026-10-18): square canvas of real surround; newer log formats parsed (sizes, pink noise)
 DEFAULT_DISPLAY = {'pixels': (1920, 1080), 'width_cm': 34.535, 'distance_cm': 30.0,
                    'source': 'default rig display ASUS XG16AHPE'}
 _ARRAY = r'array\(\[([^\]]*)\]\)'
@@ -100,11 +104,21 @@ def parse_display(text_log, stimcode=None):
                                             if match.group(3) else None),
                                             'size_deg': _field(spec, 'size'), 'pos_deg': _field(spec, 'pos'),
                                             'units': _field(spec, 'units')}
-    images = {}
-    for match in re.finditer(r'Created image(\d+):(.+?) = ImageStim\((.*)', header):
+    # newer logs (e.g. the multimodal stimcode): "Created background_pinksame_intensity140 = ImageStim(..."
+    for k, match in enumerate(re.finditer(r'Created background_([A-Za-z]+)_intensity(\d+) = ImageStim\((.*)', header)):
         spec = match.group(3)
-        images[int(match.group(1))] = {
-            'name': match.group(2), 'units': _field(spec, 'units'), 'size': _field(spec, 'size'),
+        backgrounds[len(backgrounds) + k] = {'type': match.group(1), 'intensity': int(match.group(2)),
+                                             'size_deg': _field(spec, 'size'), 'pos_deg': _field(spec, 'pos'),
+                                             'units': _field(spec, 'units')}
+    image_lines = [(int(m.group(1)), m.group(2), m.group(3))
+                   for m in re.finditer(r'Created image(\d+):(.+?) = ImageStim\((.*)', header)]
+    # newer logs: "Created a1.png = ImageStim(..." (no image<k>: prefix)
+    image_lines += [(10 ** 6 + k, m.group(1), m.group(2)) for k, m in enumerate(
+        re.finditer(r'Created ([^\s=:]+\.(?:png|jpe?g|bmp|tiff?)) = ImageStim\((.*)', header, re.I))]
+    images = {}
+    for key, name, spec in image_lines:
+        images[key] = {
+            'name': name, 'units': _field(spec, 'units'), 'size': _field(spec, 'size'),
             'pos': _field(spec, 'pos'), 'ori': _field(spec, 'ori'), 'color': _field(spec, 'color'),
             'colorSpace': _field(spec, 'colorSpace'), 'contrast': _field(spec, 'contrast'),
             'opacity': _field(spec, 'opacity'), 'interpolate': _field(spec, 'interpolate'),
@@ -200,8 +214,12 @@ def _screen_background(display, seed, condition=None):
     return np.repeat(noise[:, :, None], 3, axis=2)
 
 
-def render_condition(screen, image_path, params, geometry, margin_deg=0.0):
-    """One condition as drawn: returns uint8 RGB of the on-screen square it covered (plus margin)."""
+def render_condition(screen, image_path, params, geometry, margin_deg=0.0, square=True):
+    """One condition as drawn: returns uint8 RGB of the on-screen region it covered (plus margin). With ``square``
+    (default) the region is the square around the stimulus (side = its longer dimension), filled with the screen
+    surround it had -- the stimulus at its presented size and aspect inside a square of the real background, i.e.
+    the square-padded alpha version (e.g. Song's 480288_equalized_RGBAsq) composited as presented. A DNN's
+    Resize + CenterCrop then crops nothing (a 480x288 image shown at 12 x 7.2 deg used to lose 40% of its width)."""
     from PIL import Image
     ppd = geometry['px_per_deg']
     height, width = screen.shape[:2]
@@ -211,9 +229,16 @@ def render_condition(screen, image_path, params, geometry, margin_deg=0.0):
         raise NotImplementedError('stimulus units {!r}'.format(params.get('units')))
     stim_w, stim_h = (max(1, int(round(v * ppd))) for v in size_deg)
     margin = int(round(margin_deg * ppd))
+    pad_x = pad_y = 0
+    if square:
+        side = max(stim_w, stim_h)
+        pad_x, pad_y = (side - stim_w) // 2, (side - stim_h) // 2
     centre_x, centre_y = width / 2 + pos_deg[0] * ppd, height / 2 - pos_deg[1] * ppd
-    left, top = int(round(centre_x - stim_w / 2)) - margin, int(round(centre_y - stim_h / 2)) - margin
-    out_w, out_h = stim_w + 2 * margin, stim_h + 2 * margin
+    left = int(round(centre_x - stim_w / 2)) - margin - pad_x
+    top = int(round(centre_y - stim_h / 2)) - margin - pad_y
+    out_w, out_h = stim_w + 2 * (margin + pad_x), stim_h + 2 * (margin + pad_y)
+    if square:
+        out_w = out_h = max(out_w, out_h)
     canvas = np.empty((out_h, out_w, 3))
     canvas[:] = screen[height // 2, width // 2]          # outside the screen: never expected; keep finite
     sx0, sy0 = max(left, 0), max(top, 0)
@@ -237,8 +262,9 @@ def render_condition(screen, image_path, params, geometry, margin_deg=0.0):
         opacity = 1.0 if params.get('opacity') is None else float(params['opacity'])
         rgb = rgb * color[None, None, :] * contrast
         alpha = rgba[..., 3:4] * opacity
-        region = canvas[margin:margin + stim_h, margin:margin + stim_w]
-        canvas[margin:margin + stim_h, margin:margin + stim_w] = alpha * rgb + (1.0 - alpha) * region
+        y0, x0 = margin + pad_y, margin + pad_x
+        region = canvas[y0:y0 + stim_h, x0:x0 + stim_w]
+        canvas[y0:y0 + stim_h, x0:x0 + stim_w] = alpha * rgb + (1.0 - alpha) * region
     return np.clip(np.round((canvas + 1.0) / 2.0 * 255.0), 0, 255).astype(np.uint8)
 
 
