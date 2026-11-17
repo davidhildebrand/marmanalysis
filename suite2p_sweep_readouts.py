@@ -140,10 +140,17 @@ def topography_block(resp, xy, ck, n_rand, n_perm, seed=0):
     return out
 
 
-def readout(session, variant, n_rand, n_perm, zeta, reliability_splits):
+def readout(session, variant, n_rand, n_perm, zeta, reliability_splits, neucoeff=None):
+    """One CSV row of read-outs for `variant`. `neucoeff` overrides the pipeline's neuropil coefficient (0 = no
+    correction) for the response-side and topography numbers; the row is then named '<variant>__nc<value>'."""
     t0 = time.time()
     row = {'variant': os.path.basename(os.path.normpath(variant)) if os.path.isdir(variant) else variant,
            'variant_path': variant, 'session': sessionio.session_slug(session) if hasattr(sessionio, 'session_slug') else os.path.basename(session)}
+    npil = {}
+    if neucoeff is not None:
+        npil = {'neucoeff': float(neucoeff), 'neuropil_subtract': float(neucoeff) != 0}
+        row['variant'] += '__nc%g' % neucoeff
+        row['neucoeff_override'] = float(neucoeff)
     vj = os.path.join(variant, 'variant.json') if os.path.isdir(variant) else None
     if vj and os.path.isfile(vj):
         with open(vj) as f:
@@ -159,7 +166,8 @@ def readout(session, variant, n_rand, n_perm, zeta, reliability_splits):
     row['roi_radius_um_med'] = float(np.median([np.sqrt(len(r['xpix']) / np.pi) for r in s2p['ROIs']])) * res
     row['suite2p_version'] = row['suite2p_version'] or str(s2p['ops'].get('suite2p_version', ''))
 
-    data = rm.build_response_matrix(session, variant=variant, denoise=False, reliability_splits=reliability_splits)
+    data = rm.build_response_matrix(session, variant=variant, denoise=False, reliability_splits=reliability_splits, **npil)
+    row.update(neuropil_subtract=bool(data['neuropil_subtract']), neucoeff=float(data['neucoeff']))
     fr = data['framerate']
     cls = rt.classify_responses(data['ds'], metric='Fzsc', framerate=fr, alpha=0.05)
     responsive = np.asarray(cls['responsive'], bool)
@@ -199,19 +207,23 @@ def main():
     ap.add_argument('--n-perm', type=int, default=500, help='random projections for the scan / mark-correlation null')
     ap.add_argument('--zeta', action='store_true', help='also compute the ZETA gate per variant (slow)')
     ap.add_argument('--reliability-splits', type=int, default=20)
+    ap.add_argument('--neucoeff', type=float, nargs='*', default=None,
+                    help='neuropil coefficient(s) to use instead of the pipeline default 0.7 (0 = uncorrected); one row '
+                         'per variant and value, named <variant>__nc<value>')
     ap.add_argument('--outdir', default=OUTDIR)
     a = ap.parse_args()
     session = a.session.rstrip('/')
     variants = [resolve_variant(session, v) for v in a.variants] if a.variants else discover_variants(session)
+    jobs = [(v, nc) for v in variants for nc in (a.neucoeff if a.neucoeff else [None])]
     slug = sessionio.session_slug(session) if hasattr(sessionio, 'session_slug') else os.path.basename(session)
     os.makedirs(a.outdir, exist_ok=True)
     print('session %s: %d variants' % (slug, len(variants)))
     stamped = os.path.join(a.outdir, '%s_readouts_%s.csv' % (slug, STAMP))
     rows = []
-    for v in variants:
-        print('\n== %s' % v)
+    for v, nc in jobs:
+        print('\n== %s%s' % (v, '' if nc is None else '  [neucoeff %g]' % nc))
         try:
-            rows.append(readout(session, v, a.n_rand, a.n_perm, a.zeta, a.reliability_splits))
+            rows.append(readout(session, v, a.n_rand, a.n_perm, a.zeta, a.reliability_splits, neucoeff=nc))
             r = rows[-1]
             print('   ' + ' | '.join('%s=%s' % (k, ('%.3g' % r[k]) if isinstance(r[k], float) else r[k]) for k in KEY_COLS if k in r))
             pd.DataFrame(rows).set_index('variant').to_csv(stamped)      # incremental: a crash keeps the finished rows
