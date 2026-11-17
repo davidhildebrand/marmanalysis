@@ -408,6 +408,13 @@ def find_suite2p_dir(session_path, variant=None):
     the SUITE2P_VARIANT_DEFAULT pattern; pass a regex/substring to select a specific extraction
     (e.g. cellpose-anatomical vs functional). Matches analysis_for_images.py:938-947.
     """
+    # A variant given as an existing directory (absolute, or relative to the session) is used as is. This is how
+    # detection-only sweep variants under <session>/sweep_suite2p/<name>/ are addressed (roadmap item 1); they do
+    # not match the 'suite2p*' glob on purpose, so they can never become a session's default extraction.
+    if variant is not None:
+        for cand in (variant, os.path.join(session_path, variant)):
+            if os.path.isdir(os.path.join(cand, 'plane0')):
+                return os.path.normpath(cand)
     dirs = [d for d in sorted(glob.glob(os.path.join(session_path, 'suite2p*'))) if os.path.isdir(d)]
     if not dirs:
         raise RuntimeError('Could not find a suite2p folder in {}.'.format(session_path))

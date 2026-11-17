@@ -93,9 +93,11 @@ def neuropil_ring_metrics(stat, Ly, Lx, um_per_px):
             'ring_px_med': _nanmed(npx), 'ring_occupied_frac_med': _nanmed(occ)}
 
 
-def light_metrics(path):
+def light_metrics(path, variant=None):
+    """``variant`` selects a specific suite2p extraction (regex on the suite2p_* folder name, or a directory such as
+    'sweep_suite2p/<name>' from suite2p_sweep.py); None = the session's default extraction."""
     md = sessionio.load_metadata(path)
-    s2p = sessionio.load_suite2p(path)
+    s2p = sessionio.load_suite2p(path, variant=variant)
     ops, F, Fneu = s2p['ops'], s2p['Frois'].astype(float), s2p['Fneu']
     fr = float(md['framerate'])
     n_fr = F.shape[1]
@@ -174,8 +176,8 @@ def light_metrics(path):
     return m
 
 
-def full_metrics(path, subsample):
-    ds, ctx = sessionio.build_session_response_table(path, eye_gate_mode='none', equalize_repeats=True,
+def full_metrics(path, subsample, variant=None):
+    ds, ctx = sessionio.build_session_response_table(path, variant=variant, eye_gate_mode='none', equalize_repeats=True,
                                                      roi_subsample=subsample)
     fr = ctx['md']['framerate']
     cls = rt.classify_responses(ds, metric='Fzsc', framerate=fr, alpha=0.05)
@@ -193,6 +195,8 @@ def main():
     ap.add_argument('--full', action='store_true', help='also compute the stimulus-driven (response-table) metrics')
     ap.add_argument('--subsample', type=int, default=3000, help='ROI subsample for the --full tier on large sessions')
     ap.add_argument('--out', default=OUT)
+    ap.add_argument('--variant', default=None, help='suite2p extraction to read (folder-name regex or a directory such as '
+                                                     'sweep_suite2p/<name>); default = the session default')
     a = ap.parse_args()
     if a.sessions:
         paths = sorted({p for g in a.sessions for p in glob.glob(g) if os.path.isdir(p) and glob.glob(os.path.join(p, 'suite2p*'))})
@@ -202,10 +206,10 @@ def main():
     for p in paths:
         print('== %s' % os.path.basename(p)[:80])
         try:
-            m = light_metrics(p)
+            m = light_metrics(p, variant=a.variant)
             if a.full:
                 try:
-                    m.update(full_metrics(p, a.subsample))
+                    m.update(full_metrics(p, a.subsample, variant=a.variant))
                 except Exception as e:
                     print('   (full tier failed: %s: %s)' % (type(e).__name__, str(e)[:120]))
             rows.append(m)

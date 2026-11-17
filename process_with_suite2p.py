@@ -6,12 +6,31 @@ from glob import glob
 import numpy as np
 import os
 import suite2p
+import sys
 from warnings import warn
 
 import indicators
 import sessionio
 
 # TODO Write a function to merge registered TIF files into a single file and also save as registered h5.
+
+
+def int_if_integral(diameter):
+    """Return an int for integer-valued diameters (14.0 -> 14), otherwise the value unchanged.
+
+    suite2p 0.14.x treats ops['diameter'] as a (y, x) pair unless it is an int: registration's
+    compute_enhanced_mean_image does np.array(diameter)[1], which raises IndexError on a float
+    (0-d array). argparse type=float and session metadata both hand us floats, so coerce here.
+    Found 2026-11-17 when the PD anchor run died after a 2.3 h registration.
+    """
+    try:
+        if float(diameter) == int(diameter):
+            return int(diameter)
+    except (TypeError, ValueError):
+        return diameter
+    warn('non-integer cellpose diameter {} will break suite2p 0.14.x registration (needs int or a pair)'
+         .format(diameter))
+    return diameter
 
 
 # Parse command line options
@@ -41,8 +60,9 @@ parser.add_argument('--spatial-hp-cp', type=float, default=None,
                     help='cellpose spatial high-pass window (fraction of diameter) applied to the mean image before '
                          'detection. [default: suite2p default 0 = off; v9 uses 0.5]')
 parser.add_argument('--keep-bin', action='store_true',
-                    help='keep the registered binary (plane0/data.bin) for FISSA / detection-only re-runs '
-                         '(~2 bytes/px/frame, e.g. ~17 GB for the PD session). [default: delete it]')
+                    help='keep the registered binary for FISSA / detection-only re-runs and move it into the '
+                         'save folder (<save_folder>/plane0/data.bin) instead of the default suite2p/plane0 scratch '
+                         'location (~2 bytes/px/frame, e.g. ~17 GB for the PD session). [default: delete it]')
 parser.add_argument('--no-reg-tif', action='store_true', help='do not write registered TIFF stacks (saves disk).')
 parser.add_argument('--indicator', type=str, default='jGCaMP8s',
                     help="indicator for the tau lookup, e.g. 'jGCaMP8s', 'ribo-jGCaMP8s', 'soma-jGCaMP8s'. [default: jGCaMP8s]")
@@ -97,7 +117,9 @@ db['save_path0'] = source_path
 db['fast_disk'] = []  # Path for storing temporary binary, defaults to 'save_path0'.
 db['subfolders'] = []
 db['look_one_level_down'] = False
-db['move_bin'] = False  # Move binary file from 'fast_disk' to 'save_folder'.
+# Move the binary from 'fast_disk' (default: <session>/suite2p/plane0/) into 'save_folder' when it is kept, so a
+# retained data.bin lives next to the extraction it belongs to and a later registration run cannot overwrite it.
+db['move_bin'] = bool(opts.keep_bin)
 ppext = os.path.splitext(os.path.basename(source_preproc))[1]
 if ppext == '.h5' or ppext == '.hdf5':
     # db['h5py'] = [os.path.join(source_path, source_preproc)]
@@ -182,7 +204,7 @@ ops['anatomical_only'] = 3 if opts.anatomical_only is None else opts.anatomical_
 if ops['anatomical_only'] > 0:
     if md['fov']['neurondiameter_px'] is not None:
         # Set estimated cell diameter (px) for cellpose.
-        ops['diameter'] = md['fov']['neurondiameter_px'] - 1  # TODO * * * TEMPORARY HACK NEED PX SIZE EST 2pRAM
+        ops['diameter'] = int_if_integral(md['fov']['neurondiameter_px'] - 1)  # TODO * * * TEMPORARY HACK NEED PX SIZE EST 2pRAM
         print('Estimated diameter for cellpose anatomical ROI detection is {}px.'.format(md['fov']['neurondiameter_px']))
     else:
         # Set diameter to 0 for automatic estimation.
@@ -190,7 +212,7 @@ if ops['anatomical_only'] > 0:
     ops['cellprob_threshold'] = -3.5  # Threshold of input to sigmoid cell probability function, varying from -6 to 6.
     ops['flow_threshold'] = 1.5  # Maximum error of flows for each mask. Increase for more ROIs, decrease for fewer.
     if opts.diameter is not None:
-        ops['diameter'] = opts.diameter
+        ops['diameter'] = int_if_integral(opts.diameter)
     if opts.cellprob is not None:
         ops['cellprob_threshold'] = opts.cellprob
     if opts.flow is not None:
@@ -277,6 +299,7 @@ if opts.tag:
 print('Running suite2p with save_folder: {}'.format(db['save_folder']))
 s2pops = suite2p.default_ops()
 runops = {**s2pops, **ops}
+ops_out = None  # stays None if run_s2p raises; the ops_in files below are still written for provenance
 try:
     ops_out = suite2p.run_s2p(ops=runops, db=db)
     print(set(ops_out.keys()).difference(ops.keys()))
@@ -319,4 +342,7 @@ ops_in = {**ops, **db}
 np.save(save_opsin_path, ops_in)
 np.save(save_opsnodb_path, ops)
 np.save(save_opsdbonly_path, db)
+if ops_out is None:
+    # run_s2p failed (warned above): no ops_out to save; exit non-zero so callers and background tasks see it.
+    sys.exit('suite2p run failed for save_folder {}; see warnings above'.format(db['save_folder']))
 np.save(save_opsout_path, ops_out)
