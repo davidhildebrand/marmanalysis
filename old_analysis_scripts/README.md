@@ -46,13 +46,13 @@ they no longer run from here as they are.
 - **Most figures** (lines 2163-3206): tuning histograms, example-ROI traces, the heatmap variants, and the ROI-mask and
   stimulus-image overlays on the mean image. The overlay helpers themselves are in `plots.py`.
 - **Simulated discontinuous-boundary control** (lines 3207-3303).
-- **Parts of the stimulus-space analyses** (lines 3541-4009). The core idea is re-implemented in the library: image
-  features from AlexNet, their principal components, each ROI's preference along them, and how that relates to
-  cortical distance. The library uses relu7 features of the session's own images, correlation and ridge weights, and
-  its own topography statistics. Still only here: the precomputed stimulus-space record on fc6 features
-  (`generate_stimulus_space.py`), the 2-D picture of the space with each ROI's preferred-axis vector (response-weighted
-  and least-squares), the ROI map colored by preferred-axis angle relative to the face vector, and the
-  response-weighted position against distance.
+- **Two leftovers of the stimulus-space analyses** (lines 3541-4009). The rest is in the library:
+  `feature_topography.py`, `feature_topography_v2.py`, and `layer_alignment.py` hold the feature components, per-ROI
+  preferences, and their relation to distance, and `stimulus_space.py` holds the 2-D picture of each ROI's
+  preferred-axis vector and the ROI map colored by its angle to the face vector. Still only here: the precomputed
+  record of fc6 features across stimulus sets (`generate_stimulus_space.py`), and the response-weighted position
+  against distance, which is the same quantity as the preferred-axis vector up to a constant and is covered by the
+  preference-space distance in `feature_topography.py`.
 
 ## The other files
 
