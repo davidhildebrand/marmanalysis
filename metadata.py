@@ -280,6 +280,14 @@ def extract_useful_metadata(scanimage_metadata, strip_overlap=None):
     umd['fill_fraction_temporal'] = simd['SI']['hScan2D']['fillFractionTemporal']
     umd['fill_fraction_spatial'] = simd['SI']['hScan2D']['fillFractionSpatial']
     umd['resonant_scanner_frequency'] = simd['SI']['hScan2D']['scannerFrequency']
+    # How the resonant (fast) axis was sampled. With uniform sampling the pixels are evenly spaced in TIME, so their
+    # spacing in SPACE follows the mirror's sinusoid and every strip needs undistorting (see mroi_geometry.py).
+    hscan2d = simd['SI']['hScan2D']
+    umd['uniform_sampling'] = bool(hscan2d['uniformSampling']) if 'uniformSampling' in hscan2d else None
+    umd['bidirectional'] = bool(hscan2d['bidirectional']) if 'bidirectional' in hscan2d else None
+    umd['line_phase'] = hscan2d['linePhase'] if 'linePhase' in hscan2d else None  # s
+    umd['sample_rate'] = hscan2d['sampleRate'] if 'sampleRate' in hscan2d else None  # Hz
+    umd['pixel_bin_factor'] = hscan2d['pixelBinFactor'] if 'pixelBinFactor' in hscan2d else None
 
     # Estimate start time.
     sdt = simd['frame0desc']['epoch'] - timedelta(seconds=umd['framerate'])
