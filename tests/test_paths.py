@@ -84,11 +84,19 @@ def test_data_roots_fall_back_to_the_host_table(layout, monkeypatch):
 def test_named_sessions(layout, monkeypatch):
     data = layout.parent / 'suite2p_results'
     monkeypatch.setattr(paths, 'SESSIONS', {'AnimalA20200101d101010tUTC': ('AnimalA', '20200101d', '101010tUTC_exact'),
-                                            'AnimalB20200202d': ('AnimalB', '20200202d', '*Images*')})
-    monkeypatch.setattr(paths, 'SESSION_ALIASES', {'a': 'AnimalA20200101d101010tUTC'})
+                                            'AnimalB20200202d': ('AnimalB', '20200202d', '*Images*'),
+                                            'AnimalB20200303d111111tUTC': ('AnimalB', '20200303d', '111111tUTC_exact')})
     data.mkdir()
     # an exact folder name is answered without looking at the disk, so module-level constants never fail at import
-    assert paths.session('a') == str(data / 'AnimalA' / '20200101d' / '101010tUTC_exact')
+    exact = str(data / 'AnimalA' / '20200101d' / '101010tUTC_exact')
+    assert paths.session('AnimalA20200101d101010tUTC') == exact
+    # a session is named by its slug or a UNIQUE prefix of it; an animal with two sessions does not name either
+    assert paths.session('AnimalA20200101d') == exact and paths.session('AnimalA') == exact
+    assert paths.session_name('AnimalB202003') == 'AnimalB20200303d111111tUTC'
+    assert paths.session_name('AnimalB20200202d') == 'AnimalB20200202d'   # an exact slug wins over prefix matching
+    for ambiguous_or_unknown in ('AnimalB', 'Animal', '', 'pd'):
+        with pytest.raises(KeyError):
+            paths.session_name(ambiguous_or_unknown)
     with pytest.raises(FileNotFoundError):
         paths.session('AnimalB20200202d')
     with pytest.raises(KeyError):
@@ -105,15 +113,17 @@ def test_named_sessions(layout, monkeypatch):
 
 
 def test_real_registry_is_consistent():
-    assert set(paths.SESSION_ALIASES.values()) <= set(paths.SESSIONS)
+    assert not hasattr(paths, 'SESSION_ALIASES')                # sessions have no nicknames, only slugs
+    for slug, (animal, date, name) in paths.SESSIONS.items():
+        assert slug.startswith(animal + date) and paths.session_name(slug) == slug
     assert set(paths.IN_PROJECT) | {'project_root'} == set(paths.ENV)
     for key, path, source, exists in paths.describe():
         assert os.path.isabs(path) and source
 
 
-# The original monolithic scripts still carry their own host blocks; they are outside the shared library.
-LEGACY = {'analysis_for_images.py', 'analysis_for_dots.py', 'analysis_for_gratings.py', 'torch_test.py',
-          'scrape_stickpng.py', 'process_stickpng_assets.py', 'generate_stimulus_space.py'}
+# Stand-alone utility scripts that still carry their own host blocks. (The analysis_for_*.py monoliths live in
+# old_analysis_scripts/, which is skipped as a whole.)
+LEGACY = {'torch_test.py', 'scrape_stickpng.py', 'process_stickpng_assets.py', 'generate_stimulus_space.py'}
 SKIP_DIRS = {'tests', 'tdann', 'external', 'old_analysis_scripts', '__pycache__', 'output', 'tmp'}
 
 

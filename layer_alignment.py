@@ -5,7 +5,7 @@ sanity check (DH 2026-10-18: "We should have code ready to produce a comparison 
 
 For one session the neural axes are PCs of the ROI x condition response matrix (ROI-centered), as condition loadings.
 First a table of what the top-5 neural PCs ARE: share of variance, |corr| with each category indicator and with the
-images' mean luminance and RMS contrast. In the PD session PC0 is the face axis (|r| 0.90 with the face indicator);
+images' mean luminance and RMS contrast. In the Cadbury20221016d152643tUTC session PC0 is the face axis (|r| 0.90 with the face indicator);
 in the 3-mm Curly fields it is not (0.11-0.16). The axes compared with the models are nPC0 and, when another top-5 PC
 tracks faces (|r| >= spatial_structure.FACE_MIN_R), that face-aligned PC (oriented so faces load positive). For each
 model layer, PCA of the layer's activations over the same images (conditions with an image; blanks and non-image
@@ -18,7 +18,7 @@ conditions excluded), then:
                the LOO error with the dummies alone -- how much of the axis a layer explains WITHIN categories, the
                part a category split carried by low-level image statistics cannot explain;
   r2cv_face    leave-one-face-out R^2 of the axis across the FACE images from the layer's top-3 PCs computed over
-               the faces alone (which faces the axis prefers). Ceiling: in PD the axis's within-face split-half
+               the faces alone (which faces the axis prefers). Ceiling: in Cadbury20221016d152643tUTC the axis's within-face split-half
                reliability is 0.61 (within category 0.50; tmp/face_axis_within_reliability.py);
   face_pc0     |corr| of the layer's PC0 with the face indicator (how much of PC0 is simply face vs rest).
   decode40     the layer comparison of Bao et al. 2020 (Nature, Extended Data Figs. 4g and 11): decode each image
@@ -26,14 +26,14 @@ conditions excluded), then:
                the layer's top-50 PC scores (its "object space"), predict the left-out image's feature vector and
                identify it among 40 candidates by Euclidean distance (chance 0.025). Unlike the alignments above it
                uses every dimension of the layer and of the population, not just one axis. (Bao et al. found fc6 best
-               with 51 objects x 24 views; with a set whose categories differ in pixel statistics, such as the PD
-               face/body/object set, the one-axis alignments are flat across layers by construction.)
+               with 51 objects x 24 views; with a set whose categories differ in pixel statistics, such as the
+               Cadbury20221016d152643tUTC face/body/object set, the one-axis alignments are flat across layers by construction.)
 Both input transforms are run: plain [0,1] (the parity probe used so far) and ImageNet-normalized (the networks'
 training input), and the input PIXELS are included as a 'layer 0' reference (if pixels align as well as pool5, the
 alignment is a property of the image set, not of a processing stage). Images are the session's effective stimuli
 (som.condition_image_paths).
 Outputs: output/layer_alignment_<slug>_gate-<gate>_<UTC>.csv and .png
-Run:  .venv/bin/python marmanalysis/layer_alignment.py --session pd
+Run:  .venv/bin/python marmanalysis/layer_alignment.py --session Cadbury20221016d
       .venv/bin/python marmanalysis/layer_alignment.py --session Curly20240130d172813tUTC --gate responsive
 """
 import argparse
@@ -176,7 +176,8 @@ def image_stats(x):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--session', default='pd', choices=sorted(ss.SESSIONS) + sorted(ss.ALIASES))
+    ap.add_argument('--session', default=ss.DEFAULT_SLUG, help='session slug or a unique prefix of one: %s'
+                                                                  % ', '.join(ss.SESSIONS))
     ap.add_argument('--gate', default=None, choices=['zeta', 'responsive', 'all'])
     a = ap.parse_args()
     cfg = ss.resolve_session(a.session)

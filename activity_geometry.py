@@ -24,7 +24,7 @@
     prefers": two ROIs with identical preferences but different amplitudes come out far apart, and one strongly
     modulated ROI is far from everybody. Z-scoring removes that gain: ||z_i - z_j||^2 = 2 k (1 - r_ij) (k =
     number of conditions, population std), a monotone function of the tuning correlation, i.e. the distance then
-    reflects tuning SHAPE. On PD this is the
+    reflects tuning SHAPE. On Cadbury20221016d152643tUTC this is the
     difference between a raw D_phys-vs-cortical-distance correlation near zero / negative and a positive one. Their
     STRF-based samples do not have this problem to the same degree, which is why the two recipes differ here.
 
@@ -32,7 +32,7 @@ WHY (1) REDUCES TO RAW EUCLIDEAN ON OUR TUNING MATRICES: with 60 (or 208) condit
 has rank <= n_conditions < 100, so the 100-PC projection is lossless and D_phys equals the Euclidean distance on
 the centred tuning vectors (``n_pc`` only matters for time-resolved samples with more features than neurons).
 
-Run (demo on PD):  .venv/bin/python marmanalysis/activity_geometry.py
+Run (demo on Cadbury20221016d152643tUTC):  .venv/bin/python marmanalysis/activity_geometry.py
 """
 import os
 import sys
@@ -95,7 +95,7 @@ def _demo():
     X, xy = d['response'], d['roi_xy_um']
     gain = np.nanmax(X, 1) - np.nanmin(X, 1)
     iu = np.triu_indices(X.shape[0], 1)
-    print('PD corrected, %d ZETA ROIs x %d conditions (rank <= %d < 100 -> the 100-PC projection is lossless)' % (X.shape + (X.shape[1],)))
+    print('Cadbury20221016d152643tUTC corrected, %d ZETA ROIs x %d conditions (rank <= %d < 100 -> the 100-PC projection is lossless)' % (X.shape + (X.shape[1],)))
     D1 = dphys_currier_clandinin(X)
     D1raw = squareform(pdist(np.nan_to_num(X)))
     print('  exact D_phys == raw Euclidean on centred vectors: max |diff| = %.2e' % np.abs(D1 - D1raw).max())

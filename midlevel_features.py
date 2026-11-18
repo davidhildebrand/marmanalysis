@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """What are the MID-LEVEL features aligned with the face axis? (roadmap item 12, secondary result ii: the neural
 face axis = neural PC0 aligns best with pool5-PC0, |r|=0.86, better than relu6 / relu7.) A partial description
-in four parts, on the PD session (Cadbury 20221016d, 60 FOB images, ZETA-responsive ROIs, corrected 0.7):
+in four parts, on Cadbury20221016d152643tUTC (60 FOB images, ZETA-responsive ROIs, corrected 0.7):
 
   (1) ALIGNMENT: corr between the neural-PC0 condition loading (60-vector) and each layer's top-20 PC scores;
   (2) MONTAGE: the 60 images ranked by pool5-PC0 score and by the neural-PC0 loading (category-coloured frames)
@@ -129,7 +129,7 @@ def main():
     R = np.nan_to_num(resp - np.nanmean(resp, 0, keepdims=True))
     U, S, Vt = np.linalg.svd(R, full_matrices=False)
     npc0 = Vt[0] * np.sign(np.corrcoef(Vt[0], isf.astype(float))[0, 1])
-    print('PD: %d ZETA ROIs x %d images | categories %s | neural PC0 explains %.1f%% of ROI-centred variance'
+    print('Cadbury20221016d152643tUTC: %d ZETA ROIs x %d images | categories %s | neural PC0 explains %.1f%% of ROI-centred variance'
           % (resp.shape[0], resp.shape[1], dict(zip(*np.unique(ck, return_counts=True))), 100 * S[0] ** 2 / (S ** 2).sum()))
 
     # (1) alignment
@@ -154,11 +154,11 @@ def main():
     # (2) montages
     os.makedirs(OUTDIR, exist_ok=True)
     fig, axg = plt.subplots(6, 10, figsize=(15, 9.6))
-    montage(axg, np.argsort(p5), images, cats, p5, 'PD images ranked by pool5-PC0 (low -> high, row-major); frame = category (red face, green body, blue object); '
+    montage(axg, np.argsort(p5), images, cats, p5, 'Cadbury20221016d152643tUTC images ranked by pool5-PC0 (low -> high, row-major); frame = category (red face, green body, blue object); '
             'number = PC0 score', fig)
     fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_montage_pool5pc0_%s_%s.png' % (SLUG, STAMP)), dpi=110); plt.close(fig)
     fig, axg = plt.subplots(6, 10, figsize=(15, 9.6))
-    montage(axg, np.argsort(npc0), images, cats, npc0, 'PD images ranked by the NEURAL PC0 loading (the face axis; low -> high); frame = category; number = loading', fig)
+    montage(axg, np.argsort(npc0), images, cats, npc0, 'Cadbury20221016d152643tUTC images ranked by the NEURAL PC0 loading (the face axis; low -> high); frame = category; number = loading', fig)
     fig.tight_layout(); fig.savefig(os.path.join(OUTDIR, 'midlevel_montage_neuralpc0_%s_%s.png' % (SLUG, STAMP)), dpi=110); plt.close(fig)
 
     # (3) image statistics

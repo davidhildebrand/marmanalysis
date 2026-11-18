@@ -3,7 +3,7 @@
 """Feature-space topography (DH question, 2026-09-20): are IMAGE FEATURES represented in a spatially organised
 -- smooth or periodic -- manner? The earlier template detector looked only at the top-3 NEURAL-tuning PCs, which
 on this stimulus set are dominated by the coarse face/object axis. This extends it three ways, on the corrected
-(neucoeff 0.7) PD session, ZETA subset:
+(neucoeff 0.7) Cadbury20221016d152643tUTC session, ZETA subset:
 
   (A) MORE NEURAL PCs -- the per-PC-calibrated template detector on the top 20 neural-tuning PCs, BH-FDR across
       PCs (higher PCs = finer tuning axes, untested before).
@@ -32,8 +32,8 @@ import response_matrix as rm
 import som
 import topography as tg
 
-SESSION = paths.session('pd')
-ZETA_CSV = paths.tmp('responsiveness_pd.csv')
+SESSION = paths.session('Cadbury20221016d152643tUTC')
+ZETA_CSV = paths.tmp('responsiveness_Cadbury20221016d152643tUTC.csv')
 MAXD, MIND = 600.0, 15.0
 K_FEAT, K_NPC = 20, 20
 

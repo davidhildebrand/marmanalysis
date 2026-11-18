@@ -5,12 +5,12 @@
 Doshi's TRAINING notebook feeds AlexNet ``Resize -> CenterCrop -> ToTensor -> Normalize(ImageNet mean/std)``; his
 PROBE notebooks (and our ``dnn_som``, for parity) omit the Normalize step, so the probe images enter the network on
 a different input scale ([0, 1] instead of the standardised ~[-2, 2] the network and the shipped SOM codebook were
-built on). Quantify what that does on the 60 PD images with the shipped 20x20 SOM:
+built on). Quantify what that does on the 60 Cadbury20221016d152643tUTC images with the shipped 20x20 SOM:
   * relu7 activation magnitude / sparsity under each transform;
   * relu7 RDM agreement between the two transforms (Spearman of upper triangles);
   * where the images land on the map (distinct BMUs, mean pairwise BMU distance, within- vs between-category BMU
     distance) and the SCA RDM agreement;
-  * cortex~SOM and cortex~relu7 RSA (PD corrected 0.7, ZETA ROIs) under each transform.
+  * cortex~SOM and cortex~relu7 RSA (Cadbury20221016d152643tUTC corrected 0.7, ZETA ROIs) under each transform.
 Run:  .venv/bin/python marmanalysis/probe_normalization_check.py
 """
 import os

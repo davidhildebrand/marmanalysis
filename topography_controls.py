@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Topography artifact controls on the PD session (SOM plan step 4 / roadmap item 12), run on NEUROPIL-CORRECTED
+"""Topography artifact controls on the Cadbury20221016d152643tUTC session (SOM plan step 4 / roadmap item 12), run on NEUROPIL-CORRECTED
 traces (neucoeff=0.7) with the uncorrected traces alongside for reference. Bundles all four controls:
 
   * chunk 1 -- min_dist sweep + ROI-shared-pixel exclusion: does the score PERSIST as the nearest pairs are
@@ -24,8 +24,8 @@ import paths
 import response_matrix as rm
 import topography as tg
 
-SESSION = paths.session('pd')
-ZETA_CSV = paths.tmp('responsiveness_pd.csv')
+SESSION = paths.session('Cadbury20221016d152643tUTC')
+ZETA_CSV = paths.tmp('responsiveness_Cadbury20221016d152643tUTC.csv')
 MAXD = 600.0
 MIND = 15.0
 

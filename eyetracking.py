@@ -863,4 +863,4 @@ def _demo(session_path, outdir=paths.output()):
 
 if __name__ == '__main__':
     import sys
-    _demo(sys.argv[1] if len(sys.argv) > 1 else paths.session('pd'))
+    _demo(sys.argv[1] if len(sys.argv) > 1 else paths.session('Cadbury20221016d152643tUTC'))

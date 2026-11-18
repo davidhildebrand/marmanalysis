@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Verify the ONE lead from feature_topography.py: the preference map for relu7 image-feature PC2 showed a
-~198 um periodicity on PD (p=0.002, q=0.050 -- borderline, 1 of 20 features; its smooth autocorrelation a~0.01,
+~198 um periodicity on Cadbury20221016d152643tUTC (p=0.002, q=0.050 -- borderline, 1 of 20 features; its smooth autocorrelation a~0.01,
 i.e. a periodic-only, column-like signature with no gradient). Before believing it:
   (a) WHAT is feature-2 -- which images/categories sit at its extremes;
-  (b) tighter p (n_perm=2000) and early-vs-late SPLIT-HALF stability of the feature-2 map on PD;
+  (b) tighter p (n_perm=2000) and early-vs-late SPLIT-HALF stability of the feature-2 map on that session;
   (c) REPLICATION: Dali 20230810d SongFOBonly (the SAME 60 images -> identical feature axis, 2.6 mm FOV), and if
-      their image dirs resolve, Curly FOBmin / Dali FOBmany by projecting THEIR images onto PD's feature-2
+      their image dirs resolve, Curly FOBmin / Dali FOBmany by projecting THEIR images onto its feature-2
       direction (fixed axis across sessions);
   (d) the Cell-2025-style embedding-distance vs physical-distance test done RIGHT: each ROI's tuning z-scored so
       Euclidean ~ correlation distance (the unnormalized run conflated per-cell gain with tuning shape).
 Stimulus images come from each session's stimulus log as EFFECTIVE stimuli by default (each condition composited
-as presented on the logged background; som.condition_image_paths). The AXIS CHECK compares PD's feature-PC2 from
+as presented on the logged background; som.condition_image_paths). The AXIS CHECK compares that session's feature-PC2 from
 effective images with PC2 from the raw image files, the version the original lead was found with, so a change in
-the axis itself is visible. ``--replication-only`` skips the PD analyses (a), (b), (d): PD then only defines the
+the axis itself is visible. ``--replication-only`` skips analyses (a), (b), (d): that session then only defines the
 axis. ``--sessions`` limits (c) to the named sessions (animal, or animal:date).
 Run:  .venv/bin/python marmanalysis/feature2_verify.py
       .venv/bin/python marmanalysis/feature2_verify.py --replication-only --sessions Curly
@@ -37,8 +37,8 @@ import response_table as rt
 import som
 import topography as tg
 
-PD = paths.session('pd')
-ZETA_CSV = paths.tmp('responsiveness_pd.csv')
+SESSION = paths.session('Cadbury20221016d152643tUTC')
+ZETA_CSV = paths.tmp('responsiveness_Cadbury20221016d152643tUTC.csv')
 LARGE = [('Dali', '20230810d', 'ImagesSongFOBonly'),
          ('Curly', '20231103d', 'ImagesFOBmin'),
          ('Dali', '20230910d', 'ImagesFOBmany')]
@@ -79,13 +79,13 @@ def dist_vs_phys(coords, xy, maxd, label):
 
 
 def axis_check(data, feat, cats):
-    """Is PD's feature-PC2 from effective images the same feature as PC2 from the raw image files?"""
+    """Is the reference session's feature-PC2 from effective images the same feature as PC2 from the raw image files?"""
     raw = relu7_for(som.condition_image_paths(data, effective=False))
     Ur, Sr, _ = np.linalg.svd(raw - raw.mean(0, keepdims=True), full_matrices=False)
     raw_axis = Ur[:, FEAT] * Sr[FEAT]
     r = np.array([abs(np.corrcoef(raw_axis, feat[:, k])[0, 1]) for k in range(feat.shape[1])])
     k = int(np.argmax(r))
-    print('  axis check: |r|(effective feature-PC%d, raw-image feature-PC%d) = %.2f over the %d PD images; '
+    print('  axis check: |r|(effective feature-PC%d, raw-image feature-PC%d) = %.2f over the %d images; '
           'raw PC%d is best matched by effective PC%d (|r|=%.2f)' % (FEAT, FEAT, r[FEAT], len(raw_axis), FEAT, k, r[k]))
     print('  category means on the effective feature-%d axis: %s'
           % (FEAT, {c: round(float(feat[cats == c, FEAT].mean()), 2) for c in pd.unique(cats)}))
@@ -96,12 +96,12 @@ def main():
     ap.add_argument('--sessions', nargs='*', default=None,
                     help='replication sessions to run, by animal or animal:date (default: all of LARGE)')
     ap.add_argument('--replication-only', action='store_true',
-                    help='skip the PD analyses (a), (b), (d); PD only defines the feature axis')
+                    help='skip analyses (a), (b), (d) on Cadbury20221016d152643tUTC; it then only defines the feature axis')
     a = ap.parse_args()
     wanted = [s.lower() for s in (a.sessions or [])]
     targets = [t for t in LARGE if not wanted or t[0].lower() in wanted or ('%s:%s' % (t[0], t[1])).lower() in wanted]
 
-    data = rm.build_response_matrix(PD, denoise=False, reliability_splits=3, neuropil_subtract=True, neucoeff=0.7)
+    data = rm.build_response_matrix(SESSION, denoise=False, reliability_splits=3, neuropil_subtract=True, neucoeff=0.7)
     zeta = pd.read_csv(ZETA_CSV)['p_zeta'].to_numpy() < 0.05
     d = rm.apply_roi_mask(data, zeta)
     resp, xy = d['response'], d['roi_xy_um']
@@ -113,7 +113,7 @@ def main():
     U, S, Vt = np.linalg.svd(r7 - mu, full_matrices=False)
     feat, fev = U[:, :20] * S[:20], (S[:20] ** 2) / (S ** 2).sum()
     f2 = feat[:, FEAT]
-    print('PD | ZETA n=%d | relu7 feature-PC%d from effective stimuli (fev=%.3f)' % (resp.shape[0], FEAT, fev[FEAT]))
+    print('Cadbury20221016d152643tUTC | ZETA n=%d | relu7 feature-PC%d from effective stimuli (fev=%.3f)' % (resp.shape[0], FEAT, fev[FEAT]))
     axis_check(data, feat, cats)
     sys.stdout.flush()
 
@@ -126,7 +126,7 @@ def main():
         # (b) tighter p + split-half stability
         pref = rowcorr(resp, f2)
         res = tg.scalar_map_periodicity(pref, xy, n_grid=24, n_perm=2000, min_wavelength_um=30)[0]
-        print('  (b) PD feature-%d map: a=%.2f lam=%.0fum | periodicity peak_wl=%.0fum  p=%.4f (n_perm=2000)'
+        print('  (b) Cadbury20221016d152643tUTC feature-%d map: a=%.2f lam=%.0fum | periodicity peak_wl=%.0fum  p=%.4f (n_perm=2000)'
               % (FEAT, res['amplitude'], res['lambda_um'], res['peak_wavelength_um'], res['p']))
         tr = rt.trial_response(d['ds'], 'Fzsc').transpose('roi', 'condition', 'repeat').values[zeta]
         h = tr.shape[2] // 2
@@ -171,7 +171,7 @@ def main():
             if not keep.all():
                 print('  no local image for %d condition(s): %s'
                       % (int((~keep).sum()), [str(nm[i])[:20] for i in np.where(~keep)[0]]))
-            f2s = (relu7_for([p for p, k in zip(pths, keep) if k]) - mu) @ Vt[FEAT]   # coords on PD's feature-2
+            f2s = (relu7_for([p for p, k in zip(pths, keep) if k]) - mu) @ Vt[FEAT]   # coords on the reference session's feature-2
             rmask = rt.classify_responses(dd['ds'], metric='Fzsc', framerate=dd['framerate'], alpha=0.05)['responsive']
             fov = dd['roi_xy_um'].max(0) - dd['roi_xy_um'].min(0)
             print('  session: %s | stim dir: %s | %d images | FOV~%.0fx%.0f um | subsample n=%d, responsive=%d'

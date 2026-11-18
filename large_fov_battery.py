@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """#2 -- neuropil-corrected topography battery on LARGE-FOV sessions (Curly first, then both Dali), to test
-whether the smooth face-selectivity gradient found on the 730 um PD FOV extends across a much larger patch, or
+whether the smooth face-selectivity gradient found on the 730 um Cadbury20221016d152643tUTC FOV extends across a much larger patch, or
 whether finer structure appears at spatial scales the small FOV cannot resolve (roadmap 12e).
 
 Image-free analyses (topography controls + PC identity / per-PC template detector / drift) so they run for any
@@ -60,7 +60,7 @@ def run_session(path):
     print('  n_sub=%d  responsive=%d  |  FOV~%.0fx%.0f um  maxd=%.0f  |  cats=%s'
           % (corr['response'].shape[0], int(resp_mask.sum()), fov[0], fov[1], maxd,
              list(pd.unique([str(x) for x in cats]))))
-    # Topography on the FULL subsampled set (like PD's 'all'): dense spatial sampling, and not starved when the
+    # Topography on the FULL subsampled set (like the 'all' set of Cadbury20221016d152643tUTC): dense spatial sampling, and not starved when the
     # responsive fraction is low (subsampling happens BEFORE gating). Responsive count reported for context.
     for lab, dd in (('corrected', corr), ('uncorrected', unc)):
         dist = tg.pairwise_distance(dd['roi_xy_um'])

@@ -23,7 +23,7 @@ import response_table as rt
 import signal_quality as sq
 from denoising import denoise_psn, denoise_psn_xval
 
-DEFAULT_SESSION = paths.session('pd')
+DEFAULT_SESSION = paths.session('Cadbury20221016d152643tUTC')
 
 
 def _sig(p, alpha):

@@ -59,7 +59,7 @@ def dnn_transform(img_dim=IMG_DIM, normalize=False):
     matches Fenil's PROBE notebooks (no ImageNet normalization; parity-tested); ``normalize=True`` appends the
     ImageNet mean/std ``Normalize`` his TRAINING notebook uses (the input scale the network and the shipped SOM
     codebook were built on). ``probe_normalization_check.py`` (2026-09-27) shows the normalized probe gives a
-    better-spread map and higher cortex~SOM / cortex~relu7 RSA on PD. Apply to RGB images (see ``load_images_rgb``)."""
+    better-spread map and higher cortex~SOM / cortex~relu7 RSA on Cadbury20221016d152643tUTC. Apply to RGB images (see ``load_images_rgb``)."""
     from torchvision import transforms
     steps = [transforms.Resize(img_dim), transforms.CenterCrop((img_dim, img_dim)), transforms.ToTensor()]
     if normalize:

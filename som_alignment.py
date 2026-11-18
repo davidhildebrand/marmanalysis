@@ -5,8 +5,8 @@
 Each cortical ROI is assigned the SOM unit whose simulated-cortical-activation (SCA) profile over our stimuli best
 matches the ROI's response profile (BMU in stimulus space). Then a Mantel-style test asks whether ROIs NEARBY IN
 CORTEX map to units NEARBY IN THE SOM GRID -- with a position-shuffle null AND a within-category-preference null
-(so we can separate coarse-face-gradient alignment from anything finer). On the neuropil-CORRECTED (0.7) PD
-session, all ROIs + ZETA + the well-matched ZETA subset.
+(so we can separate coarse-face-gradient alignment from anything finer). On the neuropil-CORRECTED (0.7)
+Cadbury20221016d152643tUTC session, all ROIs + ZETA + the well-matched ZETA subset.
 
 CAVEAT (DH 2026-07-27): this is the Song FOB set (20 face / 20 body / 20 object) -- coarse CATEGORY sampling, so a
 positive alignment most likely reflects the smooth face-selectivity gradient (step-4 finding), and the
@@ -25,8 +25,8 @@ import paths
 import response_matrix as rm
 import som
 
-SESSION = paths.session('pd')
-ZETA_CSV = paths.tmp('responsiveness_pd.csv')
+SESSION = paths.session('Cadbury20221016d152643tUTC')
+ZETA_CSV = paths.tmp('responsiveness_Cadbury20221016d152643tUTC.csv')
 
 
 def roi_category(response, cats):

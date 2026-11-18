@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Detection-only suite2p variants on ONE registered movie (roadmap item 1, the suite2p settings sweep).
 
-Registration is the expensive step (~1 h for the 17,000-frame PD session) and is also the step whose result every
+Registration is the expensive step (~1 h for the 17,000-frame Cadbury20221016d152643tUTC session) and is also the step whose result every
 variant should share, so the sweep is "register once, detect many": an ANCHOR extraction made by
 process_with_suite2p.py with --keep-bin provides plane0/data.bin (the registered movie), plane0/ops.npy (the
 registration outputs: yrange / xrange / badframes / mean image / shifts) and ops_in.npy (the settings that were asked
@@ -155,7 +155,7 @@ def enhanced_mean_image(ops, diameter):
     A full run computes ops['meanImgE'] during REGISTRATION with that run's diameter (median-filter window
     4*ceil(d)+1 px), and detection then uses it as-is: anatomical.select_rois never recomputes it. A detection-only
     variant that changes the diameter must therefore redo it here to match a full run. The function is deterministic,
-    so for the anchor's own diameter it reproduces the anchor's meanImgE bit for bit (checked on the PD anchor,
+    so for the anchor's own diameter it reproduces the anchor's meanImgE bit for bit (checked on the Cadbury20221016d152643tUTC anchor,
     2026-11-17). suite2p 0.14.x indexes the diameter as a pair unless it is a Python int, hence the coercion.
     """
     from suite2p.registration.register import compute_enhanced_mean_image

@@ -142,7 +142,7 @@ SHOW = ['n_ref', 'n_cmp', 'ref_recovered_frac', 'ref_partial_frac', 'iou_med_sha
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--session', default=sr.PD)
+    ap.add_argument('--session', default=sr.SESSION)
     ap.add_argument('--refs', nargs='+', required=True, help='reference variant dirs / names')
     ap.add_argument('--variants', nargs='*', default=None,
                     help='comparison variants [default: all suite2p_* and sweep_suite2p/* of the session]')

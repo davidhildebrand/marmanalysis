@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """Side-by-side: does the 0.7 neuropil correction change the headline SOM-track numbers?
 
-Recomputes, WITH neuropil correction (``Fc = F - 0.7*(Fneu - median(Fneu))``) and WITHOUT, on the PD
-session (Cadbury/20221016d):
+Recomputes, WITH neuropil correction (``Fc = F - 0.7*(Fneu - median(Fneu))``) and WITHOUT, on session
+Cadbury20221016d152643tUTC:
   1. RESPONSIVENESS / SELECTIVITY gate counts (ANOVA gate) -- recomputed per variant, so this shows how the
      correction shifts gate MEMBERSHIP.
   2. RSA cortex~SOM(SCA), cortex~relu7, and cortex~SOM controlling for the category model -- on FIXED ROI
@@ -29,8 +29,8 @@ import response_table as rt
 import som
 import topography as tg
 
-SESSION = paths.session('pd')
-ZETA_CSV = paths.tmp('responsiveness_pd.csv')
+SESSION = paths.session('Cadbury20221016d152643tUTC')
+ZETA_CSV = paths.tmp('responsiveness_Cadbury20221016d152643tUTC.csv')
 MAXD = 600.0          # cap pairwise distance near the FOV extent (sparse far tail)
 MIND = 15.0           # drop the shortest pairs: ROI-overlap / short-range-artifact control
 N_PERM_RSA = 2000

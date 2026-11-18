@@ -16,7 +16,7 @@ Per variant (the variant is a suite2p_* folder of the session or a detection-onl
               full-tuning topography score (Spearman of tuning similarity vs -distance, 15-600 um), and the SCAN
               statistic of the face-d' map (most anomalous window, radii 40-100 um) with its p against random
               projections and its mark-correlation at 0-25 um vs the null p95   [feature_specificity, spatial_structure]
-All response-side numbers use the pipeline defaults the PD analyses used: Fzsc, neuropil correction 0.7, eye gate
+All response-side numbers use the pipeline defaults the Cadbury20221016d152643tUTC analyses used: Fzsc, neuropil correction 0.7, eye gate
 'landing_window'. Writes tmp/suite2p_sweep/<slug>_readouts_<UTC>.csv (and updates <slug>_readouts_latest.csv, keyed by
 variant) and prints a comparison table.
 Run:  .venv/bin/python marmanalysis/suite2p_sweep_readouts.py \\
@@ -46,7 +46,7 @@ import sessionio
 import spatial_structure as ss
 import topography as tg
 
-PD = v2.SESSION
+SESSION = v2.SESSION
 OUTDIR = paths.tmp('suite2p_sweep')
 STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')
 KEY_COLS = ['roi_total', 'roi_accepted', 'roi_analysed', 'roi_radius_um_med', 'ring_outer_um_med', 'ring_occupied_frac_med',
@@ -202,7 +202,7 @@ def readout(session, variant, n_rand, n_perm, zeta, reliability_splits, neucoeff
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--session', default=PD)
+    ap.add_argument('--session', default=SESSION)
     ap.add_argument('--variants', nargs='*', default=None, help='variant dirs / names / folder regexes [default: all suite2p_* and sweep_suite2p/* of the session]')
     ap.add_argument('--n-rand', type=int, default=500, help='random projections for the T null')
     ap.add_argument('--n-perm', type=int, default=500, help='random projections for the scan / mark-correlation null')

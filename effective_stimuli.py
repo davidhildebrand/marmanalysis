@@ -1,8 +1,8 @@
 """Per-session effective stimuli: every presented image condition rendered as it appeared on the screen.
 
 The image files a stimulus log names are not what the animal saw. Object PNGs carry transparency, and psychopy
-drew them over the session's background: the window color (``background_type = None``, e.g. PD Cadbury
-2022-10-16, uniform mid-gray) or, in most image sessions, a full-screen 1/f pink-noise image
+drew them over the session's background: the window color (``background_type = None``, e.g.
+Cadbury20221016d152643tUTC, uniform mid-gray) or, in most image sessions, a full-screen 1/f pink-noise image
 (``background_type = 'pinksame'``: one noise image behind every condition; ``'pink'``: one per condition) made by
 the stimulus code's ``generate_pinknoise_image`` with UNSEEDED ``np.random`` and never saved. The exact noise
 pixels are therefore unrecoverable; this module regenerates statistically equivalent noise with the same generator

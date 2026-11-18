@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Feature-space TOPOGRAPHY, v2 -- DH reframe (2026-09-21): the question is "are image FEATURES represented
-TOPOGRAPHICALLY?" (smoothly organised in cortex), not "periodically". On the corrected (0.7) PD session, ZETA set.
+TOPOGRAPHICALLY?" (smoothly organised in cortex), not "periodically". On the corrected (0.7) Cadbury20221016d152643tUTC session, ZETA set.
 
 FEATURE BASES (each yields per-image feature coordinates):
    neural-PC  the neural-tuning PCs themselves (reference)
@@ -35,8 +35,8 @@ import response_matrix as rm
 import som
 import topography as tg
 
-SESSION = paths.session('pd')
-ZETA_CSV = paths.tmp('responsiveness_pd.csv')
+SESSION = paths.session('Cadbury20221016d152643tUTC')
+ZETA_CSV = paths.tmp('responsiveness_Cadbury20221016d152643tUTC.csv')
 LAYERS = {'relu7': 'classifier.5', 'relu6': 'classifier.2', 'pool5': 'features.12'}
 K, N_PERM, NEAR, FAR, MIND, MAXD = 20, 300, 75.0, 150.0, 15.0, 600.0
 

@@ -38,7 +38,7 @@ _MAD_TO_STD = 0.6745
 #
 # nu k=7.0: a PERMISSIVE "is this a real cell" gate, not a "clearly-driven" bar. Goal: drop only debris and
 # dead/silent ROIs, keeping the neurons -- cellpose already enforces morphology and over a long session most
-# neurons fire, so we expect to remove very few. On the reference session (Cadbury PD) k=7 keeps ~773/791
+# neurons fire, so we expect to remove very few. On the reference session (Cadbury20221016d152643tUTC) k=7 keeps ~773/791
 # (98%) and, crucially, CONTAINS all responsive+selective cells (their min nu-SNR ~7.2 > 7), so the
 # active/responsive/selective nesting holds. nu is frame-rate INDEPENDENT (per-frame sigma ~ sqrt(framerate),
 # which nu divides out), so the threshold transfers across acquisition rates; it is also simple/structured --
@@ -180,7 +180,7 @@ def calculate_indicator_decay_tau(dff, framerate, isi_mask=None, method='half_de
     t_half ~0.20 s). Transients that do not reach 50% within ``decay_sec`` are skipped. Pass ``isi_mask``
     (per-frame bool, True on NON-stimulus frames) to measure only spontaneous decays -- stimulus-driven
     SUSTAINED firing inflates the apparent decay, so this is an UPPER bound on the pure-indicator value:
-    compare it against the published value, do not blindly replace. (On the Cadbury PD session the median came
+    compare it against the published value, do not blindly replace. (On the Cadbury20221016d152643tUTC session the median came
     to ~0.30 s tau / ~0.21 s t_half, matching the published 0.29 / 0.20 s.) Returns {'tau_median', 'tau_iqr'
     (q25,q75), 't_half_median', 'n_events', 'per_event_tau', 'per_event_roi'}.
     """

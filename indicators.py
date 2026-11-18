@@ -21,7 +21,7 @@ INDICATOR_TAU_SEC = {
         0.29,
         '1-AP half-decay t_half ~0.20 s in vivo (mouse brain) -> tau = t_half/ln2 = 0.29 s. '
         'Zhang et al. Looger 2023 Nature, https://doi.org/10.1038/s41586-023-05828-9. '
-        'Confirmed on Cadbury PD (empirical t_half ~0.19 s via calculate_indicator_decay_tau).'),
+        'Confirmed on Cadbury20221016d152643tUTC (empirical t_half ~0.19 s via calculate_indicator_decay_tau).'),
     'ribo-jGCaMP8s': (
         0.29,
         'Ribosome-tethered jGCaMP8s (ribo-L1-jGCaMP8s) -- our default construct. Uses the jGCaMP8s value '

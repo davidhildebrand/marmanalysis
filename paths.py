@@ -18,7 +18,8 @@ Locations (each function joins optional further parts onto its location):
     output(*parts)    figures and tables that are kept.                 Default: <project>/output
     tmp(*parts)       scratch and intermediate files.                   Default: <project>/tmp
 
-    session(key)      folder of a named session: a slug or alias from SESSIONS / SESSION_ALIASES, e.g. 'pd'.
+    session(key)      folder of a named session: a slug from SESSIONS or a unique prefix of one, e.g.
+                      'Cadbury20221016d152643tUTC' or 'Cadbury20221016d'.
     find_sessions(animal, date, pattern)   session folders that match and hold suite2p output.
 
 Overriding a location (first hit wins):
@@ -59,6 +60,8 @@ HOSTS = {
 
 # Named sessions: slug (sessionio.session_slug, AnimalDateTime) -> (animal, date, session folder name or glob pattern).
 # The one place a session's location is spelled out. Per-analysis settings stay with the analysis that uses them.
+# A session is ALWAYS named by its slug. There are deliberately no nicknames: an area name such as "PD" or an
+# animal name fits several sessions, so it cannot name one of them (DH 2026-11-17).
 SESSIONS = {
     'Cadbury20221016d152643tUTC': ('Cadbury', '20221016d',                          # area PD, 730 um field
                                    '152643tUTC_SP_depth200um_fov0730x0730um_res1p00x1p00umpx_fr06p364Hz_pow059p0mW_'
@@ -66,7 +69,6 @@ SESSIONS = {
     'Curly20231103d162355tUTC': ('Curly', '20231103d', '162355tUTC*ImagesFOBmin*'),   # FOBmin, 3 mm field
     'Curly20240130d172813tUTC': ('Curly', '20240130d', '172813tUTC*'),                # PD/MT border, 3 mm field
 }
-SESSION_ALIASES = {'pd': 'Cadbury20221016d152643tUTC', 'curly': 'Curly20231103d162355tUTC'}
 
 _config_cache = {}
 
@@ -165,14 +167,24 @@ def find_sessions(animal, date, pattern='*'):
     return [h for h in hits if os.path.isdir(h) and glob.glob(os.path.join(h, 'suite2p*'))]
 
 
+def session_name(key):
+    """The registered slug that ``key`` names: the slug itself, or a unique prefix of one such as
+    'Cadbury20221016d'. KeyError when no session, or more than one, matches."""
+    if key in SESSIONS:
+        return key
+    hits = [s for s in SESSIONS if s.startswith(key)] if key else []
+    if len(hits) != 1:
+        raise KeyError('%r names %s (registered: %s)'
+                       % (key, 'more than one session: ' + ', '.join(hits) if hits else 'no registered session',
+                          ', '.join(SESSIONS)))
+    return hits[0]
+
+
 def session(key):
-    """Folder of a named session: a slug from SESSIONS or an alias from SESSION_ALIASES. A session registered by its
-    exact folder name is answered without touching the disk (safe at import); one registered by a pattern resolves to
-    its first match that holds suite2p output, and raises FileNotFoundError when there is none."""
-    slug = SESSION_ALIASES.get(key, key)
-    if slug not in SESSIONS:
-        raise KeyError('unknown session %r (known: %s; aliases: %s)'
-                       % (key, ', '.join(SESSIONS), ', '.join(SESSION_ALIASES)))
+    """Folder of a named session: a slug from SESSIONS or a unique prefix of one (see session_name). A session
+    registered by its exact folder name is answered without touching the disk (safe at import); one registered by a
+    pattern resolves to its first match that holds suite2p output, and raises FileNotFoundError when there is none."""
+    slug = session_name(key)
     animal, date, name = SESSIONS[slug]
     if not glob.has_magic(name):
         return suite2p(animal, date, name)
@@ -197,13 +209,12 @@ def main():
         print('%-13s %s\n%14s%s | %s' % (key, path, '', 'exists' if exists else 'MISSING', source))
     print('named sessions')
     for slug in SESSIONS:
-        alias = [a for a, s in SESSION_ALIASES.items() if s == slug]
         try:
             path = session(slug)
             state = 'exists' if os.path.isdir(path) else 'MISSING'
         except FileNotFoundError as e:
             path, state = str(e), 'MISSING'
-        print('   %-28s %-8s %s%s' % (slug, state, path, '   (alias: %s)' % ', '.join(alias) if alias else ''))
+        print('   %-28s %-8s %s' % (slug, state, path))
 
 
 if __name__ == '__main__':

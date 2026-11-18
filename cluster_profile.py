@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Around the significant scan window of the PD face axis (spatial_structure.py; DH questions 2026-09-27):
+"""Around the significant scan window of the Cadbury20221016d152643tUTC face axis (spatial_structure.py; DH questions 2026-09-27):
 
  (1) GRADIENT OR BOUNDARY? Radial profiles vs distance from the window centre: mean face-axis z, the smooth-trend
      prediction (Gaussian-kernel regression, sigma = SIGMA_TREND um, fitted WITHOUT the cells within 2R of the
@@ -60,7 +60,7 @@ def smooth_trend(z, dist, exclude):
 
 def main():
     rng = np.random.default_rng(0)
-    data = nc.build(nc.PD, 0.7)
+    data = nc.build(nc.SESSION, 0.7)
     zeta = pd.read_csv(nc.ZETA_CSV)['p_zeta'].to_numpy() < 0.05
     d = rm.apply_roi_mask(data, zeta)
     resp, xy = d['response'], d['roi_xy_um']
@@ -149,9 +149,9 @@ def main():
     ax[3].axvline(np.nanmedian(eye_r[top30]), color='k', ls='--', label='top-30 face-selective median')
     ax[3].set_xlabel('within-face corr with pool5-PC0 (eye direction)'); ax[3].legend(fontsize=7)
     ax[3].set_title('members (red = face-selective, blue = not) vs population', fontsize=9)
-    fig.suptitle('PD face-axis scan window: is it a sharp island or the peak of a gradient, and do its cells rank faces along the eye direction?', fontsize=10)
+    fig.suptitle('Cadbury20221016d152643tUTC face-axis scan window: is it a sharp island or the peak of a gradient, and do its cells rank faces along the eye direction?', fontsize=10)
     fig.tight_layout()
-    out = os.path.join(OUTDIR, 'cluster_profile_%s_%s.png' % (ss.sessionio.session_slug(nc.PD),
+    out = os.path.join(OUTDIR, 'cluster_profile_%s_%s.png' % (ss.sessionio.session_slug(nc.SESSION),
                                                                datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')))
     fig.savefig(out, dpi=120)
     print('figure: %s' % out)

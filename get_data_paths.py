@@ -15,7 +15,7 @@ import paths
 import sessionio
 
 TARGETS = [
-    ('Cadbury', '20221016d', 'ImagesSongFOBonly'),   # the PD topography session
+    ('Cadbury', '20221016d', 'ImagesSongFOBonly'),   # Cadbury20221016d152643tUTC: the 730 um topography session
     ('Curly', '20231103d', 'ImagesFOBmin'),          # #2 large-FOV, 8-category
     ('Dali', '20230810d', 'ImagesSongFOBonly'),      # #2 same-stimulus large-FOV
     ('Dali', '20230910d', 'ImagesFOBmany'),          # #2 large-FOV, 8-category

@@ -21,7 +21,7 @@ def int_if_integral(diameter):
     suite2p 0.14.x treats ops['diameter'] as a (y, x) pair unless it is an int: registration's
     compute_enhanced_mean_image does np.array(diameter)[1], which raises IndexError on a float
     (0-d array). argparse type=float and session metadata both hand us floats, so coerce here.
-    Found 2026-11-17 when the PD anchor run died after a 2.3 h registration.
+    Found 2026-11-17 when the Cadbury20221016d152643tUTC anchor run died after a 2.3 h registration.
     """
     try:
         if float(diameter) == int(diameter):
@@ -62,7 +62,7 @@ parser.add_argument('--spatial-hp-cp', type=float, default=None,
 parser.add_argument('--keep-bin', action='store_true',
                     help='keep the registered binary for FISSA / detection-only re-runs and move it into the '
                          'save folder (<save_folder>/plane0/data.bin) instead of the default suite2p/plane0 scratch '
-                         'location (~2 bytes/px/frame, e.g. ~17 GB for the PD session). [default: delete it]')
+                         'location (~2 bytes/px/frame, e.g. ~17 GB for the Cadbury20221016d152643tUTC session). [default: delete it]')
 parser.add_argument('--no-reg-tif', action='store_true', help='do not write registered TIFF stacks (saves disk).')
 parser.add_argument('--indicator', type=str, default='jGCaMP8s',
                     help="indicator for the tau lookup, e.g. 'jGCaMP8s', 'ribo-jGCaMP8s', 'soma-jGCaMP8s'. [default: jGCaMP8s]")

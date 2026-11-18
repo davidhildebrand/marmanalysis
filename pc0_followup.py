@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """SOM step-4 follow-up (#1): firm up the one topography lead — the large-scale spatial power in the dominant
-tuning PC — on the NEUROPIL-CORRECTED (0.7) PD session (ZETA subset + all ROIs).
+tuning PC — on the NEUROPIL-CORRECTED (0.7) Cadbury20221016d152643tUTC session (ZETA subset + all ROIs).
 
   1. IDENTIFY PC0/1/2 — per-condition loadings grouped by category, and per-ROI PC score vs a face-preference
      contrast — to see what the dominant tuning axis encodes.
@@ -24,8 +24,8 @@ import response_matrix as rm
 import response_table as rt
 import topography as tg
 
-SESSION = paths.session('pd')
-ZETA_CSV = paths.tmp('responsiveness_pd.csv')
+SESSION = paths.session('Cadbury20221016d152643tUTC')
+ZETA_CSV = paths.tmp('responsiveness_Cadbury20221016d152643tUTC.csv')
 
 
 def _svd_scores(response):

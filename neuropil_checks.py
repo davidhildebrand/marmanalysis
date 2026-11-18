@@ -3,12 +3,12 @@
 """Neuropil correction: WHAT is subtracted (suite2p's neuropil mask geometry) and IS the subtraction removing
 contamination rather than signal? (DH question 2026-09-24, roadmap item 13.)
 
---geometry   Figure of suite2p's neuropil zone for an example PD ROI: the ROI's pixels, the neighbouring ROIs'
+--geometry   Figure of suite2p's neuropil zone for an example Cadbury20221016d152643tUTC ROI: the ROI's pixels, the neighbouring ROIs'
              pixels, and the neuropil mask (a ring that starts ``inner_neuropil_radius``=2 px outside the ROI and
              is grown outward in 5-px steps until >= ``min_neuropil_pixels``=350 pixels that belong to NO detected
              ROI are collected; ``allow_overlap``=False). Plus the ring's inner/outer radius and the fraction of
              the ring occupied (and therefore excluded) by other ROIs, across all ROIs.
---pd         Certainty checks on the PD session, all three quantities through the IDENTICAL response pipeline:
+--cadbury20221016d   Certainty checks on Cadbury20221016d152643tUTC, all three quantities through the IDENTICAL response pipeline:
              cell traces uncorrected (F), corrected (Fc = F - 0.7*(Fneu - median Fneu)), and the neuropil traces
              THEMSELVES treated as if they were cells (Fneu swapped in for F):
                1. how much of each cell's tuning is shared with its own surround (per-ROI corr of tuning vectors:
@@ -21,11 +21,11 @@ contamination rather than signal? (DH question 2026-09-24, roadmap item 13.)
                4. over-correction signature in the raw traces at neucoeff 0 / 0.7 / 1.0: fraction of frames below
                   -3 sigma vs above +3 sigma (negative dips appear when too much neuropil is subtracted), skewness;
                5. responsive / selective fractions, overall and among suite2p-ACCEPTED ROIs (iscell) only.
---curly      The same with/without comparison on a large-FOV 3 um/px session (Curly 20231103d FOBmin, 2000-ROI
-             subsample) where the cell<->Fneu trace correlation is low (0.23 vs PD 0.71): is the correction's effect
+--curly20231103d     The same with/without comparison on a large-FOV 3 um/px session (Curly20231103d162355tUTC, FOBmin, 2000-ROI
+             subsample) where the cell<->Fneu trace correlation is low (0.23 vs 0.71 in Cadbury20221016d152643tUTC): is the correction's effect
              on topography proportionally smaller there?
-Run:  .venv/bin/python marmanalysis/neuropil_checks.py --geometry --pd
-      .venv/bin/python marmanalysis/neuropil_checks.py --curly
+Run:  .venv/bin/python marmanalysis/neuropil_checks.py --geometry --cadbury20221016d
+      .venv/bin/python marmanalysis/neuropil_checks.py --curly20231103d
 """
 import argparse
 import glob
@@ -50,7 +50,7 @@ import sessionio
 import signal_quality as sq
 import topography as tg
 
-PD = v2.SESSION
+SESSION = v2.SESSION
 ZETA_CSV = v2.ZETA_CSV
 OUTDIR = paths.output()
 
@@ -119,7 +119,9 @@ def accepted_mask(data):
 
 
 # ----------------------------------------------------------------------------------------------------------------
-def geometry(session=PD, out=os.path.join(OUTDIR, 'neuropil_geometry_pd.png')):
+def geometry(session=SESSION, out=None):
+    slug = sessionio.session_slug(session)
+    out = out or os.path.join(OUTDIR, 'neuropil_geometry_%s.png' % slug)
     md = sessionio.load_metadata(session)
     s2p = sessionio.load_suite2p(session)
     ops, stat = s2p['ops'], s2p['ROIs']
@@ -186,15 +188,15 @@ def geometry(session=PD, out=os.path.join(OUTDIR, 'neuropil_geometry_pd.png')):
                         (outer[i], 'yellow', 'ring outer edge %.1f px' % outer[i])):
         ax[0].add_patch(Circle(c0, r, fill=False, ec=col, ls='--', lw=1.2, label=lab))
     ax[0].legend(loc='lower left', fontsize=7, framealpha=0.85)
-    ax[0].set_title('PD ROI #%d (%d neighbours < 25 px): ROI (red), other ROIs (blue), neuropil mask (yellow)\n'
+    ax[0].set_title('%s ROI #%d (%d neighbours < 25 px): ROI (red), other ROIs (blue), neuropil mask (yellow)\n'
                     '%d neuropil px; %.0f%% of the ring area is occupied by other ROIs (excluded)'
-                    % (i, nn25[i], n_neu[i], 100 * frac_occ[i]), fontsize=8.5)
+                    % (slug, i, nn25[i], n_neu[i], 100 * frac_occ[i]), fontsize=8.5)
     ax[0].set_xlabel('px (= %.2f um)' % res); ax[0].set_xticks([]); ax[0].set_yticks([])
     ax[1].hist(inner * res, bins=30, alpha=0.7, label='ring inner edge (median %.1f um)' % np.median(inner * res))
     ax[1].hist(outer * res, bins=30, alpha=0.7, label='ring outer edge (median %.1f um)' % np.median(outer * res))
     ax[1].hist(r_roi * res, bins=30, alpha=0.5, label='ROI radius (median %.1f um)' % np.median(r_roi * res))
     ax[1].set_xlabel('distance from ROI centroid (um)'); ax[1].set_ylabel('ROIs'); ax[1].legend(fontsize=7.5)
-    ax[1].set_title('neuropil ring radii, all %d PD ROIs' % n, fontsize=9)
+    ax[1].set_title('neuropil ring radii, all %d ROIs of %s' % (n, slug), fontsize=9)
     ax[2].hist(100 * frac_occ, bins=30, color='0.5')
     ax[2].set_xlabel('% of the ring annulus occupied by OTHER detected ROIs (excluded from Fneu)')
     ax[2].set_ylabel('ROIs')
@@ -213,7 +215,7 @@ def geometry(session=PD, out=os.path.join(OUTDIR, 'neuropil_geometry_pd.png')):
 
 
 # ----------------------------------------------------------------------------------------------------------------
-def pd_checks(session=PD):
+def cadbury20221016d_checks(session=SESSION):
     d0, d7 = build(session, None), build(session, 0.7)
     dn = build_neuropil_as_cells(session)
     n = d0['response'].shape[0]
@@ -226,8 +228,8 @@ def pd_checks(session=PD):
             zeta = z
     acc = accepted_mask(d0)
     fr = d0['framerate']
-    print('PD: n_roi=%d | ZETA-responsive=%d | suite2p-accepted=%d | categories=%s'
-          % (n, zeta.sum(), acc.sum(), sorted(set(map(str, cats)))))
+    print('%s: n_roi=%d | ZETA-responsive=%d | suite2p-accepted=%d | categories=%s'
+          % (sessionio.session_slug(session), n, zeta.sum(), acc.sum(), sorted(set(map(str, cats)))))
     R0, R7, Rn = d0['response'], d7['response'], dn['response']
 
     print('\n[1] SHARED TUNING cell vs its own surround (per-ROI corr of 60-condition tuning vectors; median over ZETA)')
@@ -278,8 +280,8 @@ def pd_checks(session=PD):
 
 
 # ----------------------------------------------------------------------------------------------------------------
-def curly_checks(subsample=2000):
-    session = paths.session('curly')
+def curly20231103d_checks(subsample=2000):
+    session = paths.session('Curly20231103d162355tUTC')
     kw = dict(roi_subsample=subsample, equalize_repeats=True, eye_gate_mode='none')
     d0, d7 = build(session, None, **kw), build(session, 0.7, **kw)
     n = d0['response'].shape[0]
@@ -311,16 +313,16 @@ def curly_checks(subsample=2000):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--geometry', action='store_true')
-    ap.add_argument('--pd', action='store_true')
-    ap.add_argument('--curly', action='store_true')
+    ap.add_argument('--cadbury20221016d', action='store_true', help='the checks on Cadbury20221016d152643tUTC')
+    ap.add_argument('--curly20231103d', action='store_true', help='the comparison on Curly20231103d162355tUTC')
     ap.add_argument('--subsample', type=int, default=2000)
     a = ap.parse_args()
     if a.geometry:
         geometry()
-    if a.pd:
-        pd_checks()
-    if a.curly:
-        curly_checks(a.subsample)
+    if a.cadbury20221016d:
+        cadbury20221016d_checks()
+    if a.curly20231103d:
+        curly20231103d_checks(a.subsample)
 
 
 if __name__ == '__main__':

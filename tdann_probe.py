@@ -26,7 +26,7 @@ Weights + positions: OSF node 64qv3 (tdann_data/tdann/...), fetched with ``--fet
 against the OSF hashes. The checkpoint is read with ``torch.load(weights_only=True)``: no code runs from the pickle.
 Run:  .venv/bin/python marmanalysis/tdann_probe.py --selftest
       .venv/bin/python marmanalysis/tdann_probe.py --fetch
-      .venv/bin/python marmanalysis/tdann_probe.py --session pd
+      .venv/bin/python marmanalysis/tdann_probe.py --session Cadbury20221016d
 """
 import argparse
 import hashlib
@@ -261,8 +261,8 @@ def run_session(session, n_perm=1000, model_key='main'):
     import dnn_som
     import feature_topography_v2 as v2
     import response_matrix as rm
-    if session != 'pd':
-        raise NotImplementedError('only the PD session is wired so far')
+    if paths.session_name(session) != 'Cadbury20221016d152643tUTC':
+        raise NotImplementedError('only Cadbury20221016d152643tUTC is wired so far')
     ckpt_key, model_label = MODELS[model_key]
     for key in (ckpt_key, LAYER):
         if not os.path.exists(path_of(key)):
@@ -282,7 +282,7 @@ def run_session(session, n_perm=1000, model_key='main'):
     if F.shape[1] != len(sheet_xy):
         raise ValueError('layer has %d units but %d positions' % (F.shape[1], len(sheet_xy)))
     live = F.std(0) > 0
-    print('PD corrected 0.7, %d ZETA ROIs x %d images | TDANN %s %s = %d units (%d respond to these images), sheet %.0f x %.0f mm'
+    print('Cadbury20221016d152643tUTC corrected 0.7, %d ZETA ROIs x %d images | TDANN %s %s = %d units (%d respond to these images), sheet %.0f x %.0f mm'
           % (resp.shape[0], len(paths), LAYER, dims, F.shape[1], live.sum(), np.ptp(sheet_xy[:, 0]), np.ptp(sheet_xy[:, 1])))
 
     # 1. RSA
@@ -366,10 +366,10 @@ def run_session(session, n_perm=1000, model_key='main'):
         m = grp == g
         axs[1, 1].scatter(sheet_xy[units[m], 0], sheet_xy[units[m], 1], s=10, color=col, alpha=0.6, label='ROIs preferring %s' % g)
     axs[1, 1].legend(fontsize=7)
-    axs[1, 1].set_title('where the %d PD ROIs land: their best-matching units (Mantel r=%+.3f)' % (len(units), ap['r']), fontsize=9)
+    axs[1, 1].set_title('where the %d Cadbury20221016d152643tUTC ROIs land: their best-matching units (Mantel r=%+.3f)' % (len(units), ap['r']), fontsize=9)
     for a in axs.ravel():
         a.set_aspect('equal' if a is not axs[1, 0] else 'auto')
-    fig.suptitle('TDANN (Margalit et al. 2024, SimCLR, %s) probed with the PD stimuli (effective, ImageNet-normalized)'
+    fig.suptitle('TDANN (Margalit et al. 2024, SimCLR, %s) probed with the Cadbury20221016d152643tUTC stimuli (effective, ImageNet-normalized)'
                  % model_label, fontsize=10)
     fig.tight_layout()
     import sessionio
@@ -422,7 +422,7 @@ def main():
     ap.add_argument('--fetch', action='store_true', help='download + verify the --model checkpoint (92 MB) and the '
                                                            'layer4.1 positions (80 MB, shared by all models)')
     ap.add_argument('--model', default='main', choices=sorted(MODELS), help='%s' % {k: v[1] for k, v in MODELS.items()})
-    ap.add_argument('--session', default=None, choices=['pd'])
+    ap.add_argument('--session', default=None, help='session slug or a unique prefix of one (wired: Cadbury20221016d152643tUTC)')
     ap.add_argument('--n-perm', type=int, default=1000)
     a = ap.parse_args()
     if a.selftest:

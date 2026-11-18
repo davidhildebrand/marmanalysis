@@ -128,7 +128,7 @@ def light_metrics(path, variant=None):
     if xo is not None and yo is not None:
         xo, yo = np.asarray(xo, float), np.asarray(yo, float)
         # Motion = JITTER about the session-median shift. A constant offset vs the reference image is not motion
-        # (PD's raw median |shift| of 11 px was such a DC offset); it is reported separately.
+        # (Cadbury20221016d152643tUTC's raw median |shift| of 11 px was such a DC offset); it is reported separately.
         r = np.hypot(xo - np.median(xo), yo - np.median(yo))
         m['motion_rigid_med_px'], m['motion_rigid_p95_px'] = float(np.median(r)), float(np.percentile(r, 95))
         m['motion_rigid_offset_px'] = float(np.hypot(np.median(xo), np.median(yo)))

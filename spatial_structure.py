@@ -6,7 +6,7 @@ periodicity?
 
 Maps (one scalar per ROI, z-scored across ROIs): the neural PC0 score, and face / body / object preference (d' of the
 category vs the rest, blanks excluded). PC0 is called the FACE AXIS only where its condition loading tracks the face
-indicator (|r| >= FACE_MIN_R; PD 0.90). In the 3-mm Curly fields it does not (0.11-0.16), so there the map is
+indicator (|r| >= FACE_MIN_R; Cadbury20221016d152643tUTC 0.90). In the 3-mm Curly fields it does not (0.11-0.16), so there the map is
 labeled 'neural PC0' and the figure's face panels (red clusters on the mean image, Gi*) use the face d' map.
 Statistics:
   1. MARK-CORRELATION FUNCTION k(d) = mean(z_i z_j | d_ij in bin): the tuning correlation of two cells as a function
@@ -24,8 +24,8 @@ Statistics:
 Nulls for 1-3 (n_perm maps each): (a) POSITION SHUFFLE; (b) RANDOM PROJECTION in condition space (the generic
 smoothness ANY tuning direction inherits); (c) RANDOM FEATURE DIRECTION in relu7-PC space (Chang & Tsao 2017 STA-style).
 
-Sessions are named by their slug (sessionio.session_slug, AnimalDateTime, e.g. Curly20240130d172813tUTC; aliases 'pd'
-and 'curly'), and every figure filename and title carries it (filenames also carry the gate and the curve's range).
+Sessions are named by their slug (sessionio.session_slug, AnimalDateTime, e.g. Curly20240130d172813tUTC; a unique
+prefix such as Cadbury20221016d also selects one), and every figure filename and title carries it (filenames also carry the gate and the curve's range).
 Multimodal sessions are restricted to their image conditions. Geometry is SPARSE: the mark-correlation (tuning
 similarity vs distance) curve uses every pair within ``--rmax-um`` (default RMAX_CURVE = 1,500 um, well beyond column
 scale: ~43 M pairs for a 3-mm field, ~1 h with 500 permutations; 3,000 um = every pair, about twice as many), while
@@ -35,8 +35,8 @@ sessions are LOADED in spatial chunks (``chunk_um``) only to bound memory; the a
 ``--tile-um`` still gives separate per-tile analyses. The figure shows the suite2p mean image next to the maps
 (all spatial panels in image orientation: y increases downward), the numbered face and object clusters and the
 best scan window.
-Run:  .venv/bin/python marmanalysis/spatial_structure.py --session pd
-      .venv/bin/python marmanalysis/spatial_structure.py --session curly --n-perm 500
+Run:  .venv/bin/python marmanalysis/spatial_structure.py --session Cadbury20221016d
+      .venv/bin/python marmanalysis/spatial_structure.py --session Curly20231103d --n-perm 500
 """
 import argparse
 import glob
@@ -92,7 +92,7 @@ SESSIONS = {
     'Curly20231103d162355tUTC': dict(**_LARGE),                                              # FOBmin, 3 mm
     'Curly20240130d172813tUTC': dict(**_LARGE),                                              # PD/MT border, 3 mm
 }
-ALIASES = paths.SESSION_ALIASES
+DEFAULT_SLUG = 'Cadbury20221016d152643tUTC'   # the session the extra robustness checks in main() were written for
 MAP_NAMES = ('face axis (nPC0)', "face d'", "body d'", "object d'")
 INTACT = ('face', 'body', 'object', 'animal')   # intact image categories; category d' contrasts within these
 
@@ -248,15 +248,15 @@ def face_axis_map(resp, ck):
 
 def pc0_face_r(resp, ck):
     """|corr| between the neural PC0 condition loading and the face indicator, and PC0's share of the variance:
-    is PC0 the face axis in this session? (PD 0.90 yes; Curly 3-mm fields 0.11-0.16 no.)"""
+    is PC0 the face axis in this session? (Cadbury20221016d152643tUTC 0.90 yes; Curly 3-mm fields 0.11-0.16 no.)"""
     R = np.nan_to_num(resp - np.nanmean(resp, 0, keepdims=True))
     _, S, Vt = np.linalg.svd(R, full_matrices=False)
     return float(abs(np.corrcoef(Vt[0], (ck == 'face').astype(float))[0, 1])), float(S[0] ** 2 / (S ** 2).sum())
 
 
 def resolve_session(key):
-    """Session config by slug or alias; adds 'path' and 'slug'."""
-    slug = ALIASES.get(key, key)
+    """Session config by slug or a unique prefix of one (paths.session_name); adds 'path' and 'slug'."""
+    slug = paths.session_name(key)
     cfg = dict(SESSIONS[slug])
     cfg['path'] = paths.session(slug)
     cfg['slug'] = sessionio.session_slug(cfg['path'])
@@ -534,8 +534,9 @@ def load_field(cfg, gate, chunk_um):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--session', default='pd', choices=sorted(SESSIONS) + sorted(ALIASES),
-                    help='session slug (AnimalDateTime, sessionio.session_slug) or alias: %s' % ALIASES)
+    ap.add_argument('--session', default=DEFAULT_SLUG,
+                    help='session slug (AnimalDateTime, sessionio.session_slug) or a unique prefix of one: %s'
+                         % ', '.join(SESSIONS))
     ap.add_argument('--gate', default=None, choices=['zeta', 'responsive', 'all'])
     ap.add_argument('--tile-um', type=float, default=None, help='separate per-tile analyses with this tile edge (0 = whole field, default)')
     ap.add_argument('--min-tile-rois', type=int, default=300)
@@ -549,7 +550,7 @@ def main():
     rng = np.random.default_rng(0)
     cfg = resolve_session(a.session)
     slug = cfg['slug']
-    is_pd = slug == ALIASES['pd']
+    is_default = slug == DEFAULT_SLUG
     gate = a.gate or cfg['gate']
     tile_um = cfg.get('tile_um', 0) if a.tile_um is None else a.tile_um
     tag = 'gate-%s_rmax%gum' % (gate, a.rmax_um)            # analysis choices in the filename
@@ -589,7 +590,7 @@ def main():
     resp = resp[:, keep]
     Fpc = feature_pcs(data, keep)
     label = '%s whole field (corrected 0.7, gate=%s, %d/%d cells)' % (slug, gate, resp.shape[0], n_total)
-    if is_pd:
+    if is_default:
         cls = rt.classify_responses(data['ds'], metric='Fzsc', framerate=data['framerate'], alpha=0.05)
         sel_ = cls['selective'][mask]
         q = np.nanpercentile(rel, [25, 50, 75, 90])
@@ -605,7 +606,7 @@ def main():
     analyse(resp, xy, ck, label, a.n_perm, Fpc, rng, os.path.join(OUTDIR, 'spatial_structure_%s_%s_%s.png' % (slug, tag, STAMP)),
             bg=bg, rmax_um=a.rmax_um)
 
-    if is_pd and not a.no_sensitivity:
+    if is_default and not a.no_sensitivity:
         print('\n=== face-axis scan / hotspots at other neuropil coefficients (random-projection null per build) ===')
         for cf in (None, 1.0):
             dd_ = rm.apply_roi_mask(nc.build(cfg['path'], cf), mask)

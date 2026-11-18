@@ -24,7 +24,7 @@ import eyetracking as et
 LN2 = np.log(2.0)
 PUBLISHED_TAU_SEC = et.INDICATOR_DECAY_TAU_SEC          # 0.29 s (jGCaMP8s, in vivo)
 PUBLISHED_THALF_SEC = PUBLISHED_TAU_SEC * LN2           # ~0.20 s
-DEFAULT_SESSION = paths.session('pd')
+DEFAULT_SESSION = paths.session('Cadbury20221016d152643tUTC')
 
 
 def nonstim_mask(ctx, n_frames):

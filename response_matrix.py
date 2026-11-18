@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Assemble a session's per-ROI (roi x condition) response matrix + positions + condition metadata.
 
-General-purpose (any 2P imaging session, not only cortex/PD): the SOM-vs-cortex topography comparison (SOM
+General-purpose (any 2P imaging session, not only cortex or area PD): the SOM-vs-cortex topography comparison (SOM
 plan, main-track step 2) is one consumer. Produces the things a tuning/topography analysis needs:
 
   1. the **(roi x condition) response matrix** -- each ROI's response profile over the conditions;
