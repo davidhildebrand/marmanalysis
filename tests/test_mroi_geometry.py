@@ -94,3 +94,124 @@ def test_seam_fit_recovers_a_known_overlap():
     assert abs(good['overlap'] - overlap) < 1.0 and abs(good['dy']) == 2
     assert good['misfit'] < even['misfit']                       # the sinusoid describes the seam better
     assert abs(even['overlap'] - overlap) > 2.0                  # evenly spaced pixels get the overlap wrong
+
+
+# ------------------------------------------------------------------------------------------------ stitching ----
+import pytest  # noqa: E402
+
+OVERLAPS, ROW_OFFSETS = (8.0, 5.0), (1.5, -0.5)
+
+
+def scene_and_strips(rng, rows=420, overlaps=OVERLAPS, row_offsets=ROW_OFFSETS):
+    """A scene, and three raw strips of it: sinusoid-sampled, overlapping by ``overlaps``, each neighbour's content
+    offset by ``row_offsets`` rows (left row r + offset shows what the right strip shows at row r)."""
+    width = float(N)
+    left = np.concatenate([[0.0], np.cumsum(width - np.array(overlaps))])
+    down = np.concatenate([[0.0], np.cumsum(row_offsets)])
+    tex = texture(rng, rows + 12, left[-1] + width + 20)
+    pos = mg.pixel_positions(N, F, width)
+
+    def view(x, row_shift):
+        cols = sample(tex, x + 10.0)                                       # (rows + 12, len(x))
+        r = np.arange(rows) + 6.0 + row_shift
+        r0 = np.floor(r).astype(int)
+        f = (r - r0)[:, None]
+        return cols[r0] * (1 - f) + cols[r0 + 1] * f
+
+    strips = np.stack([view(pos + left[i] + width / 2, down[i]) for i in range(3)])
+    return strips, view, left, width
+
+
+def test_overlap_weights_for_every_mode():
+    width, left = 100.0, np.array([0.0, 90.0, 185.0])                     # overlaps of 10 and 5
+    x = np.arange(0.5, 285, 1.0)
+    w = {m: mg.overlap_weights(x, left, width, m) for m in mg.OVERLAP_MODES}
+    for m, wm in w.items():
+        assert np.allclose(wm.sum(0), 1.0), m                              # every column is fully accounted for
+    outside = (x < 90) | ((x >= 100) & (x < 185)) | (x >= 200)
+    for m in mg.OVERLAP_MODES:
+        assert np.allclose(w[m][:, outside], w['split'][:, outside])       # modes differ only inside an overlap
+    zone = (x >= 90) & (x < 100)
+    assert np.allclose(w['crossfade'][0, zone], (100 - x[zone]) / 10)      # a linear fade
+    assert np.allclose(w['average'][:2, zone], 0.5)
+    assert np.allclose(w['left'][0, zone], 1) and np.allclose(w['right'][1, zone], 1)
+    assert np.allclose(w['split'][0, zone], x[zone] < 95)
+    gap = mg.overlap_weights(x, np.array([0.0, 104.0]), width, 'crossfade')   # a 4-wide gap: each side reaches its middle
+    assert np.allclose(gap.sum(0)[x < 204], 1.0) and gap[0, x < 102].all() and gap[1, (x >= 102) & (x < 204)].all()
+    with pytest.raises(ValueError):
+        mg.overlap_weights(x, left, width, 'blend')
+
+
+@pytest.mark.parametrize('mode', mg.OVERLAP_MODES)
+def test_stitch_rebuilds_the_scene_in_every_mode(mode):
+    strips, view, left, width = scene_and_strips(np.random.default_rng(3))
+    plan = mg.stitch_plan(N, F, width, OVERLAPS, 1.0, mode, ROW_OFFSETS)
+    out = mg.stitch(strips, plan)
+    truth = view((np.arange(plan['n_canvas']) + 0.5) * 1.0, 0.0)
+    assert out.shape == truth.shape == (420, int(round(left[-1] + width)))
+    inner = (slice(8, -8), slice(4, -4))
+    assert np.corrcoef(out[inner].ravel(), truth[inner].ravel())[0, 1] > 0.985
+    # leaving the strips where the header puts them (edge to edge, no row offsets) doubles the tissue at the seams
+    naive = mg.stitch(strips, mg.stitch_plan(N, F, width, (0.0, 0.0), 1.0, mode))
+    seam = slice(int(left[1]) - 6, int(left[1]) + 14)
+    good = np.corrcoef(out[8:-8, seam].ravel(), truth[8:-8, seam].ravel())[0, 1]
+    assert good > 0.97
+    cols = slice(int(width) - 6, int(width) + 14)
+    wide = view((np.arange(naive.shape[1]) + 0.5) * 1.0, 0.0) if naive.shape[1] <= truth.shape[1] + 20 else None
+    assert naive.shape[1] > out.shape[1] and (wide is None or np.corrcoef(naive[8:-8, cols].ravel(), wide[8:-8, cols].ravel())[0, 1] < good)
+
+
+def test_seams_are_found_to_a_fraction_of_a_pixel_and_disagreement_is_caught():
+    strips, view, left, width = scene_and_strips(np.random.default_rng(4))
+    overlaps, rows, fits, trusted = mg.fit_seams(strips, F, width, 1.0)
+    assert trusted.all()
+    assert np.max(np.abs(overlaps - OVERLAPS)) < 1.0 and np.max(np.abs(rows - ROW_OFFSETS)) < 0.35
+    plan = mg.stitch_plan(N, F, width, overlaps, 1.0, 'crossfade', rows)
+    agree = mg.overlap_agreement(strips, plan)
+    assert all(a['r'] > 0.85 for a in agree)
+    assert all(abs(a['columns'] - o) <= 1 for a, o in zip(agree, overlaps))     # the overlap in whole canvas columns
+    assert mg.check_overlap_agreement(agree, 'crossfade') == []
+    wrong = mg.stitch_plan(N, F, width, np.array(OVERLAPS) + 9.0, 1.0, 'crossfade', rows)   # seams 9 um off
+    bad = mg.overlap_agreement(strips, wrong)
+    assert all(a['r'] < 0.6 for a in bad)
+    with pytest.warns(UserWarning, match='disagree'):
+        assert len(mg.check_overlap_agreement(bad, 'crossfade')) == 2
+    with pytest.raises(ValueError, match='disagree'):
+        mg.check_overlap_agreement(bad, 'average', on_disagreement='error')
+    assert mg.check_overlap_agreement(bad, 'split', on_disagreement='error') == []        # nothing is blended there
+
+
+def test_shift_rows():
+    img = np.arange(40, dtype=float).reshape(8, 5)
+    assert np.allclose(mg.shift_rows(img, 0.0), img)
+    assert np.allclose(mg.shift_rows(img, 2.0)[2:], img[:-2])              # content moved down by two rows
+    assert np.allclose(mg.shift_rows(img, 0.5)[1:], 0.5 * (img[:-1] + img[1:]))
+
+
+def test_start_of_sweep_ramp_is_measured_and_removed():
+    """Every line starts dim: even lines at the left strip edge, odd lines at the right one. The ramp is recovered from
+    the ratio of the two parities, the seams are still found, and the stitched plane has no bright/dim line pattern."""
+    strips, view, left, width = scene_and_strips(np.random.default_rng(5), row_offsets=(0.0, 0.0))
+    dark, level = 30.0, 6.0
+    ramp = np.ones((2, N))
+    ramp[0, :12] = np.linspace(0.2, 0.95, 12)                              # even lines: first pixels of the sweep
+    ramp[1, -12:] = np.linspace(0.95, 0.2, 12)                             # odd lines sweep the other way
+    raw = np.empty_like(strips)
+    for parity in (0, 1):
+        raw[:, parity::2] = dark + (level + strips[:, parity::2]) * ramp[parity]
+    gain = mg.edge_gain(raw, dark)
+    assert gain.shape == (2, N) and np.max(np.abs(gain - ramp)) < 0.05
+    overlaps, rows, fits, trusted = mg.fit_seams(raw, F, width, 1.0, gain=gain, dark=dark)
+    assert trusted.all() and np.max(np.abs(overlaps - OVERLAPS)) < 1.0 and np.max(np.abs(rows)) < 0.35
+    truth = None
+    scores = {}
+    for name, g in (('corrected', gain), ('uncorrected', None)):
+        plan = mg.stitch_plan(N, F, width, OVERLAPS, 1.0, 'average', gain=g, dark=dark if g is not None else 0.0)
+        out = mg.stitch(raw, plan)
+        if truth is None:
+            truth = dark + level + view((np.arange(plan['n_canvas']) + 0.5) * 1.0, 0.0)
+        seam = slice(int(left[1]) - 8, int(left[1]) + 16)
+        scores[name] = np.corrcoef(out[8:-8, seam].ravel(), truth[8:-8, seam].ravel())[0, 1]
+        if g is not None:
+            assert np.max(np.abs(out[8:-8, 20:-20] - truth[8:-8, 20:-20])) < 1.0     # right brightness, no line pattern
+    assert scores['corrected'] > 0.97 and scores['corrected'] > scores['uncorrected'] + 0.02

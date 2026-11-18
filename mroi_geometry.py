@@ -20,21 +20,30 @@ own texture along the slow axis as a ruler, (3) undistorts strips by resampling 
 (the fast-scan centre is upsampled by interpolation, the slow-scan edges are averaged), and (4) measures how adjacent
 strips really sit relative to each other (overlap and vertical offset) from the columns they share.
 
+(5) STITCHES the strips: each raw strip goes onto one evenly spaced canvas in a single interpolation (sinusoid undone,
+odd/even lines aligned, seam position and row offset applied to a fraction of a pixel), and where two strips overlap
+the two copies are combined as chosen: 'crossfade', 'split', 'average', 'left' or 'right'. The blending modes warn (or
+raise) when the two copies do not agree, which means the seam position is wrong.
+
 Run:  .venv/bin/python marmanalysis/mroi_geometry.py --session Curly20231103d162355tUTC [--frames 300]
-Writes output/mroi_geometry_<slug>_<UTC>.png and prints the measurements.
+      .venv/bin/python marmanalysis/mroi_geometry.py --session Cadbury20221016d --stitch --overlap-mode crossfade
+Writes output/mroi_geometry_<slug>_<UTC>.png or output/mroi_stitch_<slug>_mode-<mode>_seam-<seam>_<UTC>.png and prints
+the measurements.
 """
 import argparse
+import functools
 import glob
 import os
+import re
 import sys
 from datetime import datetime, timezone
+from warnings import warn
 
 import numpy as np
 from scipy import ndimage, sparse
 from scipy.interpolate import PchipInterpolator
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import metadata
 import paths
 import sessionio
 
@@ -96,10 +105,32 @@ def undistort(strips, fill_fraction_temporal, n_out=None, line_offset=0.0):
 
 
 # ---------------------------------------------------------------------------------------------------- the data ----
+def header_fields(tif, names=('uniformSampling', 'bidirectional', 'linePhase', 'sampleRate', 'pixelBinFactor')):
+    """A few ``SI.hScan2D`` values straight from the raw file's header text. Much faster on a long recording than
+    metadata.get_metadata, which also walks every frame."""
+    from ScanImageTiffReader import ScanImageTiffReader
+    with ScanImageTiffReader(tif) as reader:
+        text = reader.metadata()
+    out = {}
+    for name in names:
+        m = re.search(r'^SI\.hScan2D\.%s\s*=\s*(.+?)\s*$' % name, text, re.M)
+        value = m.group(1) if m else None
+        if value in ('true', 'false'):
+            value = value == 'true'
+        elif value is not None:
+            try:
+                value = float(value)
+            except ValueError:
+                pass
+        out[name] = value
+    return out
+
+
+@functools.lru_cache(maxsize=8)
 def scan_settings(session):
     """The scan parameters that fix the strip geometry. Fill fractions, scanner frequency and strip layout come from
     the session metadata (metadata.extract_useful_metadata); fields that older metadata files do not hold are read
-    from the raw file header."""
+    from the raw file header. Cached per session."""
     md = sessionio.load_metadata(session)
     out = {'fill_fraction_temporal': float(md['fill_fraction_temporal']),
            'fill_fraction_spatial': float(md['fill_fraction_spatial']),
@@ -114,10 +145,9 @@ def scan_settings(session):
     if all(k in md for k in extra):
         out.update({k: md[k] for k in extra})
     else:
-        h = metadata.get_metadata(raw_file(session))['SI']['hScan2D']
-        out.update(uniform_sampling=bool(h['uniformSampling']), bidirectional=bool(h['bidirectional']),
-                   line_phase=float(h['linePhase']), sample_rate=float(h['sampleRate']),
-                   pixel_bin_factor=h['pixelBinFactor'])
+        h = header_fields(raw_file(session))
+        out.update(uniform_sampling=h['uniformSampling'], bidirectional=h['bidirectional'], line_phase=h['linePhase'],
+                   sample_rate=h['sampleRate'], pixel_bin_factor=h['pixelBinFactor'])
     return out
 
 
@@ -255,42 +285,20 @@ def bidirectional_offset(image, max_shift=4):
 
 
 # --------------------------------------------------------------------------------------------------- the seams ----
-def column_correlation_vs_distance(image, positions, max_dist, step):
-    """How the correlation between two columns' y-profiles falls off with the distance between the columns, measured
-    INSIDE one strip (interior half): a monotone curve g on a grid of ``step``, with g(0) = 1."""
-    w = image.shape[1]
-    cols = np.arange(w // 4, 3 * w // 4)
-    z = image[:, cols]
-    z = (z - z.mean(0)) / z.std(0)
-    c = z.T @ z / z.shape[0]
-    d = np.abs(positions[cols][:, None] - positions[cols][None, :])
-    grid = np.arange(0.0, max_dist + step, step)
-    g = np.ones(len(grid))
-    for i in range(1, len(grid)):
-        m = (d > grid[i] - step) & (d <= grid[i] + step)
-        g[i] = c[m].mean() if m.any() else np.nan
-    ok = np.isfinite(g)
-    g = np.interp(grid, grid[ok], g[ok])
-    return grid, np.clip(np.minimum.accumulate(g), 0.0, None)     # monotone, and never negative: only nearness counts
-
-
-def seam_fit(left, right, fill_fraction_temporal, width, margin=28, max_dy=4, max_dist=None, n_parts=4):
+def seam_fit(left, right, fill_fraction_temporal, width, margin=28, max_dy=4, min_corr=0.3, n_parts=4):
     """Where does the right strip sit relative to the left one? ``left`` and ``right`` are high-passed mean images of
     two adjacent RAW strips.
 
-    The correlation between every left-edge column and every right-edge column is compared with what the within-strip
-    fall-off of correlation with distance predicts, given each column's position under the pixel model and a trial
-    spacing between the two strip centres. The spacing that fits best (least squares, free amplitude) is the answer.
-    All column pairs contribute, including neighbours that do not overlap, so this also works when the overlap is only
-    a pixel or two. Returns overlap (= width - spacing, same units as ``width``), its range over ``n_parts`` row
-    blocks, the vertical offset, and the relative misfit (lower = the pixel model describes the seam better)."""
+    Every left-edge column is correlated (along y) with every right-edge column. A pair of columns that image the same
+    tissue are each other's best match, and both columns' positions are known from the pixel model, so every such
+    MUTUAL best match gives one estimate of the spacing between the two strip centres. The answer is their median.
+    One-sided best matches are not used: a column beyond the overlap has no partner and simply picks the other strip's
+    edge column, which would bias the estimate. Returns overlap (= width - spacing, same units as ``width``), the
+    scatter of the matches in nominal pixels (``misfit``; lower = the pixel model describes the seam better), how many
+    matches there were, the overlap from ``n_parts`` row blocks, and the vertical offset (whole and sub-pixel)."""
     n_px = left.shape[1]
     pos = pixel_positions(n_px, fill_fraction_temporal, width)
-    step = width / n_px / 4.0
-    max_dist = 6.0 * width / n_px * 3 if max_dist is None else max_dist
-    grid, g = column_correlation_vs_distance(left, pos, max_dist, step)
     xl, xr = pos[n_px - margin:], pos[:margin]
-    trial = np.arange(width - 0.35 * width, width + 0.1 * width, step)              # centre spacings to try
 
     def matrix(rows, dy):
         a = left[rows, n_px - margin:]
@@ -301,27 +309,360 @@ def seam_fit(left, right, fill_fraction_temporal, width, margin=28, max_dy=4, ma
         return za.T @ zb / za.shape[0]
 
     def fit(m):
-        best = (np.inf, np.nan, np.nan)
-        for s in trial:
-            pred = np.interp(np.abs(xl[:, None] - (xr[None, :] + s)), grid, g, right=0.0)
-            alpha = np.sum(m * pred) / max(np.sum(pred * pred), 1e-12)
-            if alpha <= 0:
-                continue                                         # shared tissue correlates positively, never negatively
-            err = np.sum((m - alpha * pred) ** 2) / np.sum(m * m)
-            if err < best[0]:
-                best = (err, s, alpha)
-        return best
+        best_b, best_a = m.argmax(1), m.argmax(0)
+        floor = max(min_corr, 0.6 * m.max())
+        est = []
+        for a in range(margin):
+            b = int(best_b[a])
+            if best_a[b] != a or m[a, b] < floor:
+                continue
+            frac = 0.0
+            if 0 < b < margin - 1:
+                denom = m[a, b - 1] - 2 * m[a, b] + m[a, b + 1]
+                frac = float(np.clip(0.5 * (m[a, b - 1] - m[a, b + 1]) / denom, -0.5, 0.5)) if denom else 0.0
+            est.append(xl[a] - np.interp(b + frac, np.arange(margin), xr))
+        if len(est) < 2:
+            return np.nan, np.nan, len(est)
+        est = np.array(est)
+        spacing = float(np.median(est))
+        return spacing, float(1.4826 * np.median(np.abs(est - spacing))), len(est)
 
     everything = slice(None)
     dys = np.arange(-max_dy, max_dy + 1)
-    peaks = [matrix(everything, int(dy)).max() for dy in dys]
-    dy = int(dys[int(np.argmax(peaks))])
+    peaks = np.array([matrix(everything, int(dy)).max() for dy in dys])
+    j = int(np.argmax(peaks))
+    dy = int(dys[j])
+    dy_sub = float(dy)
+    if 0 < j < len(dys) - 1:                                          # parabola through the peak and its neighbours
+        denom = peaks[j - 1] - 2 * peaks[j] + peaks[j + 1]
+        dy_sub = float(dy + (0.5 * (peaks[j - 1] - peaks[j + 1]) / denom if denom else 0.0))
     m = matrix(everything, dy)
-    err, spacing, alpha = fit(m)
+    spacing, scatter, n_pairs = fit(m)
     h = left.shape[0]
-    parts = [fit(matrix(slice(i * h // n_parts, (i + 1) * h // n_parts), dy))[1] for i in range(n_parts)]
+    parts = [fit(matrix(slice(i * h // n_parts, (i + 1) * h // n_parts), dy))[0] for i in range(n_parts)]
     return {'overlap': float(width - spacing), 'overlap_parts': [float(width - s) for s in parts], 'dy': dy,
-            'misfit': float(err), 'amplitude': float(alpha), 'peak': float(m.max()), 'matrix': m, 'spacing': float(spacing)}
+            'dy_subpixel': dy_sub, 'misfit': float(scatter / (width / n_px)), 'n_pairs': int(n_pairs),
+            'peak': float(m.max()), 'matrix': m, 'spacing': float(spacing)}
+
+
+# ------------------------------------------------------------------------------------- start-of-sweep ramp ----
+def edge_gain(mean_strips, dark=0.0, floor=0.05):
+    """Relative brightness of each raw pixel for even and odd lines: (2, n_px), 1 = full brightness.
+
+    Every sweep of the resonant mirror STARTS with the beam still turning on, so the first ten or so pixels of a line
+    are dim. Even lines start at one strip edge and odd lines at the other, so each edge has one dim parity and one
+    good one. The two parities see the same tissue column, so their ratio isolates the ramp exactly: the dimmer parity
+    gets ratio < 1 and the brighter one gets 1. Pooled over strips and rows; ``dark`` is the detector offset."""
+    m = np.asarray(mean_strips, float) - dark
+    even, odd = m[:, 0::2].mean((0, 1)), m[:, 1::2].mean((0, 1))
+    with np.errstate(divide='ignore', invalid='ignore'):
+        g = np.stack([np.minimum(1.0, even / odd), np.minimum(1.0, odd / even)])
+    return np.clip(np.nan_to_num(g, nan=1.0), floor, 1.0)
+
+
+def dark_level(session, n_frames=24, seed=0):
+    """Detector offset: the median of the flyback rows between strips, where the beam is blanked."""
+    from ScanImageTiffReader import ScanImageTiffReader
+    rows = scan_settings(session)['rows']
+    with ScanImageTiffReader(raw_file(session)) as reader:
+        total = reader.shape()[0]
+        starts = np.sort(np.random.default_rng(seed).choice(total - 4, max(1, n_frames // 4), replace=False))
+        frames = np.concatenate([reader.data(beg=int(s), end=int(s) + 4) for s in starts]).astype(np.float32)
+    gaps = [frames[:, rows[i][1] + 4:rows[i + 1][0] - 4] for i in range(len(rows) - 1) if rows[i + 1][0] - rows[i][1] > 10]
+    return float(np.median(np.concatenate([g.ravel() for g in gaps]))) if gaps else 0.0
+
+
+# ---------------------------------------------------------------------------------------------------- stitching ----
+OVERLAP_MODES = ('crossfade', 'split', 'average', 'left', 'right')
+
+
+def overlap_weights(x, left_edges, width, mode):
+    """Weight of every strip at canvas positions ``x``: (n_strips, len(x)), summing to 1 wherever a strip covers.
+
+    Where two strips overlap, ``mode`` decides how the two copies of the tissue are combined:
+      'crossfade'  the left strip fades out linearly across the overlap while the right one fades in
+      'split'      a hard cut in the middle of the overlap: each strip keeps its own half
+      'average'    both strips count equally across the whole overlap
+      'left'       the left strip is used for the whole overlap
+      'right'      the right strip is used for the whole overlap
+    Where there is a gap instead (negative overlap), each side is extended to the middle of the gap."""
+    if mode not in OVERLAP_MODES:
+        raise ValueError('overlap mode must be one of %s, got %r' % (OVERLAP_MODES, mode))
+    n = len(left_edges)
+    w = np.zeros((n, len(x)))
+    for i in range(n):
+        lo, hi = left_edges[i], left_edges[i] + width
+        if i > 0:
+            lo = min(lo, 0.5 * (left_edges[i - 1] + width + left_edges[i]))      # a gap on the left: reach its middle
+        if i < n - 1:
+            hi = max(hi, 0.5 * (left_edges[i] + width + left_edges[i + 1]))      # a gap on the right
+        w[i] = (x >= lo) & (x < hi) if i < n - 1 else (x >= lo) & (x <= hi)
+    for i in range(n - 1):
+        a, b = left_edges[i + 1], left_edges[i] + width                          # the overlap is [a, b]
+        zone = (x >= a) & (x < b)
+        if b <= a or not zone.any():
+            continue
+        if mode == 'crossfade':
+            left = (b - x[zone]) / (b - a)
+        elif mode == 'split':
+            left = (x[zone] < 0.5 * (a + b)).astype(float)
+        elif mode == 'average':
+            left = np.full(zone.sum(), 0.5)
+        else:
+            left = np.full(zone.sum(), 1.0 if mode == 'left' else 0.0)
+        w[i, zone], w[i + 1, zone] = left, 1.0 - left
+    total = w.sum(0)
+    return w / np.where(total > 0, total, 1.0)
+
+
+def strip_to_canvas_matrix(n_px, fill_fraction_temporal, width, left_edge, n_canvas, pixel, weights=None, shift=0.0,
+                           oversample=8):
+    """Sparse (n_canvas, n_px) matrix that puts one RAW strip line onto the evenly spaced canvas in ONE interpolation:
+    it undoes the sinusoid, applies the odd/even line ``shift`` (raw pixels), places the strip at ``left_edge`` to a
+    fraction of a pixel, and scales each canvas column by its blending weight (default: 1 inside the strip)."""
+    centres = pixel_positions(n_px, fill_fraction_temporal, width)               # raw pixel centres, strip-centred
+    fine = (np.arange(n_canvas * oversample) + 0.5) / oversample * pixel - left_edge - 0.5 * width
+    inside = (fine >= -0.5 * width) & (fine <= 0.5 * width)
+    k = np.interp(fine, centres, np.arange(n_px)) + shift                        # clamps to the edge pixel outside
+    k0 = np.clip(np.floor(k).astype(int), 0, n_px - 2)
+    w1 = np.clip(k - k0, 0.0, 1.0)
+    rows = np.repeat(np.arange(n_canvas), oversample)
+    if weights is None:
+        scale = inside.astype(float)
+    else:
+        scale = np.repeat(np.asarray(weights, float), oversample)                # a strip may be extended into a gap
+    cover = np.bincount(rows, weights=(scale > 0).astype(float), minlength=n_canvas)
+    norm = scale / np.where(cover[rows] > 0, cover[rows], 1.0)                   # average over the fine samples used
+    R = sparse.coo_matrix((np.concatenate([(1 - w1) * norm, w1 * norm]),
+                           (np.concatenate([rows, rows]), np.concatenate([k0, k0 + 1]))), shape=(n_canvas, n_px))
+    return R.tocsr()
+
+
+def stitch_plan(n_px, fill_fraction_temporal, width, overlaps, pixel, mode='crossfade', row_offsets=None,
+                line_offset=0.0, gain=None, dark=0.0):
+    """Everything needed to turn raw strips into one evenly sampled plane.
+
+    ``overlaps``: overlap between each pair of neighbours, in the units of ``width`` (negative = a gap), e.g. from
+    seam_fit. ``pixel``: output pixel size along x. ``row_offsets``: per seam, how many rows (may be fractional) the
+    right strip's content sits BELOW where the left strip shows the same tissue... as returned by seam_fit ('dy' or
+    'dy_subpixel': left row r + dy matches right row r). ``line_offset``: odd/even line offset in raw pixels.
+    ``gain`` (2, n_px), from edge_gain, and ``dark``: the start-of-sweep ramp. With a gain, what is summed across strips
+    is the light collected, and it is divided by the gain collected: a single strip is brightness-corrected, and in an
+    overlap the dim (ramped, noisier) copy automatically counts for less. With mode 'average' that is the
+    photon-optimal combination of the two copies.
+    Returns a dict with the canvas size, each strip's left edge, weights, row shift, and its two sampling matrices
+    (even and odd lines)."""
+    overlaps = np.atleast_1d(np.asarray(overlaps, float))
+    n = len(overlaps) + 1
+    left_edges = np.concatenate([[0.0], np.cumsum(width - overlaps)])
+    n_canvas = int(round((left_edges[-1] + width) / pixel))
+    x = (np.arange(n_canvas) + 0.5) * pixel
+    weights = overlap_weights(x, left_edges, width, mode)
+    row_offsets = np.zeros(n - 1) if row_offsets is None else np.atleast_1d(np.asarray(row_offsets, float))
+    row_shift = np.concatenate([[0.0], np.cumsum(row_offsets)])
+    mats = [tuple(strip_to_canvas_matrix(n_px, fill_fraction_temporal, width, left_edges[i], n_canvas, pixel, weights[i], s)
+                  for s in (-0.5 * line_offset, 0.5 * line_offset)) for i in range(n)]
+    gain = np.ones((2, n_px)) if gain is None else np.asarray(gain, float)
+    return {'n_canvas': n_canvas, 'pixel': float(pixel), 'width': float(width), 'left_edges': left_edges, 'overlaps': overlaps,
+            'weights': weights, 'row_shift': row_shift, 'matrices': mats, 'mode': mode,
+            'fill_fraction_temporal': fill_fraction_temporal, 'n_px': n_px, 'line_offset': float(line_offset),
+            'gain': gain, 'dark': float(dark)}
+
+
+def shift_rows(image, offset):
+    """Content moved down by ``offset`` rows (fractional, linear interpolation, edges held): out[r] = in[r - offset]."""
+    if abs(offset) < 1e-3:
+        return image
+    h = image.shape[-2]
+    src = np.clip(np.arange(h) - offset, 0, h - 1)
+    r0 = np.clip(np.floor(src).astype(int), 0, h - 2)
+    f = (src - r0)[:, None]
+    return image[..., r0, :] * (1 - f) + image[..., r0 + 1, :] * f
+
+
+def strip_on_canvas(strip, plan, i, weighted=True):
+    """One raw strip (..., rows, n_px) placed on the canvas (..., rows, n_canvas): undistorted, line-corrected, at its
+    sub-pixel position, row-shifted. With ``weighted=True`` this is the strip's CONTRIBUTION to the stitched plane
+    (dark-subtracted light times its blending weight; stitch() sums these and divides by the gain collected). With
+    ``weighted=False`` it is the strip on its own, brightness-corrected, for comparing the two copies of an overlap."""
+    strip = np.asarray(strip, np.float32) - plan['dark']
+    out = np.empty(strip.shape[:-1] + (plan['n_canvas'],), np.float32)
+    for parity in (0, 1):
+        R = plan['matrices'][i][parity]
+        if not weighted:
+            R = strip_to_canvas_matrix(plan['n_px'], plan['fill_fraction_temporal'], plan['width'], plan['left_edges'][i],
+                                       plan['n_canvas'], plan['pixel'],
+                                       shift=(-0.5, 0.5)[parity] * plan['line_offset'])
+        part = strip[..., parity::2, :]
+        res = np.asarray((R @ part.reshape(-1, part.shape[-1]).T).T).reshape(part.shape[:-1] + (R.shape[0],))
+        if not weighted:
+            own = R @ plan['gain'][parity]
+            res = res / np.where(own > 1e-6, own, 1.0) + plan['dark']
+        out[..., parity::2, :] = res
+    return shift_rows(out, plan['row_shift'][i])
+
+
+def gain_collected(plan, rows):
+    """The gain that reaches every canvas pixel, (rows, n_canvas): each strip's weight times its even- or odd-line
+    brightness, moved by that strip's row shift exactly as its light is. Cached in the plan."""
+    key = ('gain_collected', rows)
+    if key not in plan:
+        total = np.zeros((rows, plan['n_canvas']), np.float32)
+        for i, (r_even, r_odd) in enumerate(plan['matrices']):
+            own = np.empty((rows, plan['n_canvas']), np.float32)
+            own[0::2], own[1::2] = r_even @ plan['gain'][0], r_odd @ plan['gain'][1]
+            total += shift_rows(own, plan['row_shift'][i])
+        plan[key] = np.where(total > 1e-6, total, 1.0)
+    return plan[key]
+
+
+def stitch(strips, plan):
+    """Raw strips (..., n_strips, rows, n_px) -> one plane (..., rows, n_canvas), following ``plan``."""
+    out = None
+    for i in range(strips.shape[-3]):
+        part = strip_on_canvas(strips[..., i, :, :], plan, i)
+        out = part if out is None else out + part
+    return out / gain_collected(plan, strips.shape[-2]) + plan['dark']
+
+
+def overlap_agreement(mean_strips, plan, sigma=10.0):
+    """Do the two copies of the tissue in each overlap agree? For each seam: the correlation between the left and the
+    right strip's (high-passed) mean image over the overlap columns, after both were put on the canvas, and how many
+    canvas columns the overlap spans. NaN where the overlap is narrower than one column."""
+    out = []
+    for i in range(len(plan['overlaps'])):
+        a, b = plan['left_edges'][i + 1], plan['left_edges'][i] + plan['width']
+        cols = np.nonzero(((np.arange(plan['n_canvas']) + 0.5) * plan['pixel'] >= a)
+                          & ((np.arange(plan['n_canvas']) + 0.5) * plan['pixel'] < b))[0]
+        if len(cols) < 1:
+            out.append({'seam': i, 'columns': 0, 'r': np.nan})
+            continue
+        pad = int(3 * sigma)
+        sl = slice(max(cols[0] - pad, 0), min(cols[-1] + pad + 1, plan['n_canvas']))
+        pair = []
+        for j in (i, i + 1):
+            img = strip_on_canvas(mean_strips[j], plan, j, weighted=False)[:, sl]
+            img = img - ndimage.gaussian_filter(img, sigma)
+            pair.append(img[:, cols[0] - sl.start:cols[-1] - sl.start + 1])
+        m = 2 * (int(np.ceil(abs(plan['row_shift']).max())) + 1)
+        by_parity = [float(np.corrcoef(pair[0][m + q:-m:2].ravel(), pair[1][m + q:-m:2].ravel())[0, 1]) for q in (0, 1)]
+        out.append({'seam': i, 'columns': int(len(cols)), 'r': float(np.mean(by_parity)), 'r_even': by_parity[0],
+                    'r_odd': by_parity[1]})
+    return out
+
+
+def check_overlap_agreement(agreement, mode, min_agreement=0.7, on_disagreement='warn'):
+    """Blending two copies that do not show the same thing blurs or doubles structure. For the blending modes, warn
+    (or raise, ``on_disagreement='error'``) when an overlap's two copies correlate below ``min_agreement``."""
+    if mode not in ('crossfade', 'average') or on_disagreement == 'ignore':
+        return []
+    bad = [a for a in agreement if np.isfinite(a['r']) and a['r'] < min_agreement]
+    if bad:
+        msg = ('overlap mode %r blends the two strips, but they disagree at seam(s) %s (correlation %s, wanted >= %.2f). '
+               'The seam position is probably wrong: check the seam fit, or use mode "split".'
+               % (mode, ', '.join('%d|%d' % (a['seam'], a['seam'] + 1) for a in bad),
+                  ', '.join('%.2f' % a['r'] for a in bad), min_agreement))
+        if on_disagreement == 'error':
+            raise ValueError(msg)
+        warn(msg)
+    return bad
+
+
+def fit_seams(mean_strips, fill_fraction_temporal, width, yres, max_misfit=1.5, min_pairs=3, gain=None, dark=0.0):
+    """Per-seam overlap and vertical offset from the mean of raw strips. Even and odd lines are fitted SEPARATELY, each
+    after its start-of-sweep ramp is divided out (``gain`` from edge_gain), and the two answers are averaged: with the
+    parities mixed, the bright/dim alternation of lines at every strip edge dominates and pulls the fit one row off.
+    A seam is trusted only when both parities found at least ``min_pairs`` matching column pairs that agree to within
+    ``max_misfit`` nominal pixels. Strips that merely touch have no shared columns and cannot be fitted this way: an
+    untrusted seam gets the median of the trusted ones, or the nominal 0 if there is none.
+    Returns (overlaps, row_offsets, fits, trusted); each fit carries both parities' results."""
+    cell_px = max(4, int(round(12.0 / yres)))
+    margin = int(min(mean_strips.shape[-1] // 4, max(20, 3 * cell_px)))
+    gain = np.ones((2, mean_strips.shape[-1])) if gain is None else gain
+    per_parity = []
+    for parity in (0, 1):
+        img = (np.asarray(mean_strips, np.float32)[:, parity::2] - dark) / gain[parity]
+        hp = highpass(img, max(8.0, 2.5 * cell_px))
+        per_parity.append([seam_fit(hp[i], hp[i + 1], fill_fraction_temporal, width, margin) for i in range(len(hp) - 1)])
+    fits = [{'overlap': float(np.mean([e['overlap'], o['overlap']])),
+             'dy_subpixel': float(np.mean([e['dy_subpixel'], o['dy_subpixel']]) * 2.0),      # fitted on every other row
+             'misfit': float(np.nanmax([e['misfit'], o['misfit']])) if np.isfinite([e['misfit'], o['misfit']]).all() else np.nan,
+             'n_pairs': int(min(e['n_pairs'], o['n_pairs'])), 'peak': float(min(e['peak'], o['peak'])),
+             'even': e, 'odd': o, 'matrix': e['matrix'], 'spacing': float(np.mean([e['spacing'], o['spacing']]))}
+            for e, o in zip(*per_parity)]
+    trusted = np.array([np.isfinite(f['overlap']) and f['n_pairs'] >= min_pairs and f['misfit'] <= max_misfit for f in fits])
+    overlaps = np.array([f['overlap'] for f in fits])
+    rows = np.array([f['dy_subpixel'] for f in fits])
+    if not trusted.all():
+        fill_o = float(np.median(overlaps[trusted])) if trusted.any() else 0.0
+        fill_r = float(np.median(rows[trusted])) if trusted.any() else 0.0
+        warn('seam fit not trusted at seam(s) %s (fewer than %d matching column pairs, or they disagree by more than '
+             '%.1f px): using overlap %.1f and row offset %.2f there'
+             % (', '.join('%d|%d' % (i, i + 1) for i in np.nonzero(~trusted)[0]), min_pairs, max_misfit, fill_o, fill_r))
+        overlaps = np.where(trusted, overlaps, fill_o)
+        rows = np.where(trusted, rows, fill_r)
+    return overlaps, rows, fits, trusted
+
+
+def refine_seams(mean_strips, fill_fraction_temporal, width, pixel, overlaps, row_offsets, line_offset=0.0, gain=None,
+                 dark=0.0, span=2.5, step=0.25, row_span=1.0, row_step=0.25):
+    """Sub-pixel refinement of every seam: around the fitted overlap (+-``span`` output pixels in steps of ``step``) and
+    row offset (+-``row_span`` rows), keep the pair at which the two copies of the overlap agree best once both are
+    undistorted and brightness-corrected. A seam with less than one column of overlap is left as it is.
+    Returns (overlaps, row_offsets, agreement at the chosen values)."""
+    n_px = mean_strips.shape[-1]
+    overlaps, row_offsets = np.array(overlaps, float), np.array(row_offsets, float)
+    best_r = np.full(len(overlaps), np.nan)
+    for i in range(len(overlaps)):
+        if not np.isfinite(overlaps[i]) or overlaps[i] < pixel:
+            continue
+        pair = mean_strips[i:i + 2]
+        best = (-np.inf, overlaps[i], row_offsets[i])
+        for ov in overlaps[i] + np.arange(-span, span + 1e-9, step) * pixel:
+            if ov < pixel:
+                continue
+            for dy in row_offsets[i] + np.arange(-row_span, row_span + 1e-9, row_step):
+                plan = stitch_plan(n_px, fill_fraction_temporal, width, [ov], pixel, 'average', [dy], line_offset, gain, dark)
+                r = overlap_agreement(pair, plan)[0]['r']
+                if np.isfinite(r) and r > best[0]:
+                    best = (r, ov, dy)
+        best_r[i], overlaps[i], row_offsets[i] = best
+    return overlaps, row_offsets, best_r
+
+
+def plan_session(session, mean_strips=None, mode='crossfade', seam='fit', pixel=None, min_agreement=0.7,
+                 on_disagreement='warn', n_frames=300, subpixel=True, ramp=True, dark=None):
+    """The stitch plan for a session. ``seam``: 'fit' measures every seam from the data, 'nominal' takes the header's
+    layout (no overlap), a number is an overlap in um used for every seam. ``subpixel=False`` rounds the measured
+    positions to whole output pixels and rows; otherwise each fitted seam is refined to a fraction of a pixel by
+    maximising the agreement of its two copies (refine_seams). ``ramp=False`` leaves the start-of-sweep brightness
+    ramp uncorrected.
+    Returns (plan, info)."""
+    s = scan_settings(session)
+    w = int(s['strip_px'][0])
+    width, yres, f_t = float(s['strip_um'][0]), float(s['resolution_umpx'][1]), s['fill_fraction_temporal']
+    pixel = yres if pixel is None else float(pixel)
+    if mean_strips is None:
+        mean_strips = read_strips(session, n_frames).mean(0)
+    line_offset = float(np.median([bidirectional_offset(m) for m in mean_strips]))
+    n = mean_strips.shape[0]
+    dark = (dark_level(session) if ramp else 0.0) if dark is None else float(dark)
+    gain = edge_gain(mean_strips, dark) if ramp else None
+    fits, trusted = None, None
+    if seam == 'fit':
+        overlaps, rows, fits, trusted = fit_seams(mean_strips, f_t, width, yres, gain=gain, dark=dark)
+    else:
+        overlaps = np.full(n - 1, 0.0 if seam == 'nominal' else float(seam))
+        rows = np.zeros(n - 1)
+    if subpixel and seam == 'fit':
+        overlaps, rows, _ = refine_seams(mean_strips, f_t, width, pixel, overlaps, rows, line_offset, gain, dark)
+    if not subpixel:
+        overlaps, rows = np.round(overlaps / pixel) * pixel, np.round(rows)
+    plan = stitch_plan(w, f_t, width, overlaps, pixel, mode, rows, line_offset, gain, dark)
+    agreement = overlap_agreement(mean_strips, plan)
+    bad = check_overlap_agreement(agreement, mode, min_agreement, on_disagreement)
+    return plan, {'settings': s, 'mean_strips': mean_strips, 'fits': fits, 'trusted': trusted, 'agreement': agreement,
+                  'disagree': bad, 'line_offset': line_offset, 'gain': gain, 'dark': dark}
 
 
 # ------------------------------------------------------------------------------------------------------- report ----
@@ -398,15 +739,15 @@ def report(session, out_png=None, n_frames=300):
     print('\nodd/even line offset per strip (raw px): %s | median %+.2f' % (' '.join('%+.2f' % b for b in r['bidi']), np.median(r['bidi'])))
     print('\nseams: where each strip sits relative to its left neighbour (overlap in um; nominal is 0):')
     for i, (sm, se) in enumerate(zip(r['seams_model'], r['seams_even'])):
-        print('   strips %d|%d: peak r %.2f, vertical offset %+d px | sinusoid model: overlap %5.1f um (row blocks %s), misfit %.3f | '
-              'evenly spaced pixels: overlap %5.1f um, misfit %.3f'
-              % (i, i + 1, sm['peak'], sm['dy'], sm['overlap'], ' '.join('%.1f' % o for o in sm['overlap_parts']), sm['misfit'],
+        print('   strips %d|%d: peak r %.2f, %d matched column pairs | sinusoid model: overlap %5.1f um (row blocks %s), scatter %.2f px | '
+              'evenly spaced pixels: overlap %5.1f um, scatter %.2f px'
+              % (i, i + 1, sm['peak'], sm['n_pairs'], sm['overlap'], ' '.join('%.1f' % o for o in sm['overlap_parts']), sm['misfit'],
                  se['overlap'], se['misfit']))
     ov = np.array([sm['overlap'] for sm in r['seams_model']])
     print('   sinusoid model: median overlap %.1f um = %.1f%% of the strip width (seam-to-seam range %.1f to %.1f um) | '
-          'mean misfit %.3f vs %.3f for evenly spaced pixels'
-          % (np.median(ov), 100 * np.median(ov) / width, ov.min(), ov.max(), np.mean([s_['misfit'] for s_ in r['seams_model']]),
-             np.mean([s_['misfit'] for s_ in r['seams_even']])))
+          'median scatter of the matches %.2f px vs %.2f px for evenly spaced pixels'
+          % (np.nanmedian(ov), 100 * np.nanmedian(ov) / width, np.nanmin(ov), np.nanmax(ov),
+             np.nanmedian([s_['misfit'] for s_ in r['seams_model']]), np.nanmedian([s_['misfit'] for s_ in r['seams_even']])))
 
     fig, ax = plt.subplots(2, 3, figsize=(17, 10))
     k = np.arange(w)
@@ -465,12 +806,117 @@ def report(session, out_png=None, n_frames=300):
     return r
 
 
+def stitch_movie(strips_by_frame, plan, chunk=200):
+    """Stitch a whole movie: ``strips_by_frame`` is a sequence of n_strips arrays (frames, rows, n_px), e.g. views into
+    the raw recording. Returns float32 (frames, rows, n_canvas). Works through the frames in chunks."""
+    n_frames, rows = strips_by_frame[0].shape[:2]
+    out = np.empty((n_frames, rows, plan['n_canvas']), np.float32)
+    for f0 in range(0, n_frames, chunk):
+        block = np.stack([np.asarray(s[f0:f0 + chunk], np.float32) for s in strips_by_frame], axis=1)
+        out[f0:f0 + chunk] = stitch(block, plan)
+    return out
+
+
+def cut_and_butt(mean_strips, overlap_px):
+    """The stitching used so far (reshape_mrois_to_planes.py --overlap N): drop N RAW pixels per seam, half from each
+    strip, and butt the rest together. No undistortion, no row offset, the same N everywhere."""
+    n, w = len(mean_strips), mean_strips[0].shape[1]
+    lo, hi = int(np.ceil(overlap_px / 2)), int(np.floor(overlap_px / 2))
+    parts = []
+    for i, s in enumerate(mean_strips):
+        if i == 0:
+            parts.append(s[:, :w - hi])
+        elif i < n - 1:
+            parts.append(s[:, lo:lo + w - overlap_px])
+        else:
+            parts.append(s[:, lo:])
+    return np.concatenate(parts, axis=1)
+
+
+def stitch_report(session, mode='crossfade', seam='fit', n_frames=300, min_agreement=0.7, on_disagreement='warn',
+                  subpixel=True, old_overlap_px=None, out_png=None):
+    """Plan and apply the stitching on the mean of sampled raw frames, print what was found, and save a figure that
+    compares it with the cut-and-butt stitching used so far."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    slug = sessionio.session_slug(session)
+    plan, info = plan_session(session, None, mode, seam, None, min_agreement, on_disagreement, n_frames, subpixel)
+    s, mean_strips = info['settings'], info['mean_strips']
+    w, width, yres = int(s['strip_px'][0]), float(s['strip_um'][0]), float(s['resolution_umpx'][1])
+    new = stitch(mean_strips, plan)
+    if old_overlap_px is None:                                   # what the existing extraction was stitched with
+        try:
+            ops = np.load(os.path.join(sessionio.find_suite2p_dir(session), 'plane0', 'ops.npy'), allow_pickle=True).item()
+            old_overlap_px = int(round((len(mean_strips) * w - int(ops['Lx'])) / (len(mean_strips) - 1)))
+        except Exception:                                        # noqa: BLE001
+            old_overlap_px = 0
+    old = cut_and_butt(mean_strips, old_overlap_px)
+    print('%s | overlap mode %s | seams: %s | sub-pixel %s | odd/even line offset %+.2f raw px'
+          % (slug, mode, seam, subpixel, info['line_offset']))
+    print('stitched plane: %d x %d px of %.2f um = %.1f um wide (cut-and-butt with %d px per seam: %d px, nominally %.1f um)'
+          % (new.shape[0], new.shape[1], plan['pixel'], new.shape[1] * plan['pixel'], old_overlap_px, old.shape[1],
+             old.shape[1] * width / w))
+    for i, a in enumerate(info['agreement']):
+        fit = info['fits'][i] if info['fits'] else None
+        print('   seam %d|%d: overlap %6.2f um, row offset %+.2f%s | overlap spans %d columns, the two copies correlate %s'
+              % (i, i + 1, plan['overlaps'][i], plan['row_shift'][i + 1] - plan['row_shift'][i],
+                 '' if fit is None else ' (%d matched column pairs, scatter %.2f px, %s)' % (
+                     fit['n_pairs'], fit['misfit'], 'trusted' if info['trusted'][i] else 'NOT trusted, filled in'),
+                 a['columns'], 'n/a' if not np.isfinite(a['r']) else '%.2f (even lines %.2f, odd %.2f)' % (a['r'], a['r_even'], a['r_odd'])))
+    if info['gain'] is not None:
+        g = info['gain']
+        print('   start-of-sweep ramp (dark level %.1f): even lines dim over the first %d px of a line (first pixel %.2f), '
+              'odd lines over the last %d px (last pixel %.2f)'
+              % (info['dark'], int(np.sum(g[0, :w // 2] < 0.9)), g[0, 0], int(np.sum(g[1, w // 2:] < 0.9)), g[1, -1]))
+    if info['disagree']:
+        print('   WARNING: %d seam(s) disagree below %.2f' % (len(info['disagree']), min_agreement))
+    fig, ax = plt.subplots(2, 2, figsize=(16, 11), gridspec_kw={'width_ratios': [2.2, 1]})
+    seams_x_new = plan['left_edges'][1:] / plan['pixel']
+    k = int(np.nanargmax([a['r'] if np.isfinite(a['r']) else -1 for a in info['agreement']])) if info['agreement'] else 0
+    rows = slice(new.shape[0] // 2 - min(new.shape[0] // 2, 110), new.shape[0] // 2 + min(new.shape[0] // 2, 110))
+    for r_, img, px, title, seams_x in (
+            (0, old, width / w, 'so far: cut %d raw px per seam and butt (pixels evenly spaced in time)' % old_overlap_px,
+             np.cumsum([p_ for p_ in ([w - old_overlap_px // 2] + [w - old_overlap_px] * (len(mean_strips) - 2))])),
+            (1, new, plan['pixel'], 'undistorted, seams placed to a fraction of a pixel, overlap mode "%s"' % mode, seams_x_new)):
+        v = np.percentile(img, [1, 99.7])
+        ax[r_, 0].imshow(img, cmap='gray', vmin=v[0], vmax=v[1], aspect=yres / px if False else 'auto', interpolation='nearest',
+                         extent=[0, img.shape[1] * px, img.shape[0] * yres, 0])
+        for sx in seams_x:
+            ax[r_, 0].axvline(sx * px, color='c', lw=0.5, alpha=0.6)
+        ax[r_, 0].set_title(title, fontsize=10); ax[r_, 0].set_xlabel('x (um, at each image\'s own pixel size)'); ax[r_, 0].set_ylabel('y (um)')
+        c = seams_x[k] * px
+        half = 0.45 * width
+        cols = slice(max(int((c - half) / px), 0), int((c + half) / px))
+        ax[r_, 1].imshow(img[rows, cols], cmap='gray', vmin=v[0], vmax=v[1], aspect=px / yres, interpolation='nearest')
+        ax[r_, 1].set_title('zoom on seam %d|%d' % (k, k + 1), fontsize=10); ax[r_, 1].set_xticks([]); ax[r_, 1].set_yticks([])
+    fig.suptitle('%s: stitching the mROI strips (mean of %d raw frames)' % (slug, n_frames), fontsize=12)
+    fig.tight_layout()
+    out_png = out_png or paths.output('mroi_stitch_%s_mode-%s_seam-%s_%s.png' % (slug, mode, seam, STAMP))
+    os.makedirs(os.path.dirname(out_png), exist_ok=True)
+    fig.savefig(out_png, dpi=110); plt.close(fig)
+    print('saved %s' % out_png)
+    return plan, info, new
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--session', required=True, help='session slug (or a unique prefix of one), or a session folder')
     ap.add_argument('--frames', type=int, default=300, help='raw frames to sample')
+    ap.add_argument('--stitch', action='store_true', help='plan and show the stitching instead of the geometry report')
+    ap.add_argument('--overlap-mode', default='crossfade', choices=OVERLAP_MODES,
+                    help='how the two copies of the tissue in an overlap are combined (see overlap_weights)')
+    ap.add_argument('--seam', default='fit', help="'fit' (measure every seam), 'nominal' (header layout), or an overlap in um")
+    ap.add_argument('--no-subpixel', action='store_true', help='round seam positions and row offsets to whole pixels')
+    ap.add_argument('--min-agreement', type=float, default=0.7,
+                    help='lowest correlation between the two copies in an overlap before a blending mode complains')
+    ap.add_argument('--on-disagreement', default='warn', choices=['warn', 'error', 'ignore'])
     a = ap.parse_args()
-    report(a.session if os.path.isdir(a.session) else paths.session(a.session), n_frames=a.frames)
+    session = a.session if os.path.isdir(a.session) else paths.session(a.session)
+    if a.stitch:
+        stitch_report(session, a.overlap_mode, a.seam, a.frames, a.min_agreement, a.on_disagreement, not a.no_subpixel)
+    else:
+        report(session, n_frames=a.frames)
 
 
 if __name__ == '__main__':
