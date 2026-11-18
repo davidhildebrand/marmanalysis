@@ -19,7 +19,7 @@ Per variant (the variant is a suite2p_* folder of the session or a detection-onl
 All response-side numbers use the pipeline defaults the PD analyses used: Fzsc, neuropil correction 0.7, eye gate
 'landing_window'. Writes tmp/suite2p_sweep/<slug>_readouts_<UTC>.csv (and updates <slug>_readouts_latest.csv, keyed by
 variant) and prints a comparison table.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/suite2p_sweep_readouts.py \\
+Run:  .venv/bin/python marmanalysis/suite2p_sweep_readouts.py \\
           [--session <session dir>] [--variants <dir or name> ...] [--zeta] [--n-rand 500] [--n-perm 500]
 """
 import argparse
@@ -38,6 +38,7 @@ from scipy.stats import spearmanr
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import feature_specificity as fs
 import feature_topography_v2 as v2
+import paths
 import response_matrix as rm
 import response_table as rt
 import session_qc
@@ -46,7 +47,7 @@ import spatial_structure as ss
 import topography as tg
 
 PD = v2.SESSION
-OUTDIR = 'tmp/suite2p_sweep'
+OUTDIR = paths.tmp('suite2p_sweep')
 STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')
 KEY_COLS = ['roi_total', 'roi_accepted', 'roi_analysed', 'roi_radius_um_med', 'ring_outer_um_med', 'ring_occupied_frac_med',
             'cell_fneu_corr_med', 'fneu_over_f_med', 'responsive_frac', 'selective_frac_01', 'zeta_frac',

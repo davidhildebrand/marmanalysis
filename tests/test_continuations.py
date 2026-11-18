@@ -11,7 +11,7 @@ that no stimulus falls in any acquisition gap. For the log-less kind it also ass
 the parent log and that every trial the loader serves sits on the continuation's frame clock. Real-data cases are
 skipped when the data are not present; the synthetic cases always run.
 
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python -m pytest marmanalysis/tests/test_continuations.py -v
+Run:  .venv/bin/python -m pytest marmanalysis/tests/test_continuations.py -v
 """
 import glob
 import os
@@ -22,9 +22,10 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import paths
 import sessionio
 
-BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
+BASE = paths.suite2p()
 
 
 def _continuation_cases():

@@ -18,7 +18,7 @@ TOPOGRAPHY TEST per map (fast, vectorised, no curve fit):
 GEOMETRY (Cell-2025 style, all on z-scored vectors so Euclidean ~ correlation distance): D_featpref vs D_phys
    (is the feature embedding spatially organised), and D_featpref vs D_activity (how much of ROI-ROI activity
    similarity this basis explains).
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/feature_topography_v2.py
+Run:  .venv/bin/python marmanalysis/feature_topography_v2.py
 """
 import os
 import sys
@@ -30,13 +30,13 @@ from scipy.stats import false_discovery_control, spearmanr
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dnn_som
+import paths
 import response_matrix as rm
 import som
 import topography as tg
 
-SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
-           'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-ZETA_CSV = 'tmp/responsiveness_pd.csv'
+SESSION = paths.session('pd')
+ZETA_CSV = paths.tmp('responsiveness_pd.csv')
 LAYERS = {'relu7': 'classifier.5', 'relu6': 'classifier.2', 'pool5': 'features.12'}
 K, N_PERM, NEAR, FAR, MIND, MAXD = 20, 300, 75.0, 150.0, 15.0, 600.0
 

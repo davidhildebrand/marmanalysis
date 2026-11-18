@@ -34,10 +34,10 @@ pre-extracted features ``.npy`` (n_images x D). For the finer natural-image map 
 DO NOT RUN ON THE DATA YET (DH 2026-09-24): implement now, test after the preprocessing / denoising details
 (roadmap items 1, 6, 13) are settled. A synthetic self-test is provided (``--selftest``).
 
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/som_train.py --selftest
-      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/som_train.py --images stimuli/StimSpace/FOBmany230728d \\
+Run:  .venv/bin/python marmanalysis/som_train.py --selftest
+      .venv/bin/python marmanalysis/som_train.py --images stimuli/StimSpace/FOBmany230728d \\
             --grid 12 12 --epochs 100 --out output/som/fobmany_relu7_12x12.pt
-      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/som_train.py --features tmp/imagenet_relu7.npy \\
+      .venv/bin/python marmanalysis/som_train.py --features tmp/imagenet_relu7.npy \\
             --base-neurons 10000 --out output/som/natural_relu7_100x100.pt
 """
 import argparse
@@ -53,6 +53,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dnn_som
+import paths
 
 IMG_EXT = ('*.png', '*.jpg', '*.jpeg', '*.bmp', '*.tif', '*.tiff')
 
@@ -188,7 +189,8 @@ def selftest():
     d_rand = np.mean([np.linalg.norm(Wt[i] - Wt[j]) for i, j in pairs if i != j])
     print('  codebook distance grid-neighbours %.3f vs random unit pairs %.3f (ratio %.2f; ordered map << 1)' % (d_nb, d_rand, d_nb / d_rand))
     assert d_nb < 0.5 * d_rand, 'map not topographically ordered'
-    path = 'tmp/som_selftest.pt'
+    path = paths.tmp('som_selftest.pt')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     save_checkpoint(path, W, loc, rows, cols, {'selftest': True})
     som = dnn_som.load_som(path)
     bmu = dnn_som.som_bmu(som, X[:5]).numpy(); sca = dnn_som.som_sca(som, X[:5]).numpy()

@@ -16,9 +16,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import gratings
+import paths
 import response_table as rt
 
-BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
+BASE = paths.suite2p()
 GRATINGS_SESSION = (BASE + '/Louwho/20240616d/172850tUTC_SP_depth250um_fov0636x1500um_'
                     'res2p00x2p00umpx_fr10p334Hz_pow028p4mW_stimMultimodalGratings')
 

@@ -9,10 +9,14 @@ Run:  .venv/bin/python marmanalysis/session_survey.py
 import glob
 import os
 import re
+import sys
 
 import numpy as np
 
-ROOT = 'suite2p_results'
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
+
+ROOT = paths.suite2p()
 
 
 def fov_um(name):

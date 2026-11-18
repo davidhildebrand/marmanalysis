@@ -17,13 +17,13 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
 import sessionio
 import response_table as rt
 import signal_quality as sq
 from denoising import denoise_psn, denoise_psn_xval
 
-DEFAULT_SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
-                   'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
+DEFAULT_SESSION = paths.session('pd')
 
 
 def _sig(p, alpha):
@@ -58,7 +58,7 @@ def main():
         return c['responsive'], c['selective']
 
     resp0, sel0 = gates(ds)
-    dsd, info = denoise_psn(ds, m, args.mode, diagnostic=not args.no_diagnostic, outdir='output',
+    dsd, info = denoise_psn(ds, m, args.mode, diagnostic=not args.no_diagnostic, outdir=paths.output(),
                             tag=os.path.basename(args.session.rstrip('/'))[:24])
     resp1, sel1 = gates(dsd)
     dscv, _ = denoise_psn_xval(ds, m, args.mode, n_folds=args.folds)

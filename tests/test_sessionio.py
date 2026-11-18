@@ -18,9 +18,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import parsers
+import paths
 import sessionio
 
-BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
+BASE = paths.suite2p()
 
 # (expected base_source, expected paradigm, session path) spanning the stimlog format eras.
 CASES = [

@@ -16,7 +16,7 @@ on this stimulus set are dominated by the coarse face/object axis. This extends 
       PERIODICITY (calibrated detector), FDR across features. Also: which feature-PC the dominant neural PC
       aligns with, and the Cell-2025-style geometry tests -- ROI-ROI distance in NEURAL-PC space, and in
       FEATURE-PREFERENCE space, each against physical distance.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/feature_topography.py
+Run:  .venv/bin/python marmanalysis/feature_topography.py
 """
 import os
 import sys
@@ -27,13 +27,13 @@ from scipy.spatial.distance import pdist
 from scipy.stats import false_discovery_control, spearmanr
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
 import response_matrix as rm
 import som
 import topography as tg
 
-SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
-           'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-ZETA_CSV = 'tmp/responsiveness_pd.csv'
+SESSION = paths.session('pd')
+ZETA_CSV = paths.tmp('responsiveness_pd.csv')
 MAXD, MIND = 600.0, 15.0
 K_FEAT, K_NPC = 20, 20
 

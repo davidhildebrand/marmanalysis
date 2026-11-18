@@ -24,9 +24,9 @@ Probe of one session (mirrors SOM steps 3-5):
 Images: the session's effective stimuli (som.condition_image_paths), ImageNet-normalized as in TDANN training.
 Weights + positions: OSF node 64qv3 (tdann_data/tdann/...), fetched with ``--fetch`` into TDANN_ROOT and verified
 against the OSF hashes. The checkpoint is read with ``torch.load(weights_only=True)``: no code runs from the pickle.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/tdann_probe.py --selftest
-      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/tdann_probe.py --fetch
-      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/tdann_probe.py --session pd
+Run:  .venv/bin/python marmanalysis/tdann_probe.py --selftest
+      .venv/bin/python marmanalysis/tdann_probe.py --fetch
+      .venv/bin/python marmanalysis/tdann_probe.py --session pd
 """
 import argparse
 import hashlib
@@ -50,9 +50,10 @@ import torchvision
 from scipy import ndimage
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
 import som
 
-TDANN_ROOT = 'Margalit_etal_2024_Neuron/tdann_data'      # mirrors the OSF layout, so ST_BASE_FS could point here
+TDANN_ROOT = paths.project('Margalit_etal_2024_Neuron', 'tdann_data')      # mirrors the OSF layout, so ST_BASE_FS could point here
 FILES = {   # key: (OSF file id, path under TDANN_ROOT)
     'checkpoint': ('exugm', 'tdann/checkpoints/simclr_spatial_resnet18_swappedon_SineGrating2019_isoswap_3_checkpoints/'
                             'model_final_checkpoint_phase199.torch'),
@@ -81,7 +82,7 @@ MIN_PATCH_MM2 = 100.0
 MIN_PATCH_UNITS = 10
 N_ANCHORS = 100
 PROFILE_EDGES_MM = np.array([0, 2, 4, 6, 8, 10, 12, 15, 20, 25, 30], float)
-OUTDIR = 'output'
+OUTDIR = paths.output()
 STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')
 
 

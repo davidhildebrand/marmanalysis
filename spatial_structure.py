@@ -35,8 +35,8 @@ sessions are LOADED in spatial chunks (``chunk_um``) only to bound memory; the a
 ``--tile-um`` still gives separate per-tile analyses. The figure shows the suite2p mean image next to the maps
 (all spatial panels in image orientation: y increases downward), the numbered face and object clusters and the
 best scan window.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/spatial_structure.py --session pd
-      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/spatial_structure.py --session curly --n-perm 500
+Run:  .venv/bin/python marmanalysis/spatial_structure.py --session pd
+      .venv/bin/python marmanalysis/spatial_structure.py --session curly --n-perm 500
 """
 import argparse
 import glob
@@ -59,6 +59,7 @@ import dnn_som
 import feature_specificity as fs
 import feature_topography_v2 as v2
 import neuropil_checks as nc
+import paths
 import response_matrix as rm
 import response_table as rt
 import sessionio
@@ -78,19 +79,20 @@ FACE_MIN_R = 0.5          # neural PC0 is called the face axis only if |corr(its
 TOPQ = 0.2
 KR = np.array([25, 50, 75, 100, 150, 200], float)
 DENSE_MAX = 6000          # keep a dense distance matrix for fields this small (cluster_profile.py uses G.dist)
-OUTDIR = 'output'
+OUTDIR = paths.output()
 STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')   # project convention: every output file is UTC-stamped
 
-# Sessions are keyed by their slug (sessionio.session_slug: AnimalDateTime). Stimulus images are located from each
+# Sessions are keyed by their slug (sessionio.session_slug: AnimalDateTime). WHERE a session lives is paths.SESSIONS;
+# this table holds only the per-session ANALYSIS settings. Stimulus images are located from each
 # session's own stimulus log (images.local_stimulus_path), not configured here. Multimodal sessions are restricted to
 # their IMAGE conditions (and blanks) -- moving dots etc. carry no image category.
 _LARGE = dict(zeta=None, kw=dict(equalize_repeats=True, eye_gate_mode='none'), gate='all', chunk_um=1500)
 SESSIONS = {
-    'Cadbury20221016d152643tUTC': dict(path=nc.PD, zeta=nc.ZETA_CSV, kw={}, gate='zeta', chunk_um=0),   # area PD, 730 um
-    'Curly20231103d162355tUTC': dict(glob=nc.CURLY_GLOB, **_LARGE),                                       # FOBmin, 3 mm
-    'Curly20240130d172813tUTC': dict(glob='suite2p_results/Curly/20240130d/172813tUTC*', **_LARGE),         # PD/MT border, 3 mm
+    'Cadbury20221016d152643tUTC': dict(zeta=nc.ZETA_CSV, kw={}, gate='zeta', chunk_um=0),   # area PD, 730 um
+    'Curly20231103d162355tUTC': dict(**_LARGE),                                              # FOBmin, 3 mm
+    'Curly20240130d172813tUTC': dict(**_LARGE),                                              # PD/MT border, 3 mm
 }
-ALIASES = {'pd': 'Cadbury20221016d152643tUTC', 'curly': 'Curly20231103d162355tUTC'}
+ALIASES = paths.SESSION_ALIASES
 MAP_NAMES = ('face axis (nPC0)', "face d'", "body d'", "object d'")
 INTACT = ('face', 'body', 'object', 'animal')   # intact image categories; category d' contrasts within these
 
@@ -256,9 +258,7 @@ def resolve_session(key):
     """Session config by slug or alias; adds 'path' and 'slug'."""
     slug = ALIASES.get(key, key)
     cfg = dict(SESSIONS[slug])
-    if 'path' not in cfg:
-        hits = [h for h in sorted(glob.glob(cfg['glob'])) if os.path.isdir(h) and glob.glob(os.path.join(h, 'suite2p*'))]
-        cfg['path'] = hits[0]
+    cfg['path'] = paths.session(slug)
     cfg['slug'] = sessionio.session_slug(cfg['path'])
     return cfg
 

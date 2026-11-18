@@ -25,7 +25,7 @@ Two tiers:
     split-half tuning reliability, temporal split-half drift gap (responsive set), n conditions / repeats.
 
 Writes/updates tmp/session_qc.csv keyed by session directory name.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/session_qc.py [--full]
+Run:  .venv/bin/python marmanalysis/session_qc.py [--full]
                                               [--sessions 'suite2p_results/Cadbury/2022*/*Images*' ...] [--subsample N]
 """
 import argparse
@@ -39,18 +39,18 @@ import pandas as pd
 from scipy import ndimage
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
 import response_table as rt
 import sessionio
 import signal_quality as sq
 
 DEFAULT = [('Cadbury', '20221016d', 'ImagesSongFOBonly'), ('Curly', '20231103d', 'ImagesFOBmin'),
            ('Dali', '20230810d', 'ImagesSongFOBonly'), ('Dali', '20230910d', 'ImagesFOBmany')]
-OUT = 'tmp/session_qc.csv'
+OUT = paths.tmp('session_qc.csv')
 
 
 def resolve(animal, date, token):
-    hits = [h for h in sorted(glob.glob('suite2p_results/%s/%s/*%s*' % (animal, date, token)))
-            if os.path.isdir(h) and glob.glob(os.path.join(h, 'suite2p*'))]
+    hits = paths.find_sessions(animal, date, '*%s*' % token)
     return hits[0] if hits else None
 
 
@@ -199,11 +199,11 @@ def main():
                                                      'sweep_suite2p/<name>); default = the session default')
     a = ap.parse_args()
     if a.sessions:
-        paths = sorted({p for g in a.sessions for p in glob.glob(g) if os.path.isdir(p) and glob.glob(os.path.join(p, 'suite2p*'))})
+        session_paths = sorted({p for g in a.sessions for p in glob.glob(g) if os.path.isdir(p) and glob.glob(os.path.join(p, 'suite2p*'))})
     else:
-        paths = [p for p in (resolve(*t) for t in DEFAULT) if p]
+        session_paths = [p for p in (resolve(*t) for t in DEFAULT) if p]
     rows = []
-    for p in paths:
+    for p in session_paths:
         print('== %s' % os.path.basename(p)[:80])
         try:
             m = light_metrics(p, variant=a.variant)

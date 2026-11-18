@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """layer_alignment's Bao et al.-style decoder: a planted linear mapping from features to population responses is
 decoded far above chance, and responses unrelated to the features decode at chance.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python -m pytest marmanalysis/tests/test_layer_alignment.py -v
+Run:  .venv/bin/python -m pytest marmanalysis/tests/test_layer_alignment.py -v
 """
 import os
 import sys

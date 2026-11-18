@@ -31,6 +31,7 @@ from warnings import warn
 import numpy as np
 import xarray as xr
 
+import paths
 from response_table import trial_response, EPOCH_STIM, _rowwise_corr
 
 # PSN named modes (see the PSN README / psn() docstring). 'conservative' = 99% signal-variance retention.
@@ -68,7 +69,7 @@ def _ncsnr(svnv):
     return np.sqrt(np.clip(svnv[:, 0], 0, None) / np.clip(svnv[:, 1], 1e-12, None))
 
 
-def denoise_psn(ds, metric='Fzsc', mode='conservative', diagnostic=True, outdir='output', tag=None):
+def denoise_psn(ds, metric='Fzsc', mode='conservative', diagnostic=True, outdir=paths.output(), tag=None):
     """Response-level PSN denoise of ``ds``'s (roi x condition x repeat) trial responses for ``metric``.
 
     Runs PSN on the per-trial stim-window response tensor, applies the learned denoiser to every trial,

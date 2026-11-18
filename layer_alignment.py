@@ -33,8 +33,8 @@ training input), and the input PIXELS are included as a 'layer 0' reference (if 
 alignment is a property of the image set, not of a processing stage). Images are the session's effective stimuli
 (som.condition_image_paths).
 Outputs: output/layer_alignment_<slug>_gate-<gate>_<UTC>.csv and .png
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/layer_alignment.py --session pd
-      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/layer_alignment.py --session Curly20240130d172813tUTC --gate responsive
+Run:  .venv/bin/python marmanalysis/layer_alignment.py --session pd
+      .venv/bin/python marmanalysis/layer_alignment.py --session Curly20240130d172813tUTC --gate responsive
 """
 import argparse
 import os
@@ -50,6 +50,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dnn_som
+import paths
 import som
 import spatial_structure as ss
 
@@ -69,7 +70,7 @@ N_DRAW = 50                 # random candidate sets per left-out image
 RIDGE_GRID = np.logspace(-3, 3, 13)   # ridge penalties relative to the mean eigenvalue of the training Gram matrix
 CATS = ('face', 'body', 'animal', 'object', 'scramble')
 Y_LO = -0.5                 # figure floor; lower LOO R^2 values are printed at the floor
-OUTDIR = 'output'
+OUTDIR = paths.output()
 STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')
 
 

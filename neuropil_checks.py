@@ -24,8 +24,8 @@ contamination rather than signal? (DH question 2026-09-24, roadmap item 13.)
 --curly      The same with/without comparison on a large-FOV 3 um/px session (Curly 20231103d FOBmin, 2000-ROI
              subsample) where the cell<->Fneu trace correlation is low (0.23 vs PD 0.71): is the correction's effect
              on topography proportionally smaller there?
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/neuropil_checks.py --geometry --pd
-      /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/neuropil_checks.py --curly
+Run:  .venv/bin/python marmanalysis/neuropil_checks.py --geometry --pd
+      .venv/bin/python marmanalysis/neuropil_checks.py --curly
 """
 import argparse
 import glob
@@ -43,6 +43,7 @@ from scipy.stats import skew, spearmanr
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import feature_specificity as fs
 import feature_topography_v2 as v2
+import paths
 import response_matrix as rm
 import response_table as rt
 import sessionio
@@ -51,8 +52,7 @@ import topography as tg
 
 PD = v2.SESSION
 ZETA_CSV = v2.ZETA_CSV
-CURLY_GLOB = 'suite2p_results/Curly/20231103d/*ImagesFOBmin*'
-OUTDIR = 'output'
+OUTDIR = paths.output()
 
 
 def _rowcorr(A, B):
@@ -279,8 +279,7 @@ def pd_checks(session=PD):
 
 # ----------------------------------------------------------------------------------------------------------------
 def curly_checks(subsample=2000):
-    hits = [h for h in sorted(glob.glob(CURLY_GLOB)) if os.path.isdir(h) and glob.glob(os.path.join(h, 'suite2p*'))]
-    session = hits[0]
+    session = paths.session('curly')
     kw = dict(roi_subsample=subsample, equalize_repeats=True, eye_gate_mode='none')
     d0, d7 = build(session, None, **kw), build(session, 0.7, **kw)
     n = d0['response'].shape[0]

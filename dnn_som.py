@@ -169,9 +169,11 @@ def som_sca(som, features):
 def _demo():
     """Smoke test: extract relu7 features for a few presented stimulus images and probe the shipped SOM."""
     import glob
-    doshi = 'Doshi_and_Konkle_2023_SciAdv/Code'
+    import paths
+    doshi = paths.project('Doshi_and_Konkle_2023_SciAdv', 'Code')
     som_path = os.path.join(doshi, 'models_from_paper/som_weights/objectrec_imagenet_trained_som.pth')
-    imgs = sorted(glob.glob('stimuli/Song_etal_Wang_2022_NatCommun/480288_equalized_RGBA_FOBonly/*.png'))[:5]
+    imgs = sorted(glob.glob(paths.stimuli('Song_etal_Wang_2022_NatCommun', '480288_equalized_RGBA_FOBonly',
+                                          '*.png')))[:5]
     print('images:', [os.path.basename(p) for p in imgs])
 
     model, layer = prep_dnn_model()

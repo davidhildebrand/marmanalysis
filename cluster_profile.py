@@ -13,7 +13,7 @@
      the 30 most face-selective cells -- plus each member's three best faces. Caveat: with 20 frontal faces of
      one type this can only say whether the members RANK faces along the eye direction, not that eyes drive them.
 Figure: output/cluster_profile_<session slug>_<UTC>.png
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/cluster_profile.py
+Run:  .venv/bin/python marmanalysis/cluster_profile.py
 """
 import os
 import sys
@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dnn_som
 import feature_topography_v2 as v2
 import neuropil_checks as nc
+import paths
 import response_matrix as rm
 import som
 import spatial_structure as ss
@@ -37,7 +38,7 @@ import spatial_structure as ss
 EDGES = np.array([0, 40, 80, 120, 160, 200, 250, 300, 400, 500], float)
 SIGMA_TREND = 150.0
 N_CTRL = 300
-OUTDIR = 'output'
+OUTDIR = paths.output()
 
 
 def radial_profile(vals, dist_from_centre):

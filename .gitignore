@@ -161,3 +161,7 @@ cython_debug/
 
 # Project outputs (PSN/denoiser diagnostic figures, other generated artifacts) -- not tracked
 /output/
+
+# Per-machine location overrides read by paths.py, and scratch written inside a standalone checkout -- not tracked
+/paths.local.json
+/tmp/

@@ -13,7 +13,7 @@ variogram result -- full-tuning topography = generic smoothness -- points to the
   (2) NEUCOEFF sensitivity: T for the face axis (neural PC0), the median relu7 feature map, and the median random
       projection at neuropil coefficient none / 0.7 / 0.85 / 1.0. If the shared smoothness is residual neuropil,
       T shrinks toward 0 with stronger correction; genuine local functional clustering survives.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/feature_specificity.py
+Run:  .venv/bin/python marmanalysis/feature_specificity.py
 """
 import os
 import sys

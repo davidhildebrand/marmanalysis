@@ -22,7 +22,7 @@ other variant (sessionio.find_suite2p_dir accepts the directory):
   fissa_coef.csv   per ROI: effective neuropil coefficient = slope of (raw ROI trace - FISSA cell trace) on the
                    source variant's suite2p Fneu, its correlation, and the trace correlation with F - 0.7 Fneu
   fissa_info.json / variant.json
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/tmp/fissa_venv/bin/python marmanalysis/fissa_separate.py \\
+Run:  tmp/fissa_venv/bin/python marmanalysis/fissa_separate.py \\
           <source variant dir> --reg-file <registered data.bin> [--out <dir>] [--limit N]
 """
 import argparse

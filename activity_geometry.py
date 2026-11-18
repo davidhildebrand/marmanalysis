@@ -32,7 +32,7 @@ WHY (1) REDUCES TO RAW EUCLIDEAN ON OUR TUNING MATRICES: with 60 (or 208) condit
 has rank <= n_conditions < 100, so the 100-PC projection is lossless and D_phys equals the Euclidean distance on
 the centred tuning vectors (``n_pc`` only matters for time-resolved samples with more features than neurons).
 
-Run (demo on PD):  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/activity_geometry.py
+Run (demo on PD):  .venv/bin/python marmanalysis/activity_geometry.py
 """
 import os
 import sys

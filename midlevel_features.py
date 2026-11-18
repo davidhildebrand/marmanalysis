@@ -13,7 +13,7 @@ in four parts, on the PD session (Cadbury 20221016d, 60 FOB images, ZETA-respons
       statistics carry the axis beyond the face-vs-rest split;
   (4) SALIENCY: input-gradient of the pool5-PC0 projection for the top-4 and bottom-4 images -- which image
       regions drive the axis (face parts vs texture / outline).
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/midlevel_features.py
+Run:  .venv/bin/python marmanalysis/midlevel_features.py
 """
 import os
 import sys
@@ -30,11 +30,12 @@ from scipy import ndimage
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dnn_som
 import feature_topography_v2 as v2
+import paths
 import sessionio
 import response_matrix as rm
 import som
 
-OUTDIR = 'output'
+OUTDIR = paths.output()
 STAMP = datetime.now(timezone.utc).strftime('%Y%m%dd%H%M%StUTC')   # project convention: every output file is UTC-stamped
 SLUG = sessionio.session_slug(v2.SESSION)                          # session named in every output (AnimalDateTime)
 CAT_COLORS = {'face': 'tab:red', 'body': 'tab:green', 'object': 'tab:blue'}

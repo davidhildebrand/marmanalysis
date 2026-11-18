@@ -21,12 +21,12 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dnn_som
+import paths
 import response_matrix as rm
 import som
 
-SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
-           'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
-ZETA_CSV = 'tmp/responsiveness_pd.csv'
+SESSION = paths.session('pd')
+ZETA_CSV = paths.tmp('responsiveness_pd.csv')
 
 
 def roi_category(response, cats):

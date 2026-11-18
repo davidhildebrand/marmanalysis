@@ -22,9 +22,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import parsers
+import paths
 import sessionio
 
-BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
+BASE = paths.suite2p()
 
 SESSIONS = [
     BASE + '/Cadbury/20231007d/153335tUTC_SP_depth200um_fov2000x2000um_res2p74x2p74umpx_fr06p363Hz_pow060p1mW_stimImagesFOBmany',

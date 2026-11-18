@@ -20,9 +20,10 @@ from scipy.stats import f_oneway
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import images
+import paths
 import sessionio
 
-BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
+BASE = paths.suite2p()
 
 SESSIONS = [
     ('Cadbury', '20231007d',

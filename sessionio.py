@@ -14,7 +14,6 @@ import glob
 import os
 import pickle
 import re
-import socket
 from warnings import warn
 
 import numpy as np
@@ -24,6 +23,7 @@ import eyetracking
 import filters
 import metadata
 import parsers
+import paths
 import response_table
 
 
@@ -366,16 +366,9 @@ SUITE2P_VARIANT_DEFAULT = r'suite2p_cellpose3_d[0-9]+px_pt-3p5_ft1p5'
 
 
 def resolve_paths(hostname=None):
-    """Map the host to (base_path, stim_path), as in the analysis_for_*.py host block."""
-    h = (hostname or socket.gethostname()).lower()
-    if 'galactica' in h:
-        return (r'/Users/davidh/Data/Freiwald/suite2p_results',
-                r'/Users/davidh/Sync/Freiwald/MarmoScope/Stimulus/Sets')
-    if 'obsidian' in h:
-        return (r'F:\Data', r'F:\Sync\Freiwald\MarmoScope\Stimulus\Sets')
-    if 'dobbin' in h:
-        return (r'D:\Data', r'C:\Users\DavidH\Sync\Freiwald\MarmoScope\Stimulus\Sets')
-    return (None, None)
+    """Map the host to (base_path, stim_path), as in the analysis_for_*.py host block. The table lives in
+    paths.HOSTS. Prefer paths.suite2p() / paths.stimuli(), which also honor project links and overrides."""
+    return paths.host_paths(hostname)
 
 
 def load_metadata(session_path):

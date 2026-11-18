@@ -32,7 +32,9 @@ import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-DOSHI = 'Doshi_and_Konkle_2023_SciAdv/Code'
+import paths
+
+DOSHI = paths.project('Doshi_and_Konkle_2023_SciAdv', 'Code')
 sys.path.insert(0, DOSHI)
 
 import dnn_som                      # imports torch/torchvision cleanly BEFORE any stubs enter sys.modules
@@ -75,10 +77,10 @@ def load_reference_som():
 
 
 def main():
-    paths = sorted(glob.glob('stimuli/Song_etal_Wang_2022_NatCommun/'
-                             '480288_equalized_RGBA_FOBonly/*.png'))[:8]
-    images = dnn_som.load_images_rgb(paths)
-    print('parity images: %d | %s' % (len(paths), ', '.join(os.path.basename(p) for p in paths)))
+    image_paths = sorted(glob.glob(paths.stimuli('Song_etal_Wang_2022_NatCommun',
+                                                 '480288_equalized_RGBA_FOBonly', '*.png')))[:8]
+    images = dnn_som.load_images_rgb(image_paths)
+    print('parity images: %d | %s' % (len(image_paths), ', '.join(os.path.basename(p) for p in image_paths)))
 
     # --- DNN relu7 features (our extractor vs his hook logic, same pretrained model) ---
     ref_f = reference_features(images)

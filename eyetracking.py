@@ -28,6 +28,7 @@ import re
 import numpy as np
 
 import indicators
+import paths
 
 EYE_CH = (0, 1)     # eye X, Y channels (analog input; any tracker piped to the DAQ)
 RAIL_V = 9.0        # |v| above this = DAQ rail (signal loss)
@@ -669,7 +670,7 @@ def calculate_eyepos_calibration_quality(session_path, cal_glob='*EyeTrackingCal
     return out
 
 
-def plot_eyepos_density(oc, which=('all', 'stim', 'nonstim'), outdir='output', tag=None, bins=100,
+def plot_eyepos_density(oc, which=('all', 'stim', 'nonstim'), outdir=paths.output(), tag=None, bins=100,
               eye_ch=EYE_CH, rail_v=RAIL_V):
     """2D eye-position density panels (log-scaled histogram2d + median & 1-SD ellipse) for the requested subsets over
     the whole session -- a vectorized, ~1e6-sample-friendly replacement for the per-trial scatter/KDE in
@@ -715,7 +716,7 @@ def plot_eyepos_density(oc, which=('all', 'stim', 'nonstim'), outdir='output', t
 
 def plot_eyepos_by_phase(oc, subsets=('stim', 'fixation', 'isi'),
                      diffs=(('stim', 'isi'), ('fixation', 'isi'), ('stim', 'fixation')),
-                     outdir='output', tag=None, grid=100, n_sub=15000, seed=0, eye_ch=EYE_CH, rail_v=RAIL_V):
+                     outdir=paths.output(), tag=None, grid=100, n_sub=15000, seed=0, eye_ch=EYE_CH, rail_v=RAIL_V):
     """Per-phase eye position KDE (top row, each with its 68% BCEA ellipse + median marker) and pairwise normalized
     density DIFFERENCES (bottom row), to reveal how eye position concentration differs by trial phase -- differences
     the raw histogram flattens. KDE is on a random subsample (full ``gaussian_kde`` is O(N^2), infeasible at
@@ -789,7 +790,7 @@ def plot_eyepos_by_phase(oc, subsets=('stim', 'fixation', 'isi'),
     return p
 
 
-def _demo(session_path, outdir='output'):
+def _demo(session_path, outdir=paths.output()):
     from datetime import datetime, timezone
     import matplotlib
     matplotlib.use('Agg')
@@ -862,6 +863,4 @@ def _demo(session_path, outdir='output'):
 
 if __name__ == '__main__':
     import sys
-    _demo(sys.argv[1] if len(sys.argv) > 1
-          else 'suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
-               'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
+    _demo(sys.argv[1] if len(sys.argv) > 1 else paths.session('pd'))

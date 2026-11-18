@@ -18,9 +18,10 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.stats import rankdata, spearmanr
 
 import dnn_som
+import paths
 
-DEFAULT_SOM = ('Doshi_and_Konkle_2023_SciAdv/Code/models_from_paper/'
-               'som_weights/objectrec_imagenet_trained_som.pth')
+DEFAULT_SOM = paths.project('Doshi_and_Konkle_2023_SciAdv', 'Code', 'models_from_paper', 'som_weights',
+                            'objectrec_imagenet_trained_som.pth')
 
 
 def condition_image_paths(data, stimulus_dir=None, effective=True, seed=0):
@@ -200,7 +201,7 @@ def map_alignment(cortex_xy, som_xy, n_perm=1000, seed=0, groups=None):
             'n_perm': int(n_perm)}
 
 
-def plot_rdms(rdms, labels, rsa_to=None, outdir='output', tag=None):
+def plot_rdms(rdms, labels, rsa_to=None, outdir=paths.output(), tag=None):
     """Side-by-side RDM heatmaps (conditions x conditions). ``rsa_to`` optionally annotates each panel's RSA r
     against a named reference (e.g. the cortex RDM). Returns the saved figure path."""
     import matplotlib

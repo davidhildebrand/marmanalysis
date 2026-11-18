@@ -29,6 +29,7 @@ import pandas as pd
 import xarray as xr
 
 import images
+import paths
 import response_table as rt
 import sessionio
 
@@ -134,7 +135,7 @@ def _category_blocked_condition_order(data):
     return np.array(order, int), blocks
 
 
-def plot_response_heatmap(datasets, labels, outdir='output', tag=None, sort_metric='dprime_f',
+def plot_response_heatmap(datasets, labels, outdir=paths.output(), tag=None, sort_metric='dprime_f',
                           vlim=1.0, cmap='bwr', threshold=0.2):
     """Side-by-side (roi x condition) response heatmaps in the ``analysis_for_images.py`` house style -- e.g.
     raw vs PSN-denoised.

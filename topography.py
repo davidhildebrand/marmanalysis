@@ -33,6 +33,8 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import spearmanr
 
+import paths
+
 
 def pairwise_tuning_similarity(response):
     """(n_roi x n_roi) tuning similarity = Pearson correlation between ROIs' condition-response profiles.
@@ -447,7 +449,7 @@ def spatial_frequency_detector(response, xy_um, n_grid=32, n_pc=3, n_perm=500, s
     return out
 
 
-def plot_topography(curves, outdir='output', tag=None, max_dist=None):
+def plot_topography(curves, outdir=paths.output(), tag=None, max_dist=None):
     """Plot tuning-similarity-vs-distance curves. ``curves`` = list of (label, centers, mean, sem). Returns the
     saved figure path."""
     import matplotlib

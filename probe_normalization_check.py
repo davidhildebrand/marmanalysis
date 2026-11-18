@@ -11,7 +11,7 @@ built on). Quantify what that does on the 60 PD images with the shipped 20x20 SO
   * where the images land on the map (distinct BMUs, mean pairwise BMU distance, within- vs between-category BMU
     distance) and the SCA RDM agreement;
   * cortex~SOM and cortex~relu7 RSA (PD corrected 0.7, ZETA ROIs) under each transform.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/probe_normalization_check.py
+Run:  .venv/bin/python marmanalysis/probe_normalization_check.py
 """
 import os
 import sys

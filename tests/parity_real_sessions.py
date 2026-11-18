@@ -21,10 +21,11 @@ import numpy as np
 
 warnings.simplefilter('ignore')
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import paths
 import response_table as rt
 import sessionio
 
-BASE = '/Users/davidh/Data/Vibe/Analysis_Freiwald/suite2p_results'
+BASE = paths.suite2p()
 METRICS = ['FdFF', 'Fzsc', 'F0', 'Fraw']
 
 SESSIONS = [

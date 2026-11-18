@@ -25,12 +25,12 @@ The binary is only read (0.14 opens it read/write because that is all its Binary
 registration is skipped). The anchor folder itself is never modified.
 
 Run (parity generation):
-  /Users/davidh/Data/Vibe/Analysis_Freiwald/venv_s2p014/bin/python marmanalysis/suite2p_sweep.py <anchor dir> \\
+  venv_s2p014/bin/python marmanalysis/suite2p_sweep.py <anchor dir> \\
         --cellprob -6 --flow 0 --diameter 14 --anatomical-only 3 --max-overlap 0.75 --spatial-hp-cp 0.5
   ... or several variants from a plan file (a JSON list of override dicts, keys as below, optional "name"):
-  /Users/davidh/Data/Vibe/Analysis_Freiwald/venv_s2p014/bin/python marmanalysis/suite2p_sweep.py <anchor dir> --plan tmp/suite2p_sweep_plan.json
+  venv_s2p014/bin/python marmanalysis/suite2p_sweep.py <anchor dir> --plan tmp/suite2p_sweep_plan.json
 Run (Cellpose-SAM):
-  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/suite2p_sweep.py <anchor dir> --model cpsam --cellprob 0 --flow 0.4
+  .venv/bin/python marmanalysis/suite2p_sweep.py <anchor dir> --model cpsam --cellprob 0 --flow 0.4
 Override keys (plan file / CLI): anatomical_only, diameter, cellprob_threshold, flow_threshold, spatial_hp_cp,
 pretrained_model, max_overlap, threshold_scaling, sparse_mode, min_neuropil_pixels, inner_neuropil_radius,
 allow_overlap, lam_percentile, neucoeff, tau. Anything not overridden is taken from the anchor's ops_in.npy.

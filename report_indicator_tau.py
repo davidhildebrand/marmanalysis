@@ -16,6 +16,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
 import sessionio
 import signal_quality as sq
 import eyetracking as et
@@ -23,8 +24,7 @@ import eyetracking as et
 LN2 = np.log(2.0)
 PUBLISHED_TAU_SEC = et.INDICATOR_DECAY_TAU_SEC          # 0.29 s (jGCaMP8s, in vivo)
 PUBLISHED_THALF_SEC = PUBLISHED_TAU_SEC * LN2           # ~0.20 s
-DEFAULT_SESSION = ('suite2p_results/Cadbury/20221016d/152643tUTC_SP_depth200um_fov0730x0730um_'
-                   'res1p00x1p00umpx_fr06p364Hz_pow059p0mW_stimImagesSongFOBonly')
+DEFAULT_SESSION = paths.session('pd')
 
 
 def nonstim_mask(ctx, n_frames):
@@ -55,7 +55,7 @@ def measure_session_indicator_tau(session_path, method='half_decay', variant=Non
     return res, ctx
 
 
-def append_markdown_row(res, out_md='output/indicator_tau.md'):
+def append_markdown_row(res, out_md=paths.output('indicator_tau.md')):
     """Append one result row to the markdown table (writing the header + published reference if the file is
     new). Returns the path."""
     os.makedirs(os.path.dirname(out_md) or '.', exist_ok=True)
@@ -84,7 +84,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('session', nargs='?', default=DEFAULT_SESSION)
     ap.add_argument('--methods', default='half_decay')
-    ap.add_argument('--out', default='output/indicator_tau.md')
+    ap.add_argument('--out', default=paths.output('indicator_tau.md'))
     args = ap.parse_args()
     print('session:', os.path.basename(args.session.rstrip('/'))[:60])
     for m in [x.strip() for x in args.methods.split(',') if x.strip()]:

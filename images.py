@@ -23,15 +23,16 @@ import numpy as np
 import pandas as pd
 from scipy.stats import f_oneway
 
+import paths
 import response_table
 import sessionio
 
 
 # Stimulus logs record image paths as seen on the stimulus PC (C:\FreiwaldSync\MarmoScope\Stimulus\...); older
-# logs used Stimulus/Images, current ones Stimulus/Sets. Both map onto the local mirror of Stimulus/Sets, reached
-# through the in-project 'stimuli' symlink (analysis_for_images.py:635-638, 1400-1408).
+# logs used Stimulus/Images, current ones Stimulus/Sets. Both map onto the local mirror of Stimulus/Sets, located
+# by paths.stimuli() (analysis_for_images.py:635-638, 1400-1408).
 LOGGED_STIMULUS_ROOT = re.compile(r'^.*?/FreiwaldSync/MarmoScope/Stimulus/(Sets|Images)')
-LOCAL_STIMULUS_ROOT = 'stimuli'
+LOCAL_STIMULUS_ROOT = paths.stimuli()
 # Folders renamed on the Sets side after they were logged: (as logged, as now on disk), applied in order.
 STIMULUS_FOLDER_RENAMES = [
     ('Song_etal_Wang_2020_NatCommun', 'Song_etal_Wang_2022_NatCommun'),

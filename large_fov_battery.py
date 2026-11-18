@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
 import response_matrix as rm
 import response_table as rt
 import topography as tg
@@ -34,8 +35,7 @@ TARGETS = [
 
 
 def resolve(animal, date, token):
-    hits = [h for h in sorted(glob.glob('suite2p_results/%s/%s/*%s*' % (animal, date, token)))
-            if os.path.isdir(h) and glob.glob(os.path.join(h, 'suite2p*'))]
+    hits = paths.find_sessions(animal, date, '*%s*' % token)
     return hits[0] if hits else None
 
 

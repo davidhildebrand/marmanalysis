@@ -13,7 +13,7 @@ variant changes a cell's measured tuning; also restricted to cells responsive in
 Response-side numbers use the pipeline defaults (Fzsc, neuropil correction 0.7, eye gate 'landing_window'), exactly
 as suite2p_sweep_readouts.py does, so the two tables are consistent.
 Writes tmp/suite2p_sweep/<slug>_match_<UTC>.csv and prints a comparison table.
-Run:  /Users/davidh/Data/Vibe/Analysis_Freiwald/.venv/bin/python marmanalysis/suite2p_sweep_match.py \\
+Run:  .venv/bin/python marmanalysis/suite2p_sweep_match.py \\
           --refs <variant> [<variant> ...] [--variants <variant> ...] [--iou 0.5]
 """
 import argparse
