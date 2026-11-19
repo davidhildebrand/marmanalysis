@@ -206,7 +206,8 @@ def test_start_of_sweep_ramp_is_measured_and_removed():
     truth = None
     scores = {}
     for name, g in (('corrected', gain), ('uncorrected', None)):
-        plan = mg.stitch_plan(N, F, width, OVERLAPS, 1.0, 'average', gain=g, dark=dark if g is not None else 0.0)
+        plan = mg.stitch_plan(N, F, width, OVERLAPS, 1.0, 'average', gain=g, dark=dark if g is not None else 0.0,
+                              ramp='correct')
         out = mg.stitch(raw, plan)
         if truth is None:
             truth = dark + level + view((np.arange(plan['n_canvas']) + 0.5) * 1.0, 0.0)
@@ -215,3 +216,50 @@ def test_start_of_sweep_ramp_is_measured_and_removed():
         if g is not None:
             assert np.max(np.abs(out[8:-8, 20:-20] - truth[8:-8, 20:-20])) < 1.0     # right brightness, no line pattern
     assert scores['corrected'] > 0.97 and scores['corrected'] > scores['uncorrected'] + 0.02
+
+
+def test_ramp_modes_select_takes_the_bright_copy_and_never_rescales():
+    """'select' reaches full brightness wherever a strip overlaps its neighbour without dividing anything by a gain:
+    its output is a fixed-weight average of raw values, so it is linear in the data and blind to the dark level.
+    'correct' flat-fields everything and therefore depends on the dark level. 'none' leaves the line pattern in."""
+    import pytest
+    strips, view, left, width = scene_and_strips(np.random.default_rng(6), row_offsets=(0.0, 0.0))
+    dark, level = 30.0, 6.0
+    ramp = np.ones((2, N))
+    ramp[0, :12] = np.linspace(0.2, 0.95, 12)
+    ramp[1, -12:] = np.linspace(0.95, 0.2, 12)
+    raw = np.empty_like(strips)
+    for parity in (0, 1):
+        raw[:, parity::2] = dark + (level + strips[:, parity::2]) * ramp[parity]
+    gain = mg.edge_gain(raw, dark)
+    plans = {m: mg.stitch_plan(N, F, width, OVERLAPS, 1.0, 'average', gain=gain, dark=dark, ramp=m) for m in mg.RAMP_MODES}
+    out = {m: mg.stitch(raw, plans[m]) for m in plans}
+    truth = dark + level + view((np.arange(plans['select']['n_canvas']) + 0.5) * 1.0, 0.0)
+    rows = slice(8, -8)
+    zone = slice(int(left[1]) + 1, int(left[1]) + 7)                       # inside the first overlap (8 wide)
+    err = {m: float(np.max(np.abs(out[m][rows, zone] - truth[rows, zone]))) for m in out}
+    assert err['select'] < 1.0 and err['correct'] < 1.0                    # both right in the overlap ...
+    assert err['none'] > 2.0 * err['select']                               # ... the plain blend is not
+    interior = slice(30, 100)                                              # no ramp here: the modes agree
+    assert np.allclose(out['select'][rows, interior], out['correct'][rows, interior], atol=0.05)
+    assert np.allclose(out['select'][rows, interior], out['none'][rows, interior], atol=1e-3)
+
+    # the outer edge has one, ramped, copy: 'select' leaves it dim and says so, 'correct' restores it
+    left_in = mg.ramp_left_in(plans['select'], raw.shape[-2])
+    assert left_in.shape == out['select'].shape and left_in[:, zone].min() > 0.95 and left_in[:, :3].min() < 0.5
+    assert np.allclose(mg.ramp_left_in(plans['correct'], raw.shape[-2]), 1.0)
+    assert np.mean(truth[8:-8:2, :3] - out['select'][8:-8:2, :3]) > 2.0    # even lines start dim at the left edge
+    assert np.max(np.abs(out['correct'][rows, 2:6] - truth[rows, 2:6])) < 1.5
+
+    # 'select' and 'none' are fixed-weight averages of raw values: linear, and independent of the dark level
+    for m in ('select', 'none'):
+        assert np.allclose(mg.stitch(2.0 * raw + 7.0, plans[m]), 2.0 * out[m] + 7.0, atol=2e-2)
+        off = mg.stitch_plan(N, F, width, OVERLAPS, 1.0, 'average', gain=gain, dark=dark + 10.0, ramp=m)
+        assert np.allclose(mg.stitch(raw, off), out[m], atol=2e-2)
+    # 'correct' is not: a dark level wrong by 10 counts moves the ramped edge by tens of counts
+    off = mg.stitch_plan(N, F, width, OVERLAPS, 1.0, 'average', gain=gain, dark=dark + 10.0, ramp='correct')
+    assert np.max(np.abs(mg.stitch(raw, off)[rows, :3] - out['correct'][rows, :3])) > 10.0
+
+    assert mg.ramp_mode(True) == 'correct' and mg.ramp_mode(False) == 'none' and mg.ramp_mode('select') == 'select'
+    with pytest.raises(ValueError):
+        mg.ramp_mode('flat')

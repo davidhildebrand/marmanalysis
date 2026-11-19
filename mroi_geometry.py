@@ -360,16 +360,158 @@ def edge_gain(mean_strips, dark=0.0, floor=0.05):
     return np.clip(np.nan_to_num(g, nan=1.0), floor, 1.0)
 
 
-def dark_level(session, n_frames=24, seed=0):
-    """Detector offset: the median of the flyback rows between strips, where the beam is blanked."""
-    from ScanImageTiffReader import ScanImageTiffReader
+def flyback_gaps(session, margin=4):
+    """Row ranges of the flyback lines between strips, where the beam is blanked: [(first, last + 1), ...]."""
     rows = scan_settings(session)['rows']
+    return [(rows[i][1] + margin, rows[i + 1][0] - margin) for i in range(len(rows) - 1)
+            if rows[i + 1][0] - rows[i][1] > 2 * margin + 2]
+
+
+def additive_level(frames, gaps, statistic='mean'):
+    """The level a pixel reads with no fluorescence, per frame: ``statistic`` of the flyback rows of raw frames
+    (n, H, W). Use the MEAN. It is the detector offset plus any light that does not come from the beam (ambient light,
+    the stimulus monitor). That light arrives as sparse events, so it lifts the mean of the flyback rows and of every
+    tissue pixel alike while leaving the median where it was: in Cadbury20221016d152643tUTC the mean sits about 23
+    counts above the median for as long as the stimulus program runs."""
+    if not gaps:
+        return np.zeros(len(frames))
+    fly = np.concatenate([frames[:, g0:g1].reshape(len(frames), -1) for g0, g1 in gaps], axis=1)
+    return np.median(fly, axis=1) if statistic == 'median' else fly.mean(axis=1)
+
+
+def dark_level(session, n_frames=300, seed=0, statistic='mean', chunk=4):
+    """The additive level under the tissue, averaged over frames spread through the recording (the same frames
+    read_strips samples by default): the mean of the flyback rows. See additive_level for why not the median."""
+    from ScanImageTiffReader import ScanImageTiffReader
+    gaps = flyback_gaps(session)
+    if not gaps:
+        return 0.0
     with ScanImageTiffReader(raw_file(session)) as reader:
         total = reader.shape()[0]
-        starts = np.sort(np.random.default_rng(seed).choice(total - 4, max(1, n_frames // 4), replace=False))
-        frames = np.concatenate([reader.data(beg=int(s), end=int(s) + 4) for s in starts]).astype(np.float32)
-    gaps = [frames[:, rows[i][1] + 4:rows[i + 1][0] - 4] for i in range(len(rows) - 1) if rows[i + 1][0] - rows[i][1] > 10]
-    return float(np.median(np.concatenate([g.ravel() for g in gaps]))) if gaps else 0.0
+        starts = np.sort(np.random.default_rng(seed).choice(total - chunk, max(1, n_frames // chunk), replace=False))
+        levels = [additive_level(reader.data(beg=int(b_), end=int(b_) + chunk).astype(np.float32), gaps, statistic)
+                  for b_ in starts]
+    return float(np.mean(np.concatenate(levels)))
+
+
+RAMP_MODES = ('select', 'correct', 'none')
+SELECT_POWER = 8          # 'select': a copy counts in proportion to its brightness to this power (0.5 -> 0.4%)
+
+
+def ramp_mode(ramp):
+    """Normalize the ``ramp`` argument (True and False are the older spellings of 'correct' and 'none')."""
+    ramp = {True: 'correct', False: 'none'}.get(ramp, ramp) if isinstance(ramp, bool) else ramp
+    if ramp not in RAMP_MODES:
+        raise ValueError('ramp must be one of %s, got %r' % (RAMP_MODES, ramp))
+    return ramp
+
+
+def read_strip_blocks(session, n_blocks=6, frames_per_block=120):
+    """Contiguous runs of RAW frames evenly spread from the start to the end of the recording. Returns a dict:
+    strips float32 (n_blocks, frames, n_strips, h, w), starts (first frame of each block), and the additive level of
+    every frame from the flyback rows, ``level`` (mean) and ``level_median``, both (n_blocks, frames)."""
+    from ScanImageTiffReader import ScanImageTiffReader
+    rows, gaps = scan_settings(session)['rows'], flyback_gaps(session)
+    strips, level, level_median = [], [], []
+    with ScanImageTiffReader(raw_file(session)) as reader:
+        total = reader.shape()[0]
+        frames_per_block = min(frames_per_block, total // n_blocks)
+        starts = np.linspace(0, total - frames_per_block, n_blocks).astype(int)
+        for b_ in starts:
+            blk = reader.data(beg=int(b_), end=int(b_) + frames_per_block).astype(np.float32)
+            strips.append(np.stack([blk[:, y0:y1] for y0, y1 in rows], axis=1))
+            level.append(additive_level(blk, gaps))
+            level_median.append(additive_level(blk, gaps, 'median'))
+    return {'strips': np.stack(strips), 'starts': starts, 'level': np.stack(level), 'level_median': np.stack(level_median)}
+
+
+def ramp_checks(session, n_blocks=8, frames_per_block=120):
+    """Is the start-of-sweep ramp what ramp='correct' assumes: a FIXED, purely MULTIPLICATIVE gain about a KNOWN
+    additive level? Flat-fielding computes (value - level) / gain + level for every frame, so it needs all three.
+    Measured on runs of raw frames spread over the recording:
+
+      additive level   the mean of the beam-blanked flyback rows, block by block. If it moves during the recording
+                       (ambient or stimulus-monitor light does), a flat-field with one fixed level is wrong by the
+                       change divided by the gain: ``level_error_at_dimmest`` is that error at the dimmest ramp pixel,
+                       as a fraction of the median tissue signal.
+      fixed gain       the gain profile of every block, each computed about its own additive level. ``drift`` is the
+                       range across blocks over the ramp pixels (gain < 0.9), as a fraction of the gain; ``noise`` is
+                       the same between the two interleaved halves of one block (what "no change" looks like).
+                       ``drift_fixed_level`` repeats it with one level for the whole recording, i.e. what a fixed
+                       flat-field would actually face.
+      purely a gain    the gain measured separately on the dimmest and the brightest third of the tissue (sorted by
+                       the neighbouring rows, so that the sort is independent of the pixels compared). A pure gain
+                       gives the same number in both. ``level_implied`` is the additive level that would make them
+                       equal: an estimate from the tissue itself, independent of the flyback rows.
+    Returns a dict; print_ramp_checks formats it."""
+    blk = read_strip_blocks(session, n_blocks, frames_per_block)
+    strips, level = blk['strips'], blk['level'].mean(1)                          # per block
+    level_all = float(level.mean())
+    means = strips.mean(1)                                                       # (blocks, strips, rows, px)
+    overall = edge_gain(np.mean([m - lv for m, lv in zip(means, level)], axis=0))
+    zone = overall < 0.9
+    per_block = np.stack([edge_gain(m, lv) for m, lv in zip(means, level)])
+    per_block_fixed = np.stack([edge_gain(m, level_all) for m in means])
+    halves = np.stack([np.stack([edge_gain(b_[h::2].mean(0), lv) for h in (0, 1)]) for b_, lv in zip(strips, level)])
+
+    def spread(g):
+        r = (g.max(0) - g.min(0))[zone] / overall[zone]
+        return (float(np.median(r)), float(r.max())) if r.size else (np.nan, np.nan)
+    noise = np.abs(halves[:, 0] - halves[:, 1])[:, zone] / overall[zone]
+    m = np.mean([mm - lv for mm, lv in zip(means, level)], axis=0)               # level-subtracted, (strips, rows, px)
+    even, odd = m[:, 0::2], m[:, 1::2]
+    n_pair = min(even.shape[1], odd.shape[1])
+    even, odd = even[:, :n_pair], odd[:, :n_pair]
+    low, high, implied = [], [], []
+    for parity, (dim, bright) in enumerate(((even, odd), (odd, even))):
+        for k in np.flatnonzero(zone[parity]):
+            d, b_ = dim[:, 1:-1, k].ravel(), bright[:, 1:-1, k].ravel()
+            proxy = (bright[:, :-2, k] + bright[:, 2:, k]).ravel()               # the rows above and below
+            order = np.argsort(proxy)
+            third = max(1, order.size // 3)
+            dl, bl, dh, bh = d[order[:third]].mean(), b_[order[:third]].mean(), d[order[-third:]].mean(), b_[order[-third:]].mean()
+            low.append(dl / bl)
+            high.append(dh / bh)
+            denom = dl + bh - dh - bl
+            implied.append((dl * bh - dh * bl) / denom if abs(denom) > 1e-9 else np.nan)
+    low, high = np.array(low), np.array(high)
+    signal = float(np.median(m))
+    g_min = float(overall[zone].min()) if zone.any() else 1.0
+    level_range = float(level.max() - level.min())
+    return {'slug': sessionio.session_slug(session), 'gain': overall, 'n_ramp_px': int(zone.sum()), 'gain_min': g_min,
+            'block_starts': blk['starts'], 'frames_per_block': int(strips.shape[1]),
+            'level': level, 'level_median': blk['level_median'].mean(1), 'level_range': level_range,
+            'level_frame_sd': float(np.median(blk['level'].std(1))),
+            'signal_median': signal, 'level_error_at_dimmest': level_range / g_min / max(signal, 1e-9),
+            'drift_median': spread(per_block)[0], 'drift_max': spread(per_block)[1],
+            'drift_fixed_level_median': spread(per_block_fixed)[0], 'drift_fixed_level_max': spread(per_block_fixed)[1],
+            'noise_median': float(np.median(noise)) if noise.size else np.nan,
+            'noise_p95': float(np.percentile(noise, 95)) if noise.size else np.nan,
+            'gain_dim_tissue': low, 'gain_bright_tissue': high,
+            'brightness_dependence': float(np.median(np.abs(high - low) / (0.5 * (high + low)))) if low.size else np.nan,
+            'level_implied': level_all + float(np.nanmedian(implied)) if implied else np.nan, 'level_all': level_all,
+            'per_block': per_block}
+
+
+def print_ramp_checks(c):
+    print('%s | start-of-sweep ramp checks | %d blocks of %d frames, first frames %s'
+          % (c['slug'], len(c['block_starts']), c['frames_per_block'], ', '.join(str(int(b_)) for b_ in c['block_starts'])))
+    print('   ramp: %d pixels with gain < 0.9, smallest gain %.2f | median tissue signal above the additive level: %.1f counts'
+          % (c['n_ramp_px'], c['gain_min'], c['signal_median']))
+    print('   additive level (mean of the beam-blanked flyback rows) per block: %s'
+          % ' '.join('%.1f' % v for v in c['level']))
+    print('      the median of the same rows: %s' % ' '.join('%.1f' % v for v in c['level_median']))
+    print('      range across blocks %.1f counts = %.0f%% of the median signal; frame-to-frame SD within a block %.1f counts'
+          % (c['level_range'], 100 * c['level_range'] / max(c['signal_median'], 1e-9), c['level_frame_sd']))
+    print('      a flat-field with ONE fixed level would be wrong at the dimmest ramp pixel by up to %.0f%% of the median signal'
+          % (100 * c['level_error_at_dimmest']))
+    print('   fixed gain?     range of the gain across blocks: median %.1f%%, largest %.1f%% of the gain (each block about its own '
+          'level) | with one fixed level: median %.1f%%, largest %.1f%% | measurement noise: median %.1f%%, 95th percentile %.1f%%'
+          % (100 * c['drift_median'], 100 * c['drift_max'], 100 * c['drift_fixed_level_median'], 100 * c['drift_fixed_level_max'],
+             100 * c['noise_median'], 100 * c['noise_p95']))
+    print('   purely a gain?  gain on the dimmest third of the tissue vs the brightest third differs by %.1f%% (median over ramp '
+          'pixels) | additive level implied by the tissue %.1f vs %.1f from the flyback rows'
+          % (100 * c['brightness_dependence'], c['level_implied'], c['level_all']))
 
 
 # ---------------------------------------------------------------------------------------------------- stitching ----
@@ -439,17 +581,25 @@ def strip_to_canvas_matrix(n_px, fill_fraction_temporal, width, left_edge, n_can
 
 
 def stitch_plan(n_px, fill_fraction_temporal, width, overlaps, pixel, mode='crossfade', row_offsets=None,
-                line_offset=0.0, gain=None, dark=0.0):
+                line_offset=0.0, gain=None, dark=0.0, ramp='select'):
     """Everything needed to turn raw strips into one evenly sampled plane.
 
     ``overlaps``: overlap between each pair of neighbours, in the units of ``width`` (negative = a gap), e.g. from
     seam_fit. ``pixel``: output pixel size along x. ``row_offsets``: per seam, how many rows (may be fractional) the
     right strip's content sits BELOW where the left strip shows the same tissue... as returned by seam_fit ('dy' or
     'dy_subpixel': left row r + dy matches right row r). ``line_offset``: odd/even line offset in raw pixels.
-    ``gain`` (2, n_px), from edge_gain, and ``dark``: the start-of-sweep ramp. With a gain, what is summed across strips
-    is the light collected, and it is divided by the gain collected: a single strip is brightness-corrected, and in an
-    overlap the dim (ramped, noisier) copy automatically counts for less. With mode 'average' that is the
-    photon-optimal combination of the two copies.
+    ``gain`` (2, n_px), from edge_gain, and ``dark``: the start-of-sweep ramp. ``ramp`` says what to do about it:
+      'select'   (default) NO pixel value is rescaled. Where two strips overlap, each line takes the copy that was
+                 acquired at full brightness (a copy counts in proportion to its gain to the power SELECT_POWER), which
+                 is possible because the two strips ramp on opposite line parities. Where only a ramped copy exists
+                 (the outer edges of the field of view, or strips that do not overlap) the dimming stays in the data.
+                 The output is a weighted average of raw values with fixed weights, and does not depend on ``dark``.
+      'correct'  flat-field every frame: the light summed across strips is divided by the gain collected, so a single
+                 strip is divided by its gain and, in an overlap, the dim copy counts for less (with mode 'average'
+                 the photon-optimal combination). Brightness is right everywhere, at the price of dividing functional
+                 data by a measured gain: see ramp_checks for what that assumes.
+      'none'     the gain is ignored: copies are blended by geometry alone and the ramp stays wherever it was.
+    Without a gain all three are the same.
     Returns a dict with the canvas size, each strip's left edge, weights, row shift, and its two sampling matrices
     (even and odd lines)."""
     overlaps = np.atleast_1d(np.asarray(overlaps, float))
@@ -462,11 +612,15 @@ def stitch_plan(n_px, fill_fraction_temporal, width, overlaps, pixel, mode='cros
     row_shift = np.concatenate([[0.0], np.cumsum(row_offsets)])
     mats = [tuple(strip_to_canvas_matrix(n_px, fill_fraction_temporal, width, left_edges[i], n_canvas, pixel, weights[i], s)
                   for s in (-0.5 * line_offset, 0.5 * line_offset)) for i in range(n)]
+    ramp = ramp_mode(ramp)
     gain = np.ones((2, n_px)) if gain is None else np.asarray(gain, float)
+    cover = [tuple(np.asarray(R @ np.ones(n_px)) for R in pair) for pair in mats]        # blending weight on the canvas
+    prefer = [tuple(np.where(c > 1e-9, np.asarray(R @ gain[q]) / np.where(c > 1e-9, c, 1.0), 0.0) ** SELECT_POWER
+                    for q, (R, c) in enumerate(zip(pair, cov))) for pair, cov in zip(mats, cover)]
     return {'n_canvas': n_canvas, 'pixel': float(pixel), 'width': float(width), 'left_edges': left_edges, 'overlaps': overlaps,
             'weights': weights, 'row_shift': row_shift, 'matrices': mats, 'mode': mode,
             'fill_fraction_temporal': fill_fraction_temporal, 'n_px': n_px, 'line_offset': float(line_offset),
-            'gain': gain, 'dark': float(dark)}
+            'gain': gain, 'dark': float(dark), 'ramp': ramp, 'cover': cover, 'prefer': prefer}
 
 
 def shift_rows(image, offset):
@@ -483,8 +637,10 @@ def shift_rows(image, offset):
 def strip_on_canvas(strip, plan, i, weighted=True):
     """One raw strip (..., rows, n_px) placed on the canvas (..., rows, n_canvas): undistorted, line-corrected, at its
     sub-pixel position, row-shifted. With ``weighted=True`` this is the strip's CONTRIBUTION to the stitched plane
-    (dark-subtracted light times its blending weight; stitch() sums these and divides by the gain collected). With
-    ``weighted=False`` it is the strip on its own, brightness-corrected, for comparing the two copies of an overlap."""
+    (dark-subtracted light times its blending weight, and with ramp 'select' times its brightness preference; stitch()
+    sums these and divides by what gain_collected returns). With ``weighted=False`` it is the strip on its own,
+    ALWAYS brightness-corrected whatever the plan's ramp mode: that is a measurement aid, for comparing the two copies
+    of an overlap, and never reaches the stitched movie."""
     strip = np.asarray(strip, np.float32) - plan['dark']
     out = np.empty(strip.shape[:-1] + (plan['n_canvas'],), np.float32)
     for parity in (0, 1):
@@ -498,19 +654,29 @@ def strip_on_canvas(strip, plan, i, weighted=True):
         if not weighted:
             own = R @ plan['gain'][parity]
             res = res / np.where(own > 1e-6, own, 1.0) + plan['dark']
+        elif plan['ramp'] == 'select':
+            res = res * plan['prefer'][i][parity]
         out[..., parity::2, :] = res
     return shift_rows(out, plan['row_shift'][i])
 
 
 def gain_collected(plan, rows):
-    """The gain that reaches every canvas pixel, (rows, n_canvas): each strip's weight times its even- or odd-line
-    brightness, moved by that strip's row shift exactly as its light is. Cached in the plan."""
+    """What the summed contributions have to be divided by at every canvas pixel, (rows, n_canvas), moved by each
+    strip's row shift exactly as its light is. Ramp 'correct': the gain collected (each strip's weight times its even-
+    or odd-line brightness), so the result is brightness-corrected. Ramp 'select' and 'none': the weight collected, so
+    the result is a plain weighted average of raw values. Cached in the plan."""
     key = ('gain_collected', rows)
     if key not in plan:
         total = np.zeros((rows, plan['n_canvas']), np.float32)
         for i, (r_even, r_odd) in enumerate(plan['matrices']):
             own = np.empty((rows, plan['n_canvas']), np.float32)
-            own[0::2], own[1::2] = r_even @ plan['gain'][0], r_odd @ plan['gain'][1]
+            if plan['ramp'] == 'correct':
+                own[0::2], own[1::2] = r_even @ plan['gain'][0], r_odd @ plan['gain'][1]
+            elif plan['ramp'] == 'select':
+                own[0::2], own[1::2] = (plan['cover'][i][0] * plan['prefer'][i][0],
+                                        plan['cover'][i][1] * plan['prefer'][i][1])
+            else:
+                own[0::2], own[1::2] = plan['cover'][i]
             total += shift_rows(own, plan['row_shift'][i])
         plan[key] = np.where(total > 1e-6, total, 1.0)
     return plan[key]
@@ -605,10 +771,16 @@ def fit_seams(mean_strips, fill_fraction_temporal, width, yres, max_misfit=1.5, 
 
 
 def refine_seams(mean_strips, fill_fraction_temporal, width, pixel, overlaps, row_offsets, line_offset=0.0, gain=None,
-                 dark=0.0, span=2.5, step=0.25, row_span=1.0, row_step=0.25):
-    """Sub-pixel refinement of every seam: around the fitted overlap (+-``span`` output pixels in steps of ``step``) and
-    row offset (+-``row_span`` rows), keep the pair at which the two copies of the overlap agree best once both are
-    undistorted and brightness-corrected. A seam with less than one column of overlap is left as it is.
+                 dark=0.0, span=2.5, step=0.25, row_span=0.0, row_step=0.25):
+    """Sub-pixel refinement of every seam: around the fitted overlap (+-``span`` output pixels in steps of ``step``),
+    keep the value at which the two copies of the overlap agree best once both are undistorted and
+    brightness-corrected. A seam with less than one column of overlap is left as it is.
+
+    The ROW offset is NOT refined by default (``row_span=0``): the fitted value stands. Agreement cannot place rows.
+    A fractional row shift interpolates between neighbouring lines, which smooths the noisier copy and RAISES the
+    correlation, so the search lands on a half row whatever the truth is. Measured on Cadbury20221016d152643tUTC
+    (tmp/seam_row_offset_landscape.py, 2026-11-18): agreement is flat within 0.02 from -0.75 to +0.75 rows, dips at
+    whole rows, and peaks at -0.5 and +0.5 alike. ``row_span`` > 0 turns the search back on.
     Returns (overlaps, row_offsets, agreement at the chosen values)."""
     n_px = mean_strips.shape[-1]
     overlaps, row_offsets = np.array(overlaps, float), np.array(row_offsets, float)
@@ -631,12 +803,14 @@ def refine_seams(mean_strips, fill_fraction_temporal, width, pixel, overlaps, ro
 
 
 def plan_session(session, mean_strips=None, mode='crossfade', seam='fit', pixel=None, min_agreement=0.7,
-                 on_disagreement='warn', n_frames=300, subpixel=True, ramp=True, dark=None):
+                 on_disagreement='warn', n_frames=300, subpixel=True, ramp='select', dark=None):
     """The stitch plan for a session. ``seam``: 'fit' measures every seam from the data, 'nominal' takes the header's
     layout (no overlap), a number is an overlap in um used for every seam. ``subpixel=False`` rounds the measured
     positions to whole output pixels and rows; otherwise each fitted seam is refined to a fraction of a pixel by
-    maximising the agreement of its two copies (refine_seams). ``ramp=False`` leaves the start-of-sweep brightness
-    ramp uncorrected.
+    maximising the agreement of its two copies (refine_seams). ``ramp``: what the stitched movie does about the
+    start-of-sweep brightness ramp, 'select' (default: never rescale, take the full-brightness copy where there is
+    one), 'correct' (flat-field every frame), or 'none' (see stitch_plan). The ramp is MEASURED in every mode, because
+    the seams cannot be found without it. That measurement only touches the mean image used to place the strips.
     Returns (plan, info)."""
     s = scan_settings(session)
     w = int(s['strip_px'][0])
@@ -646,8 +820,9 @@ def plan_session(session, mean_strips=None, mode='crossfade', seam='fit', pixel=
         mean_strips = read_strips(session, n_frames).mean(0)
     line_offset = float(np.median([bidirectional_offset(m) for m in mean_strips]))
     n = mean_strips.shape[0]
-    dark = (dark_level(session) if ramp else 0.0) if dark is None else float(dark)
-    gain = edge_gain(mean_strips, dark) if ramp else None
+    ramp = ramp_mode(ramp)
+    dark = dark_level(session) if dark is None else float(dark)
+    gain = edge_gain(mean_strips, dark)
     fits, trusted = None, None
     if seam == 'fit':
         overlaps, rows, fits, trusted = fit_seams(mean_strips, f_t, width, yres, gain=gain, dark=dark)
@@ -658,11 +833,28 @@ def plan_session(session, mean_strips=None, mode='crossfade', seam='fit', pixel=
         overlaps, rows, _ = refine_seams(mean_strips, f_t, width, pixel, overlaps, rows, line_offset, gain, dark)
     if not subpixel:
         overlaps, rows = np.round(overlaps / pixel) * pixel, np.round(rows)
-    plan = stitch_plan(w, f_t, width, overlaps, pixel, mode, rows, line_offset, gain, dark)
+    plan = stitch_plan(w, f_t, width, overlaps, pixel, mode, rows, line_offset, gain, dark, ramp)
     agreement = overlap_agreement(mean_strips, plan)
     bad = check_overlap_agreement(agreement, mode, min_agreement, on_disagreement)
     return plan, {'settings': s, 'mean_strips': mean_strips, 'fits': fits, 'trusted': trusted, 'agreement': agreement,
-                  'disagree': bad, 'line_offset': line_offset, 'gain': gain, 'dark': dark}
+                  'disagree': bad, 'line_offset': line_offset, 'gain': gain, 'dark': dark, 'ramp': ramp,
+                  'ramp_left': ramp_left_in(plan, mean_strips.shape[-2])}
+
+
+def ramp_left_in(plan, rows):
+    """How much of the start-of-sweep dimming is still in the stitched plane, (rows, n_canvas): the brightness of each
+    canvas pixel relative to full brightness, 1 = none left. 1 everywhere with ramp 'correct'."""
+    if plan['ramp'] == 'correct':
+        return np.ones((rows, plan['n_canvas']), np.float32)
+    light = np.zeros((rows, plan['n_canvas']), np.float32)
+    for i, (r_even, r_odd) in enumerate(plan['matrices']):
+        own = np.empty((rows, plan['n_canvas']), np.float32)
+        own[0::2], own[1::2] = r_even @ plan['gain'][0], r_odd @ plan['gain'][1]
+        if plan['ramp'] == 'select':
+            own[0::2] *= plan['prefer'][i][0]
+            own[1::2] *= plan['prefer'][i][1]
+        light += shift_rows(own, plan['row_shift'][i])
+    return light / gain_collected(plan, rows)
 
 
 # ------------------------------------------------------------------------------------------------------- report ----
@@ -834,14 +1026,14 @@ def cut_and_butt(mean_strips, overlap_px):
 
 
 def stitch_report(session, mode='crossfade', seam='fit', n_frames=300, min_agreement=0.7, on_disagreement='warn',
-                  subpixel=True, old_overlap_px=None, out_png=None):
+                  subpixel=True, old_overlap_px=None, out_png=None, ramp='select'):
     """Plan and apply the stitching on the mean of sampled raw frames, print what was found, and save a figure that
     compares it with the cut-and-butt stitching used so far."""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     slug = sessionio.session_slug(session)
-    plan, info = plan_session(session, None, mode, seam, None, min_agreement, on_disagreement, n_frames, subpixel)
+    plan, info = plan_session(session, None, mode, seam, None, min_agreement, on_disagreement, n_frames, subpixel, ramp)
     s, mean_strips = info['settings'], info['mean_strips']
     w, width, yres = int(s['strip_px'][0]), float(s['strip_um'][0]), float(s['resolution_umpx'][1])
     new = stitch(mean_strips, plan)
@@ -869,6 +1061,12 @@ def stitch_report(session, mode='crossfade', seam='fit', n_frames=300, min_agree
         print('   start-of-sweep ramp (dark level %.1f): even lines dim over the first %d px of a line (first pixel %.2f), '
               'odd lines over the last %d px (last pixel %.2f)'
               % (info['dark'], int(np.sum(g[0, :w // 2] < 0.9)), g[0, 0], int(np.sum(g[1, w // 2:] < 0.9)), g[1, -1]))
+        left = info['ramp_left']
+        print('   ramp mode "%s": %s. Dimming left in the stitched plane: %.1f%% of its pixels are below 0.9 of full '
+              'brightness, the dimmest at %.2f'
+              % (info['ramp'], {'select': 'no value rescaled, full-brightness copy taken where one exists',
+                                'correct': 'every frame flat-fielded', 'none': 'gain ignored'}[info['ramp']],
+                 100 * float(np.mean(left < 0.9)), float(left.min())))
     if info['disagree']:
         print('   WARNING: %d seam(s) disagree below %.2f' % (len(info['disagree']), min_agreement))
     fig, ax = plt.subplots(2, 2, figsize=(16, 11), gridspec_kw={'width_ratios': [2.2, 1]})
@@ -890,9 +1088,10 @@ def stitch_report(session, mode='crossfade', seam='fit', n_frames=300, min_agree
         cols = slice(max(int((c - half) / px), 0), int((c + half) / px))
         ax[r_, 1].imshow(img[rows, cols], cmap='gray', vmin=v[0], vmax=v[1], aspect=px / yres, interpolation='nearest')
         ax[r_, 1].set_title('zoom on seam %d|%d' % (k, k + 1), fontsize=10); ax[r_, 1].set_xticks([]); ax[r_, 1].set_yticks([])
-    fig.suptitle('%s: stitching the mROI strips (mean of %d raw frames)' % (slug, n_frames), fontsize=12)
+    fig.suptitle('%s: stitching the mROI strips (mean of %d raw frames), ramp mode "%s"' % (slug, n_frames, info['ramp']),
+                 fontsize=12)
     fig.tight_layout()
-    out_png = out_png or paths.output('mroi_stitch_%s_mode-%s_seam-%s_%s.png' % (slug, mode, seam, STAMP))
+    out_png = out_png or paths.output('mroi_stitch_%s_mode-%s_seam-%s_ramp-%s_%s.png' % (slug, mode, seam, info['ramp'], STAMP))
     os.makedirs(os.path.dirname(out_png), exist_ok=True)
     fig.savefig(out_png, dpi=110); plt.close(fig)
     print('saved %s' % out_png)
@@ -911,10 +1110,18 @@ def main():
     ap.add_argument('--min-agreement', type=float, default=0.7,
                     help='lowest correlation between the two copies in an overlap before a blending mode complains')
     ap.add_argument('--on-disagreement', default='warn', choices=['warn', 'error', 'ignore'])
+    ap.add_argument('--ramp', default='select', choices=RAMP_MODES,
+                    help="start-of-sweep brightness ramp: 'select' never rescales and takes the full-brightness copy "
+                         "where strips overlap, 'correct' flat-fields every frame, 'none' ignores it (see stitch_plan)")
+    ap.add_argument('--ramp-checks', action='store_true',
+                    help='measure whether the ramp is a fixed, purely multiplicative gain (what --ramp correct assumes)')
     a = ap.parse_args()
     session = a.session if os.path.isdir(a.session) else paths.session(a.session)
-    if a.stitch:
-        stitch_report(session, a.overlap_mode, a.seam, a.frames, a.min_agreement, a.on_disagreement, not a.no_subpixel)
+    if a.ramp_checks:
+        print_ramp_checks(ramp_checks(session))
+    elif a.stitch:
+        stitch_report(session, a.overlap_mode, a.seam, a.frames, a.min_agreement, a.on_disagreement, not a.no_subpixel,
+                      ramp=a.ramp)
     else:
         report(session, n_frames=a.frames)
 

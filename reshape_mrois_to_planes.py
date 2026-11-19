@@ -31,13 +31,19 @@ parser.add_argument('-o', '--overlap', type=int, default=0,
 parser.add_argument('-fv', '--fill_value', type=int, default=0,
                     help='Intensity value with which to fill empty regions. [optional, default: 0, type: uint16]')
 parser.add_argument('--undistort', action='store_true',
-                    help='Undo the resonant-axis sinusoid, the odd/even line offset and the start-of-sweep ramp on each '
-                         'strip first, then place the strips to a fraction of a pixel and combine their overlaps as '
-                         '--overlap_mode says (see mroi_geometry.py). Writes *_preprocd_undist_<mode>.* and leaves the '
-                         'session metadata files untouched. [optional, default: off = cut --overlap pixels and butt]')
+                    help='Undo the resonant-axis sinusoid and the odd/even line offset on each strip first, then place '
+                         'the strips to a fraction of a pixel and combine their overlaps as --overlap_mode says (see '
+                         'mroi_geometry.py); --ramp says what happens to the start-of-sweep brightness ramp. Writes '
+                         '*_preprocd_undist_<mode>.* and leaves the session metadata files untouched. '
+                         '[optional, default: off = cut --overlap pixels and butt]')
 parser.add_argument('--overlap_mode', default='crossfade', choices=['crossfade', 'split', 'average', 'left', 'right'],
                     help='With --undistort: how the two copies of the tissue in an overlap are combined. '
                          '[optional, default: crossfade]')
+parser.add_argument('--ramp', default='select', choices=['select', 'correct', 'none'],
+                    help="With --undistort: the start-of-sweep brightness ramp at the strip edges. 'select' never "
+                         "rescales a pixel value and takes the full-brightness copy where strips overlap; 'correct' "
+                         "divides every frame by the measured gain (flat-field); 'none' ignores the ramp. "
+                         "[optional, default: select]")
 parser.add_argument('--seam', default='fit',
                     help="With --undistort: 'fit' measures every seam from the data, 'nominal' uses the header layout, "
                          "a number is an overlap in um for every seam. [optional, default: fit]")
@@ -119,8 +125,8 @@ for i_plane in range(md['n_planes']):
 del data
 
 if opts.undistort:
-    # Undistort every strip, then stitch (mroi_geometry.py). Order: line offset, sinusoid and ramp first, then the
-    # seams. Registration comes afterwards, in suite2p.
+    # Undistort every strip, then stitch (mroi_geometry.py). Order: line offset and sinusoid first, then the seams,
+    # with the start-of-sweep ramp handled as --ramp says. Registration comes afterwards, in suite2p.
     import mroi_geometry
     if md['n_planes'] != 1:
         raise RuntimeError('--undistort handles single-plane data only so far.')
@@ -131,11 +137,13 @@ if opts.undistort:
     plan, stitch_info = mroi_geometry.plan_session(source_path, mean_strips, mode=opts.overlap_mode, seam=seam,
                                                    min_agreement=opts.min_agreement,
                                                    on_disagreement=opts.on_disagreement,
-                                                   subpixel=not opts.no_subpixel)
+                                                   subpixel=not opts.no_subpixel, ramp=opts.ramp)
     volume = np.swapaxes(mroi_geometry.stitch_movie(strips, plan), 1, 2)[..., np.newaxis]  # frames, x, y, z
     del planes_mrois, strips
-    preproc_tag = 'undist_{}'.format(opts.overlap_mode)
-    md['stitch'] = {'overlap_mode': opts.overlap_mode, 'seam': opts.seam, 'pixel_um': plan['pixel'],
+    preproc_tag = 'undist_{}'.format(opts.overlap_mode) + ('' if opts.ramp == 'select' else '_ramp{}'.format(opts.ramp))
+    md['stitch'] = {'overlap_mode': opts.overlap_mode, 'seam': opts.seam, 'pixel_um': plan['pixel'], 'ramp': opts.ramp,
+                    'ramp_left_min': float(stitch_info['ramp_left'].min()),
+                    'ramp_left_fraction_below_0p9': float((stitch_info['ramp_left'] < 0.9).mean()),
                     'w_px': plan['n_canvas'], 'overlaps_um': plan['overlaps'].tolist(),
                     'row_shift_px': plan['row_shift'].tolist(), 'line_offset_px': plan['line_offset'],
                     'dark': plan['dark'], 'fill_fraction_temporal': plan['fill_fraction_temporal'],
