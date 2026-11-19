@@ -137,6 +137,24 @@ def test_direction_comes_from_grating_dir_when_the_log_has_it():
     assert old['direction'].tolist() == [0.0, 90.0, 180.0, 270.0]        # older logs: the one angle column
 
 
+def test_conditions_the_log_cannot_tell_apart_are_reported():
+    # the two faults seen in real logs: a dropped direction (each angle twice) and the stale static-grating orientation
+    lost = pd.DataFrame({'cond': [0, 1, 2, 3], 'grating_ori': [0.0, 90.0, 0.0, 90.0], 'grating_sf': 1.0, 'grating_tf': 4.0})
+    assert gratings.identical_conditions(lost) == [[0, 2], [1, 3]]
+    with pytest.warns(UserWarning, match='identical logged grating parameters'):
+        gratings.build_condition_metadata(lost)
+    static = pd.DataFrame({'cond': [16, 17, 18], 'grating_dir': 337.5, 'grating_ori': 157.5, 'grating_sf': 1.0, 'grating_tf': 0.0})
+    assert gratings.identical_conditions(static) == [[16, 17, 18]]
+    # conditions that differ in any logged parameter are not flagged: contrast, or an array-valued size
+    fine = pd.DataFrame({'cond': [0, 1, 2], 'grating_dir': [0.0, 0.0, 180.0], 'grating_sf': 1.0, 'grating_tf': 4.0,
+                         'grating_contrast': [0.8, 1.0, 0.8], 'grating_size': [np.array([5.0, 5.0])] * 3})
+    assert gratings.identical_conditions(fine) == []
+    import warnings as _w
+    with _w.catch_warnings():
+        _w.simplefilter('error')
+        gratings.build_condition_metadata(fine)
+
+
 def test_process_session_real_multimodal_gratings():
     if not os.path.isdir(GRATINGS_SESSION):
         pytest.skip('session data not present')

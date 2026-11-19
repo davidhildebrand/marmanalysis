@@ -22,6 +22,8 @@ grating_ori = dir % 180): the 16 directions arrived as 8 angles, each twice. Sti
 before that date have no grating_dir, so `grating_ori` remains the fallback.
 """
 
+from warnings import warn
+
 import numpy as np
 import pandas as pd
 
@@ -51,10 +53,40 @@ def select_drifting_gratings(stimlog):
     return stimlog[np.asarray(is_grating) & np.asarray(is_drifting)].reset_index(drop=True)
 
 
+def identical_conditions(stimlog, cond_col='cond'):
+    """Groups of conditions whose LOGGED grating parameters are all the same: [[cond, cond, ...], ...].
+
+    Two conditions the log cannot tell apart are either the same stimulus shown under two condition numbers, or a
+    parameter that was dropped on the way in. Both have happened. Until 2026-11-18 the drift direction was lost for
+    logs that record grating_dir and grating_ori, so each direction looked identical to its opposite. And the
+    Multimodal stimulus code up to 2024 built every "static grating" condition with the orientation of the last
+    moving grating (a stale loop variable), so its six conditions are one stimulus: 48 sessions on disk, confirmed in
+    each session's PsychoPy log (tmp/audit_static_gratings.py). Compared: every scalar grating_* column."""
+    cols = [c for c in stimlog.columns if c.startswith('grating_')]
+    keys = {}
+    for c in np.unique(stimlog[cond_col].dropna().to_numpy()):
+        sub = stimlog[stimlog[cond_col] == c]
+        key = []
+        for col in cols:
+            present = [v for v in sub[col].to_list() if isinstance(v, (list, tuple, np.ndarray)) or not pd.isna(v)]
+            value = present[0] if present else None                   # array-valued cells (size, pos) are not hashable
+            if isinstance(value, (list, tuple, np.ndarray)):
+                value = tuple(np.ravel(value).tolist())
+            key.append(value)
+        keys.setdefault(tuple(map(repr, key)), []).append(c)
+    return [group for group in keys.values() if len(group) > 1]
+
+
 def build_condition_metadata(stimlog, cond_col='cond'):
-    """Per-condition grating metadata (direction, orientation = dir % 180, sf, tf)."""
+    """Per-condition grating metadata (direction, orientation = dir % 180, sf, tf). Warns when the log cannot tell
+    two conditions apart (identical_conditions): their responses are then repeats of one stimulus, not a tuning
+    curve."""
     conditions = np.unique(stimlog[cond_col].dropna().to_numpy())
     dir_col = direction_column(stimlog)
+    same = identical_conditions(stimlog, cond_col)
+    if same:
+        warn('conditions with identical logged grating parameters (read from `%s`): %s. Check the session stimulus '
+             'code and PsychoPy log for what was shown.' % (dir_col, '; '.join(str([_plain(c) for c in g]) for g in same)))
     rows = []
     for c in conditions:
         sub = stimlog[stimlog[cond_col] == c]
@@ -241,6 +273,10 @@ def process_session(session_path, metric='Fzsc', variant=None, baseline_method='
                     'n_samp_isi': n_samp_isi, 'n_samp_stim': n_samp_stim, 'stim_provenance': prov},
         'tuning': orientation_selectivity(ds, metric, compute_dsi=compute_dsi, **selectivity_options),
     }
+
+
+def _plain(value):
+    return value.item() if hasattr(value, 'item') else value
 
 
 def _unique(sub, col):
