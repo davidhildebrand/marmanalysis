@@ -27,8 +27,9 @@ they no longer run from here as they are.
 | Response heatmap | `response_matrix.plot_response_heatmap` (one generalized version) |
 | Eye position | `eyetracking.py` (a different, calibration-free approach) |
 | Stimulus feature space: per-ROI feature preference, encoding weights, preference against distance | `feature_topography.py`, `feature_topography_v2.py`, `layer_alignment.py` (re-implemented, see below) |
-| Direction and orientation indices, von Mises fits | `tuning.py` |
-| Gratings: trial selection, OSI and DSI per ROI | `gratings.py` |
+| Direction and orientation indices, von Mises fits, and all measures of Mazurek, Kager, and Van Hooser 2014 | `tuning.py` |
+| Bayesian tuning curves (Cronin et al. 2010) | `tuning_bayes.py` |
+| Gratings: trial selection, selectivity indices and tests per ROI | `gratings.py` |
 | Dots: stimulus-log parsing only | `parsers.parse_log_stim_dots`, `sessionio` |
 
 ### What still lives only here

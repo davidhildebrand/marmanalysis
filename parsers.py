@@ -528,6 +528,7 @@ def create_stimulus_record(trials=1) -> pd.DataFrame:
                         'grating_sf': None,
                         'grating_tf': None,
                         'grating_ori': None,
+                        'grating_dir': None,
                         'grating_phase': None,
                         'grating_texRes': None,
                         'grating_color': None,
@@ -787,6 +788,14 @@ def convert_stimulus_record(log_input) -> pd.DataFrame:
                 log.loc[trials_grating, k] = log_input.loc[trials_grating, v]
         else:
             log.loc[trials_grating, k] = log_input.loc[trials_grating, k]
+    # Drift DIRECTION (0-360). Newer stimulus code logs both 'grating_dir' and 'grating_ori' (= dir % 180); the
+    # loop above then keeps the logged grating_ori, so without this column the direction would be lost and the
+    # two directions of one orientation would look like the same condition. Logs with a single angle column
+    # carry the direction in it, which is already in grating_ori.
+    if 'grating_dir' in log_input.columns:
+        log.loc[trials_grating, 'grating_dir'] = log_input.loc[trials_grating, 'grating_dir']
+    else:
+        log.loc[trials_grating, 'grating_dir'] = log.loc[trials_grating, 'grating_ori']
     log.loc[trials_grating, 'stim_mode'] = 'visual'
     log.loc[trials_grating, 'stim_class'] = 'grating'
     log.loc[trials_grating_drifting, 'stim_subclass'] = 'drifting'
@@ -1429,11 +1438,12 @@ def parse_log_stim_gratings(session_log) -> pd.DataFrame:
                     log.at[trial, 'stim_mode'] = 'visual'
                     log.at[trial, 'stim_class'] = g[5]
                     # g[7] is the grating subclass ('drifting'/'static'). The logged 'ori' (g[9]) is
-                    # the drift DIRECTION; convert_stimulus_record likewise stores direction in
-                    # grating_ori (the schema has no grating_dir). float() not int() -- directions
-                    # are logged as e.g. 180.0, which int() cannot parse.
+                    # the drift DIRECTION: it goes to grating_dir, and to grating_ori as before (kept
+                    # for older readers). float() not int() -- directions are logged as e.g. 180.0,
+                    # which int() cannot parse.
                     log.at[trial, 'stim_subclass'] = g[7]
                     log.at[trial, 'grating_ori'] = float(g[9])
+                    log.at[trial, 'grating_dir'] = float(g[9])
                     log.at[trial, 'grating_tex'] = g[10]
                     log.at[trial, 'grating_size'] = np.fromstring(g[11], sep=' ')
                     log.at[trial, 'grating_sf'] = float(np.fromstring(g[12], sep=' ')[0])
